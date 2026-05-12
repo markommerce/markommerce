@@ -6,4 +6,4 @@ Configure which agents run at each phase of the development workflow. Each entry
 - devils-advocate
 
 ## post-implementation
-<!-- - standards-enforcer -->
+- doc-updater
