@@ -7,13 +7,7 @@ Markommerce is a modular PHP 8.5+ e-commerce framework that brings Magento-grade
 
 ## What Markommerce Provides
 
-Markommerce ships a set of focused commerce modules — catalog, cart, checkout, payment, shipping, inventory, pricing — each one a Marko module. Domain packages define interfaces; driver packages implement them. The pattern that Marko uses for `marko/database` → `marko/database-mysql` repeats here: `markommerce/payment` → `markommerce/payment-stripe` / `markommerce/payment-paypal`, and so on.
-
-## What Markommerce Is Not
-
-- Not a turnkey storefront. Markommerce is a framework, not a product.
-- Not a Magento clone. The architectural inspiration is Magento's modularity; the developer experience is Marko's.
-- Not opinionated about your front-end. Markommerce ships PHP packages; the storefront is yours.
+Markommerce ships a set of focused commerce modules — catalog, cart, checkout, payment, shipping, inventory, pricing — each one a Marko module. Domain packages define interfaces; driver packages implement them.
 
 ## Next Steps
 
