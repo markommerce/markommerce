@@ -23,6 +23,9 @@ none
 - `MarkoException` lives at `Marko\Core\Exceptions\MarkoException` with the `message/context/suggestion` triplet.
 - `moneyphp/money` is not yet in any lockfile — will be added to `markommerce/money-moneyphp` (driver package only). `ext-intl` is required at that same driver level for `Money::format()` localized output. Neither dependency leaks into the interface package or into catalog.
 
+### Addendum (post-merge, code review feedback)
+Tasks 019 and 020 were appended after the initial 18-task plan completed and the PR was opened. Code review surfaced that `CategoryAssignmentService` (task 016) directly injects `ConnectionInterface` / `TransactionInterface` and executes raw SQL — a violation of the architecture rule "Application code never touches database classes directly". The fix moves the pivot SQL into a dedicated `ProductCategoryRepository` (task 019), then refactors the service to consume the repo (task 020). After 020, no catalog service references a database class.
+
 ### Decisions resolved during clarification
 - **Entity layer**: Marko ORM (extend `Entity`, repos extend `Repository`).
 - **Schema definition**: Entities define the full schema via `#[Column]` / `#[Index]` / `#[ForeignKey]` attributes. No handwritten migration files in this package. Migration files are generated and run by Marko's `db:migrate` against a consuming application.
@@ -112,6 +115,8 @@ The following will carry explicit `@todo multi-store` docblocks so the future st
 | 016 | Create `CategoryAssignmentServiceInterface` + `CategoryAssignmentService` | 009, 010, 011, 012 | pending |
 | 017 | Wire up `module.php` bindings for catalog (Repos, ProductPriceService, Services, AssignmentService) | 013, 014, 015, 016 | pending |
 | 018 | Write READMEs for `markommerce/money`, `markommerce/money-moneyphp`, and `markommerce/catalog` | 017 | pending |
+| 019 | **Addendum** — Create `ProductCategoryRepository` (extract pivot SQL out of the service) | 007, 011 | pending |
+| 020 | **Addendum** — Refactor `CategoryAssignmentService` to use `ProductCategoryRepository` (close architecture violation) | 019 | pending |
 
 ## Architecture Notes
 

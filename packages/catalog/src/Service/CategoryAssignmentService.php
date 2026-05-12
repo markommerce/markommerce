@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Markommerce\Catalog\Service;
 
 use Marko\Core\Event\EventDispatcherInterface;
-use Marko\Database\Connection\ConnectionInterface;
-use Marko\Database\Connection\TransactionInterface;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Event\ProductAssignedToCategory;
@@ -14,6 +12,7 @@ use Markommerce\Catalog\Event\ProductRemovedFromCategory;
 use Markommerce\Catalog\Exception\CategoryNotFoundException;
 use Markommerce\Catalog\Exception\ProductNotFoundException;
 use Markommerce\Catalog\Repository\CategoryRepositoryInterface;
+use Markommerce\Catalog\Repository\ProductCategoryRepositoryInterface;
 use Markommerce\Catalog\Repository\ProductRepositoryInterface;
 use Throwable;
 
@@ -26,8 +25,7 @@ class CategoryAssignmentService implements CategoryAssignmentServiceInterface
     public function __construct(
         private ProductRepositoryInterface $productRepository,
         private CategoryRepositoryInterface $categoryRepository,
-        private ConnectionInterface $connection,
-        private TransactionInterface $transaction,
+        private ProductCategoryRepositoryInterface $productCategoryRepository,
         private ?EventDispatcherInterface $eventDispatcher = null,
     ) {}
 
@@ -38,54 +36,26 @@ class CategoryAssignmentService implements CategoryAssignmentServiceInterface
      */
     public function assign(int $productId, int $categoryId): void
     {
-        $product = $this->productRepository->find($productId);
-
-        if ($product === null) {
+        if ($this->productRepository->find($productId) === null) {
             throw ProductNotFoundException::forId($productId);
         }
 
-        $category = $this->categoryRepository->find($categoryId);
-
-        if ($category === null) {
+        if ($this->categoryRepository->find($categoryId) === null) {
             throw CategoryNotFoundException::forId($categoryId);
         }
 
-        $this->transaction->beginTransaction();
+        $inserted = $this->productCategoryRepository->assign($productId, $categoryId);
 
-        try {
-            $rows = $this->connection->query(
-                'SELECT 1 FROM product_categories WHERE product_id = ? AND category_id = ? FOR UPDATE',
-                [$productId, $categoryId],
-            );
-
-            if (count($rows) > 0) {
-                $this->transaction->commit();
-
-                return;
-            }
-
-            $this->connection->execute(
-                'INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)',
-                [$productId, $categoryId],
-            );
-
-            $this->transaction->commit();
-        } catch (Throwable $e) {
-            $this->transaction->rollback();
-            throw $e;
+        if ($inserted) {
+            $this->eventDispatcher?->dispatch(new ProductAssignedToCategory($productId, $categoryId));
         }
-
-        $this->eventDispatcher?->dispatch(new ProductAssignedToCategory($productId, $categoryId));
     }
 
     public function unassign(int $productId, int $categoryId): void
     {
-        $affected = $this->connection->execute(
-            'DELETE FROM product_categories WHERE product_id = ? AND category_id = ?',
-            [$productId, $categoryId],
-        );
+        $removed = $this->productCategoryRepository->unassign($productId, $categoryId);
 
-        if ($affected > 0) {
+        if ($removed) {
             $this->eventDispatcher?->dispatch(new ProductRemovedFromCategory($productId, $categoryId));
         }
     }
@@ -96,27 +66,17 @@ class CategoryAssignmentService implements CategoryAssignmentServiceInterface
      */
     public function getCategoriesForProduct(int $productId): array
     {
-        $product = $this->productRepository->find($productId);
-
-        if ($product === null) {
+        if ($this->productRepository->find($productId) === null) {
             throw ProductNotFoundException::forId($productId);
         }
 
-        $rows = $this->connection->query(
-            'SELECT category_id FROM product_categories WHERE product_id = ?',
-            [$productId],
-        );
-
-        $ids = array_map(fn (array $r) => (int) $r['category_id'], $rows);
+        $ids = $this->productCategoryRepository->findCategoryIdsForProduct($productId);
 
         if ($ids === []) {
             return [];
         }
 
-        return array_values(array_filter(
-            array_map(fn (int $id) => $this->categoryRepository->find($id), $ids),
-            fn (?Category $c) => $c !== null,
-        ));
+        return $this->categoryRepository->findBy(['id' => $ids])->toArray();
     }
 
     /**
@@ -125,26 +85,16 @@ class CategoryAssignmentService implements CategoryAssignmentServiceInterface
      */
     public function getProductsInCategory(int $categoryId): array
     {
-        $category = $this->categoryRepository->find($categoryId);
-
-        if ($category === null) {
+        if ($this->categoryRepository->find($categoryId) === null) {
             throw CategoryNotFoundException::forId($categoryId);
         }
 
-        $rows = $this->connection->query(
-            'SELECT product_id FROM product_categories WHERE category_id = ?',
-            [$categoryId],
-        );
-
-        $ids = array_map(fn (array $r) => (int) $r['product_id'], $rows);
+        $ids = $this->productCategoryRepository->findProductIdsForCategory($categoryId);
 
         if ($ids === []) {
             return [];
         }
 
-        return array_values(array_filter(
-            array_map(fn (int $id) => $this->productRepository->find($id), $ids),
-            fn (?Product $p) => $p !== null,
-        ));
+        return $this->productRepository->findBy(['id' => $ids])->toArray();
     }
 }

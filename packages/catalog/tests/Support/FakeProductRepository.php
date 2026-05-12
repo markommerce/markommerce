@@ -49,6 +49,15 @@ class FakeProductRepository implements ProductRepositoryInterface
      */
     public function findBy(array $criteria): EntityCollection
     {
+        if (isset($criteria['id']) && is_array($criteria['id'])) {
+            $ids = $criteria['id'];
+
+            return new EntityCollection(array_values(array_filter(
+                $this->products,
+                fn (Product $p) => in_array($p->id, $ids, true),
+            )));
+        }
+
         return new EntityCollection($this->products);
     }
 

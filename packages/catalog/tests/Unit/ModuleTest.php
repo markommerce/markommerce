@@ -14,6 +14,8 @@ use Markommerce\Catalog\Service\ProductPriceServiceInterface;
 use Markommerce\Catalog\Service\ProductPriceService;
 use Markommerce\Catalog\Service\CategoryAssignmentServiceInterface;
 use Markommerce\Catalog\Service\CategoryAssignmentService;
+use Markommerce\Catalog\Repository\ProductCategoryRepositoryInterface;
+use Markommerce\Catalog\Repository\ProductCategoryRepository;
 
 const MARKO_INFRASTRUCTURE_TYPES = [
     'Marko\\Database\\Connection\\ConnectionInterface',
@@ -73,6 +75,14 @@ it('binds ProductPriceServiceInterface to ProductPriceService', function (): voi
 
     expect($bindings)->toHaveKey(ProductPriceServiceInterface::class);
     expect($bindings[ProductPriceServiceInterface::class])->toBe(ProductPriceService::class);
+});
+
+it('binds ProductCategoryRepositoryInterface to ProductCategoryRepository', function (): void {
+    $module = require dirname(__DIR__, 2) . '/module.php';
+    $bindings = $module['bindings'];
+
+    expect($bindings)->toHaveKey(ProductCategoryRepositoryInterface::class);
+    expect($bindings[ProductCategoryRepositoryInterface::class])->toBe(ProductCategoryRepository::class);
 });
 
 it('binds CategoryAssignmentServiceInterface to CategoryAssignmentService', function (): void {

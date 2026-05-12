@@ -93,6 +93,11 @@ class FakeConnection implements ConnectionInterface, TransactionInterface
         return $this->inTx;
     }
 
+    public function resetExecutedQueries(): void
+    {
+        $this->executedQueries = [];
+    }
+
     public function transaction(callable $callback): mixed
     {
         $this->beginTransaction();
