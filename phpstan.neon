@@ -1,0 +1,8 @@
+parameters:
+    level: 8
+    paths:
+        - packages
+    excludePaths:
+        - packages/*/tests
+        - packages/*/vendor
+    tmpDir: .phpstan-cache
