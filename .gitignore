@@ -1,2 +1,14 @@
+.DS_Store
+.claude/projects/
 .claude/ralph-loop.local.md
+.idea/copilot.data.migration.*
+.idea/shelf/
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/workspace.xml
+.php-cs-fixer.cache
+.phpstan-cache/
+**/.phpunit.cache/
 CLAUDE.local.md
+composer.lock
+vendor/

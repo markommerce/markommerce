@@ -78,3 +78,8 @@ Project configuration files are in `.claude/`:
 - `testing.md` — Test configuration, TDD workflow, fakes vs mocks
 - `code-standards.md` — Coding conventions and style rules
 - `pipeline.md` — Post-plan and post-implementation agent pipeline
+- `../docs/DOCS-STANDARDS.md` — Content standards for the docs site and package READMEs
+
+## Documentation
+
+Documentation content lives in `docs/src/content/docs/` and follows the rules in `docs/DOCS-STANDARDS.md`. The `doc-updater` agent in `.claude/agents/` runs after every implementation to keep docs in sync.
