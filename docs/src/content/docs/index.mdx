@@ -1,0 +1,38 @@
+---
+title: MARKOMMERCE
+description: A modular PHP e-commerce framework — Magento-grade extensibility on top of Marko.
+template: splash
+hero:
+  tagline: Magento-grade modularity for e-commerce, built on Marko PHP. Every domain boundary is an interface; every behavior is swappable.
+  actions:
+    - text: Get Started
+      link: /docs/getting-started/introduction/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/markommerce/markommerce
+      icon: external
+      variant: minimal
+      attrs:
+        target: _blank
+        rel: noopener
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why Markommerce?
+
+<CardGrid>
+  <Card title="Interface-First" icon="puzzle">
+    Every domain boundary is a contract. Swap payments, shipping, or any other driver
+    without touching the core.
+  </Card>
+  <Card title="Built on Marko" icon="seti:php">
+    Inherits Marko's module system, preferences, plugins, and event-driven architecture.
+  </Card>
+  <Card title="Loud Errors" icon="warning">
+    Every exception carries a message, context, and suggestion. No silent failures.
+  </Card>
+  <Card title="No Magic" icon="approve-check">
+    Constructor injection only. Explicit types. PHPStan level 8 across the codebase.
+  </Card>
+</CardGrid>
