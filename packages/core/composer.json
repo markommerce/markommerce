@@ -1,0 +1,14 @@
+{
+    "name": "markommerce/core",
+    "description": "Markommerce core",
+    "license": "MIT",
+    "type": "library",
+    "require": {
+        "php": "^8.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Markommerce\\Core\\": "src/"
+        }
+    }
+}
