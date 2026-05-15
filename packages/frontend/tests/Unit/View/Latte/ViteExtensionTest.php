@@ -6,6 +6,7 @@ use Latte\Engine;
 use Latte\Runtime\Html;
 use Latte\Runtime\HtmlStringable;
 use Marko\Config\ConfigRepository;
+use Marko\Config\ConfigRepositoryInterface;
 use Marko\Core\Path\ProjectPaths;
 use Marko\Vite\Exceptions\ViteConfigurationException;
 use Marko\Vite\Vite;
@@ -15,8 +16,9 @@ use Markommerce\Frontend\View\Latte\ViteExtension;
 describe('ViteExtension', function (): void {
     it('registers a Latte function named vite that returns Html-typed output', function (): void {
         $vite = $this->createMock(Vite::class);
+        $config = $this->createMock(ConfigRepositoryInterface::class);
 
-        $extension = new ViteExtension($vite, 'resources/js/app.ts');
+        $extension = new ViteExtension($vite, $config);
 
         $functions = $extension->getFunctions();
 
@@ -31,7 +33,9 @@ describe('ViteExtension', function (): void {
             ->with('resources/js/custom.ts')
             ->willReturn('<script type="module" src="/build/custom.js"></script>');
 
-        $extension = new ViteExtension($vite, 'resources/js/app.ts');
+        $config = $this->createMock(ConfigRepositoryInterface::class);
+
+        $extension = new ViteExtension($vite, $config);
         $result = $extension->vite('resources/js/custom.ts');
 
         expect($result)->toBeInstanceOf(Html::class);
@@ -45,7 +49,10 @@ describe('ViteExtension', function (): void {
             ->with('resources/js/app.ts')
             ->willReturn('<script type="module" src="/build/app.js"></script>');
 
-        $extension = new ViteExtension($vite, 'resources/js/app.ts');
+        $config = $this->createMock(ConfigRepositoryInterface::class);
+        $config->method('getString')->with('vite.entry')->willReturn('resources/js/app.ts');
+
+        $extension = new ViteExtension($vite, $config);
         $result = $extension->vite();
 
         expect((string) $result)->toBe('<script type="module" src="/build/app.js"></script>');
@@ -55,7 +62,10 @@ describe('ViteExtension', function (): void {
         $vite = $this->createMock(Vite::class);
         $vite->method('headTags')->willReturn('<script type="module" src="/build/app.js"></script>');
 
-        $extension = new ViteExtension($vite, 'resources/js/app.ts');
+        $config = $this->createMock(ConfigRepositoryInterface::class);
+        $config->method('getString')->with('vite.entry')->willReturn('resources/js/app.ts');
+
+        $extension = new ViteExtension($vite, $config);
         $result = $extension->vite();
 
         expect($result)->toBeInstanceOf(Html::class);
@@ -66,7 +76,9 @@ describe('ViteExtension', function (): void {
         $vite = $this->createMock(Vite::class);
         $vite->expects($this->never())->method('headTags');
 
-        $extension = new ViteExtension($vite, 'resources/js/app.ts');
+        $config = $this->createMock(ConfigRepositoryInterface::class);
+
+        $extension = new ViteExtension($vite, $config);
 
         expect(fn () => $extension->vite(''))->toThrow(ViteHelperException::class);
     });
@@ -80,7 +92,10 @@ describe('ViteExtension', function (): void {
         $vite = $this->createMock(Vite::class);
         $vite->method('headTags')->willThrowException($exception);
 
-        $extension = new ViteExtension($vite, 'resources/js/app.ts');
+        $config = $this->createMock(ConfigRepositoryInterface::class);
+        $config->method('getString')->with('vite.entry')->willReturn('resources/js/app.ts');
+
+        $extension = new ViteExtension($vite, $config);
 
         expect(fn () => $extension->vite())->toThrow(ViteConfigurationException::class);
     });
@@ -108,7 +123,7 @@ describe('ViteExtension', function (): void {
         ]);
 
         $vite = new Vite($config, new ProjectPaths($basePath));
-        $extension = new ViteExtension($vite, 'resources/js/app.ts');
+        $extension = new ViteExtension($vite, $config);
 
         $cacheDir = sys_get_temp_dir() . '/latte-vite-ext-cache-' . bin2hex(random_bytes(8));
         mkdir($cacheDir, 0755, true);

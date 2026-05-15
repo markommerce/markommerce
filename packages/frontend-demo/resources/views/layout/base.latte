@@ -10,5 +10,10 @@
     <main>
         {slot content}{/slot}
     </main>
+<script>
+    document.addEventListener('markommerce:counter:changed', (e) => {
+        console.log('[markommerce:counter:changed]', e.detail);
+    });
+</script>
 </body>
 </html>

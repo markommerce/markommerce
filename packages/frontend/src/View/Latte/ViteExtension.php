@@ -6,6 +6,7 @@ namespace Markommerce\Frontend\View\Latte;
 
 use Latte\Extension;
 use Latte\Runtime\Html;
+use Marko\Config\ConfigRepositoryInterface;
 use Marko\Vite\Vite;
 use Markommerce\Frontend\Exceptions\ViteHelperException;
 
@@ -13,7 +14,7 @@ class ViteExtension extends Extension
 {
     public function __construct(
         private readonly Vite $vite,
-        private readonly string $defaultEntry,
+        private readonly ConfigRepositoryInterface $configRepository,
     ) {}
 
     /**
@@ -35,6 +36,6 @@ class ViteExtension extends Extension
             throw ViteHelperException::emptyEntry();
         }
 
-        return new Html($this->vite->headTags($entry ?? $this->defaultEntry));
+        return new Html($this->vite->headTags($entry ?? $this->configRepository->getString('vite.entry')));
     }
 }
