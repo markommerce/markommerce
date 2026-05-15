@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "useDefineForClassFields": false,
+    "experimentalDecorators": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@markommerce/frontend": ["packages/frontend/resources/js/index.ts"],
+      "@markommerce/frontend/*": ["packages/frontend/resources/js/*"]
+    },
+    "noEmit": true
+  },
+  "include": ["packages/*/resources/js/**/*"],
+  "exclude": ["node_modules", "public/build", "vendor", "packages/*/resources/js/**/*.test.ts"]
+}

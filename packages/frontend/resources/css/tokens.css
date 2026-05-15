@@ -1,0 +1,55 @@
+/**
+ * Markommerce semantic design tokens.
+ *
+ * All tokens are scoped inside @layer tokens so that theme-level overrides
+ * (in @layer theme or higher) always win without !important.
+ *
+ * Tokens reference Open Props variables. The consumer must load Open Props
+ * (open-props/style.css) before — or alongside — this file. Open Props ships
+ * unlayered, so its variables are always resolved first, which is intentional:
+ * semantic tokens never compete with the raw Open Props scale.
+ */
+@layer tokens {
+  :root {
+    /* --- Colors ---------------------------------------------------------- */
+    --color-primary: var(--blue-6);
+    --color-primary-light: var(--blue-4);
+    --color-on-primary: var(--gray-0);
+    --color-surface: var(--gray-0);
+    --color-on-surface: var(--gray-9);
+    --color-border: var(--gray-3);
+    --color-error: var(--red-6);
+
+    /* --- Spacing --------------------------------------------------------- */
+    --space-1: var(--size-1);
+    --space-2: var(--size-2);
+    --space-3: var(--size-3);
+    --space-4: var(--size-4);
+    --space-5: var(--size-5);
+
+    /* --- Typography ------------------------------------------------------ */
+    --font-size-sm: var(--font-size-0);
+    --font-size-base: var(--font-size-1);
+    --font-size-lg: var(--font-size-2);
+    --font-size-xl: var(--font-size-3);
+    --font-weight-normal: 400;
+    --font-weight-bold: 700;
+
+    /* --- Transitions ----------------------------------------------------- */
+    --transition-fast: 150ms ease;
+    --transition-base: 250ms ease;
+
+    /* --- Radius ---------------------------------------------------------- */
+    --radius-sm: var(--radius-2);
+    --radius-base: var(--radius-3);
+    --radius-lg: var(--radius-4);
+  }
+
+  /* Dark-mode overrides — flip only the tokens that change in dark theme */
+  [data-theme="dark"] {
+    --color-primary: var(--blue-4);
+    --color-surface: var(--gray-9);
+    --color-on-surface: var(--gray-1);
+    --color-border: var(--gray-7);
+  }
+}

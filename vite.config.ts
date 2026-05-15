@@ -1,0 +1,68 @@
+import { defineConfig } from 'vite';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import markommerceModuleScanner from './build/vite-plugin-markommerce';
+
+const __filename = fileURLToPath(import.meta.url);
+const repoRoot = path.dirname(__filename);
+
+const outDir =
+  process.env['MARKOMMERCE_CONSUMER_PUBLIC'] ?? path.join(repoRoot, 'public/build');
+
+const packagesPath = path.join(repoRoot, 'packages');
+const outputPath = path.join(
+  repoRoot,
+  'packages',
+  'frontend-demo',
+  'resources',
+  'js',
+  '.generated',
+  'extensions.ts',
+);
+
+export default defineConfig(({ command }) => ({
+  plugins: [markommerceModuleScanner({ packagesPath, outputPath })],
+
+  resolve: {
+    alias: [
+      {
+        find: '@markommerce/frontend/css',
+        replacement: path.join(repoRoot, 'packages/frontend/resources/css'),
+      },
+      {
+        find: '@markommerce/frontend',
+        replacement: path.join(repoRoot, 'packages/frontend/resources/js/index.ts'),
+      },
+      {
+        find: 'open-props/style.css',
+        replacement: path.join(repoRoot, 'node_modules/open-props/open-props.min.css'),
+      },
+    ],
+  },
+
+  css: {
+    postcss: path.join(repoRoot, 'postcss.config.js'),
+    devSourcemap: command === 'serve',
+  },
+
+  build: {
+    target: 'es2022',
+    outDir,
+    emptyOutDir: true,
+    manifest: true,
+    sourcemap: command === 'serve',
+    rollupOptions: {
+      input: path.join(repoRoot, 'packages/frontend-demo/resources/js/main.ts'),
+      output: {
+        assetFileNames: 'assets/[name].[hash].[ext]',
+      },
+    },
+  },
+
+  server: {
+    port: 5173,
+    strictPort: true,
+    cors: true,
+    origin: 'http://localhost:5173',
+  },
+}));

@@ -1,0 +1,17 @@
+{
+  "name": "@markommerce/frontend-demo",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "markommerce": {
+    "extension": "./resources/js/index.ts",
+    "priority": 1000
+  },
+  "dependencies": {
+    "@markommerce/frontend": "*"
+  },
+  "peerDependencies": {
+    "lit": "^3.0",
+    "open-props": "^1.7"
+  }
+}

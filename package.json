@@ -1,0 +1,37 @@
+{
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:js": "eslint 'packages/*/resources/js/**/*.ts'",
+    "lint:css": "stylelint 'packages/*/resources/css/**/*.css'",
+    "format": "prettier --write 'packages/*/resources/js/**/*.ts' 'packages/*/resources/css/**/*.css'",
+    "format:check": "prettier --check 'packages/*/resources/js/**/*.ts' 'packages/*/resources/css/**/*.css'"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.5.0",
+    "cssnano": "^7.1.9",
+    "eslint": "^9.28.0",
+    "eslint-plugin-lit": "^1.15.0",
+    "lit": "^3.0",
+    "open-props": "^1.7",
+    "postcss": "^8.5.3",
+    "postcss-custom-media": "^11.0.6",
+    "postcss-import": "^16.1.1",
+    "postcss-nesting": "^13.0.2",
+    "prettier": "^3.5.3",
+    "stylelint": "^16.20.0",
+    "stylelint-config-standard": "^38.0.0",
+    "typescript-eslint": "^8.33.1",
+    "vite": "^6.3.5"
+  }
+}
