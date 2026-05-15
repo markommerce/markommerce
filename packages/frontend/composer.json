@@ -1,0 +1,32 @@
+{
+    "name": "markommerce/frontend",
+    "description": "Frontend integration for Markommerce — Latte helpers, Vite asset wiring, and JS/CSS component plumbing",
+    "license": "MIT",
+    "type": "marko-module",
+    "require": {
+        "php": "^8.5",
+        "marko/core": "self.version",
+        "marko/view": "self.version",
+        "marko/view-latte": "self.version",
+        "marko/vite": "self.version"
+    },
+    "require-dev": {
+        "marko/testing": "self.version",
+        "pestphp/pest": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Markommerce\\Frontend\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Markommerce\\Frontend\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "marko": {
+            "module": true
+        }
+    }
+}

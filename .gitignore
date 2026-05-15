@@ -12,3 +12,10 @@
 CLAUDE.local.md
 composer.lock
 vendor/
+
+# Node / frontend
+node_modules/
+public/build/
+.vite/
+packages/*/.vite/
+packages/*/resources/js/.generated/

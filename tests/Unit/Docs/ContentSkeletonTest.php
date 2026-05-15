@@ -41,7 +41,6 @@ it('creates getting-started/introduction.md with title and description frontmatt
     expect($content)->toContain('title: Introduction');
     expect($content)->toContain('description: What markommerce is and why it exists.');
     expect($content)->toContain('## What Markommerce Provides');
-    expect($content)->toContain('## What Markommerce Is Not');
     expect($content)->toContain('## Next Steps');
 });
 

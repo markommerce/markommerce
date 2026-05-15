@@ -1,0 +1,16 @@
+/**
+ * Markommerce cascade-layer order.
+ *
+ * Declare all layers upfront so their precedence is fixed regardless of
+ * the order in which individual stylesheets are loaded.
+ *
+ * Layer precedence (lowest → highest):
+ *   reset < tokens < base < components < modules < theme < utilities
+ *
+ * Consumers who want to override Markommerce semantic tokens (--color-primary
+ * etc.) should do so inside @layer theme or higher.
+ * Consumers who want to override raw Open Props variables (--blue-6 etc.)
+ * must do so outside any @layer block, because Open Props ships unlayered
+ * and unlayered CSS has higher precedence than any layered rule.
+ */
+@layer reset, tokens, base, components, modules, theme, utilities;
