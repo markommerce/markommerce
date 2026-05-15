@@ -89,7 +89,7 @@ function demoTestBuildRouter(
     $templateResolver = new ModuleTemplateResolver($moduleRepository, $viewConfig);
     $paths = new ProjectPaths($basePath);
     $vite = new Vite($config, $paths);
-    $viteExtension = new ViteExtension($vite, 'packages/frontend-demo/resources/js/main.ts');
+    $viteExtension = new ViteExtension($vite, $config);
     $engineFactory = new MarkommerceLatteEngineFactory($viewConfig, $viteExtension);
     $engine = $engineFactory->create();
     $view = new LatteView($engine, $templateResolver);

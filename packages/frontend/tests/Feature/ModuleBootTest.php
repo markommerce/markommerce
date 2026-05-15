@@ -76,7 +76,7 @@ it('the MarkommerceLatteEngineFactory::create() returns an Engine with both Slot
     $viewConfig = new ViewConfig($config);
     $paths = new ProjectPaths(sys_get_temp_dir());
     $vite = new Vite($config, $paths);
-    $viteExtension = new ViteExtension($vite, 'packages/frontend-demo/resources/js/main.ts');
+    $viteExtension = new ViteExtension($vite, $config);
     $factory = new MarkommerceLatteEngineFactory($viewConfig, $viteExtension);
 
     $engine = $factory->create();
@@ -144,7 +144,7 @@ it('the Latte engine reports the vite function as registered after the module bo
     $viewConfig = new ViewConfig($config);
     $paths = new ProjectPaths(sys_get_temp_dir());
     $vite = new Vite($config, $paths);
-    $viteExtension = new ViteExtension($vite, 'packages/frontend-demo/resources/js/main.ts');
+    $viteExtension = new ViteExtension($vite, $config);
     $factory = new MarkommerceLatteEngineFactory($viewConfig, $viteExtension);
 
     $engine = $factory->create();
