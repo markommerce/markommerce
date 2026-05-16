@@ -1,27 +1,21 @@
 {
-  "name": "@markommerce/frontend",
+  "name": "@markommerce/theme-blank",
   "type": "module",
   "version": "0.0.1",
   "private": true,
   "main": "./resources/js/index.ts",
   "exports": {
     ".": "./resources/js/index.ts",
-    "./css/layers.css": "./resources/css/layers.css",
-    "./css/*": "./resources/css/*"
+    "./css/tokens.css": "./resources/css/tokens.css",
+    "./css/base.css": "./resources/css/base.css",
+    "./css/layouts.css": "./resources/css/layouts.css"
   },
   "markommerce": {
     "extension": "./resources/js/index.ts",
-    "priority": 0
+    "priority": 100
   },
   "peerDependencies": {
     "lit": "^3.0",
     "open-props": "^1.7"
-  },
-  "devDependencies": {
-    "@open-wc/testing-helpers": "^3",
-    "happy-dom": "^15",
-    "lit": "^3.0",
-    "typescript": "^5",
-    "vitest": "^2"
   }
 }

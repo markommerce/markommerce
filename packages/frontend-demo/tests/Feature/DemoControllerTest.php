@@ -373,15 +373,18 @@ it('the demo main.ts imports open-props/style.css so Vite emits the Open Props s
     expect($contents)->toContain("import 'open-props/style.css'");
 });
 
-it('it loads the @markommerce/frontend cascade layers and tokens CSS in the head before component-level CSS', function (): void {
+it('it loads the @markommerce/frontend cascade layers and @markommerce/theme-blank tokens CSS in the head before component-level CSS', function (): void {
     $mainTsPath = dirname(__DIR__, 2) . '/resources/js/main.ts';
     $contents = file_get_contents($mainTsPath);
 
     $layersPos = strpos($contents, '@markommerce/frontend/css/layers.css');
-    $tokensPos = strpos($contents, '@markommerce/frontend/css/tokens.css');
+    $tokensPos = strpos($contents, '@markommerce/theme-blank/css/tokens.css');
     $componentPos = strpos($contents, 'counter.css');
 
-    expect($layersPos)->toBeLessThan($componentPos)
+    expect($layersPos !== false)->toBeTrue()
+        ->and($tokensPos !== false)->toBeTrue()
+        ->and($componentPos !== false)->toBeTrue()
+        ->and($layersPos)->toBeLessThan($componentPos)
         ->and($tokensPos)->toBeLessThan($componentPos);
 });
 

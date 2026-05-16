@@ -23,8 +23,24 @@ const outputPath = path.join(
 export default defineConfig(({ command }) => ({
   plugins: [markommerceModuleScanner({ packagesPath, outputPath })],
 
+  test: {
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/tests/Browser/**',
+    ],
+  },
+
   resolve: {
     alias: [
+      {
+        find: '@markommerce/theme-blank/css',
+        replacement: path.join(repoRoot, 'packages/theme-blank/resources/css'),
+      },
+      {
+        find: '@markommerce/theme-blank',
+        replacement: path.join(repoRoot, 'packages/theme-blank/resources/js/index.ts'),
+      },
       {
         find: '@markommerce/frontend/css',
         replacement: path.join(repoRoot, 'packages/frontend/resources/css'),

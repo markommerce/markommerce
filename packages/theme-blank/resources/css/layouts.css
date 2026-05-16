@@ -1,0 +1,51 @@
+/**
+ * Markommerce page layout structures — theme-blank.
+ *
+ * All rules are inside @layer theme so theme-level layout choices can be
+ * overridden by @layer utilities or any unlayered consumer CSS without
+ * needing !important.
+ *
+ * Breakpoint custom-media definitions live in tokens.css at the top level
+ * (outside any @layer) and are inlined at build time by postcss-custom-media.
+ */
+
+@layer theme {
+  .mk-layout-1col {
+    max-width: 1280px;
+    margin-inline: auto;
+    padding: var(--mk-space-4);
+  }
+
+  .mk-layout-2col-left,
+  .mk-layout-2col-right {
+    display: grid;
+    gap: var(--mk-space-4);
+    max-width: 1280px;
+    margin-inline: auto;
+    padding: var(--mk-space-4);
+  }
+
+  @media (--mk-breakpoint-md) {
+    .mk-layout-2col-left {
+      grid-template-columns: 240px 1fr;
+    }
+
+    .mk-layout-2col-right {
+      grid-template-columns: 1fr 240px;
+    }
+  }
+
+  .mk-layout-3col {
+    display: grid;
+    gap: var(--mk-space-4);
+    max-width: 1280px;
+    margin-inline: auto;
+    padding: var(--mk-space-4);
+  }
+
+  @media (--mk-breakpoint-lg) {
+    .mk-layout-3col {
+      grid-template-columns: 240px 1fr 240px;
+    }
+  }
+}

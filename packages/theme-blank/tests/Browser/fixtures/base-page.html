@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Markommerce — Base 1-column layout</title>
+    <style>
+      /* ===== tokens.css (inlined, @custom-media resolved) ==================== */
+      @layer tokens {
+        :root {
+          /* --- Colors ---------------------------------------------------------- */
+          --mk-color-primary: var(--blue-6, #1971c2);
+          --mk-color-primary-light: var(--blue-4, #74c0fc);
+          --mk-color-primary-hover: var(--blue-7, #1864ab);
+          --mk-color-primary-active: var(--blue-8, #145591);
+          --mk-color-on-primary: var(--gray-0, #f8f9fa);
+          --mk-color-surface: var(--gray-0, #f8f9fa);
+          --mk-color-on-surface: var(--gray-9, #212529);
+          --mk-color-border: var(--gray-3, #dee2e6);
+          --mk-color-error: var(--red-6, #e03131);
+          --mk-color-fg: var(--gray-9, #212529);
+          --mk-color-bg: var(--gray-0, #f8f9fa);
+          --mk-color-fg-muted: var(--gray-6, #868e96);
+          --mk-color-success: var(--green-6, #2f9e44);
+          --mk-color-warning: var(--yellow-6, #e67700);
+          --mk-color-danger: var(--red-6, #e03131);
+          --mk-color-info: var(--blue-5, #339af0);
+
+          /* --- Spacing --------------------------------------------------------- */
+          --mk-space-0: 0;
+          --mk-space-1: 0.25rem;
+          --mk-space-2: 0.5rem;
+          --mk-space-3: 1rem;
+          --mk-space-4: 1.25rem;
+          --mk-space-5: 1.5rem;
+          --mk-space-6: 1.75rem;
+          --mk-space-7: 2rem;
+          --mk-space-8: 3rem;
+          --mk-space-9: 4rem;
+
+          /* --- Typography ------------------------------------------------------ */
+          --mk-font-sans: system-ui, sans-serif;
+          --mk-font-mono: ui-monospace, monospace;
+          --mk-font-size-xs: 0.75rem;
+          --mk-font-size-sm: 0.875rem;
+          --mk-font-size-base: 1rem;
+          --mk-font-size-lg: 1.125rem;
+          --mk-font-size-xl: 1.25rem;
+          --mk-font-size-2xl: 1.5rem;
+          --mk-font-size-3xl: 2rem;
+          --mk-font-weight-normal: 400;
+          --mk-font-weight-medium: 500;
+          --mk-font-weight-bold: 700;
+          --mk-line-height-tight: 1.25;
+          --mk-line-height-normal: 1.5;
+          --mk-line-height-loose: 1.75;
+
+          /* --- Transitions ----------------------------------------------------- */
+          --mk-transition-fast: 150ms ease;
+          --mk-transition-base: 250ms ease;
+
+          /* --- Radius ---------------------------------------------------------- */
+          --mk-radius-sm: 0.25rem;
+          --mk-radius-base: 0.5rem;
+          --mk-radius-lg: 1rem;
+          --mk-radius-full: 9999px;
+
+          /* --- Shadows --------------------------------------------------------- */
+          --mk-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+          --mk-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+          --mk-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+          /* --- Motion ---------------------------------------------------------- */
+          --mk-duration-normal: 250ms;
+          --mk-duration-slow: 500ms;
+          --mk-ease-out: cubic-bezier(0, 0, 0.5, 1);
+          --mk-ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+        }
+
+        /* Dark-mode overrides */
+        [data-theme="dark"] {
+          --mk-color-primary: var(--blue-4, #74c0fc);
+          --mk-color-surface: var(--gray-9, #212529);
+          --mk-color-on-surface: var(--gray-1, #f1f3f5);
+          --mk-color-border: var(--gray-7, #495057);
+          --mk-color-fg: var(--gray-1, #f1f3f5);
+          --mk-color-bg: var(--gray-9, #212529);
+        }
+      }
+
+      /* ===== base.css (inlined) =============================================== */
+      @layer base {
+        *, *::before, *::after {
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: var(--mk-font-sans);
+          font-size: var(--mk-font-size-base);
+          line-height: var(--mk-line-height-normal);
+          color: var(--mk-color-fg);
+          background-color: var(--mk-color-bg);
+          margin: 0;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+          line-height: var(--mk-line-height-tight);
+          font-weight: var(--mk-font-weight-bold);
+          margin: 0;
+        }
+
+        h1 { font-size: var(--mk-font-size-3xl); }
+        h2 { font-size: var(--mk-font-size-2xl); }
+        h3 { font-size: var(--mk-font-size-xl); }
+        h4 { font-size: var(--mk-font-size-lg); }
+        h5 { font-size: var(--mk-font-size-base); }
+        h6 { font-size: var(--mk-font-size-sm); }
+
+        a {
+          color: var(--mk-color-primary);
+          text-decoration: underline;
+        }
+
+        a:hover {
+          color: var(--mk-color-primary-hover, var(--mk-color-primary));
+        }
+
+        img, video {
+          max-width: 100%;
+          height: auto;
+          display: block;
+        }
+      }
+
+      /* ===== layouts.css (inlined, @custom-media resolved) =================== */
+      @layer theme {
+        .mk-layout-1col {
+          max-width: 1280px;
+          margin-inline: auto;
+          padding: var(--mk-space-4);
+        }
+
+        .mk-layout-2col-left,
+        .mk-layout-2col-right {
+          display: grid;
+          gap: var(--mk-space-4);
+          max-width: 1280px;
+          margin-inline: auto;
+          padding: var(--mk-space-4);
+        }
+
+        /* --mk-breakpoint-md resolved: (min-width: 768px) */
+        @media (min-width: 768px) {
+          .mk-layout-2col-left {
+            grid-template-columns: 240px 1fr;
+          }
+
+          .mk-layout-2col-right {
+            grid-template-columns: 1fr 240px;
+          }
+        }
+
+        .mk-layout-3col {
+          display: grid;
+          gap: var(--mk-space-4);
+          max-width: 1280px;
+          margin-inline: auto;
+          padding: var(--mk-space-4);
+        }
+
+        /* --mk-breakpoint-lg resolved: (min-width: 1024px) */
+        @media (min-width: 1024px) {
+          .mk-layout-3col {
+            grid-template-columns: 240px 1fr 240px;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <!-- Site header placeholder -->
+    </header>
+    <main class="mk-layout-1col">
+      <!-- Page content placeholder -->
+    </main>
+    <footer>
+      <!-- Site footer placeholder -->
+    </footer>
+  </body>
+</html>

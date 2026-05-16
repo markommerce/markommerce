@@ -1,0 +1,109 @@
+/**
+ * Markommerce semantic design tokens — theme-blank.
+ *
+ * All tokens are scoped inside @layer tokens so that theme-level overrides
+ * (in @layer theme or higher) always win without !important.
+ *
+ * Tokens reference Open Props variables. The consumer must load Open Props
+ * (open-props/style.css) before — or alongside — this file. Open Props ships
+ * unlayered, so its variables are always resolved first, which is intentional:
+ * semantic tokens never compete with the raw Open Props scale.
+ *
+ * Every Markommerce token uses the --mk-* namespace to avoid collisions with
+ * custom properties from other systems.
+ */
+
+/*
+ * @custom-media declarations must live at the top level — outside any @layer
+ * block — because the CSS Cascading and Layers spec does not allow
+ * @custom-media inside a @layer. The postcss-custom-media plugin processes
+ * these at build time, inlining them wherever @media --mk-breakpoint-* is used.
+ */
+@custom-media --mk-breakpoint-sm (min-width: 640px);
+@custom-media --mk-breakpoint-md (min-width: 768px);
+@custom-media --mk-breakpoint-lg (min-width: 1024px);
+@custom-media --mk-breakpoint-xl (min-width: 1280px);
+
+@layer tokens {
+  :root {
+    /* --- Colors ---------------------------------------------------------- */
+    --mk-color-primary: var(--blue-6);
+    --mk-color-primary-light: var(--blue-4);
+    --mk-color-primary-hover: var(--blue-7);
+    --mk-color-primary-active: var(--blue-8);
+    --mk-color-on-primary: var(--gray-0);
+    --mk-color-surface: var(--gray-0);
+    --mk-color-on-surface: var(--gray-9);
+    --mk-color-border: var(--gray-3);
+    --mk-color-error: var(--red-6);
+    --mk-color-fg: var(--gray-9);
+    --mk-color-bg: var(--gray-0);
+    --mk-color-fg-muted: var(--gray-6);
+    --mk-color-success: var(--green-6);
+    --mk-color-warning: var(--yellow-6);
+    --mk-color-danger: var(--red-6);
+    --mk-color-info: var(--blue-5);
+
+    /* --- Spacing --------------------------------------------------------- */
+
+    /* --mk-space-0 is literal 0; Open Props has no --size-0 */
+    --mk-space-0: 0;
+    --mk-space-1: var(--size-1);
+    --mk-space-2: var(--size-2);
+    --mk-space-3: var(--size-3);
+    --mk-space-4: var(--size-4);
+    --mk-space-5: var(--size-5);
+    --mk-space-6: var(--size-6);
+    --mk-space-7: var(--size-7);
+    --mk-space-8: var(--size-8);
+    --mk-space-9: var(--size-9);
+
+    /* --- Typography ------------------------------------------------------ */
+    --mk-font-sans: var(--font-sans);
+    --mk-font-mono: var(--font-mono);
+    --mk-font-size-xs: var(--font-size-00);
+    --mk-font-size-sm: var(--font-size-0);
+    --mk-font-size-base: var(--font-size-1);
+    --mk-font-size-lg: var(--font-size-2);
+    --mk-font-size-xl: var(--font-size-3);
+    --mk-font-size-2xl: var(--font-size-4);
+    --mk-font-size-3xl: var(--font-size-5);
+    --mk-font-weight-normal: 400;
+    --mk-font-weight-medium: 500;
+    --mk-font-weight-bold: 700;
+    --mk-line-height-tight: var(--font-lineheight-1);
+    --mk-line-height-normal: var(--font-lineheight-3);
+    --mk-line-height-loose: var(--font-lineheight-4);
+
+    /* --- Transitions ----------------------------------------------------- */
+    --mk-transition-fast: 150ms ease;
+    --mk-transition-base: 250ms ease;
+
+    /* --- Radius ---------------------------------------------------------- */
+    --mk-radius-sm: var(--radius-2);
+    --mk-radius-base: var(--radius-3);
+    --mk-radius-lg: var(--radius-4);
+    --mk-radius-full: var(--radius-round);
+
+    /* --- Shadows --------------------------------------------------------- */
+    --mk-shadow-sm: var(--shadow-1);
+    --mk-shadow-md: var(--shadow-2);
+    --mk-shadow-lg: var(--shadow-3);
+
+    /* --- Motion ---------------------------------------------------------- */
+    --mk-duration-normal: 250ms;
+    --mk-duration-slow: 500ms;
+    --mk-ease-out: var(--ease-out-2);
+    --mk-ease-in-out: var(--ease-in-out-3);
+  }
+
+  /* Dark-mode overrides — flip only the tokens that change in dark theme */
+  [data-theme="dark"] {
+    --mk-color-primary: var(--blue-4);
+    --mk-color-surface: var(--gray-9);
+    --mk-color-on-surface: var(--gray-1);
+    --mk-color-border: var(--gray-7);
+    --mk-color-fg: var(--gray-1);
+    --mk-color-bg: var(--gray-9);
+  }
+}

@@ -83,23 +83,26 @@ describe('@markommerce/frontend-demo npm package', () => {
     // Check all required imports are present
     expect(content).toContain("import '@markommerce/frontend/css/layers.css'");
     expect(content).toContain("import 'open-props/style.css'");
-    expect(content).toContain("import '@markommerce/frontend/css/tokens.css'");
+    expect(content).toContain("import '@markommerce/theme-blank/css/tokens.css'");
+    expect(content).toContain("import '@markommerce/theme-blank/css/base.css'");
     expect(content).toContain("import './.generated/extensions'");
     expect(content).toContain("import '../css/components/counter.css'");
     expect(content).toContain("import { defineAllComponents } from '@markommerce/frontend'");
     expect(content).toContain('defineAllComponents()');
 
-    // Check import order: layers.css → open-props → tokens.css → extensions → counter.css → defineAllComponents
+    // Check import order: layers.css → open-props → tokens.css → base.css → extensions → counter.css → defineAllComponents
     const layersPos = content.indexOf("import '@markommerce/frontend/css/layers.css'");
     const openPropsPos = content.indexOf("import 'open-props/style.css'");
-    const tokensPos = content.indexOf("import '@markommerce/frontend/css/tokens.css'");
+    const tokensPos = content.indexOf("import '@markommerce/theme-blank/css/tokens.css'");
+    const baseCssPos = content.indexOf("import '@markommerce/theme-blank/css/base.css'");
     const extensionsPos = content.indexOf("import './.generated/extensions'");
     const counterCssPos = content.indexOf("import '../css/components/counter.css'");
     const definePos = content.indexOf("import { defineAllComponents } from '@markommerce/frontend'");
 
     expect(layersPos).toBeLessThan(openPropsPos);
     expect(openPropsPos).toBeLessThan(tokensPos);
-    expect(tokensPos).toBeLessThan(extensionsPos);
+    expect(tokensPos).toBeLessThan(baseCssPos);
+    expect(baseCssPos).toBeLessThan(extensionsPos);
     expect(extensionsPos).toBeLessThan(counterCssPos);
     expect(counterCssPos).toBeLessThan(definePos);
   });
@@ -154,6 +157,21 @@ describe('@markommerce/frontend-demo npm package', () => {
     const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, 'utf-8')) as Record<string, unknown>;
     const workspaces = rootPkg['workspaces'] as string[] | undefined;
     expect(workspaces).toContain('packages/*');
+  });
+
+  it('the frontend-demo main.ts imports @markommerce/theme-blank/css/layouts.css after base.css', () => {
+    const mainTsPath = path.join(canonicalDemoRoot, 'resources/js/main.ts');
+    expect(fs.existsSync(mainTsPath)).toBe(true);
+    const content = fs.readFileSync(mainTsPath, 'utf-8');
+
+    expect(content).toContain("import '@markommerce/theme-blank/css/layouts.css'");
+
+    const baseCssPos = content.indexOf("import '@markommerce/theme-blank/css/base.css'");
+    const layoutsCssPos = content.indexOf("import '@markommerce/theme-blank/css/layouts.css'");
+
+    expect(baseCssPos).toBeGreaterThanOrEqual(0);
+    expect(layoutsCssPos).toBeGreaterThanOrEqual(0);
+    expect(baseCssPos).toBeLessThan(layoutsCssPos);
   });
 
   describe('the Vite scanner plugin run end-to-end with both packages produces a generated extensions file listing the kernel first and the demo second', () => {

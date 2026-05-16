@@ -1,0 +1,54 @@
+/*
+ * Markommerce custom-element CLS safety-net convention.
+ *
+ * When mk-* components arrive (Phase 2+), this file will contain a rule of the
+ * shape `mk-button:not(:defined), mk-input:not(:defined), ... { visibility: hidden; }`
+ * that prevents Flash-of-Undefined-Custom-Element layout shifts.
+ *
+ * Phase 1 ships no components, so the rule is intentionally empty. Components
+ * that follow the architectural rule ("render correctly without JS") do not
+ * strictly need this safety net, but it remains a defensive backstop.
+ */
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--mk-font-sans);
+    font-size: var(--mk-font-size-base);
+    line-height: var(--mk-line-height-normal);
+    color: var(--mk-color-fg);
+    background-color: var(--mk-color-bg);
+    margin: 0;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    line-height: var(--mk-line-height-tight);
+    font-weight: var(--mk-font-weight-bold);
+    margin: 0;
+  }
+
+  h1 { font-size: var(--mk-font-size-3xl); }
+  h2 { font-size: var(--mk-font-size-2xl); }
+  h3 { font-size: var(--mk-font-size-xl); }
+  h4 { font-size: var(--mk-font-size-lg); }
+  h5 { font-size: var(--mk-font-size-base); }
+  h6 { font-size: var(--mk-font-size-sm); }
+
+  a {
+    color: var(--mk-color-primary);
+    text-decoration: underline;
+  }
+
+  a:hover {
+    color: var(--mk-color-primary-hover, var(--mk-color-primary));
+  }
+
+  img, video {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+}

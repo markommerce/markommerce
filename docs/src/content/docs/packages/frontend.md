@@ -13,10 +13,10 @@ Install the Composer package:
 composer require markommerce/frontend
 ```
 
-Install the npm package (peer dependencies `lit` and `open-props` are required):
+Install the npm package (peer dependency `lit` is required):
 
 ```bash
-npm install @markommerce/frontend lit open-props
+npm install @markommerce/frontend lit
 ```
 
 ## Configuration
@@ -61,65 +61,15 @@ Import the layer declaration first in your entry point so cascade-layer preceden
 ```typescript title="resources/js/main.ts"
 // 1. Establish layer order (lowest → highest: reset, tokens, base, components, modules, theme, utilities)
 import '@markommerce/frontend/css/layers.css';
-// 2. Open Props raw tokens (unlayered --- must come before semantic tokens)
+// 2. Open Props raw tokens (unlayered — must come before semantic tokens)
 import 'open-props/style.css';
-// 3. Markommerce semantic design tokens (inside @layer tokens)
-import '@markommerce/frontend/css/tokens.css';
+// 3. Semantic design tokens, base styles, and layout grid — from theme-blank
+import '@markommerce/theme-blank/css/tokens.css';
+import '@markommerce/theme-blank/css/base.css';
+import '@markommerce/theme-blank/css/layouts.css';
 ```
 
-The semantic tokens map Open Props variables to Markommerce-specific names:
-
-**Colors**
-
-| Token | Default value |
-| --- | --- |
-| `--color-primary` | `var(--blue-6)` |
-| `--color-primary-light` | `var(--blue-4)` |
-| `--color-on-primary` | `var(--gray-0)` |
-| `--color-surface` | `var(--gray-0)` |
-| `--color-on-surface` | `var(--gray-9)` |
-| `--color-border` | `var(--gray-3)` |
-| `--color-error` | `var(--red-6)` |
-
-**Spacing**
-
-| Token | Default value |
-| --- | --- |
-| `--space-1` | `var(--size-1)` |
-| `--space-2` | `var(--size-2)` |
-| `--space-3` | `var(--size-3)` |
-| `--space-4` | `var(--size-4)` |
-| `--space-5` | `var(--size-5)` |
-
-**Typography**
-
-| Token | Default value |
-| --- | --- |
-| `--font-size-sm` | `var(--font-size-0)` |
-| `--font-size-base` | `var(--font-size-1)` |
-| `--font-size-lg` | `var(--font-size-2)` |
-| `--font-size-xl` | `var(--font-size-3)` |
-| `--font-weight-normal` | `400` |
-| `--font-weight-bold` | `700` |
-
-**Transitions**
-
-| Token | Default value |
-| --- | --- |
-| `--transition-fast` | `150ms ease` |
-| `--transition-base` | `250ms ease` |
-
-**Radius**
-
-| Token | Default value |
-| --- | --- |
-| `--radius-sm` | `var(--radius-2)` |
-| `--radius-base` | `var(--radius-3)` |
-| `--radius-lg` | `var(--radius-4)` |
-
-Dark-mode overrides for colors activate automatically when a `data-theme="dark"` attribute is on any ancestor element.
-
-Override tokens inside `@layer theme` or higher. Override raw Open Props variables outside any `@layer` block (unlayered CSS has higher precedence than layered rules).
+`@markommerce/frontend` is a pure engine: it ships only the layer declaration file (`layers.css`) and the JavaScript registries. Design tokens (the `--mk-*` namespace), base styles, and layout grids live in [`markommerce/theme-blank`](/docs/packages/theme-blank/). See that package for the full token reference and override guide.
 
 ### Component Registry
 
@@ -364,5 +314,6 @@ When `MARKOMMERCE_CONSUMER_PUBLIC` is unset (e.g., in CI or during in-repo tests
 
 ## Related Packages
 
+- [markommerce/theme-blank](/docs/packages/theme-blank/) --- the foundational theme that provides the `--mk-*` design tokens, base CSS reset, and page layout templates that plug into the layer order declared here.
 - [markommerce/frontend-demo](/docs/packages/frontend-demo/) --- demo storefront module that wires together the full frontend stack and demonstrates a working counter component.
 - [marko/vite](https://github.com/marko-php/vite) --- the underlying `Vite` service and `marko/vite` Composer package that `MarkommerceLatteEngineFactory` delegates to for manifest reading and tag generation.

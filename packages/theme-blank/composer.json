@@ -1,18 +1,15 @@
 {
-    "name": "markommerce/frontend-demo",
-    "description": "Frontend demo module for Markommerce — showcases storefront layout, routing, and Latte views",
+    "name": "markommerce/theme-blank",
+    "description": "Blank theme for Markommerce — a minimal starting point for custom storefront themes",
     "license": "MIT",
     "type": "marko-module",
     "require": {
         "php": "^8.5",
-        "marko/config": "self.version",
         "marko/core": "self.version",
-        "marko/layout": "self.version",
-        "marko/routing": "self.version",
         "marko/view": "self.version",
         "marko/view-latte": "self.version",
-        "markommerce/frontend": "self.version",
-        "markommerce/theme-blank": "self.version"
+        "marko/vite": "self.version",
+        "markommerce/frontend": "self.version"
     },
     "require-dev": {
         "marko/testing": "self.version",
@@ -20,12 +17,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Markommerce\\FrontendDemo\\": "src/"
+            "Markommerce\\ThemeBlank\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Markommerce\\FrontendDemo\\Tests\\": "tests/"
+            "Markommerce\\ThemeBlank\\Tests\\": "tests/"
         }
     },
     "extra": {

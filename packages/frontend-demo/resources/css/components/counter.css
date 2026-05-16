@@ -2,36 +2,36 @@
   .counter {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2);
-    color: var(--color-text);
+    gap: var(--mk-space-2);
+    padding: var(--mk-space-2);
+    color: var(--mk-color-on-surface);
   }
 
   .counter__label {
     font-size: var(--font-size-1);
-    color: var(--color-primary);
+    color: var(--mk-color-primary);
     min-width: var(--size-4);
     text-align: center;
   }
 
   .counter__button {
-    padding-inline: var(--space-2);
-    padding-block: var(--space-1);
-    background-color: var(--color-primary);
-    color: var(--color-surface);
+    padding-inline: var(--mk-space-2);
+    padding-block: var(--mk-space-1);
+    background-color: var(--mk-color-primary);
+    color: var(--mk-color-surface);
     border: none;
     border-radius: var(--radius-2);
     cursor: pointer;
     font-size: var(--font-size-1);
 
     &:hover {
-      background-color: var(--color-primary-hover, var(--color-primary));
+      background-color: var(--mk-color-primary-light, var(--mk-color-primary));
       opacity: 0.9;
     }
 
     &:focus-visible {
-      outline: var(--border-size-2) solid var(--color-primary);
-      outline-offset: var(--space-1);
+      outline: var(--border-size-2) solid var(--mk-color-primary);
+      outline-offset: var(--mk-space-1);
     }
   }
 }
