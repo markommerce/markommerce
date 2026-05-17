@@ -1,3 +1,5 @@
+import './components';
+
 export type ToastVariant = 'info' | 'success' | 'warning' | 'danger';
 
 export interface ToastOptions {

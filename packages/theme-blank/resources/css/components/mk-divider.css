@@ -1,0 +1,20 @@
+@layer components {
+  mk-divider {
+    display: block;
+    background-color: var(--mk-color-border);
+    border: 0;
+
+    /* horizontal default */
+    block-size: 1px;
+    inline-size: 100%;
+    margin-block: var(--mk-space-3);
+  }
+
+  mk-divider[orientation="vertical"] {
+    block-size: auto;
+    inline-size: 1px;
+    align-self: stretch;
+    margin-block: 0;
+    margin-inline: var(--mk-space-3);
+  }
+}

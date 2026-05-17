@@ -92,7 +92,10 @@ describe('base.css', () => {
   it('includes a documentation comment describing the :not(:defined) CLS safety-net convention', () => {
     expect(baseCss).toContain(':not(:defined)');
     expect(baseCss).toContain('CLS');
-    expect(baseCss).toContain('visibility: hidden');
+    // The :not(:defined) rule is intentionally a no-op — layout is supplied by
+    // @layer components tag selectors which take precedence regardless of JS
+    // definition state. No visibility: hidden declaration is shipped.
+    expect(baseCss).not.toContain('visibility: hidden');
   });
 
   it("is exported from theme-blank package.json so import '@markommerce/theme-blank/css/base.css' resolves", () => {

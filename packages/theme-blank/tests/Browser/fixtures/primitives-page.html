@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Markommerce — All 12 Phase 2 primitives</title>
+    <style>
+      /* ===== tokens.css (inlined, @custom-media resolved) ==================== */
+      @layer tokens {
+        :root {
+          /* --- Colors ---------------------------------------------------------- */
+          --mk-color-primary: var(--blue-6, #1971c2);
+          --mk-color-primary-light: var(--blue-4, #74c0fc);
+          --mk-color-primary-hover: var(--blue-7, #1864ab);
+          --mk-color-primary-active: var(--blue-8, #145591);
+          --mk-color-on-primary: var(--gray-0, #f8f9fa);
+          --mk-color-surface: var(--gray-0, #f8f9fa);
+          --mk-color-on-surface: var(--gray-9, #212529);
+          --mk-color-border: var(--gray-3, #dee2e6);
+          --mk-color-error: var(--red-6, #e03131);
+          --mk-color-fg: var(--gray-9, #212529);
+          --mk-color-bg: var(--gray-0, #f8f9fa);
+          --mk-color-fg-muted: var(--gray-6, #868e96);
+          --mk-color-success: var(--green-6, #2f9e44);
+          --mk-color-warning: var(--yellow-6, #e67700);
+          --mk-color-danger: var(--red-6, #e03131);
+          --mk-color-info: var(--blue-5, #339af0);
+
+          /* --- Spacing --------------------------------------------------------- */
+          --mk-space-0: 0;
+          --mk-space-1: 0.25rem;
+          --mk-space-2: 0.5rem;
+          --mk-space-3: 1rem;
+          --mk-space-4: 1.25rem;
+          --mk-space-5: 1.5rem;
+          --mk-space-6: 1.75rem;
+          --mk-space-7: 2rem;
+          --mk-space-8: 3rem;
+          --mk-space-9: 4rem;
+
+          /* --- Typography ------------------------------------------------------ */
+          --mk-font-sans: system-ui, sans-serif;
+          --mk-font-mono: ui-monospace, monospace;
+          --mk-font-size-xs: 0.75rem;
+          --mk-font-size-sm: 0.875rem;
+          --mk-font-size-base: 1rem;
+          --mk-font-size-lg: 1.125rem;
+          --mk-font-size-xl: 1.25rem;
+          --mk-font-size-2xl: 1.5rem;
+          --mk-font-size-3xl: 2rem;
+          --mk-font-weight-normal: 400;
+          --mk-font-weight-medium: 500;
+          --mk-font-weight-bold: 700;
+          --mk-line-height-tight: 1.25;
+          --mk-line-height-normal: 1.5;
+          --mk-line-height-loose: 1.75;
+
+          /* --- Transitions ----------------------------------------------------- */
+          --mk-transition-fast: 150ms ease;
+          --mk-transition-base: 250ms ease;
+
+          /* --- Radius ---------------------------------------------------------- */
+          --mk-radius-sm: 0.25rem;
+          --mk-radius-base: 0.5rem;
+          --mk-radius-lg: 1rem;
+          --mk-radius-full: 9999px;
+
+          /* --- Shadows --------------------------------------------------------- */
+          --mk-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+          --mk-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+          --mk-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+          /* --- Motion ---------------------------------------------------------- */
+          --mk-duration-normal: 250ms;
+          --mk-duration-slow: 500ms;
+          --mk-ease-out: cubic-bezier(0, 0, 0.5, 1);
+          --mk-ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+        }
+
+        /* Dark-mode overrides */
+        [data-theme="dark"] {
+          --mk-color-primary: var(--blue-4, #74c0fc);
+          --mk-color-surface: var(--gray-9, #212529);
+          --mk-color-on-surface: var(--gray-1, #f1f3f5);
+          --mk-color-border: var(--gray-7, #495057);
+          --mk-color-fg: var(--gray-1, #f1f3f5);
+          --mk-color-bg: var(--gray-9, #212529);
+        }
+      }
+
+      /* ===== base.css (inlined) =============================================== */
+      @layer base {
+        *, *::before, *::after {
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: var(--mk-font-sans);
+          font-size: var(--mk-font-size-base);
+          line-height: var(--mk-line-height-normal);
+          color: var(--mk-color-fg);
+          background-color: var(--mk-color-bg);
+          margin: 0;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+          line-height: var(--mk-line-height-tight);
+          font-weight: var(--mk-font-weight-bold);
+          margin: 0;
+        }
+
+        h1 { font-size: var(--mk-font-size-3xl); }
+        h2 { font-size: var(--mk-font-size-2xl); }
+        h3 { font-size: var(--mk-font-size-xl); }
+        h4 { font-size: var(--mk-font-size-lg); }
+        h5 { font-size: var(--mk-font-size-base); }
+        h6 { font-size: var(--mk-font-size-sm); }
+
+        a {
+          color: var(--mk-color-primary);
+          text-decoration: underline;
+        }
+
+        a:hover {
+          color: var(--mk-color-primary-hover, var(--mk-color-primary));
+        }
+
+        img, video {
+          max-width: 100%;
+          height: auto;
+          display: block;
+        }
+
+        /* CLS safety net documentation hook: every Phase 2 primitive renders correctly
+         * from its @layer components tag selector even before the JS class is defined.
+         * This rule exists so consumers can see at a glance which tags participate in
+         * the contract, and to provide a downstream override point. The :not(:defined)
+         * matcher is intentionally a no-op for layout (components layer wins anyway). */
+        mk-stack:not(:defined),
+        mk-cluster:not(:defined),
+        mk-grid:not(:defined),
+        mk-container:not(:defined),
+        mk-sidebar:not(:defined),
+        mk-switcher:not(:defined),
+        mk-cover:not(:defined),
+        mk-divider:not(:defined),
+        mk-heading:not(:defined),
+        mk-text:not(:defined),
+        mk-link:not(:defined),
+        mk-badge:not(:defined) {
+          /* No declarations — the @layer components tag selectors supply the real layout.
+           * This selector group is retained as a documentation hook and downstream override
+           * point. The trailing comment also satisfies stylelint's block-no-empty rule. */
+        }
+      }
+
+      /* ===== layouts.css (inlined, @custom-media resolved) =================== */
+      @layer theme {
+        .mk-layout-1col {
+          max-width: 1280px;
+          margin-inline: auto;
+          padding: var(--mk-space-4);
+        }
+
+        .mk-layout-2col-left,
+        .mk-layout-2col-right {
+          display: grid;
+          gap: var(--mk-space-4);
+          max-width: 1280px;
+          margin-inline: auto;
+          padding: var(--mk-space-4);
+        }
+
+        /* --mk-breakpoint-md resolved: (min-width: 768px) */
+        @media (min-width: 768px) {
+          .mk-layout-2col-left {
+            grid-template-columns: 240px 1fr;
+          }
+
+          .mk-layout-2col-right {
+            grid-template-columns: 1fr 240px;
+          }
+        }
+
+        .mk-layout-3col {
+          display: grid;
+          gap: var(--mk-space-4);
+          max-width: 1280px;
+          margin-inline: auto;
+          padding: var(--mk-space-4);
+        }
+
+        /* --mk-breakpoint-lg resolved: (min-width: 1024px) */
+        @media (min-width: 1024px) {
+          .mk-layout-3col {
+            grid-template-columns: 240px 1fr 240px;
+          }
+        }
+      }
+
+      /* ===== components/mk-stack.css (inlined) =============================== */
+      @layer components {
+        mk-stack {
+          display: flex;
+          flex-direction: column;
+          gap: var(--mk-space-3);
+        }
+
+        mk-stack[gap="0"] { gap: var(--mk-space-0); }
+        mk-stack[gap="1"] { gap: var(--mk-space-1); }
+        mk-stack[gap="2"] { gap: var(--mk-space-2); }
+        mk-stack[gap="3"] { gap: var(--mk-space-3); }
+        mk-stack[gap="4"] { gap: var(--mk-space-4); }
+        mk-stack[gap="5"] { gap: var(--mk-space-5); }
+        mk-stack[gap="6"] { gap: var(--mk-space-6); }
+        mk-stack[gap="7"] { gap: var(--mk-space-7); }
+        mk-stack[gap="8"] { gap: var(--mk-space-8); }
+        mk-stack[gap="9"] { gap: var(--mk-space-9); }
+
+        mk-stack[align="start"]   { align-items: flex-start; }
+        mk-stack[align="center"]  { align-items: center; }
+        mk-stack[align="end"]     { align-items: flex-end; }
+        mk-stack[align="stretch"] { align-items: stretch; }
+      }
+
+      /* ===== components/mk-cluster.css (inlined) ============================= */
+      @layer components {
+        mk-cluster {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--mk-space-3);
+          align-items: center;
+          justify-content: flex-start;
+        }
+
+        mk-cluster[gap="0"] { gap: var(--mk-space-0); }
+        mk-cluster[gap="1"] { gap: var(--mk-space-1); }
+        mk-cluster[gap="2"] { gap: var(--mk-space-2); }
+        mk-cluster[gap="3"] { gap: var(--mk-space-3); }
+        mk-cluster[gap="4"] { gap: var(--mk-space-4); }
+        mk-cluster[gap="5"] { gap: var(--mk-space-5); }
+        mk-cluster[gap="6"] { gap: var(--mk-space-6); }
+        mk-cluster[gap="7"] { gap: var(--mk-space-7); }
+        mk-cluster[gap="8"] { gap: var(--mk-space-8); }
+        mk-cluster[gap="9"] { gap: var(--mk-space-9); }
+
+        mk-cluster[align="start"] { align-items: flex-start; }
+        mk-cluster[align="center"] { align-items: center; }
+        mk-cluster[align="end"] { align-items: flex-end; }
+        mk-cluster[align="baseline"] { align-items: baseline; }
+        mk-cluster[align="stretch"] { align-items: stretch; }
+
+        mk-cluster[justify="start"] { justify-content: flex-start; }
+        mk-cluster[justify="center"] { justify-content: center; }
+        mk-cluster[justify="end"] { justify-content: flex-end; }
+        mk-cluster[justify="between"] { justify-content: space-between; }
+        mk-cluster[justify="around"] { justify-content: space-around; }
+        mk-cluster[justify="evenly"] { justify-content: space-evenly; }
+      }
+
+      /* ===== components/mk-grid.css (inlined) ================================ */
+      @layer components {
+        mk-grid {
+          display: grid;
+          gap: var(--mk-space-3);
+          grid-template-columns: repeat(auto-fit, minmax(min(var(--mk-grid-min, 16rem), 100%), 1fr));
+        }
+
+        mk-grid[gap="0"] { gap: var(--mk-space-0); }
+        mk-grid[gap="1"] { gap: var(--mk-space-1); }
+        mk-grid[gap="2"] { gap: var(--mk-space-2); }
+        mk-grid[gap="3"] { gap: var(--mk-space-3); }
+        mk-grid[gap="4"] { gap: var(--mk-space-4); }
+        mk-grid[gap="5"] { gap: var(--mk-space-5); }
+        mk-grid[gap="6"] { gap: var(--mk-space-6); }
+        mk-grid[gap="7"] { gap: var(--mk-space-7); }
+        mk-grid[gap="8"] { gap: var(--mk-space-8); }
+        mk-grid[gap="9"] { gap: var(--mk-space-9); }
+      }
+
+      /* ===== components/mk-container.css (inlined) =========================== */
+      @layer components {
+        mk-container {
+          display: block;
+          margin-inline: auto;
+          padding-inline: var(--mk-space-4);
+          max-width: 80rem;
+        }
+
+        mk-container[size="sm"] {
+          max-width: 40rem;
+        }
+
+        mk-container[size="md"] {
+          max-width: 60rem;
+        }
+
+        mk-container[size="lg"] {
+          max-width: 80rem;
+        }
+
+        mk-container[size="xl"] {
+          max-width: 96rem;
+        }
+
+        mk-container[size="full"] {
+          max-width: none;
+        }
+      }
+
+      /* ===== components/mk-sidebar.css (inlined) ============================= */
+      @layer components {
+        mk-sidebar {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--mk-space-4);
+        }
+
+        mk-sidebar > :first-child,
+        mk-sidebar > :last-child {
+          flex-basis: var(--mk-sidebar-width, 15rem);
+          flex-grow: 1;
+        }
+
+        mk-sidebar > :last-child {
+          flex-basis: 0;
+          flex-grow: 999;
+          min-inline-size: 50%;
+        }
+
+        mk-sidebar[side="right"] > :first-child {
+          flex-basis: 0;
+          flex-grow: 999;
+          min-inline-size: 50%;
+        }
+
+        mk-sidebar[side="right"] > :last-child {
+          flex-basis: var(--mk-sidebar-width, 15rem);
+          flex-grow: 1;
+          min-inline-size: auto;
+        }
+      }
+
+      /* ===== components/mk-switcher.css (inlined) ============================ */
+      @layer components {
+        mk-switcher {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--mk-space-3);
+        }
+
+        mk-switcher[gap="0"] { gap: var(--mk-space-0); }
+        mk-switcher[gap="1"] { gap: var(--mk-space-1); }
+        mk-switcher[gap="2"] { gap: var(--mk-space-2); }
+        mk-switcher[gap="3"] { gap: var(--mk-space-3); }
+        mk-switcher[gap="4"] { gap: var(--mk-space-4); }
+        mk-switcher[gap="5"] { gap: var(--mk-space-5); }
+        mk-switcher[gap="6"] { gap: var(--mk-space-6); }
+        mk-switcher[gap="7"] { gap: var(--mk-space-7); }
+        mk-switcher[gap="8"] { gap: var(--mk-space-8); }
+        mk-switcher[gap="9"] { gap: var(--mk-space-9); }
+
+        mk-switcher > * {
+          flex-grow: 1;
+          flex-basis: calc((var(--mk-switcher-threshold, 30rem) - 100%) * 999);
+        }
+
+        /* When more than 4 children exist, force each to 100% width */
+        mk-switcher > :nth-last-child(n + 5),
+        mk-switcher > :nth-last-child(n + 5) ~ * {
+          flex-basis: 100%;
+        }
+      }
+
+      /* ===== components/mk-cover.css (inlined) =============================== */
+      @layer components {
+        mk-cover {
+          display: grid;
+          min-height: var(--mk-cover-min-height, 100vh);
+          grid-template-rows: auto 1fr auto;
+          gap: var(--mk-space-4);
+          padding: var(--mk-space-4);
+        }
+
+        mk-cover > :not(.mk-cover-header, .mk-cover-footer) {
+          align-self: center;
+          grid-row: 2;
+        }
+
+        mk-cover > .mk-cover-header {
+          grid-row: 1;
+        }
+
+        mk-cover > .mk-cover-footer {
+          grid-row: 3;
+        }
+      }
+
+      /* ===== components/mk-divider.css (inlined) ============================= */
+      @layer components {
+        mk-divider {
+          display: block;
+          background-color: var(--mk-color-border);
+          border: 0;
+
+          /* horizontal default */
+          block-size: 1px;
+          inline-size: 100%;
+          margin-block: var(--mk-space-3);
+        }
+
+        mk-divider[orientation="vertical"] {
+          block-size: auto;
+          inline-size: 1px;
+          align-self: stretch;
+          margin-block: 0;
+          margin-inline: var(--mk-space-3);
+        }
+      }
+
+      /* ===== components/mk-heading.css (inlined) ============================= */
+      @layer components {
+        mk-heading {
+          display: block;
+          font-size: var(--mk-font-size-xl);
+          font-weight: var(--mk-font-weight-bold);
+          line-height: var(--mk-line-height-tight);
+          margin: 0;
+        }
+        mk-heading[size="xs"]   { font-size: var(--mk-font-size-xs); }
+        mk-heading[size="sm"]   { font-size: var(--mk-font-size-sm); }
+        mk-heading[size="base"] { font-size: var(--mk-font-size-base); }
+        mk-heading[size="lg"]   { font-size: var(--mk-font-size-lg); }
+        mk-heading[size="xl"]   { font-size: var(--mk-font-size-xl); }
+        mk-heading[size="2xl"]  { font-size: var(--mk-font-size-2xl); }
+        mk-heading[size="3xl"]  { font-size: var(--mk-font-size-3xl); }
+        mk-heading[weight="normal"] { font-weight: var(--mk-font-weight-normal); }
+        mk-heading[weight="medium"] { font-weight: var(--mk-font-weight-medium); }
+        mk-heading[weight="bold"]   { font-weight: var(--mk-font-weight-bold); }
+
+        /* Two-tag form: defer to inner heading element's semantics */
+        mk-heading:has(> h1, > h2, > h3, > h4, > h5, > h6) {
+          font-size: inherit;
+          font-weight: inherit;
+          line-height: inherit;
+        }
+
+        mk-heading > h1,
+        mk-heading > h2,
+        mk-heading > h3,
+        mk-heading > h4,
+        mk-heading > h5,
+        mk-heading > h6 {
+          font-size: inherit;
+          font-weight: inherit;
+          line-height: inherit;
+          margin: 0;
+        }
+      }
+
+      /* ===== components/mk-text.css (inlined) ================================ */
+      @layer components {
+        mk-text {
+          display: block;
+          font-size: var(--mk-font-size-base);
+          font-weight: var(--mk-font-weight-normal);
+          line-height: var(--mk-line-height-normal);
+          color: var(--mk-color-fg);
+          margin: 0;
+        }
+
+        mk-text[variant="body"] {
+          font-size: var(--mk-font-size-base);
+        }
+
+        mk-text[variant="lead"] {
+          font-size: var(--mk-font-size-lg);
+          line-height: var(--mk-line-height-loose);
+        }
+
+        mk-text[variant="small"] {
+          font-size: var(--mk-font-size-sm);
+        }
+
+        mk-text[variant="muted"] {
+          color: var(--mk-color-fg-muted);
+        }
+
+        mk-text[weight="normal"] {
+          font-weight: var(--mk-font-weight-normal);
+        }
+
+        mk-text[weight="medium"] {
+          font-weight: var(--mk-font-weight-medium);
+        }
+
+        mk-text[weight="bold"] {
+          font-weight: var(--mk-font-weight-bold);
+        }
+
+        /* Two-tag (legacy): when a child element is present, reset host styles */
+        mk-text:has(> p, > span, > div) {
+          font-size: inherit;
+          font-weight: inherit;
+          line-height: inherit;
+        }
+
+        mk-text > p,
+        mk-text > span,
+        mk-text > div {
+          font-size: inherit;
+          font-weight: inherit;
+          line-height: inherit;
+          color: inherit;
+          margin: 0;
+        }
+      }
+
+      /* ===== components/mk-link.css (inlined) ================================ */
+      @layer components {
+        mk-link {
+          display: inline;
+        }
+
+        mk-link > a {
+          color: var(--mk-color-primary);
+          text-decoration: underline;
+          text-underline-offset: 0.2em;
+        }
+
+        mk-link[variant="default"] > a {
+          color: var(--mk-color-primary);
+        }
+
+        mk-link[variant="muted"] > a {
+          color: var(--mk-color-fg-muted);
+        }
+
+        mk-link[variant="danger"] > a {
+          color: var(--mk-color-danger);
+        }
+
+        mk-link[underline="always"] > a {
+          text-decoration: underline;
+        }
+
+        mk-link[underline="never"] > a {
+          text-decoration: none;
+        }
+
+        mk-link[underline="hover"] > a {
+          text-decoration: none;
+        }
+
+        mk-link[underline="hover"] > a:hover,
+        mk-link[underline="hover"] > a:focus-visible {
+          text-decoration: underline;
+        }
+      }
+
+      /* ===== components/mk-badge.css (inlined) =============================== */
+      @layer components {
+        mk-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--mk-space-1);
+          padding-inline: var(--mk-space-2);
+          padding-block: var(--mk-space-1);
+          border-radius: var(--mk-radius-sm);
+          font-size: var(--mk-font-size-sm);
+          font-weight: var(--mk-font-weight-medium);
+          line-height: 1;
+
+          /* neutral default */
+          background-color: var(--mk-color-border);
+          color: var(--mk-color-fg);
+        }
+
+        mk-badge[variant="primary"] {
+          background-color: var(--mk-color-primary);
+          color: var(--mk-color-on-primary);
+        }
+
+        mk-badge[variant="success"] {
+          background-color: var(--mk-color-success);
+          color: var(--mk-color-on-primary);
+        }
+
+        mk-badge[variant="warning"] {
+          background-color: var(--mk-color-warning);
+          color: var(--mk-color-on-primary);
+        }
+
+        mk-badge[variant="danger"] {
+          background-color: var(--mk-color-danger);
+          color: var(--mk-color-on-primary);
+        }
+
+        mk-badge[variant="info"] {
+          background-color: var(--mk-color-info);
+          color: var(--mk-color-on-primary);
+        }
+
+        mk-badge[variant="neutral"] {
+          background-color: var(--mk-color-border);
+          color: var(--mk-color-fg);
+        }
+
+        mk-badge[size="sm"] {
+          font-size: var(--mk-font-size-xs);
+          padding-inline: var(--mk-space-1);
+        }
+
+        mk-badge[size="base"] {
+          font-size: var(--mk-font-size-sm);
+          padding-inline: var(--mk-space-2);
+        }
+
+        mk-badge[size="lg"] {
+          font-size: var(--mk-font-size-base);
+          padding-inline: var(--mk-space-3);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mk-layout-1col">
+      <mk-stack gap="4">
+        <mk-heading level="1" size="2xl">Primitives showcase (single-tag form)</mk-heading>
+        <mk-heading size="2xl"><h1>Primitives showcase (two-tag form)</h1></mk-heading>
+        <mk-text variant="lead">One of each primitive, rendered here for CLS verification.</mk-text>
+        <mk-text variant="lead"><p>Same content in two-tag form for parity verification.</p></mk-text>
+
+        <mk-cluster gap="2">
+          <mk-badge variant="primary">Primary</mk-badge>
+          <mk-badge variant="success">Success</mk-badge>
+          <mk-badge variant="warning">Warning</mk-badge>
+          <mk-badge variant="danger">Danger</mk-badge>
+        </mk-cluster>
+
+        <mk-divider></mk-divider>
+
+        <mk-grid min="12rem" gap="3">
+          <div>Grid cell 1</div>
+          <div>Grid cell 2</div>
+          <div>Grid cell 3</div>
+        </mk-grid>
+
+        <mk-sidebar width="14rem">
+          <aside>Sidebar</aside>
+          <section>Main content</section>
+        </mk-sidebar>
+
+        <mk-switcher threshold="30rem" gap="3">
+          <div>Switcher A</div>
+          <div>Switcher B</div>
+          <div>Switcher C</div>
+        </mk-switcher>
+
+        <mk-container size="md">
+          <mk-text>Constrained content within a container.</mk-text>
+        </mk-container>
+
+        <mk-cover min-height="40vh">
+          <header class="mk-cover-header"><mk-heading level="2" size="lg">Cover header</mk-heading></header>
+          <section><mk-text>Centered main</mk-text></section>
+          <footer class="mk-cover-footer"><mk-text variant="small">Cover footer</mk-text></footer>
+        </mk-cover>
+
+        <mk-link variant="default" underline="hover">
+          <a href="#">Example link</a>
+        </mk-link>
+      </mk-stack>
+    </main>
+  </body>
+</html>

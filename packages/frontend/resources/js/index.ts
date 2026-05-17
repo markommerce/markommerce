@@ -1,5 +1,7 @@
 // Kernel entry — populated by tasks 007-009
 
+export { MkElement } from './MkElement';
+
 export {
   addMixin,
   defineAllComponents,

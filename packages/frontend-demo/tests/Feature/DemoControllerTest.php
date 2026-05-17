@@ -416,3 +416,560 @@ it('it follows project naming conventions: the FrontendDemoConfig parameter is n
 
     expect($paramNames)->toContain('frontendDemoConfig');
 });
+
+it('the /markommerce/_demo route renders a Layout Primitives heading', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-layout-heading-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    $manifestCreated = demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('Layout primitives');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the /markommerce/_demo route renders a Typography Primitives heading', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-typography-heading-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('Typography primitives');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the rendered page contains at least one mk-stack element', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-mk-stack-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('<mk-stack');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the rendered page contains at least one mk-cluster element', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-mk-cluster-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('<mk-cluster');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the rendered page contains at least one mk-grid element', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-mk-grid-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('<mk-grid');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the rendered page contains at least one mk-container element', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-mk-container-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('<mk-container');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the rendered page contains at least one mk-sidebar element', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-mk-sidebar-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('<mk-sidebar');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the rendered page contains at least one mk-switcher element', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-mk-switcher-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('<mk-switcher');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the rendered page contains at least one mk-cover element', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-mk-cover-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('<mk-cover');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the rendered page contains at least one mk-divider element', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-mk-divider-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('<mk-divider');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the rendered page contains at least one mk-heading element', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-mk-heading-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('<mk-heading');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the rendered page contains at least one mk-text element', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-mk-text-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('<mk-text');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the rendered page contains at least one mk-link element', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-mk-link-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('<mk-link');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the rendered page contains at least one mk-badge element', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-mk-badge-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    expect($response->body())->toContain('<mk-badge');
+
+    demoTestCleanup($cacheDir);
+});
+
+it('the original counter demo continues to render on the same page', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-counter-primitives-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = $cacheDir . '/base';
+
+    demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    $body = $response->body();
+    expect($body)->toContain('<markommerce-counter');
+    expect($body)->toContain('<mk-stack');
+
+    demoTestCleanup($cacheDir);
+});

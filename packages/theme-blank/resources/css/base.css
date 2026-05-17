@@ -1,13 +1,10 @@
 /*
  * Markommerce custom-element CLS safety-net convention.
  *
- * When mk-* components arrive (Phase 2+), this file will contain a rule of the
- * shape `mk-button:not(:defined), mk-input:not(:defined), ... { visibility: hidden; }`
- * that prevents Flash-of-Undefined-Custom-Element layout shifts.
- *
- * Phase 1 ships no components, so the rule is intentionally empty. Components
- * that follow the architectural rule ("render correctly without JS") do not
- * strictly need this safety net, but it remains a defensive backstop.
+ * Phase 2 adds a grouped selector inside @layer base that covers all 12 primitive
+ * tag names with a :not(:defined) pseudo-class. This acts as a documentation hook
+ * and downstream override point. The real layout is supplied by @layer components
+ * tag selectors which take precedence regardless of JS definition state.
  */
 
 @layer base {
@@ -50,5 +47,27 @@
     max-width: 100%;
     height: auto;
     display: block;
+  }
+
+  /* CLS safety net documentation hook: every Phase 2 primitive renders correctly
+   * from its @layer components tag selector even before the JS class is defined.
+   * This rule exists so consumers can see at a glance which tags participate in
+   * the contract, and to provide a downstream override point. The :not(:defined)
+   * matcher is intentionally a no-op for layout (components layer wins anyway). */
+  mk-stack:not(:defined),
+  mk-cluster:not(:defined),
+  mk-grid:not(:defined),
+  mk-container:not(:defined),
+  mk-sidebar:not(:defined),
+  mk-switcher:not(:defined),
+  mk-cover:not(:defined),
+  mk-divider:not(:defined),
+  mk-heading:not(:defined),
+  mk-text:not(:defined),
+  mk-link:not(:defined),
+  mk-badge:not(:defined) {
+    /* No declarations — the @layer components tag selectors supply the real layout.
+     * This selector group is retained as a documentation hook and downstream override
+     * point. The trailing comment also satisfies stylelint's block-no-empty rule. */
   }
 }

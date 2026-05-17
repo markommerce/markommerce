@@ -8,7 +8,8 @@
     ".": "./resources/js/index.ts",
     "./css/tokens.css": "./resources/css/tokens.css",
     "./css/base.css": "./resources/css/base.css",
-    "./css/layouts.css": "./resources/css/layouts.css"
+    "./css/layouts.css": "./resources/css/layouts.css",
+    "./css/components/*.css": "./resources/css/components/*.css"
   },
   "markommerce": {
     "extension": "./resources/js/index.ts",

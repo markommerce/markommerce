@@ -161,6 +161,26 @@ document.addEventListener('markommerce:cart:updated', (e) => {
 
 ## API Reference
 
+### MkElement
+
+`MkElement` is the shared base class for all Markommerce custom elements. It extends `LitElement` and configures light-DOM rendering so that server-rendered children are preserved intact --- a prerequisite for zero-CLS custom elements.
+
+```typescript
+import { MkElement } from '@markommerce/frontend';
+
+class MyElement extends MkElement {
+  // createRenderRoot() returns `this` (light DOM), and render() returns `nothing`
+  // by default, so existing children are never cleared.
+}
+```
+
+Two overrides make this work:
+
+- `createRenderRoot()` returns `this` (the element itself rather than a shadow root) and sets `renderOptions.renderBefore` to `this.firstChild`, so Lit's ChildPart is anchored before any existing light-DOM content.
+- `render()` returns Lit's `nothing` sentinel, which produces an empty ChildPart range and leaves existing children untouched.
+
+Subclasses can override `render()` with a narrower return type (e.g., `TemplateResult`) without TypeScript errors because the base signature is declared as `render(): unknown`.
+
 ### Component Registry
 
 | Function | Signature | Description |

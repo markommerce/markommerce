@@ -252,6 +252,32 @@ The `1column`, `2columns-left`, `2columns-right`, and `3columns` layouts extend 
 
 The two-column layouts switch from a single-column stacked view to the side-by-side grid at `--mk-breakpoint-md` (768 px). The three-column layout switches at `--mk-breakpoint-lg` (1024 px).
 
+## Components
+
+`markommerce/theme-blank` ships a set of light-DOM custom-element primitives. Each primitive is purely presentational --- it wraps your server-rendered HTML with consistent styling, never replacing or restructuring children. All visual behavior is driven by CSS attribute selectors, so every primitive produces zero CLS even before its JavaScript is loaded.
+
+### Layout primitives
+
+| Component | Description |
+| --- | --- |
+| [mk-stack](/docs/packages/theme-blank/mk-stack/) | Vertical rhythm with consistent gap |
+| [mk-cluster](/docs/packages/theme-blank/mk-cluster/) | Horizontal flex-wrap row for button rows, tag lists |
+| [mk-grid](/docs/packages/theme-blank/mk-grid/) | Responsive auto-fit grid driven by a minimum column width |
+| [mk-container](/docs/packages/theme-blank/mk-container/) | Max-width content container with auto inline margins |
+| [mk-sidebar](/docs/packages/theme-blank/mk-sidebar/) | Sidebar + main with implicit-flexbox collapse |
+| [mk-switcher](/docs/packages/theme-blank/mk-switcher/) | Row→column switch via flex-basis arithmetic |
+| [mk-cover](/docs/packages/theme-blank/mk-cover/) | Header / centered main / footer full-height frame |
+| [mk-divider](/docs/packages/theme-blank/mk-divider/) | Styled separator with auto-injected `role="separator"` |
+
+### Typography primitives
+
+| Component | Description |
+| --- | --- |
+| [mk-heading](/docs/packages/theme-blank/mk-heading/) | Single-tag heading with ARIA role + level (two-tag form supported for SEO-critical content) |
+| [mk-text](/docs/packages/theme-blank/mk-text/) | Single-tag body text with body / lead / small / muted variants (two-tag form supported for nested content) |
+| [mk-link](/docs/packages/theme-blank/mk-link/) | Wrapper around native `<a>` with variant + underline-policy control |
+| [mk-badge](/docs/packages/theme-blank/mk-badge/) | Inline-flex status badge with semantic variants |
+
 ## JS API
 
 `@markommerce/theme-blank` exports a stub JavaScript API from its main entry point. The stubs log a `console.warn` and return sensible no-op values. Real implementations land in Phase 4.
@@ -368,18 +394,29 @@ This means a component's initial paint --- as served by the PHP/Latte template -
 
 ### `:not(:defined)` Safety Net
 
-`base.css` includes a CLS safety-net convention: when Phase 2+ custom elements (`mk-button`, `mk-input`, etc.) are added, `base.css` will carry a rule of the form:
+`base.css` includes a grouped `:not(:defined)` selector covering all 12 primitive tag names inside `@layer base`. The selector exists as a documentation hook and downstream override point --- it currently carries no declarations because every component's real layout is supplied by `@layer components` tag selectors, which apply regardless of whether the element's JavaScript constructor has been registered.
 
 ```css
 @layer base {
-  mk-button:not(:defined),
-  mk-input:not(:defined) {
-    visibility: hidden;
+  mk-stack:not(:defined),
+  mk-cluster:not(:defined),
+  mk-grid:not(:defined),
+  mk-container:not(:defined),
+  mk-sidebar:not(:defined),
+  mk-switcher:not(:defined),
+  mk-cover:not(:defined),
+  mk-divider:not(:defined),
+  mk-heading:not(:defined),
+  mk-text:not(:defined),
+  mk-link:not(:defined),
+  mk-badge:not(:defined) {
+    /* No declarations — @layer components tag selectors supply the real layout.
+     * This block is a downstream override point. */
   }
 }
 ```
 
-The `:not(:defined)` pseudo-class matches any custom element whose constructor has not yet been registered via `customElements.define()`. Hiding undefined elements prevents a Flash-of-Undefined-Custom-Element (FOUCE) --- a brief moment where the element's children appear unstyled before the component's styles load. Phase 1 ships no components, so the rule is intentionally absent from the current `base.css`.
+The `:not(:defined)` pseudo-class matches any custom element whose constructor has not yet been registered via `customElements.define()`. Because the components lay themselves out via plain CSS attribute selectors at `@layer components`, all 12 primitives render correctly on first paint with no JavaScript. Consumers who want to hide a specific element until its class is registered can add a `visibility: hidden` declaration here inside `@layer theme` (which sits above `base` in the layer order).
 
 ### Playwright Smoke Test
 

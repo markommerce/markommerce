@@ -1,0 +1,18 @@
+@layer components {
+  mk-grid {
+    display: grid;
+    gap: var(--mk-space-3);
+    grid-template-columns: repeat(auto-fit, minmax(min(var(--mk-grid-min, 16rem), 100%), 1fr));
+  }
+
+  mk-grid[gap="0"] { gap: var(--mk-space-0); }
+  mk-grid[gap="1"] { gap: var(--mk-space-1); }
+  mk-grid[gap="2"] { gap: var(--mk-space-2); }
+  mk-grid[gap="3"] { gap: var(--mk-space-3); }
+  mk-grid[gap="4"] { gap: var(--mk-space-4); }
+  mk-grid[gap="5"] { gap: var(--mk-space-5); }
+  mk-grid[gap="6"] { gap: var(--mk-space-6); }
+  mk-grid[gap="7"] { gap: var(--mk-space-7); }
+  mk-grid[gap="8"] { gap: var(--mk-space-8); }
+  mk-grid[gap="9"] { gap: var(--mk-space-9); }
+}

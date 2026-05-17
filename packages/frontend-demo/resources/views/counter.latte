@@ -1,1 +1,99 @@
 <markommerce-counter start-value="0" suffix=" clicks"></markommerce-counter>
+
+<section class="demo-primitives">
+  <mk-heading size="2xl"><h2>Layout primitives</h2></mk-heading>
+  <mk-stack gap="6">
+    <article>
+      <mk-heading level="3" size="lg">mk-stack</mk-heading>
+      <mk-stack gap="3">
+        <div>First item</div>
+        <div>Second item</div>
+        <div>Third item</div>
+      </mk-stack>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-cluster</mk-heading>
+      <mk-cluster gap="2">
+        <button>Action A</button>
+        <button>Action B</button>
+        <button>Action C</button>
+      </mk-cluster>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-grid</mk-heading>
+      <mk-grid min="10rem" gap="3">
+        <div>Grid cell 1</div>
+        <div>Grid cell 2</div>
+        <div>Grid cell 3</div>
+      </mk-grid>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-container</mk-heading>
+      <mk-container size="sm">
+        <mk-text>Constrained to sm (40rem) max-width.</mk-text>
+      </mk-container>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-sidebar</mk-heading>
+      <mk-sidebar width="12rem">
+        <aside><mk-text variant="small">Sidebar</mk-text></aside>
+        <section><mk-text>Main content area</mk-text></section>
+      </mk-sidebar>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-switcher</mk-heading>
+      <mk-switcher threshold="30rem" gap="2">
+        <div>Item A</div>
+        <div>Item B</div>
+        <div>Item C</div>
+      </mk-switcher>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-cover</mk-heading>
+      <mk-cover min-height="20vh">
+        <header class="mk-cover-header"><mk-text variant="small">Header</mk-text></header>
+        <section><mk-text>Centered main content</mk-text></section>
+        <footer class="mk-cover-footer"><mk-text variant="small">Footer</mk-text></footer>
+      </mk-cover>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-divider</mk-heading>
+      <mk-divider></mk-divider>
+    </article>
+  </mk-stack>
+
+  <mk-heading level="2" size="2xl">Typography primitives</mk-heading>
+  <mk-stack gap="4">
+    <article>
+      <mk-heading level="3" size="lg">mk-heading</mk-heading>
+      <mk-heading level="2" size="xl">Single-tag heading (xl)</mk-heading>
+      <mk-heading size="xl"><h2>Two-tag heading (xl, SEO form)</h2></mk-heading>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-text</mk-heading>
+      <mk-text variant="lead">Lead paragraph text</mk-text>
+      <mk-text variant="body">Body paragraph text</mk-text>
+      <mk-text variant="small">Small text</mk-text>
+      <mk-text variant="muted">Muted text</mk-text>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-link</mk-heading>
+      <mk-cluster gap="3">
+        <mk-link variant="default" underline="hover"><a href="#">Default hover</a></mk-link>
+        <mk-link variant="muted" underline="always"><a href="#">Muted always</a></mk-link>
+        <mk-link variant="danger" underline="never"><a href="#">Danger never</a></mk-link>
+      </mk-cluster>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-badge</mk-heading>
+      <mk-cluster gap="2">
+        <mk-badge variant="neutral">Neutral</mk-badge>
+        <mk-badge variant="primary">Primary</mk-badge>
+        <mk-badge variant="success">Success</mk-badge>
+        <mk-badge variant="warning">Warning</mk-badge>
+        <mk-badge variant="danger">Danger</mk-badge>
+        <mk-badge variant="info">Info</mk-badge>
+      </mk-cluster>
+    </article>
+  </mk-stack>
+</section>

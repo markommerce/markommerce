@@ -35,6 +35,31 @@ npm run test:cls:docker
 
 No web server is needed — the test uses `page.setContent()` to inject the fixture HTML directly. No JavaScript is loaded in Phase 1.
 
+## Phase 2: All-Primitives CLS Spec
+
+`primitives-cls.spec.ts` verifies that all 12 Phase 2 primitive components produce zero CLS, split across two test variants:
+
+### Fixture: `fixtures/primitives-page.html`
+
+A self-contained HTML file that inlines (in order):
+1. `tokens.css` — design tokens
+2. `base.css` — global resets and the `:not(:defined)` safety net selector group for all 12 primitives
+3. `layouts.css` — page layout helpers
+4. All 12 component CSS files from `resources/css/components/`
+
+The body renders one sample of each primitive with realistic content inside `<main class="mk-layout-1col">`. No JavaScript is loaded in the fixture itself.
+
+### Why two test variants?
+
+**Unupgraded state** (`all 12 primitives produce zero CLS in unupgraded state`): loads the fixture without any custom-element definitions. This verifies that the CSS-only (`@layer components`) tag selectors supply the correct layout from the first paint, before any JavaScript runs. The `:not(:defined)` selector group in `@layer base` is a no-op for layout purposes — the components layer rules win regardless.
+
+**Post-upgrade state** (`all 12 primitives produce zero CLS through upgrade`): after `setContent`, the test synchronously defines stub custom-element classes for all 12 tags via `customElements.define`. Each stub's `connectedCallback` mirrors two behaviours of the real Lit-based components:
+
+1. **Length-attribute sync**: components that accept a length prop (`mk-grid[min]`, `mk-sidebar[width]`, `mk-switcher[threshold]`, `mk-cover[min-height]`) read the attribute and write the corresponding `--mk-*` CSS custom property as an inline style, matching what the real Phase 2 class does synchronously during `connectedCallback`.
+2. **Lit ChildPart marker**: a `<!---->` Comment node is inserted as the first child of the host element, mirroring Lit's internal `ChildPart` marker so that any selector relying on `:first-child` ordering is tested under realistic DOM conditions.
+
+Both variants assert `cls === 0` after a 500 ms idle pause.
+
 ## Phase 2+: Adding a Fixture for a New Component
 
 When a new `mk-*` component ships, follow this pattern to add browser CLS coverage:
