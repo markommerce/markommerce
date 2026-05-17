@@ -166,7 +166,7 @@ it('empty.latte extends base.latte and exposes only a content block via body', f
     expect($contents)->toContain('{block content}');
 });
 
-it('1column.latte extends base.latte, wraps main in .mk-layout-1col, exposes a content block', function (): void {
+it('1column.latte extends base.latte, wraps main in mk-container, exposes a content block', function (): void {
     $templatePath = dirname(__DIR__, 2) . '/resources/views/layout/1column.latte';
 
     expect(file_exists($templatePath))->toBeTrue();
@@ -174,11 +174,11 @@ it('1column.latte extends base.latte, wraps main in .mk-layout-1col, exposes a c
     $contents = file_get_contents($templatePath);
     expect($contents)->toContain("layout 'theme-blank::layout/base'");
     expect($contents)->toContain('{block main}');
-    expect($contents)->toContain('mk-layout-1col');
+    expect($contents)->toContain('<mk-container>');
     expect($contents)->toContain('{block content}');
 });
 
-it('2columns-left.latte extends base.latte, wraps main in .mk-layout-2col-left, exposes sidebar-left and content blocks', function (): void {
+it('2columns-left.latte extends base.latte, wraps main in mk-container and mk-sidebar, exposes sidebar-left and content blocks', function (): void {
     $templatePath = dirname(__DIR__, 2) . '/resources/views/layout/2columns-left.latte';
 
     expect(file_exists($templatePath))->toBeTrue();
@@ -186,13 +186,14 @@ it('2columns-left.latte extends base.latte, wraps main in .mk-layout-2col-left, 
     $contents = file_get_contents($templatePath);
     expect($contents)->toContain("layout 'theme-blank::layout/base'");
     expect($contents)->toContain('{block main}');
-    expect($contents)->toContain('mk-layout-2col-left');
+    expect($contents)->toContain('<mk-container>');
+    expect($contents)->toContain('<mk-sidebar>');
     expect($contents)->toContain('<aside>');
     expect($contents)->toContain('{block sidebar-left}');
     expect($contents)->toContain('{block content}');
 });
 
-it('2columns-right.latte extends base.latte, wraps main in .mk-layout-2col-right, exposes sidebar-right and content blocks', function (): void {
+it('2columns-right.latte extends base.latte, wraps main in mk-container and mk-sidebar with side=right, exposes sidebar-right and content blocks', function (): void {
     $templatePath = dirname(__DIR__, 2) . '/resources/views/layout/2columns-right.latte';
 
     expect(file_exists($templatePath))->toBeTrue();
@@ -200,7 +201,8 @@ it('2columns-right.latte extends base.latte, wraps main in .mk-layout-2col-right
     $contents = file_get_contents($templatePath);
     expect($contents)->toContain("layout 'theme-blank::layout/base'");
     expect($contents)->toContain('{block main}');
-    expect($contents)->toContain('mk-layout-2col-right');
+    expect($contents)->toContain('<mk-container>');
+    expect($contents)->toContain('mk-sidebar side="right"');
     expect($contents)->toContain('<aside>');
     expect($contents)->toContain('{block sidebar-right}');
     expect($contents)->toContain('{block content}');
@@ -229,25 +231,13 @@ it('layouts.css wraps all rules in @layer theme', function (): void {
     expect($contents)->toMatch('/@layer theme\s*\{/');
 });
 
-it('layouts.css defines .mk-layout-1col with max-width and centered margins', function (): void {
+it('layouts.css does not define .mk-layout-1col or .mk-layout-2col-* (replaced by mk-container and mk-sidebar primitives)', function (): void {
     $cssPath = dirname(__DIR__, 2) . '/resources/css/layouts.css';
     $contents = file_get_contents($cssPath);
 
-    expect($contents)->toContain('.mk-layout-1col');
-    expect($contents)->toContain('max-width: 1280px');
-    expect($contents)->toContain('margin-inline: auto');
-});
-
-it('layouts.css defines responsive grid columns for .mk-layout-2col-left/.mk-layout-2col-right using --mk-breakpoint-md', function (): void {
-    $cssPath = dirname(__DIR__, 2) . '/resources/css/layouts.css';
-    $contents = file_get_contents($cssPath);
-
-    expect($contents)->toContain('.mk-layout-2col-left');
-    expect($contents)->toContain('.mk-layout-2col-right');
-    expect($contents)->toContain('display: grid');
-    expect($contents)->toContain('--mk-breakpoint-md');
-    expect($contents)->toContain('grid-template-columns');
-    expect($contents)->toContain('240px');
+    expect($contents)->not->toContain('.mk-layout-1col');
+    expect($contents)->not->toContain('.mk-layout-2col-left');
+    expect($contents)->not->toContain('.mk-layout-2col-right');
 });
 
 it('layouts.css defines responsive grid columns for .mk-layout-3col using --mk-breakpoint-lg', function (): void {

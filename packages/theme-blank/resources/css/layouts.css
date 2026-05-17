@@ -10,37 +10,9 @@
  */
 
 @layer theme {
-  .mk-layout-1col {
-    max-width: 1280px;
-    margin-inline: auto;
-    padding: var(--mk-space-4);
-  }
-
-  .mk-layout-2col-left,
-  .mk-layout-2col-right {
-    display: grid;
-    gap: var(--mk-space-4);
-    max-width: 1280px;
-    margin-inline: auto;
-    padding: var(--mk-space-4);
-  }
-
-  @media (--mk-breakpoint-md) {
-    .mk-layout-2col-left {
-      grid-template-columns: 240px 1fr;
-    }
-
-    .mk-layout-2col-right {
-      grid-template-columns: 1fr 240px;
-    }
-  }
-
   .mk-layout-3col {
     display: grid;
     gap: var(--mk-space-4);
-    max-width: 1280px;
-    margin-inline: auto;
-    padding: var(--mk-space-4);
   }
 
   @media (--mk-breakpoint-lg) {

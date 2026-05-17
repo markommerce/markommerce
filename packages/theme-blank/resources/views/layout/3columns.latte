@@ -1,9 +1,11 @@
 {layout 'theme-blank::layout/base'}
 
 {block main}
-<div class="mk-layout-3col">
-    <aside>{block sidebar-left}{/block}</aside>
-    {block content}{/block}
-    <aside>{block sidebar-right}{/block}</aside>
-</div>
+<mk-container>
+    <div class="mk-layout-3col">
+        <aside>{block sidebar-left}{/block}</aside>
+        {block content}{/block}
+        <aside>{block sidebar-right}{/block}</aside>
+    </div>
+</mk-container>
 {/block}
