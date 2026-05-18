@@ -7,7 +7,6 @@
   "exports": {
     ".": "./resources/js/index.ts",
     "./css/layers.css": "./resources/css/layers.css",
-    "./css/tokens.css": "./resources/css/tokens.css",
     "./css/*": "./resources/css/*"
   },
   "markommerce": {

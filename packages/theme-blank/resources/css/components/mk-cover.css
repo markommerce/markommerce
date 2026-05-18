@@ -1,0 +1,22 @@
+@layer components {
+  mk-cover {
+    display: grid;
+    min-height: var(--mk-cover-min-height, 100vh);
+    grid-template-rows: auto 1fr auto;
+    gap: var(--mk-space-4);
+    padding: var(--mk-space-4);
+  }
+
+  mk-cover > :not(.mk-cover-header, .mk-cover-footer) {
+    align-self: center;
+    grid-row: 2;
+  }
+
+  mk-cover > .mk-cover-header {
+    grid-row: 1;
+  }
+
+  mk-cover > .mk-cover-footer {
+    grid-row: 3;
+  }
+}

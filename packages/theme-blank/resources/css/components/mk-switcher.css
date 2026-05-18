@@ -1,0 +1,29 @@
+@layer components {
+  mk-switcher {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mk-space-3);
+  }
+
+  mk-switcher[gap="0"] { gap: var(--mk-space-0); }
+  mk-switcher[gap="1"] { gap: var(--mk-space-1); }
+  mk-switcher[gap="2"] { gap: var(--mk-space-2); }
+  mk-switcher[gap="3"] { gap: var(--mk-space-3); }
+  mk-switcher[gap="4"] { gap: var(--mk-space-4); }
+  mk-switcher[gap="5"] { gap: var(--mk-space-5); }
+  mk-switcher[gap="6"] { gap: var(--mk-space-6); }
+  mk-switcher[gap="7"] { gap: var(--mk-space-7); }
+  mk-switcher[gap="8"] { gap: var(--mk-space-8); }
+  mk-switcher[gap="9"] { gap: var(--mk-space-9); }
+
+  mk-switcher > * {
+    flex-grow: 1;
+    flex-basis: calc((var(--mk-switcher-threshold, 30rem) - 100%) * 999);
+  }
+
+  /* When more than 4 children exist, force each to 100% width */
+  mk-switcher > :nth-last-child(n + 5),
+  mk-switcher > :nth-last-child(n + 5) ~ * {
+    flex-basis: 100%;
+  }
+}

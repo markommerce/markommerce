@@ -1,0 +1,54 @@
+@layer components {
+  mk-select {
+    display: block;
+  }
+
+  mk-select > select {
+    display: block;
+    width: 100%;
+    height: var(--mk-input-height-base);
+    padding-inline: var(--mk-input-padding-inline);
+    padding-inline-end: var(--mk-space-8);
+    background-color: var(--mk-input-bg);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%23666' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right var(--mk-space-3) center;
+    background-size: 1em;
+    color: var(--mk-input-color);
+    border: 1px solid var(--mk-input-border-color);
+    border-radius: var(--mk-radius-input);
+    font-size: var(--mk-font-size-base);
+    appearance: none;
+    cursor: pointer;
+    transition: border-color var(--mk-transition-fast);
+  }
+
+  mk-select[size="sm"] > select {
+    height: var(--mk-input-height-sm);
+    font-size: var(--mk-font-size-sm);
+  }
+
+  mk-select[size="lg"] > select {
+    height: var(--mk-input-height-lg);
+    font-size: var(--mk-font-size-lg);
+  }
+
+  mk-select[variant="filled"] > select {
+    background-color: var(--mk-color-border);
+    border-color: transparent;
+  }
+
+  mk-select:not(:has(select:disabled)) > select:hover {
+    border-color: var(--mk-input-border-color-hover);
+  }
+
+  mk-select:has(select:disabled) {
+    opacity: 0.5;
+  }
+
+  mk-select:not(:has(select:disabled)):has(select:focus-visible) > select {
+    border-color: var(--mk-input-border-color-focus);
+    outline: 2px solid var(--mk-color-focus-ring);
+    outline-offset: 2px;
+  }
+}

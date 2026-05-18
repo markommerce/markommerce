@@ -1,0 +1,41 @@
+@layer components {
+  mk-toast {
+    display: block;
+    background: var(--mk-toast-bg);
+    color: var(--mk-toast-fg);
+    padding: var(--mk-toast-padding);
+    border-radius: var(--mk-toast-radius);
+    box-shadow: var(--mk-toast-shadow);
+    min-width: var(--mk-toast-min-width);
+    max-width: var(--mk-toast-max-width);
+  }
+
+  mk-toast[variant="info"] {
+    border-left: 4px solid var(--mk-color-info);
+  }
+
+  mk-toast[variant="success"] {
+    border-left: 4px solid var(--mk-color-success);
+  }
+
+  mk-toast[variant="warning"] {
+    border-left: 4px solid var(--mk-color-warning);
+  }
+
+  mk-toast[variant="danger"] {
+    border-left: 4px solid var(--mk-color-danger);
+  }
+
+  .mk-toast-region {
+    position: fixed;
+    bottom: var(--mk-toast-region-inset);
+    right: var(--mk-toast-region-inset);
+    display: flex;
+    flex-direction: column;
+    gap: var(--mk-toast-region-gap);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    z-index: 1000;
+  }
+}

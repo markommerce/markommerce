@@ -1,0 +1,87 @@
+@layer components {
+  mk-button {
+    display: inline-flex;
+  }
+
+  mk-button button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--mk-space-2);
+    padding-inline: var(--mk-space-4);
+    padding-block: var(--mk-space-2);
+    border-radius: var(--mk-radius-base);
+    font-size: var(--mk-font-size-base);
+    font-weight: var(--mk-font-weight-medium);
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color var(--mk-transition-fast), border-color var(--mk-transition-fast);
+
+    /* default: transparent bg, border, fg text */
+    background-color: transparent;
+    border: 1px solid var(--mk-color-border);
+    color: var(--mk-color-fg);
+  }
+
+  mk-button[variant="primary"] button {
+    background-color: var(--mk-color-primary);
+    color: var(--mk-color-on-primary);
+    border: none;
+  }
+
+  mk-button[variant="secondary"] button {
+    background-color: transparent;
+    color: var(--mk-color-fg);
+    border: 1px solid var(--mk-color-border);
+  }
+
+  mk-button[variant="ghost"] button {
+    background-color: transparent;
+    color: var(--mk-color-fg);
+    border: none;
+  }
+
+  mk-button[variant="danger"] button {
+    background-color: var(--mk-color-danger);
+    color: var(--mk-color-on-primary);
+    border: none;
+  }
+
+  mk-button[size="sm"] button {
+    padding-inline: var(--mk-space-3);
+    padding-block: var(--mk-space-1);
+    font-size: var(--mk-font-size-sm);
+  }
+
+  mk-button[size="lg"] button {
+    padding-inline: var(--mk-space-6);
+    padding-block: var(--mk-space-3);
+    font-size: var(--mk-font-size-lg);
+  }
+
+  mk-button:has(button:focus-visible) button {
+    outline: 2px solid var(--mk-color-focus-ring);
+    outline-offset: 2px;
+  }
+
+  mk-button[variant="primary"] button:hover {
+    background-color: var(--mk-color-primary-hover);
+  }
+
+  mk-button[variant="secondary"] button:hover {
+    background-color: var(--mk-color-border);
+  }
+
+  mk-button[variant="ghost"] button:hover {
+    background-color: var(--mk-color-border);
+  }
+
+  mk-button[variant="danger"] button:hover {
+    background-color: var(--mk-color-danger-hover);
+  }
+
+  mk-button:has(button:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Markommerce — All 6 feedback components</title>
+    <style>
+      /* ===== tokens.css (inlined, Open Props vars resolved) =================== */
+      @layer tokens {
+        :root {
+          /* --- Colors ---------------------------------------------------------- */
+          --mk-color-primary: #1971c2;
+          --mk-color-primary-light: #74c0fc;
+          --mk-color-primary-hover: #1864ab;
+          --mk-color-primary-active: #145591;
+          --mk-color-on-primary: #f8f9fa;
+          --mk-color-surface: #f8f9fa;
+          --mk-color-on-surface: #212529;
+          --mk-color-border: #dee2e6;
+          --mk-color-error: #e03131;
+          --mk-color-fg: #212529;
+          --mk-color-bg: #f8f9fa;
+          --mk-color-fg-muted: #868e96;
+          --mk-color-success: #2f9e44;
+          --mk-color-warning: #e67700;
+          --mk-color-danger: #e03131;
+          --mk-color-info: #339af0;
+
+          /* --- Spacing --------------------------------------------------------- */
+          --mk-space-0: 0;
+          --mk-space-1: 0.25rem;
+          --mk-space-2: 0.5rem;
+          --mk-space-3: 1rem;
+          --mk-space-4: 1.25rem;
+          --mk-space-5: 1.5rem;
+          --mk-space-6: 1.75rem;
+          --mk-space-7: 2rem;
+          --mk-space-8: 3rem;
+          --mk-space-9: 4rem;
+
+          /* --- Typography ------------------------------------------------------ */
+          --mk-font-sans: system-ui, sans-serif;
+          --mk-font-mono: ui-monospace, monospace;
+          --mk-font-size-xs: 0.75rem;
+          --mk-font-size-sm: 0.875rem;
+          --mk-font-size-base: 1rem;
+          --mk-font-size-lg: 1.125rem;
+          --mk-font-size-xl: 1.25rem;
+          --mk-font-size-2xl: 1.5rem;
+          --mk-font-size-3xl: 2rem;
+          --mk-font-weight-normal: 400;
+          --mk-font-weight-medium: 500;
+          --mk-font-weight-bold: 700;
+          --mk-line-height-tight: 1.25;
+          --mk-line-height-normal: 1.5;
+          --mk-line-height-loose: 1.75;
+
+          /* --- Transitions ----------------------------------------------------- */
+          --mk-transition-fast: 150ms ease;
+          --mk-transition-base: 250ms ease;
+
+          /* --- Radius ---------------------------------------------------------- */
+          --mk-radius-sm: 0.25rem;
+          --mk-radius-base: 0.5rem;
+          --mk-radius-lg: 1rem;
+          --mk-radius-full: 9999px;
+
+          /* --- Shadows --------------------------------------------------------- */
+          --mk-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+          --mk-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+          --mk-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+          /* --- Motion ---------------------------------------------------------- */
+          --mk-duration-normal: 250ms;
+          --mk-duration-slow: 500ms;
+          --mk-ease-out: cubic-bezier(0, 0, 0.5, 1);
+          --mk-ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+
+          /* --- Alert ----------------------------------------------------------- */
+          --mk-alert-bg-info: #e8f4fd;
+          --mk-alert-bg-success: #e8f8ed;
+          --mk-alert-bg-warning: #fff8e1;
+          --mk-alert-bg-danger: #fde8e8;
+          --mk-alert-fg-info: #1864ab;
+          --mk-alert-fg-success: #1e6b34;
+          --mk-alert-fg-warning: #7c4a00;
+          --mk-alert-fg-danger: #b02020;
+          --mk-alert-padding: 1rem;
+          --mk-alert-radius: 0.5rem;
+          --mk-alert-border-color-info: #a5d8f5;
+          --mk-alert-border-color-success: #8fd1a5;
+          --mk-alert-border-color-warning: #ffd580;
+          --mk-alert-border-color-danger: #f5a5a5;
+
+          /* --- Toast ----------------------------------------------------------- */
+          --mk-toast-bg: #f8f9fa;
+          --mk-toast-fg: #212529;
+          --mk-toast-region-gap: 0.5rem;
+          --mk-toast-region-inset: 1.25rem;
+          --mk-toast-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+          --mk-toast-radius: 0.5rem;
+          --mk-toast-padding: 1rem;
+          --mk-toast-min-width: 18rem;
+          --mk-toast-max-width: 24rem;
+
+          /* --- Modal ----------------------------------------------------------- */
+          --mk-modal-bg: #f8f9fa;
+          --mk-modal-fg: #212529;
+          --mk-modal-radius: 1rem;
+          --mk-modal-padding: 1.5rem;
+          --mk-modal-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+          --mk-modal-backdrop-color: rgba(33, 37, 41, 0.6);
+          --mk-modal-width-sm: 24rem;
+          --mk-modal-width-md: 32rem;
+          --mk-modal-width-lg: 48rem;
+
+          /* --- Drawer ---------------------------------------------------------- */
+          --mk-drawer-bg: #f8f9fa;
+          --mk-drawer-fg: #212529;
+          --mk-drawer-width-sm: 20rem;
+          --mk-drawer-width-md: 28rem;
+          --mk-drawer-width-lg: 40rem;
+          --mk-drawer-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+          --mk-drawer-padding: 1.5rem;
+
+          /* --- Spinner --------------------------------------------------------- */
+          --mk-spinner-size-sm: 1rem;
+          --mk-spinner-size-base: 1.5rem;
+          --mk-spinner-size-lg: 2.5rem;
+          --mk-spinner-thickness: 2px;
+          --mk-spinner-color: #1971c2;
+          --mk-spinner-duration: 500ms;
+
+          /* --- Skeleton -------------------------------------------------------- */
+          --mk-skeleton-bg: #e0e0e0;
+          --mk-skeleton-shimmer-color: #f5f5f5;
+          --mk-skeleton-radius: 0.5rem;
+          --mk-skeleton-duration: 500ms;
+        }
+
+        /* Dark-mode overrides */
+        [data-theme="dark"] {
+          --mk-color-primary: #74c0fc;
+          --mk-color-surface: #212529;
+          --mk-color-on-surface: #f1f3f5;
+          --mk-color-border: #495057;
+          --mk-color-fg: #f1f3f5;
+          --mk-color-bg: #212529;
+          --mk-toast-bg: #343a40;
+          --mk-modal-bg: #343a40;
+          --mk-skeleton-bg: #495057;
+        }
+      }
+
+      /* ===== base.css (inlined) =============================================== */
+      @layer base {
+        *, *::before, *::after {
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: var(--mk-font-sans);
+          font-size: var(--mk-font-size-base);
+          line-height: var(--mk-line-height-normal);
+          color: var(--mk-color-fg);
+          background-color: var(--mk-color-bg);
+          margin: 0;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+          line-height: var(--mk-line-height-tight);
+          font-weight: var(--mk-font-weight-bold);
+          margin: 0;
+        }
+
+        h1 { font-size: var(--mk-font-size-3xl); }
+        h2 { font-size: var(--mk-font-size-2xl); }
+        h3 { font-size: var(--mk-font-size-xl); }
+        h4 { font-size: var(--mk-font-size-lg); }
+        h5 { font-size: var(--mk-font-size-base); }
+        h6 { font-size: var(--mk-font-size-sm); }
+
+        a {
+          color: var(--mk-color-primary);
+          text-decoration: underline;
+        }
+
+        a:hover {
+          color: var(--mk-color-primary-hover, var(--mk-color-primary));
+        }
+
+        img, video {
+          max-width: 100%;
+          height: auto;
+          display: block;
+        }
+
+        /* CLS safety net documentation hook */
+        mk-alert:not(:defined),
+        mk-toast:not(:defined),
+        mk-spinner:not(:defined),
+        mk-skeleton:not(:defined),
+        mk-modal:not(:defined),
+        mk-drawer:not(:defined) {
+          /* No declarations — the @layer components tag selectors supply the real layout. */
+        }
+      }
+
+      /* ===== components/mk-alert.css (inlined) ================================ */
+      @layer components {
+        mk-alert {
+          display: block;
+          position: relative;
+          padding: var(--mk-space-4);
+          border-radius: var(--mk-radius-base);
+          border: 1px solid var(--mk-alert-border-color, var(--mk-color-border));
+          background-color: var(--mk-alert-bg, var(--mk-color-surface));
+          color: var(--mk-alert-fg, var(--mk-color-fg));
+        }
+
+        mk-alert[variant="info"] {
+          background-color: var(--mk-alert-bg-info);
+          color: var(--mk-alert-fg-info);
+          border-color: var(--mk-alert-border-color-info);
+        }
+
+        mk-alert[variant="success"] {
+          background-color: var(--mk-alert-bg-success);
+          color: var(--mk-alert-fg-success);
+          border-color: var(--mk-alert-border-color-success);
+        }
+
+        mk-alert[variant="warning"] {
+          background-color: var(--mk-alert-bg-warning);
+          color: var(--mk-alert-fg-warning);
+          border-color: var(--mk-alert-border-color-warning);
+        }
+
+        mk-alert[variant="danger"] {
+          background-color: var(--mk-alert-bg-danger);
+          color: var(--mk-alert-fg-danger);
+          border-color: var(--mk-alert-border-color-danger);
+        }
+
+        .mk-alert-close {
+          position: absolute;
+          inset-block-start: var(--mk-space-2);
+          inset-inline-end: var(--mk-space-2);
+          background: none;
+          border: none;
+          padding: var(--mk-space-1);
+          cursor: pointer;
+          color: var(--mk-color-fg-muted);
+          line-height: 1;
+        }
+      }
+
+      /* ===== components/mk-toast.css (inlined) ================================ */
+      @layer components {
+        mk-toast {
+          display: block;
+          background: var(--mk-toast-bg);
+          color: var(--mk-toast-fg);
+          padding: var(--mk-toast-padding);
+          border-radius: var(--mk-toast-radius);
+          box-shadow: var(--mk-toast-shadow);
+          min-width: var(--mk-toast-min-width);
+          max-width: var(--mk-toast-max-width);
+        }
+
+        mk-toast[variant="info"] {
+          border-left: 4px solid var(--mk-color-info);
+        }
+
+        mk-toast[variant="success"] {
+          border-left: 4px solid var(--mk-color-success);
+        }
+
+        mk-toast[variant="warning"] {
+          border-left: 4px solid var(--mk-color-warning);
+        }
+
+        mk-toast[variant="danger"] {
+          border-left: 4px solid var(--mk-color-danger);
+        }
+
+        .mk-toast-region {
+          position: fixed;
+          bottom: var(--mk-toast-region-inset);
+          right: var(--mk-toast-region-inset);
+          display: flex;
+          flex-direction: column;
+          gap: var(--mk-toast-region-gap);
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          z-index: 1000;
+        }
+      }
+
+      /* ===== components/mk-spinner.css (inlined) ============================== */
+      @layer components {
+        mk-spinner {
+          display: inline-block;
+          width: var(--mk-spinner-size-base);
+          height: var(--mk-spinner-size-base);
+          border-width: var(--mk-spinner-thickness);
+          border-style: solid;
+          border-color: var(--mk-color-border);
+          border-top-color: var(--mk-spinner-color);
+          border-radius: 50%;
+          animation: mk-spinner-spin var(--mk-spinner-duration) linear infinite;
+          box-sizing: border-box;
+        }
+
+        mk-spinner[size="sm"] {
+          width: var(--mk-spinner-size-sm);
+          height: var(--mk-spinner-size-sm);
+        }
+
+        mk-spinner[size="base"] {
+          width: var(--mk-spinner-size-base);
+          height: var(--mk-spinner-size-base);
+        }
+
+        mk-spinner[size="lg"] {
+          width: var(--mk-spinner-size-lg);
+          height: var(--mk-spinner-size-lg);
+        }
+
+        .mk-visually-hidden {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
+        }
+
+        @keyframes mk-spinner-spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          mk-spinner {
+            animation: none;
+          }
+        }
+      }
+
+      /* ===== components/mk-skeleton.css (inlined) ============================= */
+      @layer components {
+        mk-skeleton {
+          display: block;
+          background: linear-gradient(
+            90deg,
+            var(--mk-skeleton-bg, #e0e0e0),
+            var(--mk-skeleton-shimmer-color, #f5f5f5),
+            var(--mk-skeleton-bg, #e0e0e0)
+          );
+          background-size: 200% 100%;
+          animation: mk-skeleton-shimmer var(--mk-skeleton-duration, 1.5s) infinite linear;
+        }
+
+        mk-skeleton[variant="text"] {
+          height: 1em;
+          border-radius: var(--mk-skeleton-radius, 4px);
+          display: inline-block;
+          min-width: 4em;
+        }
+
+        mk-skeleton[variant="circle"] {
+          border-radius: 50%;
+          aspect-ratio: 1;
+          height: 2em;
+          width: 2em;
+        }
+
+        mk-skeleton[variant="rect"],
+        mk-skeleton:not([variant]) {
+          height: 6em;
+          width: 100%;
+          border-radius: var(--mk-skeleton-radius, 4px);
+        }
+
+        @keyframes mk-skeleton-shimmer {
+          0% {
+            background-position: 200% 0;
+          }
+
+          100% {
+            background-position: -200% 0;
+          }
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        mk-skeleton {
+          animation: none;
+        }
+      }
+
+      /* ===== components/mk-modal.css (inlined) ================================ */
+      @layer components {
+        mk-modal {
+          display: contents;
+        }
+
+        mk-modal > dialog {
+          background: var(--mk-modal-bg);
+          color: var(--mk-modal-fg);
+          border-radius: var(--mk-modal-radius);
+          padding: var(--mk-modal-padding);
+          box-shadow: var(--mk-modal-shadow);
+          border: none;
+          max-width: 90vw;
+          max-height: 90vh;
+        }
+
+        mk-modal[size="sm"] > dialog {
+          inline-size: var(--mk-modal-width-sm);
+        }
+
+        mk-modal[size="md"] > dialog {
+          inline-size: var(--mk-modal-width-md);
+        }
+
+        mk-modal[size="lg"] > dialog {
+          inline-size: var(--mk-modal-width-lg);
+        }
+
+        mk-modal > dialog::backdrop {
+          background-color: var(--mk-modal-backdrop-color);
+        }
+      }
+
+      /* ===== components/mk-drawer.css (inlined) =============================== */
+      @layer components {
+        mk-drawer {
+          display: contents;
+        }
+
+        mk-drawer > dialog {
+          background: var(--mk-drawer-bg);
+          color: var(--mk-drawer-fg);
+          padding: var(--mk-drawer-padding);
+          box-shadow: var(--mk-drawer-shadow);
+          border: none;
+          inline-size: var(--mk-drawer-width-md);
+          block-size: 100vh;
+          max-block-size: 100vh;
+          margin: 0;
+        }
+
+        mk-drawer[placement="right"] > dialog {
+          inset-block: 0;
+          inset-inline: auto 0;
+        }
+
+        mk-drawer[placement="left"] > dialog {
+          inset-block: 0;
+          inset-inline: 0 auto;
+        }
+
+        mk-drawer[size="sm"] > dialog {
+          inline-size: var(--mk-drawer-width-sm);
+        }
+
+        mk-drawer[size="lg"] > dialog {
+          inline-size: var(--mk-drawer-width-lg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- mk-alert: 4 variants -->
+    <mk-alert variant="info">
+      <p>This is an informational alert.</p>
+    </mk-alert>
+    <mk-alert variant="success">
+      <p>Your changes have been saved successfully.</p>
+    </mk-alert>
+    <mk-alert variant="warning">
+      <p>Please review before proceeding.</p>
+    </mk-alert>
+    <mk-alert variant="danger">
+      <p>An error occurred. Please try again.</p>
+    </mk-alert>
+
+    <!-- mk-toast: pre-rendered SSR-style toast region (ol/li/mk-toast) -->
+    <ol class="mk-toast-region" role="region" aria-live="polite" aria-label="Notifications">
+      <li>
+        <mk-toast variant="info">Your order has been placed.</mk-toast>
+      </li>
+      <li>
+        <mk-toast variant="success">Payment confirmed.</mk-toast>
+      </li>
+      <li>
+        <mk-toast variant="warning">Stock is running low.</mk-toast>
+      </li>
+    </ol>
+
+    <!-- mk-spinner: 3 sizes -->
+    <mk-spinner size="sm"></mk-spinner>
+    <mk-spinner size="base"></mk-spinner>
+    <mk-spinner size="lg"></mk-spinner>
+
+    <!-- mk-skeleton: 3 variants -->
+    <mk-skeleton variant="text"></mk-skeleton>
+    <mk-skeleton variant="circle"></mk-skeleton>
+    <mk-skeleton variant="rect"></mk-skeleton>
+
+    <!-- mk-modal: closed (no open attribute) -->
+    <mk-modal>
+      <dialog>
+        <h2>Modal title</h2>
+        <p>Modal body content goes here.</p>
+      </dialog>
+    </mk-modal>
+
+    <!-- mk-drawer: closed with placement="right" (no open attribute) -->
+    <mk-drawer placement="right">
+      <dialog>
+        <h2>Drawer title</h2>
+        <p>Drawer body content goes here.</p>
+      </dialog>
+    </mk-drawer>
+  </body>
+</html>

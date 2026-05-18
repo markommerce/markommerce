@@ -1,0 +1,33 @@
+{
+    "name": "markommerce/theme-blank",
+    "description": "Blank theme for Markommerce — a minimal starting point for custom storefront themes",
+    "license": "MIT",
+    "type": "marko-module",
+    "require": {
+        "php": "^8.5",
+        "marko/core": "self.version",
+        "marko/view": "self.version",
+        "marko/view-latte": "self.version",
+        "marko/vite": "self.version",
+        "markommerce/frontend": "self.version"
+    },
+    "require-dev": {
+        "marko/testing": "self.version",
+        "pestphp/pest": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Markommerce\\ThemeBlank\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Markommerce\\ThemeBlank\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "marko": {
+            "module": true
+        }
+    }
+}

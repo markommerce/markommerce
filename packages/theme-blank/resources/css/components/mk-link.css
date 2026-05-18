@@ -1,0 +1,40 @@
+@layer components {
+  mk-link {
+    display: inline;
+  }
+
+  mk-link > a {
+    color: var(--mk-color-primary);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  mk-link[variant="default"] > a {
+    color: var(--mk-color-primary);
+  }
+
+  mk-link[variant="muted"] > a {
+    color: var(--mk-color-fg-muted);
+  }
+
+  mk-link[variant="danger"] > a {
+    color: var(--mk-color-danger);
+  }
+
+  mk-link[underline="always"] > a {
+    text-decoration: underline;
+  }
+
+  mk-link[underline="never"] > a {
+    text-decoration: none;
+  }
+
+  mk-link[underline="hover"] > a {
+    text-decoration: none;
+  }
+
+  mk-link[underline="hover"] > a:hover,
+  mk-link[underline="hover"] > a:focus-visible {
+    text-decoration: underline;
+  }
+}

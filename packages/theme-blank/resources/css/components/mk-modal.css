@@ -1,0 +1,40 @@
+@layer components {
+  /*
+   * Content contract: server-rendered markup MUST take the form
+   *   <mk-modal><dialog>…content…</dialog></mk-modal>
+   * Content lives inside <dialog>, never as a sibling of <dialog> directly under
+   * <mk-modal>. Sibling content of the dialog inside the wrapper is unsupported
+   * and would render unintentionally because the dialog is display:none but the
+   * wrapper uses display:contents, leaking the sibling into the parent layout flow.
+   */
+  mk-modal {
+    display: contents;
+  }
+
+  mk-modal > dialog {
+    background: var(--mk-modal-bg);
+    color: var(--mk-modal-fg);
+    border-radius: var(--mk-modal-radius);
+    padding: var(--mk-modal-padding);
+    box-shadow: var(--mk-modal-shadow);
+    border: none;
+    max-width: 90vw;
+    max-height: 90vh;
+  }
+
+  mk-modal[size="sm"] > dialog {
+    inline-size: var(--mk-modal-width-sm);
+  }
+
+  mk-modal[size="md"] > dialog {
+    inline-size: var(--mk-modal-width-md);
+  }
+
+  mk-modal[size="lg"] > dialog {
+    inline-size: var(--mk-modal-width-lg);
+  }
+
+  mk-modal > dialog::backdrop {
+    background-color: var(--mk-modal-backdrop-color);
+  }
+}

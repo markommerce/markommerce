@@ -19,3 +19,8 @@ public/build/
 .vite/
 packages/*/.vite/
 packages/*/resources/js/.generated/
+
+# Playwright
+test-results/
+playwright-report/
+.playwright/

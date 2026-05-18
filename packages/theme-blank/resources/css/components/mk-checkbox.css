@@ -1,0 +1,35 @@
+@layer components {
+  mk-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mk-space-2);
+  }
+
+  mk-checkbox > input[type="checkbox"] {
+    accent-color: var(--mk-color-primary);
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  mk-checkbox[size="sm"] > input[type="checkbox"] {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  mk-checkbox[size="lg"] > input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  mk-checkbox:has(input:focus-visible) > input[type="checkbox"] {
+    outline: 2px solid var(--mk-color-focus-ring);
+    outline-offset: 2px;
+  }
+
+  mk-checkbox:has(input:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

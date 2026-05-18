@@ -17,6 +17,13 @@ const config = {
         ignoreProperties: [/^--/],
       },
     ],
+    // Allow BEM naming convention (block__element--modifier)
+    'selector-class-pattern': [
+      '^[a-z][a-z0-9]*(-[a-z0-9]+)*(__[a-z][a-z0-9]*(-[a-z0-9]+)*)?(--[a-z][a-z0-9]*(-[a-z0-9]+)*)?$',
+      {
+        message: 'Expected class selector to be BEM or kebab-case',
+      },
+    ],
   },
 };
 

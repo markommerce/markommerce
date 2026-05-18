@@ -1,0 +1,50 @@
+@layer components {
+  mk-spinner {
+    display: inline-block;
+    width: var(--mk-spinner-size-base);
+    height: var(--mk-spinner-size-base);
+    border-width: var(--mk-spinner-thickness);
+    border-style: solid;
+    border-color: var(--mk-color-border);
+    border-top-color: var(--mk-spinner-color);
+    border-radius: 50%;
+    animation: mk-spinner-spin var(--mk-spinner-duration) linear infinite;
+    box-sizing: border-box;
+  }
+
+  mk-spinner[size="sm"] {
+    width: var(--mk-spinner-size-sm);
+    height: var(--mk-spinner-size-sm);
+  }
+
+  mk-spinner[size="base"] {
+    width: var(--mk-spinner-size-base);
+    height: var(--mk-spinner-size-base);
+  }
+
+  mk-spinner[size="lg"] {
+    width: var(--mk-spinner-size-lg);
+    height: var(--mk-spinner-size-lg);
+  }
+
+  .mk-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  @keyframes mk-spinner-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    mk-spinner {
+      animation: none;
+    }
+  }
+}

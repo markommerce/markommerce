@@ -1,0 +1,198 @@
+/**
+ * Markommerce semantic design tokens — theme-blank.
+ *
+ * All tokens are scoped inside @layer tokens so that theme-level overrides
+ * (in @layer theme or higher) always win without !important.
+ *
+ * Open Props is imported here so this file is self-contained whether loaded
+ * as a <link> tag or bundled via JS. Open Props ships unlayered, so its
+ * variables are always resolved first, which is intentional: semantic tokens
+ * never compete with the raw Open Props scale.
+ *
+ * Every Markommerce token uses the --mk-* namespace to avoid collisions with
+ * custom properties from other systems.
+ */
+
+@import 'open-props/open-props.min.css';
+
+/*
+ * @custom-media declarations must live at the top level — outside any @layer
+ * block — because the CSS Cascading and Layers spec does not allow
+ * @custom-media inside a @layer. The postcss-custom-media plugin processes
+ * these at build time, inlining them wherever @media --mk-breakpoint-* is used.
+ */
+@custom-media --mk-breakpoint-sm (min-width: 640px);
+@custom-media --mk-breakpoint-md (min-width: 768px);
+@custom-media --mk-breakpoint-lg (min-width: 1024px);
+@custom-media --mk-breakpoint-xl (min-width: 1280px);
+
+@layer tokens {
+  :root {
+    /* --- Colors ---------------------------------------------------------- */
+    --mk-color-primary: var(--blue-6);
+    --mk-color-primary-light: var(--blue-4);
+    --mk-color-primary-hover: var(--blue-7);
+    --mk-color-primary-active: var(--blue-8);
+    --mk-color-on-primary: var(--gray-0);
+    --mk-color-surface: var(--gray-0);
+    --mk-color-on-surface: var(--gray-9);
+    --mk-color-border: var(--gray-3);
+    --mk-color-error: var(--red-6);
+    --mk-color-fg: var(--gray-9);
+    --mk-color-bg: var(--gray-0);
+    --mk-color-fg-muted: var(--gray-6);
+    --mk-color-success: var(--green-6);
+    --mk-color-warning: var(--yellow-6);
+    --mk-color-danger: var(--red-6);
+    --mk-color-danger-hover: var(--red-7);
+    --mk-color-info: var(--blue-5);
+
+    /* --- Spacing --------------------------------------------------------- */
+
+    /* --mk-space-0 is literal 0; Open Props has no --size-0 */
+    --mk-space-0: 0;
+    --mk-space-1: var(--size-1);
+    --mk-space-2: var(--size-2);
+    --mk-space-3: var(--size-3);
+    --mk-space-4: var(--size-4);
+    --mk-space-5: var(--size-5);
+    --mk-space-6: var(--size-6);
+    --mk-space-7: var(--size-7);
+    --mk-space-8: var(--size-8);
+    --mk-space-9: var(--size-9);
+
+    /* --- Typography ------------------------------------------------------ */
+    --mk-font-sans: var(--font-sans);
+    --mk-font-mono: var(--font-mono);
+    --mk-font-size-xs: var(--font-size-00);
+    --mk-font-size-sm: var(--font-size-0);
+    --mk-font-size-base: var(--font-size-1);
+    --mk-font-size-lg: var(--font-size-2);
+    --mk-font-size-xl: var(--font-size-3);
+    --mk-font-size-2xl: var(--font-size-4);
+    --mk-font-size-3xl: var(--font-size-5);
+    --mk-font-weight-normal: 400;
+    --mk-font-weight-medium: 500;
+    --mk-font-weight-bold: 700;
+    --mk-line-height-tight: var(--font-lineheight-1);
+    --mk-line-height-normal: var(--font-lineheight-3);
+    --mk-line-height-loose: var(--font-lineheight-4);
+
+    /* --- Transitions ----------------------------------------------------- */
+    --mk-transition-fast: 150ms ease;
+    --mk-transition-base: 250ms ease;
+
+    /* --- Radius ---------------------------------------------------------- */
+    --mk-radius-sm: var(--radius-2);
+    --mk-radius-base: var(--radius-3);
+    --mk-radius-lg: var(--radius-4);
+    --mk-radius-full: var(--radius-round);
+
+    /* --- Shadows --------------------------------------------------------- */
+    --mk-shadow-sm: var(--shadow-1);
+    --mk-shadow-md: var(--shadow-2);
+    --mk-shadow-lg: var(--shadow-3);
+
+    /* --- Motion ---------------------------------------------------------- */
+    --mk-duration-normal: 250ms;
+    --mk-duration-slow: 500ms;
+    --mk-ease-out: var(--ease-out-2);
+    --mk-ease-in-out: var(--ease-in-out-3);
+
+    /* --- Focus ----------------------------------------------------------- */
+    --mk-color-focus-ring: color-mix(in srgb, var(--mk-color-primary) 35%, transparent);
+
+    /* --- Input / Select / Textarea --------------------------------------- */
+    --mk-input-bg: var(--mk-color-bg);
+    --mk-input-color: var(--mk-color-fg);
+    --mk-input-color-placeholder: var(--mk-color-fg-muted);
+    --mk-input-border-color: var(--mk-color-border);
+    --mk-input-border-color-hover: var(--gray-5);
+    --mk-input-border-color-focus: var(--mk-color-primary);
+    --mk-input-border-color-error: var(--mk-color-error);
+    --mk-input-height-sm: 2rem;
+    --mk-input-height-base: 2.5rem;
+    --mk-input-height-lg: 3rem;
+    --mk-input-padding-inline: var(--mk-space-3);
+    --mk-radius-input: var(--mk-radius-base);
+
+    /* --- Field ----------------------------------------------------------- */
+    --mk-field-gap: var(--mk-space-1);
+    --mk-field-hint-color: var(--mk-color-fg-muted);
+    --mk-field-error-color: var(--mk-color-error);
+
+    /* --- Alert ----------------------------------------------------------- */
+    --mk-alert-bg-info: var(--blue-1);
+    --mk-alert-bg-success: var(--green-1);
+    --mk-alert-bg-warning: var(--yellow-1);
+    --mk-alert-bg-danger: var(--red-1);
+    --mk-alert-fg-info: var(--blue-9);
+    --mk-alert-fg-success: var(--green-9);
+    --mk-alert-fg-warning: var(--yellow-9);
+    --mk-alert-fg-danger: var(--red-9);
+    --mk-alert-padding: var(--mk-space-3);
+    --mk-alert-radius: var(--mk-radius-base);
+    --mk-alert-border-color-info: var(--blue-3);
+    --mk-alert-border-color-success: var(--green-3);
+    --mk-alert-border-color-warning: var(--yellow-3);
+    --mk-alert-border-color-danger: var(--red-3);
+
+    /* --- Toast ----------------------------------------------------------- */
+    --mk-toast-bg: var(--mk-color-surface);
+    --mk-toast-fg: var(--mk-color-on-surface);
+    --mk-toast-region-gap: var(--mk-space-2);
+    --mk-toast-region-inset: var(--mk-space-4);
+    --mk-toast-shadow: var(--mk-shadow-lg);
+    --mk-toast-radius: var(--mk-radius-base);
+    --mk-toast-padding: var(--mk-space-3);
+    --mk-toast-min-width: 18rem;
+    --mk-toast-max-width: 24rem;
+
+    /* --- Modal ----------------------------------------------------------- */
+    --mk-modal-bg: var(--mk-color-surface);
+    --mk-modal-fg: var(--mk-color-on-surface);
+    --mk-modal-radius: var(--mk-radius-lg);
+    --mk-modal-padding: var(--mk-space-5);
+    --mk-modal-shadow: var(--mk-shadow-lg);
+    --mk-modal-backdrop-color: color-mix(in srgb, var(--gray-9) 60%, transparent);
+    --mk-modal-width-sm: 24rem;
+    --mk-modal-width-md: 32rem;
+    --mk-modal-width-lg: 48rem;
+
+    /* --- Drawer ---------------------------------------------------------- */
+    --mk-drawer-bg: var(--mk-color-surface);
+    --mk-drawer-fg: var(--mk-color-on-surface);
+    --mk-drawer-width-sm: 20rem;
+    --mk-drawer-width-md: 28rem;
+    --mk-drawer-width-lg: 40rem;
+    --mk-drawer-shadow: var(--mk-shadow-lg);
+    --mk-drawer-padding: var(--mk-space-5);
+
+    /* --- Spinner --------------------------------------------------------- */
+    --mk-spinner-size-sm: 1rem;
+    --mk-spinner-size-base: 1.5rem;
+    --mk-spinner-size-lg: 2.5rem;
+    --mk-spinner-thickness: 2px;
+    --mk-spinner-color: var(--mk-color-primary);
+    --mk-spinner-duration: var(--mk-duration-slow);
+
+    /* --- Skeleton -------------------------------------------------------- */
+    --mk-skeleton-bg: var(--gray-2);
+    --mk-skeleton-shimmer-color: var(--gray-0);
+    --mk-skeleton-radius: var(--mk-radius-base);
+    --mk-skeleton-duration: var(--mk-duration-slow);
+  }
+
+  /* Dark-mode overrides — flip only the tokens that change in dark theme */
+  [data-theme="dark"] {
+    --mk-color-primary: var(--blue-4);
+    --mk-color-surface: var(--gray-9);
+    --mk-color-on-surface: var(--gray-1);
+    --mk-color-border: var(--gray-7);
+    --mk-color-fg: var(--gray-1);
+    --mk-color-bg: var(--gray-9);
+    --mk-toast-bg: var(--gray-8);
+    --mk-modal-bg: var(--gray-8);
+    --mk-skeleton-bg: var(--gray-7);
+  }
+}

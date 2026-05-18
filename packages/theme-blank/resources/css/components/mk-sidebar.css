@@ -1,0 +1,31 @@
+@layer components {
+  mk-sidebar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mk-space-4);
+  }
+
+  mk-sidebar > :first-child,
+  mk-sidebar > :last-child {
+    flex-basis: var(--mk-sidebar-width, 15rem);
+    flex-grow: 1;
+  }
+
+  mk-sidebar > :last-child {
+    flex-basis: 0;
+    flex-grow: 999;
+    min-inline-size: 50%;
+  }
+
+  mk-sidebar[side="right"] > :first-child {
+    flex-basis: 0;
+    flex-grow: 999;
+    min-inline-size: 50%;
+  }
+
+  mk-sidebar[side="right"] > :last-child {
+    flex-basis: var(--mk-sidebar-width, 15rem);
+    flex-grow: 1;
+    min-inline-size: auto;
+  }
+}

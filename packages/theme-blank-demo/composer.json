@@ -1,0 +1,36 @@
+{
+    "name": "markommerce/theme-blank-demo",
+    "description": "Theme-blank showcase module — renders the full set of `mk-*` primitives and form controls as a developer demo page.",
+    "license": "MIT",
+    "type": "marko-module",
+    "require": {
+        "php": "^8.5",
+        "marko/config": "self.version",
+        "marko/core": "self.version",
+        "marko/layout": "self.version",
+        "marko/routing": "self.version",
+        "marko/view": "self.version",
+        "marko/view-latte": "self.version",
+        "markommerce/frontend": "self.version",
+        "markommerce/theme-blank": "self.version"
+    },
+    "require-dev": {
+        "marko/testing": "self.version",
+        "pestphp/pest": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Markommerce\\ThemeBlankDemo\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Markommerce\\ThemeBlankDemo\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "marko": {
+            "module": true
+        }
+    }
+}

@@ -15,9 +15,12 @@
     "lint:js": "eslint 'packages/*/resources/js/**/*.ts'",
     "lint:css": "stylelint 'packages/*/resources/css/**/*.css'",
     "format": "prettier --write 'packages/*/resources/js/**/*.ts' 'packages/*/resources/css/**/*.css'",
-    "format:check": "prettier --check 'packages/*/resources/js/**/*.ts' 'packages/*/resources/css/**/*.css'"
+    "format:check": "prettier --check 'packages/*/resources/js/**/*.ts' 'packages/*/resources/css/**/*.css'",
+    "test:cls": "playwright test",
+    "test:cls:docker": "CHROMIUM_PATH=/usr/bin/chromium-browser playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "autoprefixer": "^10.5.0",
     "cssnano": "^7.1.9",
     "eslint": "^9.28.0",

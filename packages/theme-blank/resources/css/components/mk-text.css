@@ -1,0 +1,56 @@
+@layer components {
+  mk-text {
+    display: block;
+    font-size: var(--mk-font-size-base);
+    font-weight: var(--mk-font-weight-normal);
+    line-height: var(--mk-line-height-normal);
+    color: var(--mk-color-fg);
+    margin: 0;
+  }
+
+  mk-text[variant="body"] {
+    font-size: var(--mk-font-size-base);
+  }
+
+  mk-text[variant="lead"] {
+    font-size: var(--mk-font-size-lg);
+    line-height: var(--mk-line-height-loose);
+  }
+
+  mk-text[variant="small"] {
+    font-size: var(--mk-font-size-sm);
+  }
+
+  mk-text[variant="muted"] {
+    color: var(--mk-color-fg-muted);
+  }
+
+  mk-text[weight="normal"] {
+    font-weight: var(--mk-font-weight-normal);
+  }
+
+  mk-text[weight="medium"] {
+    font-weight: var(--mk-font-weight-medium);
+  }
+
+  mk-text[weight="bold"] {
+    font-weight: var(--mk-font-weight-bold);
+  }
+
+  /* Two-tag (legacy): when a child element is present, reset host styles */
+  mk-text:has(> p, > span, > div) {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+  }
+
+  mk-text > p,
+  mk-text > span,
+  mk-text > div {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    color: inherit;
+    margin: 0;
+  }
+}

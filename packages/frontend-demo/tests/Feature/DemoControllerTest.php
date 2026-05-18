@@ -373,15 +373,18 @@ it('the demo main.ts imports open-props/style.css so Vite emits the Open Props s
     expect($contents)->toContain("import 'open-props/style.css'");
 });
 
-it('it loads the @markommerce/frontend cascade layers and tokens CSS in the head before component-level CSS', function (): void {
+it('it loads the @markommerce/frontend cascade layers and @markommerce/theme-blank tokens CSS in the head before component-level CSS', function (): void {
     $mainTsPath = dirname(__DIR__, 2) . '/resources/js/main.ts';
     $contents = file_get_contents($mainTsPath);
 
     $layersPos = strpos($contents, '@markommerce/frontend/css/layers.css');
-    $tokensPos = strpos($contents, '@markommerce/frontend/css/tokens.css');
+    $tokensPos = strpos($contents, '@markommerce/theme-blank/css/tokens.css');
     $componentPos = strpos($contents, 'counter.css');
 
-    expect($layersPos)->toBeLessThan($componentPos)
+    expect($layersPos !== false)->toBeTrue()
+        ->and($tokensPos !== false)->toBeTrue()
+        ->and($componentPos !== false)->toBeTrue()
+        ->and($layersPos)->toBeLessThan($componentPos)
         ->and($tokensPos)->toBeLessThan($componentPos);
 });
 
@@ -412,4 +415,57 @@ it('it follows project naming conventions: the FrontendDemoConfig parameter is n
     );
 
     expect($paramNames)->toContain('frontendDemoConfig');
+});
+
+
+it('it counter.latte renders only the markommerce-counter element and no longer contains primitives or form controls (file-content assertion)', function (): void {
+    $lattePath = dirname(__DIR__, 2) . '/resources/views/counter.latte';
+
+    expect(file_exists($lattePath))->toBeTrue();
+
+    $contents = file_get_contents($lattePath);
+    expect(trim($contents))->toBe('<markommerce-counter start-value="0" suffix=" clicks"></markommerce-counter>');
+    expect($contents)->not->toContain('<mk-');
+});
+
+it('it the /markommerce/_demo response body no longer contains any <mk- element (verified by HTTP request against the live route)', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-demo-no-mk-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $basePath = dirname(__DIR__, 4);
+
+    $manifestCreated = demoTestEnsureManifest($basePath);
+
+    $config = new ConfigRepository([
+        'frontend_demo' => ['enabled' => true],
+        'vite' => [
+            'entry' => 'packages/frontend-demo/resources/js/main.ts',
+            'buildDirectory' => 'build',
+            'manifestFilename' => '.vite/manifest.json',
+            'devServerUrl' => 'http://localhost:5173',
+            'useDevServer' => false,
+            'devServerStylesheets' => [],
+        ],
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
+    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
+    $response = $router->handle($request);
+
+    $body = $response->body();
+    expect($body)->toContain('<markommerce-counter');
+    expect($body)->not->toContain('<mk-');
+
+    demoTestCleanup($cacheDir);
+    if ($manifestCreated) {
+        @unlink($basePath . '/public/build/.vite/manifest.json');
+    }
 });

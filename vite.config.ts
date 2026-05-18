@@ -23,8 +23,24 @@ const outputPath = path.join(
 export default defineConfig(({ command }) => ({
   plugins: [markommerceModuleScanner({ packagesPath, outputPath })],
 
+  test: {
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/tests/Browser/**',
+    ],
+  },
+
   resolve: {
     alias: [
+      {
+        find: '@markommerce/theme-blank/css',
+        replacement: path.join(repoRoot, 'packages/theme-blank/resources/css'),
+      },
+      {
+        find: '@markommerce/theme-blank',
+        replacement: path.join(repoRoot, 'packages/theme-blank/resources/js/index.ts'),
+      },
       {
         find: '@markommerce/frontend/css',
         replacement: path.join(repoRoot, 'packages/frontend/resources/css'),
@@ -32,6 +48,10 @@ export default defineConfig(({ command }) => ({
       {
         find: '@markommerce/frontend',
         replacement: path.join(repoRoot, 'packages/frontend/resources/js/index.ts'),
+      },
+      {
+        find: '@markommerce/theme-blank-demo',
+        replacement: path.join(repoRoot, 'packages/theme-blank-demo/resources/js/index.ts'),
       },
       {
         find: 'open-props/style.css',
@@ -52,7 +72,10 @@ export default defineConfig(({ command }) => ({
     manifest: true,
     sourcemap: command === 'serve',
     rollupOptions: {
-      input: path.join(repoRoot, 'packages/frontend-demo/resources/js/main.ts'),
+      input: {
+        frontendDemo: path.join(repoRoot, 'packages/frontend-demo/resources/js/main.ts'),
+        themeBlankDemo: path.join(repoRoot, 'packages/theme-blank-demo/resources/js/main.ts'),
+      },
       output: {
         assetFileNames: 'assets/[name].[hash].[ext]',
       },

@@ -218,4 +218,5 @@ Because `markommerce/frontend-demo` is a real, runnable module rather than isola
 ## Related Packages
 
 - [markommerce/frontend](/docs/packages/frontend/) --- the kernel package that supplies `registerBase`, `addMixin`, `defineAllComponents`, the hooks registry, and `dispatchMarkommerceEvent`.
+- [markommerce/theme-blank-demo](/docs/packages/theme-blank-demo/) --- the companion demo package that renders all `mk-*` layout primitives and form controls at `/markommerce/_demo/theme-blank`.
 - [Writing a Markommerce Frontend Module](/docs/guides/writing-a-frontend-module/) --- step-by-step guide that uses `markommerce/frontend-demo` as the reference throughout.

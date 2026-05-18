@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markommerce — theme-blank showcase</title>
+    {vite('packages/theme-blank-demo/resources/js/main.ts')}
+</head>
+<body>
+    <main>
+        {slot content}{/slot}
+    </main>
+<script>
+  document.addEventListener('mk-submit', (e) => {
+    console.log('[mk-submit]', e.detail);
+  });
+  document.addEventListener('mk-invalid', (e) => {
+    console.log('[mk-invalid]', e.detail);
+  });
+</script>
+</body>
+</html>

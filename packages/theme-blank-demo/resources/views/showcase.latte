@@ -1,0 +1,310 @@
+<section class="demo-primitives">
+  <mk-heading size="2xl"><h2>Layout primitives</h2></mk-heading>
+  <mk-stack gap="6">
+    <article>
+      <mk-heading level="3" size="lg">mk-stack</mk-heading>
+      <mk-stack gap="3">
+        <div>First item</div>
+        <div>Second item</div>
+        <div>Third item</div>
+      </mk-stack>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-cluster</mk-heading>
+      <mk-cluster gap="2">
+        <button>Action A</button>
+        <button>Action B</button>
+        <button>Action C</button>
+      </mk-cluster>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-grid</mk-heading>
+      <mk-grid min="10rem" gap="3">
+        <div>Grid cell 1</div>
+        <div>Grid cell 2</div>
+        <div>Grid cell 3</div>
+      </mk-grid>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-container</mk-heading>
+      <mk-container size="sm">
+        <mk-text>Constrained to sm (40rem) max-width.</mk-text>
+      </mk-container>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-sidebar</mk-heading>
+      <mk-sidebar width="12rem">
+        <aside><mk-text variant="small">Sidebar</mk-text></aside>
+        <section><mk-text>Main content area</mk-text></section>
+      </mk-sidebar>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-switcher</mk-heading>
+      <mk-switcher threshold="30rem" gap="2">
+        <div>Item A</div>
+        <div>Item B</div>
+        <div>Item C</div>
+      </mk-switcher>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-cover</mk-heading>
+      <mk-cover min-height="20vh">
+        <header class="mk-cover-header"><mk-text variant="small">Header</mk-text></header>
+        <section><mk-text>Centered main content</mk-text></section>
+        <footer class="mk-cover-footer"><mk-text variant="small">Footer</mk-text></footer>
+      </mk-cover>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-divider</mk-heading>
+      <mk-divider></mk-divider>
+    </article>
+  </mk-stack>
+
+  <mk-heading level="2" size="2xl">Typography primitives</mk-heading>
+  <mk-stack gap="4">
+    <article>
+      <mk-heading level="3" size="lg">mk-heading</mk-heading>
+      <mk-heading level="2" size="xl">Single-tag heading (xl)</mk-heading>
+      <mk-heading size="xl"><h2>Two-tag heading (xl, SEO form)</h2></mk-heading>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-text</mk-heading>
+      <mk-text variant="lead">Lead paragraph text</mk-text>
+      <mk-text variant="body">Body paragraph text</mk-text>
+      <mk-text variant="small">Small text</mk-text>
+      <mk-text variant="muted">Muted text</mk-text>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-link</mk-heading>
+      <mk-cluster gap="3">
+        <mk-link variant="default" underline="hover"><a href="#">Default hover</a></mk-link>
+        <mk-link variant="muted" underline="always"><a href="#">Muted always</a></mk-link>
+        <mk-link variant="danger" underline="never"><a href="#">Danger never</a></mk-link>
+      </mk-cluster>
+    </article>
+    <article>
+      <mk-heading level="3" size="lg">mk-badge</mk-heading>
+      <mk-cluster gap="2">
+        <mk-badge variant="neutral">Neutral</mk-badge>
+        <mk-badge variant="primary">Primary</mk-badge>
+        <mk-badge variant="success">Success</mk-badge>
+        <mk-badge variant="warning">Warning</mk-badge>
+        <mk-badge variant="danger">Danger</mk-badge>
+        <mk-badge variant="info">Info</mk-badge>
+      </mk-cluster>
+    </article>
+  </mk-stack>
+</section>
+
+<section class="demo-form-controls">
+  <mk-heading level="2" size="2xl">Form Controls</mk-heading>
+  <mk-stack gap="6">
+
+    <article>
+      <mk-heading level="3" size="lg">mk-button</mk-heading>
+      <mk-cluster gap="2">
+        <mk-button variant="primary"><button type="button">Primary</button></mk-button>
+        <mk-button variant="secondary"><button type="button">Secondary</button></mk-button>
+        <mk-button variant="ghost"><button type="button">Ghost</button></mk-button>
+        <mk-button variant="danger"><button type="button">Danger</button></mk-button>
+        <mk-button variant="primary" loading><button type="button">Loading…</button></mk-button>
+      </mk-cluster>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-input</mk-heading>
+      <mk-stack gap="2">
+        <mk-input variant="outline" size="sm"><input type="text" placeholder="Outline sm" /></mk-input>
+        <mk-input variant="outline" size="base"><input type="text" placeholder="Outline base" /></mk-input>
+        <mk-input variant="outline" size="lg"><input type="text" placeholder="Outline lg" /></mk-input>
+        <mk-input variant="filled" size="base"><input type="text" placeholder="Filled base" /></mk-input>
+      </mk-stack>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-textarea</mk-heading>
+      <mk-stack gap="2">
+        <mk-textarea variant="outline"><textarea placeholder="Outline textarea…" rows="3"></textarea></mk-textarea>
+        <mk-textarea variant="filled"><textarea placeholder="Filled textarea…" rows="3"></textarea></mk-textarea>
+      </mk-stack>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-select</mk-heading>
+      <mk-select>
+        <select>
+          <option value="">— Choose country —</option>
+          <option value="pl">Poland</option>
+          <option value="de">Germany</option>
+          <option value="fr">France</option>
+        </select>
+      </mk-select>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-checkbox</mk-heading>
+      <mk-stack gap="2">
+        <mk-checkbox><input type="checkbox" /></mk-checkbox>
+        <mk-cluster gap="2">
+          <mk-checkbox id="chk-agree"><input type="checkbox" id="chk-agree" /></mk-checkbox>
+          <label for="chk-agree">I agree to the terms</label>
+        </mk-cluster>
+      </mk-stack>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-radio</mk-heading>
+      <mk-stack gap="2">
+        <mk-cluster gap="2">
+          <mk-radio><input type="radio" name="delivery" value="standard" id="delivery-standard" /></mk-radio>
+          <label for="delivery-standard">Standard delivery</label>
+        </mk-cluster>
+        <mk-cluster gap="2">
+          <mk-radio><input type="radio" name="delivery" value="express" id="delivery-express" /></mk-radio>
+          <label for="delivery-express">Express delivery</label>
+        </mk-cluster>
+        <mk-cluster gap="2">
+          <mk-radio><input type="radio" name="delivery" value="pickup" id="delivery-pickup" /></mk-radio>
+          <label for="delivery-pickup">Store pickup</label>
+        </mk-cluster>
+      </mk-stack>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-switch</mk-heading>
+      <mk-stack gap="2">
+        <mk-cluster gap="2">
+          <mk-switch><input type="checkbox" role="switch" /></mk-switch>
+          <span>Notifications off</span>
+        </mk-cluster>
+        <mk-cluster gap="2">
+          <mk-switch><input type="checkbox" role="switch" checked /></mk-switch>
+          <span>Notifications on</span>
+        </mk-cluster>
+      </mk-stack>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-field — Field + Validation</mk-heading>
+      <mk-stack gap="3">
+        <mk-field>
+          <label slot="label" for="field-hint">Username</label>
+          <mk-input slot="control" variant="outline"><input type="text" id="field-hint" /></mk-input>
+          <span slot="hint">3–20 characters, letters and numbers only.</span>
+        </mk-field>
+        <mk-field required>
+          <label slot="label" for="field-required">Email address</label>
+          <mk-input slot="control" variant="outline"><input type="email" id="field-required" required /></mk-input>
+        </mk-field>
+        <mk-field data-state="validating">
+          <label slot="label" for="field-validating">Promo code</label>
+          <mk-input slot="control" variant="outline"><input type="text" id="field-validating" /></mk-input>
+          <span slot="hint">Checking availability…</span>
+        </mk-field>
+      </mk-stack>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-form — Complete Form</mk-heading>
+      <mk-form>
+        <form novalidate>
+          <mk-stack gap="4">
+            <mk-fieldset>
+              <mk-stack gap="3">
+                <mk-field required>
+                  <label slot="label" for="form-name">Full name</label>
+                  <mk-input slot="control" variant="outline"><input type="text" id="form-name" name="name" required /></mk-input>
+                </mk-field>
+                <mk-field required>
+                  <label slot="label" for="form-email">Email address</label>
+                  <mk-input slot="control" variant="outline"><input type="email" id="form-email" name="email" required /></mk-input>
+                </mk-field>
+                <mk-field>
+                  <label slot="label" for="form-country">Country</label>
+                  <mk-select slot="control">
+                    <select id="form-country" name="country">
+                      <option value="">— Select country —</option>
+                      <option value="pl">Poland</option>
+                      <option value="de">Germany</option>
+                      <option value="fr">France</option>
+                      <option value="gb">United Kingdom</option>
+                    </select>
+                  </mk-select>
+                </mk-field>
+                <mk-field required>
+                  <mk-cluster slot="label" gap="2">
+                    <mk-checkbox><input type="checkbox" id="form-terms" name="terms" required /></mk-checkbox>
+                    <label for="form-terms">I accept the terms and conditions</label>
+                  </mk-cluster>
+                </mk-field>
+              </mk-stack>
+            </mk-fieldset>
+            <mk-cluster gap="2">
+              <mk-button variant="primary"><button type="submit">Submit order</button></mk-button>
+              <mk-button variant="ghost"><button type="reset">Reset</button></mk-button>
+            </mk-cluster>
+          </mk-stack>
+        </form>
+      </mk-form>
+{syntax off}
+<script>
+  document.querySelector('mk-form')?.addEventListener('mk-submit', (e) => {
+    console.log('mk-submit:', [...e.detail.formData.entries()]);
+  });
+  document.querySelector('mk-form')?.addEventListener('mk-invalid', (e) => {
+    console.log('mk-invalid:', e.detail);
+  });
+</script>
+{/syntax}
+    </article>
+
+  </mk-stack>
+</section>
+
+<section class="demo-feedback">
+  <mk-heading size="2xl"><h2>Feedback</h2></mk-heading>
+  <mk-stack gap="6">
+
+    <article>
+      <mk-heading level="3" size="lg">mk-alert</mk-heading>
+      <mk-stack gap="3">
+        <mk-alert variant="info">Informational alert message.</mk-alert>
+        <mk-alert variant="success">Success! Your order has been placed.</mk-alert>
+        <mk-alert variant="warning">Warning: stock is running low.</mk-alert>
+        <mk-alert variant="danger" dismissible>Danger alert — dismissible. Click × to close.</mk-alert>
+      </mk-stack>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-spinner</mk-heading>
+      <mk-cluster gap="4">
+        <mk-spinner size="sm"></mk-spinner>
+        <mk-spinner size="md"></mk-spinner>
+        <mk-spinner size="lg"></mk-spinner>
+      </mk-cluster>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-skeleton</mk-heading>
+      <mk-stack gap="3">
+        <mk-skeleton variant="text"></mk-skeleton>
+        <mk-skeleton variant="rect"></mk-skeleton>
+        <mk-skeleton variant="circle"></mk-skeleton>
+      </mk-stack>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-toast / mk-modal / mk-drawer</mk-heading>
+      <mk-cluster gap="2">
+        <mk-button variant="primary"><button type="button" data-demo="toast">Show toast</button></mk-button>
+        <mk-button variant="secondary"><button type="button" data-demo="modal">Open modal</button></mk-button>
+        <mk-button variant="secondary"><button type="button" data-demo="drawer-right">Open right drawer</button></mk-button>
+        <mk-button variant="ghost"><button type="button" data-demo="drawer-left">Open left drawer</button></mk-button>
+      </mk-cluster>
+      <mk-toast hidden></mk-toast>
+      <mk-modal hidden><dialog></dialog></mk-modal>
+      <mk-drawer hidden><dialog></dialog></mk-drawer>
+    </article>
+
+  </mk-stack>
+</section>

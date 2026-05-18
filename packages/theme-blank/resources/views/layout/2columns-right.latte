@@ -1,0 +1,10 @@
+{layout 'theme-blank::layout/base'}
+
+{block main}
+<mk-container>
+    <mk-sidebar side="right">
+        {block content}{/block}
+        <aside>{block sidebar-right}{/block}</aside>
+    </mk-sidebar>
+</mk-container>
+{/block}

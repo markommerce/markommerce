@@ -1,0 +1,88 @@
+/*
+ * Markommerce custom-element CLS safety-net convention.
+ *
+ * Phase 2 adds a grouped selector inside @layer base that covers all 12 primitive
+ * tag names with a :not(:defined) pseudo-class. This acts as a documentation hook
+ * and downstream override point. The real layout is supplied by @layer components
+ * tag selectors which take precedence regardless of JS definition state.
+ */
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--mk-font-sans);
+    font-size: var(--mk-font-size-base);
+    line-height: var(--mk-line-height-normal);
+    color: var(--mk-color-fg);
+    background-color: var(--mk-color-bg);
+    margin: 0;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    line-height: var(--mk-line-height-tight);
+    font-weight: var(--mk-font-weight-bold);
+    margin: 0;
+  }
+
+  h1 { font-size: var(--mk-font-size-3xl); }
+  h2 { font-size: var(--mk-font-size-2xl); }
+  h3 { font-size: var(--mk-font-size-xl); }
+  h4 { font-size: var(--mk-font-size-lg); }
+  h5 { font-size: var(--mk-font-size-base); }
+  h6 { font-size: var(--mk-font-size-sm); }
+
+  a {
+    color: var(--mk-color-primary);
+    text-decoration: underline;
+  }
+
+  a:hover {
+    color: var(--mk-color-primary-hover, var(--mk-color-primary));
+  }
+
+  img, video {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* Hide every custom element until its JS class is registered. The browser
+   * removes :not(:defined) the moment customElements.define() runs for that
+   * tag, which happens synchronously during module evaluation — before the
+   * next paint. The net effect: the page goes from "all custom elements
+   * invisible" to "all custom elements visible and fully styled" in a single
+   * frame, eliminating FOUC caused by Vite's dev-mode style injection. */
+  mk-stack:not(:defined),
+  mk-cluster:not(:defined),
+  mk-grid:not(:defined),
+  mk-container:not(:defined),
+  mk-sidebar:not(:defined),
+  mk-switcher:not(:defined),
+  mk-cover:not(:defined),
+  mk-divider:not(:defined),
+  mk-heading:not(:defined),
+  mk-text:not(:defined),
+  mk-link:not(:defined),
+  mk-badge:not(:defined),
+  mk-button:not(:defined),
+  mk-input:not(:defined),
+  mk-textarea:not(:defined),
+  mk-select:not(:defined),
+  mk-checkbox:not(:defined),
+  mk-radio:not(:defined),
+  mk-switch:not(:defined),
+  mk-field:not(:defined),
+  mk-fieldset:not(:defined),
+  mk-form:not(:defined),
+  mk-alert:not(:defined),
+  mk-toast:not(:defined),
+  mk-spinner:not(:defined),
+  mk-skeleton:not(:defined),
+  mk-modal:not(:defined),
+  mk-drawer:not(:defined) {
+    visibility: hidden;
+  }
+}

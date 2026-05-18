@@ -1,0 +1,22 @@
+{
+  "name": "@markommerce/theme-blank",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./resources/js/index.ts",
+  "exports": {
+    ".": "./resources/js/index.ts",
+    "./css/tokens.css": "./resources/css/tokens.css",
+    "./css/base.css": "./resources/css/base.css",
+    "./css/layouts.css": "./resources/css/layouts.css",
+    "./css/components/*.css": "./resources/css/components/*.css"
+  },
+  "markommerce": {
+    "extension": "./resources/js/index.ts",
+    "priority": 100
+  },
+  "peerDependencies": {
+    "lit": "^3.0",
+    "open-props": "^1.7"
+  }
+}

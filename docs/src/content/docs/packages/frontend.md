@@ -13,10 +13,10 @@ Install the Composer package:
 composer require markommerce/frontend
 ```
 
-Install the npm package (peer dependencies `lit` and `open-props` are required):
+Install the npm package (peer dependency `lit` is required):
 
 ```bash
-npm install @markommerce/frontend lit open-props
+npm install @markommerce/frontend lit
 ```
 
 ## Configuration
@@ -61,65 +61,15 @@ Import the layer declaration first in your entry point so cascade-layer preceden
 ```typescript title="resources/js/main.ts"
 // 1. Establish layer order (lowest → highest: reset, tokens, base, components, modules, theme, utilities)
 import '@markommerce/frontend/css/layers.css';
-// 2. Open Props raw tokens (unlayered --- must come before semantic tokens)
+// 2. Open Props raw tokens (unlayered — must come before semantic tokens)
 import 'open-props/style.css';
-// 3. Markommerce semantic design tokens (inside @layer tokens)
-import '@markommerce/frontend/css/tokens.css';
+// 3. Semantic design tokens, base styles, and layout grid — from theme-blank
+import '@markommerce/theme-blank/css/tokens.css';
+import '@markommerce/theme-blank/css/base.css';
+import '@markommerce/theme-blank/css/layouts.css';
 ```
 
-The semantic tokens map Open Props variables to Markommerce-specific names:
-
-**Colors**
-
-| Token | Default value |
-| --- | --- |
-| `--color-primary` | `var(--blue-6)` |
-| `--color-primary-light` | `var(--blue-4)` |
-| `--color-on-primary` | `var(--gray-0)` |
-| `--color-surface` | `var(--gray-0)` |
-| `--color-on-surface` | `var(--gray-9)` |
-| `--color-border` | `var(--gray-3)` |
-| `--color-error` | `var(--red-6)` |
-
-**Spacing**
-
-| Token | Default value |
-| --- | --- |
-| `--space-1` | `var(--size-1)` |
-| `--space-2` | `var(--size-2)` |
-| `--space-3` | `var(--size-3)` |
-| `--space-4` | `var(--size-4)` |
-| `--space-5` | `var(--size-5)` |
-
-**Typography**
-
-| Token | Default value |
-| --- | --- |
-| `--font-size-sm` | `var(--font-size-0)` |
-| `--font-size-base` | `var(--font-size-1)` |
-| `--font-size-lg` | `var(--font-size-2)` |
-| `--font-size-xl` | `var(--font-size-3)` |
-| `--font-weight-normal` | `400` |
-| `--font-weight-bold` | `700` |
-
-**Transitions**
-
-| Token | Default value |
-| --- | --- |
-| `--transition-fast` | `150ms ease` |
-| `--transition-base` | `250ms ease` |
-
-**Radius**
-
-| Token | Default value |
-| --- | --- |
-| `--radius-sm` | `var(--radius-2)` |
-| `--radius-base` | `var(--radius-3)` |
-| `--radius-lg` | `var(--radius-4)` |
-
-Dark-mode overrides for colors activate automatically when a `data-theme="dark"` attribute is on any ancestor element.
-
-Override tokens inside `@layer theme` or higher. Override raw Open Props variables outside any `@layer` block (unlayered CSS has higher precedence than layered rules).
+`@markommerce/frontend` is a pure engine: it ships only the layer declaration file (`layers.css`) and the JavaScript registries. Design tokens (the `--mk-*` namespace), base styles, and layout grids live in [`markommerce/theme-blank`](/docs/packages/theme-blank/). See that package for the full token reference and override guide.
 
 ### Component Registry
 
@@ -185,6 +135,24 @@ Hooks.register('cart:add', handler);
 const result = await Hooks.run('cart:add', payload);
 ```
 
+### `requireInnerControl()`
+
+`requireInnerControl()` is a helper for custom element implementations that wrap a native control (e.g., `<input>`, `<select>`, `<button>`). It queries the element for a required child matching a CSS selector and emits a `console.warn` once per element instance if no match is found.
+
+```typescript
+import { requireInnerControl } from '@markommerce/frontend';
+
+class MkInput extends HTMLElement {
+  connectedCallback() {
+    const input = requireInnerControl(this, 'input');
+    if (!input) return; // warning already emitted
+    input.addEventListener('change', () => { /* … */ });
+  }
+}
+```
+
+The warning fires at most once per element instance regardless of how many times `requireInnerControl()` is called on that element. This prevents log flooding during repeated lifecycle callbacks.
+
 ### DOM Events Helper
 
 `dispatchMarkommerceEvent` wraps `CustomEvent` with sensible defaults (`bubbles: true`, `composed: true`, `cancelable: false`) and full TypeScript type inference when the event name is declared in `MarkommerceEventMap`.
@@ -211,6 +179,26 @@ document.addEventListener('markommerce:cart:updated', (e) => {
 
 ## API Reference
 
+### MkElement
+
+`MkElement` is the shared base class for all Markommerce custom elements. It extends `LitElement` and configures light-DOM rendering so that server-rendered children are preserved intact --- a prerequisite for zero-CLS custom elements.
+
+```typescript
+import { MkElement } from '@markommerce/frontend';
+
+class MyElement extends MkElement {
+  // createRenderRoot() returns `this` (light DOM), and render() returns `nothing`
+  // by default, so existing children are never cleared.
+}
+```
+
+Two overrides make this work:
+
+- `createRenderRoot()` returns `this` (the element itself rather than a shadow root) and sets `renderOptions.renderBefore` to `this.firstChild`, so Lit's ChildPart is anchored before any existing light-DOM content.
+- `render()` returns Lit's `nothing` sentinel, which produces an empty ChildPart range and leaves existing children untouched.
+
+Subclasses can override `render()` with a narrower return type (e.g., `TemplateResult`) without TypeScript errors because the base signature is declared as `render(): unknown`.
+
 ### Component Registry
 
 | Function | Signature | Description |
@@ -227,6 +215,12 @@ document.addEventListener('markommerce:cart:updated', (e) => {
 | --- | --- | --- |
 | `registerHook` | `<K extends keyof HookRegistry>(name: K, handler: HookHandler<K>, options?: { priority?: number }): void` | Register a hook handler. Lower `priority` values run first (default: `100`). |
 | `runHook` | `<K extends keyof HookRegistry>(name: K, payload: ...) => Promise<...>` | Run all handlers for a hook in priority order. Returns the final transformed value. |
+
+### Helpers
+
+| Function | Signature | Description |
+| --- | --- | --- |
+| `requireInnerControl` | `(element: HTMLElement, selector: string): Element \| null` | Query `element` for a required child matching `selector`. Logs a `console.warn` once per element instance if no match is found. Returns `null` when the child is absent. |
 
 ### DOM Events
 
@@ -364,5 +358,6 @@ When `MARKOMMERCE_CONSUMER_PUBLIC` is unset (e.g., in CI or during in-repo tests
 
 ## Related Packages
 
+- [markommerce/theme-blank](/docs/packages/theme-blank/) --- the foundational theme that provides the `--mk-*` design tokens, base CSS reset, and page layout templates that plug into the layer order declared here.
 - [markommerce/frontend-demo](/docs/packages/frontend-demo/) --- demo storefront module that wires together the full frontend stack and demonstrates a working counter component.
 - [marko/vite](https://github.com/marko-php/vite) --- the underlying `Vite` service and `marko/vite` Composer package that `MarkommerceLatteEngineFactory` delegates to for manifest reading and tag generation.

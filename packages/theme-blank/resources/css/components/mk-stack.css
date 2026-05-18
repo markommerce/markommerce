@@ -1,0 +1,23 @@
+@layer components {
+  mk-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mk-space-3);
+  }
+
+  mk-stack[gap="0"] { gap: var(--mk-space-0); }
+  mk-stack[gap="1"] { gap: var(--mk-space-1); }
+  mk-stack[gap="2"] { gap: var(--mk-space-2); }
+  mk-stack[gap="3"] { gap: var(--mk-space-3); }
+  mk-stack[gap="4"] { gap: var(--mk-space-4); }
+  mk-stack[gap="5"] { gap: var(--mk-space-5); }
+  mk-stack[gap="6"] { gap: var(--mk-space-6); }
+  mk-stack[gap="7"] { gap: var(--mk-space-7); }
+  mk-stack[gap="8"] { gap: var(--mk-space-8); }
+  mk-stack[gap="9"] { gap: var(--mk-space-9); }
+
+  mk-stack[align="start"]   { align-items: flex-start; }
+  mk-stack[align="center"]  { align-items: center; }
+  mk-stack[align="end"]     { align-items: flex-end; }
+  mk-stack[align="stretch"] { align-items: stretch; }
+}

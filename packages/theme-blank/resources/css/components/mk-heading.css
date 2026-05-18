@@ -1,0 +1,38 @@
+@layer components {
+  mk-heading {
+    display: block;
+    font-size: var(--mk-font-size-xl);
+    font-weight: var(--mk-font-weight-bold);
+    line-height: var(--mk-line-height-tight);
+    margin: 0;
+  }
+  mk-heading[size="xs"]   { font-size: var(--mk-font-size-xs); }
+  mk-heading[size="sm"]   { font-size: var(--mk-font-size-sm); }
+  mk-heading[size="base"] { font-size: var(--mk-font-size-base); }
+  mk-heading[size="lg"]   { font-size: var(--mk-font-size-lg); }
+  mk-heading[size="xl"]   { font-size: var(--mk-font-size-xl); }
+  mk-heading[size="2xl"]  { font-size: var(--mk-font-size-2xl); }
+  mk-heading[size="3xl"]  { font-size: var(--mk-font-size-3xl); }
+  mk-heading[weight="normal"] { font-weight: var(--mk-font-weight-normal); }
+  mk-heading[weight="medium"] { font-weight: var(--mk-font-weight-medium); }
+  mk-heading[weight="bold"]   { font-weight: var(--mk-font-weight-bold); }
+
+  /* Two-tag form: defer to inner heading element's semantics */
+  mk-heading:has(> h1, > h2, > h3, > h4, > h5, > h6) {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+  }
+
+  mk-heading > h1,
+  mk-heading > h2,
+  mk-heading > h3,
+  mk-heading > h4,
+  mk-heading > h5,
+  mk-heading > h6 {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    margin: 0;
+  }
+}

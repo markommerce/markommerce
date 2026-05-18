@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Markommerce — All 10 form control components</title>
+    <style>
+      /* ===== tokens.css (inlined, Open Props vars resolved) =================== */
+      @layer tokens {
+        :root {
+          /* --- Colors ---------------------------------------------------------- */
+          --mk-color-primary: #1971c2;
+          --mk-color-primary-light: #74c0fc;
+          --mk-color-primary-hover: #1864ab;
+          --mk-color-primary-active: #145591;
+          --mk-color-on-primary: #f8f9fa;
+          --mk-color-surface: #f8f9fa;
+          --mk-color-on-surface: #212529;
+          --mk-color-border: #dee2e6;
+          --mk-color-error: #e03131;
+          --mk-color-fg: #212529;
+          --mk-color-bg: #f8f9fa;
+          --mk-color-fg-muted: #868e96;
+          --mk-color-success: #2f9e44;
+          --mk-color-warning: #e67700;
+          --mk-color-danger: #e03131;
+          --mk-color-info: #339af0;
+
+          /* --- Focus ring (form controls) -------------------------------------- */
+          --mk-color-focus-ring: #339af0;
+
+          /* --- Spacing --------------------------------------------------------- */
+          --mk-space-0: 0;
+          --mk-space-1: 0.25rem;
+          --mk-space-2: 0.5rem;
+          --mk-space-3: 1rem;
+          --mk-space-4: 1.25rem;
+          --mk-space-5: 1.5rem;
+          --mk-space-6: 1.75rem;
+          --mk-space-7: 2rem;
+          --mk-space-8: 3rem;
+          --mk-space-9: 4rem;
+
+          /* --- Typography ------------------------------------------------------ */
+          --mk-font-sans: system-ui, sans-serif;
+          --mk-font-mono: ui-monospace, monospace;
+          --mk-font-size-xs: 0.75rem;
+          --mk-font-size-sm: 0.875rem;
+          --mk-font-size-base: 1rem;
+          --mk-font-size-lg: 1.125rem;
+          --mk-font-size-xl: 1.25rem;
+          --mk-font-size-2xl: 1.5rem;
+          --mk-font-size-3xl: 2rem;
+          --mk-font-weight-normal: 400;
+          --mk-font-weight-medium: 500;
+          --mk-font-weight-bold: 700;
+          --mk-line-height-tight: 1.25;
+          --mk-line-height-normal: 1.5;
+          --mk-line-height-loose: 1.75;
+
+          /* --- Transitions ----------------------------------------------------- */
+          --mk-transition-fast: 150ms ease;
+          --mk-transition-base: 250ms ease;
+
+          /* --- Radius ---------------------------------------------------------- */
+          --mk-radius-sm: 0.25rem;
+          --mk-radius-base: 0.5rem;
+          --mk-radius-lg: 1rem;
+          --mk-radius-full: 9999px;
+
+          /* --- Input radius ---------------------------------------------------- */
+          --mk-radius-input: 0.25rem;
+
+          /* --- Shadows --------------------------------------------------------- */
+          --mk-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+          --mk-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+          --mk-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+          /* --- Motion ---------------------------------------------------------- */
+          --mk-duration-normal: 250ms;
+          --mk-duration-slow: 500ms;
+          --mk-ease-out: cubic-bezier(0, 0, 0.5, 1);
+          --mk-ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+
+          /* --- Input geometry -------------------------------------------------- */
+          --mk-input-height-sm: 2rem;
+          --mk-input-height-base: 3rem;
+          --mk-input-height-lg: 4rem;
+
+          /* --- Input surface --------------------------------------------------- */
+          --mk-input-bg: #f8f9fa;
+          --mk-input-border-color: #dee2e6;
+          --mk-input-border-color-focus: #1971c2;
+          --mk-input-border-color-error: #e03131;
+          --mk-input-color: #212529;
+          --mk-input-color-placeholder: #868e96;
+          --mk-input-padding-inline: 1rem;
+
+          /* --- Button surface -------------------------------------------------- */
+          --mk-button-radius: 0.5rem;
+          --mk-button-font-weight: 500;
+
+          /* --- Field layout ---------------------------------------------------- */
+          --mk-field-gap: 0.25rem;
+          --mk-field-error-color: #e03131;
+          --mk-field-hint-color: #868e96;
+        }
+
+        /* Dark-mode overrides */
+        [data-theme="dark"] {
+          --mk-color-primary: #74c0fc;
+          --mk-color-surface: #212529;
+          --mk-color-on-surface: #f1f3f5;
+          --mk-color-border: #495057;
+          --mk-color-fg: #f1f3f5;
+          --mk-color-bg: #212529;
+          --mk-input-bg: #343a40;
+          --mk-input-border-color: #868e96;
+          --mk-color-focus-ring: #74c0fc;
+        }
+      }
+
+      /* ===== base.css (inlined) =============================================== */
+      @layer base {
+        *, *::before, *::after {
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: var(--mk-font-sans);
+          font-size: var(--mk-font-size-base);
+          line-height: var(--mk-line-height-normal);
+          color: var(--mk-color-fg);
+          background-color: var(--mk-color-bg);
+          margin: 0;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+          line-height: var(--mk-line-height-tight);
+          font-weight: var(--mk-font-weight-bold);
+          margin: 0;
+        }
+
+        h1 { font-size: var(--mk-font-size-3xl); }
+        h2 { font-size: var(--mk-font-size-2xl); }
+        h3 { font-size: var(--mk-font-size-xl); }
+        h4 { font-size: var(--mk-font-size-lg); }
+        h5 { font-size: var(--mk-font-size-base); }
+        h6 { font-size: var(--mk-font-size-sm); }
+
+        a {
+          color: var(--mk-color-primary);
+          text-decoration: underline;
+        }
+
+        a:hover {
+          color: var(--mk-color-primary-hover, var(--mk-color-primary));
+        }
+
+        img, video {
+          max-width: 100%;
+          height: auto;
+          display: block;
+        }
+
+        /* CLS safety net documentation hook: form control tag selectors participate
+         * in the same contract as Phase 2 primitives. The :not(:defined) matcher is
+         * intentionally a no-op for layout (components layer wins anyway). */
+        mk-button:not(:defined),
+        mk-input:not(:defined),
+        mk-textarea:not(:defined),
+        mk-select:not(:defined),
+        mk-checkbox:not(:defined),
+        mk-radio:not(:defined),
+        mk-switch:not(:defined),
+        mk-field:not(:defined),
+        mk-fieldset:not(:defined),
+        mk-form:not(:defined) {
+          /* No declarations — the @layer components tag selectors supply the real layout.
+           * This selector group is retained as a documentation hook and downstream override
+           * point. The trailing comment also satisfies stylelint's block-no-empty rule. */
+        }
+      }
+
+      /* ===== components/mk-button.css (inlined) ============================== */
+      @layer components {
+        mk-button {
+          display: inline-flex;
+        }
+
+        mk-button button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: var(--mk-space-2);
+          padding-inline: var(--mk-space-4);
+          padding-block: var(--mk-space-2);
+          border-radius: var(--mk-radius-base);
+          font-size: var(--mk-font-size-base);
+          font-weight: var(--mk-font-weight-medium);
+          line-height: 1;
+          cursor: pointer;
+
+          /* default: transparent bg, border, fg text */
+          background-color: transparent;
+          border: 1px solid var(--mk-color-border);
+          color: var(--mk-color-fg);
+        }
+
+        mk-button[variant="primary"] button {
+          background-color: var(--mk-color-primary);
+          color: var(--mk-color-on-primary);
+          border: none;
+        }
+
+        mk-button[variant="secondary"] button {
+          background-color: transparent;
+          color: var(--mk-color-fg);
+          border: 1px solid var(--mk-color-border);
+        }
+
+        mk-button[variant="ghost"] button {
+          background-color: transparent;
+          color: var(--mk-color-fg);
+          border: none;
+        }
+
+        mk-button[variant="danger"] button {
+          background-color: var(--mk-color-danger);
+          color: var(--mk-color-on-primary);
+          border: none;
+        }
+
+        mk-button[size="sm"] button {
+          padding-inline: var(--mk-space-3);
+          padding-block: var(--mk-space-1);
+          font-size: var(--mk-font-size-sm);
+        }
+
+        mk-button[size="lg"] button {
+          padding-inline: var(--mk-space-6);
+          padding-block: var(--mk-space-3);
+          font-size: var(--mk-font-size-lg);
+        }
+
+        mk-button:has(button:focus-visible) button {
+          outline: 2px solid var(--mk-color-focus-ring);
+          outline-offset: 2px;
+        }
+
+        mk-button[variant="ghost"] button:hover {
+          background-color: var(--mk-color-border);
+        }
+
+        mk-button:has(button:disabled) {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+
+      /* ===== components/mk-input.css (inlined) =============================== */
+      @layer components {
+        mk-input {
+          display: block;
+        }
+
+        mk-input > input {
+          display: block;
+          width: 100%;
+          height: var(--mk-input-height-base);
+          padding-inline: var(--mk-input-padding-inline);
+          background-color: var(--mk-input-bg);
+          color: var(--mk-input-color);
+          border: 1px solid var(--mk-input-border-color);
+          border-radius: var(--mk-radius-input);
+          font-size: var(--mk-font-size-base);
+          transition: border-color var(--mk-transition-fast);
+        }
+
+        mk-input > input::placeholder {
+          color: var(--mk-input-color-placeholder);
+        }
+
+        mk-input[size="sm"] > input {
+          height: var(--mk-input-height-sm);
+          font-size: var(--mk-font-size-sm);
+        }
+
+        mk-input[size="lg"] > input {
+          height: var(--mk-input-height-lg);
+          font-size: var(--mk-font-size-lg);
+        }
+
+        mk-input[variant="filled"] > input {
+          background-color: var(--mk-color-border);
+          border-color: transparent;
+        }
+
+        mk-input:has(input:focus-visible) > input {
+          border-color: var(--mk-input-border-color-focus);
+          outline: 2px solid var(--mk-color-focus-ring);
+          outline-offset: 2px;
+        }
+
+        mk-input:has(input:disabled) {
+          opacity: 0.5;
+        }
+
+        mk-input:has(input:user-invalid) > input {
+          border-color: var(--mk-input-border-color-error);
+        }
+
+        mk-input:has(input:user-valid) > input {
+          border-color: var(--mk-color-success);
+        }
+      }
+
+      /* ===== components/mk-textarea.css (inlined) ============================ */
+      @layer components {
+        mk-textarea {
+          display: block;
+        }
+
+        mk-textarea textarea {
+          display: block;
+          width: 100%;
+          min-height: var(--mk-input-height-base);
+          padding-block: var(--mk-space-2);
+          padding-inline: var(--mk-input-padding-inline);
+          background-color: var(--mk-input-bg);
+          border: 1px solid var(--mk-input-border-color);
+          border-radius: var(--mk-radius-input);
+          color: var(--mk-input-color);
+          font-family: var(--mk-font-sans);
+          font-size: var(--mk-font-size-base);
+          line-height: var(--mk-line-height-normal);
+          resize: vertical;
+          transition: border-color var(--mk-transition-fast), box-shadow var(--mk-transition-fast);
+        }
+
+        mk-textarea textarea::placeholder {
+          color: var(--mk-input-color-placeholder);
+        }
+
+        mk-textarea textarea:focus {
+          border-color: var(--mk-input-border-color-focus);
+          box-shadow: 0 0 0 3px var(--mk-color-focus-ring);
+          outline: none;
+        }
+
+        mk-textarea[variant="outline"] textarea {
+          background-color: var(--mk-input-bg);
+          border-color: var(--mk-input-border-color);
+        }
+
+        mk-textarea[variant="filled"] textarea {
+          background-color: var(--mk-color-border);
+          border-color: transparent;
+        }
+
+        mk-textarea[size="sm"] textarea {
+          min-height: var(--mk-input-height-sm);
+          font-size: var(--mk-font-size-sm);
+        }
+
+        mk-textarea[size="base"] textarea {
+          min-height: var(--mk-input-height-base);
+          font-size: var(--mk-font-size-base);
+        }
+
+        mk-textarea[size="lg"] textarea {
+          min-height: var(--mk-input-height-lg);
+          font-size: var(--mk-font-size-lg);
+        }
+      }
+
+      /* ===== components/mk-select.css (inlined) ============================== */
+      @layer components {
+        mk-select {
+          display: block;
+        }
+
+        mk-select > select {
+          display: block;
+          width: 100%;
+          height: var(--mk-input-height-base);
+          padding-inline: var(--mk-input-padding-inline);
+          padding-inline-end: var(--mk-space-8);
+          background-color: var(--mk-input-bg);
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%23666' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right var(--mk-space-3) center;
+          background-size: 1em;
+          color: var(--mk-input-color);
+          border: 1px solid var(--mk-input-border-color);
+          border-radius: var(--mk-radius-input);
+          font-size: var(--mk-font-size-base);
+          appearance: none;
+          cursor: pointer;
+          transition: border-color var(--mk-transition-fast);
+        }
+
+        mk-select[size="sm"] > select {
+          height: var(--mk-input-height-sm);
+          font-size: var(--mk-font-size-sm);
+        }
+
+        mk-select[size="lg"] > select {
+          height: var(--mk-input-height-lg);
+          font-size: var(--mk-font-size-lg);
+        }
+
+        mk-select[variant="filled"] > select {
+          background-color: var(--mk-color-border);
+          border-color: transparent;
+        }
+
+        mk-select:has(select:focus-visible) > select {
+          border-color: var(--mk-input-border-color-focus);
+          outline: 2px solid var(--mk-color-focus-ring);
+          outline-offset: 2px;
+        }
+
+        mk-select:has(select:disabled) {
+          opacity: 0.5;
+        }
+      }
+
+      /* ===== components/mk-checkbox.css (inlined) ============================ */
+      @layer components {
+        mk-checkbox {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--mk-space-2);
+        }
+
+        mk-checkbox > input[type="checkbox"] {
+          accent-color: var(--mk-color-primary);
+          width: 1rem;
+          height: 1rem;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+
+        mk-checkbox[size="sm"] > input[type="checkbox"] {
+          width: 0.875rem;
+          height: 0.875rem;
+        }
+
+        mk-checkbox[size="lg"] > input[type="checkbox"] {
+          width: 1.25rem;
+          height: 1.25rem;
+        }
+
+        mk-checkbox:has(input:focus-visible) > input[type="checkbox"] {
+          outline: 2px solid var(--mk-color-focus-ring);
+          outline-offset: 2px;
+        }
+
+        mk-checkbox:has(input:disabled) {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+
+      /* ===== components/mk-radio.css (inlined) =============================== */
+      @layer components {
+        mk-radio {
+          display: inline-flex;
+          align-items: center;
+        }
+
+        mk-radio input[type="radio"] {
+          accent-color: var(--mk-color-primary);
+          inline-size: var(--mk-space-4);
+          block-size: var(--mk-space-4);
+          cursor: pointer;
+        }
+
+        mk-radio[size="sm"] input[type="radio"] {
+          inline-size: var(--mk-space-3);
+          block-size: var(--mk-space-3);
+        }
+
+        mk-radio[size="lg"] input[type="radio"] {
+          inline-size: var(--mk-space-5);
+          block-size: var(--mk-space-5);
+        }
+
+        mk-radio:has(input[type="radio"]:focus-visible) input[type="radio"] {
+          outline: 2px solid var(--mk-color-focus-ring);
+          outline-offset: 2px;
+        }
+
+        mk-radio:has(input[type="radio"]:disabled) {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+
+      /* ===== components/mk-switch.css (inlined) ============================== */
+      @layer components {
+        mk-switch {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--mk-space-2);
+        }
+
+        mk-switch > input[type="checkbox"] {
+          appearance: none;
+          width: 2.5rem;
+          height: 1.5rem;
+          border-radius: var(--mk-radius-full);
+          background-color: var(--mk-color-border);
+          position: relative;
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: background-color var(--mk-transition-fast);
+        }
+
+        mk-switch > input[type="checkbox"]::before {
+          content: '';
+          position: absolute;
+          inset-block: 0.125rem;
+          inset-inline-start: 0.125rem;
+          width: 1.25rem;
+          border-radius: var(--mk-radius-full);
+          background-color: white;
+          transition: translate var(--mk-transition-fast);
+        }
+
+        mk-switch > input[type="checkbox"]:checked {
+          background-color: var(--mk-color-primary);
+        }
+
+        mk-switch > input[type="checkbox"]:checked::before {
+          translate: 1rem 0;
+        }
+
+        mk-switch[size="sm"] > input[type="checkbox"] {
+          width: 2rem;
+          height: 1.25rem;
+        }
+
+        mk-switch[size="lg"] > input[type="checkbox"] {
+          width: 3rem;
+          height: 1.75rem;
+        }
+
+        mk-switch:has(input:focus-visible) > input[type="checkbox"] {
+          outline: 2px solid var(--mk-color-focus-ring);
+          outline-offset: 2px;
+        }
+
+        mk-switch:has(input:disabled) {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+
+      /* ===== components/mk-field.css (inlined) =============================== */
+      @layer components {
+        mk-field {
+          display: flex;
+          flex-direction: column;
+          gap: var(--mk-field-gap);
+        }
+
+        mk-field [data-mk-error] {
+          display: none;
+          color: var(--mk-field-error-color);
+          font-size: var(--mk-font-size-sm);
+        }
+
+        mk-field[data-state="invalid"] [data-mk-error] {
+          display: block;
+        }
+
+        mk-field[data-touched]:has(input:invalid, textarea:invalid, select:invalid):not(:focus-within) [data-mk-error] {
+          display: block;
+        }
+
+        mk-field [slot="hint"] {
+          color: var(--mk-field-hint-color);
+          font-size: var(--mk-font-size-sm);
+        }
+
+        mk-field[data-state="validating"] {
+          opacity: 0.8;
+        }
+      }
+
+      /* ===== components/mk-fieldset.css (inlined) ============================ */
+      @layer components {
+        mk-fieldset { display: block; }
+
+        mk-fieldset > fieldset {
+          border: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: var(--mk-field-gap);
+        }
+
+        mk-fieldset > fieldset > legend {
+          font-weight: var(--mk-font-weight-medium);
+          font-size: var(--mk-font-size-base);
+          padding: 0;
+          margin-block-end: var(--mk-space-2);
+          float: left;
+          width: 100%;
+        }
+
+        mk-fieldset > fieldset > legend + * { clear: left; }
+      }
+
+      /* ===== components/mk-form.css (inlined) ================================ */
+      @layer components {
+        mk-form { display: block; }
+      }
+    </style>
+  </head>
+  <body>
+    <mk-form>
+      <form>
+        <mk-fieldset>
+          <fieldset>
+            <legend>Account details</legend>
+            <mk-field>
+              <label for="email">Email address</label>
+              <mk-input><input id="email" name="email" type="email" required placeholder="you@example.com"></mk-input>
+              <small data-mk-error></small>
+            </mk-field>
+            <mk-field>
+              <label for="bio">Short bio</label>
+              <mk-textarea><textarea id="bio" name="bio" placeholder="Tell us about yourself"></textarea></mk-textarea>
+            </mk-field>
+            <mk-field>
+              <label for="country">Country</label>
+              <mk-select>
+                <select id="country" name="country">
+                  <option value="">Select a country</option>
+                  <option value="pl">Poland</option>
+                  <option value="de">Germany</option>
+                  <option value="us">United States</option>
+                </select>
+              </mk-select>
+            </mk-field>
+            <mk-checkbox>
+              <input type="checkbox" id="agree" name="agree">
+              <label for="agree">I agree to the terms and conditions</label>
+            </mk-checkbox>
+            <mk-radio>
+              <input type="radio" id="opt-a" name="option" value="a">
+              <label for="opt-a">Standard shipping</label>
+            </mk-radio>
+            <mk-radio>
+              <input type="radio" id="opt-b" name="option" value="b">
+              <label for="opt-b">Express shipping</label>
+            </mk-radio>
+            <mk-switch>
+              <input type="checkbox" id="notifications" name="notifications">
+              <label for="notifications">Email notifications</label>
+            </mk-switch>
+          </fieldset>
+        </mk-fieldset>
+        <mk-button variant="primary"><button type="submit">Create account</button></mk-button>
+      </form>
+    </mk-form>
+  </body>
+</html>

@@ -13,7 +13,10 @@
     "skipLibCheck": true,
     "paths": {
       "@markommerce/frontend": ["packages/frontend/resources/js/index.ts"],
-      "@markommerce/frontend/*": ["packages/frontend/resources/js/*"]
+      "@markommerce/frontend/*": ["packages/frontend/resources/js/*"],
+      "@markommerce/theme-blank": ["packages/theme-blank/resources/js/index.ts"],
+      "@markommerce/theme-blank/css/*": ["packages/theme-blank/resources/css/*"],
+      "@markommerce/theme-blank-demo": ["packages/theme-blank-demo/resources/js/index.ts"]
     },
     "noEmit": true
   },
