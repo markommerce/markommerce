@@ -260,3 +260,77 @@
 
   </mk-stack>
 </section>
+
+<section class="demo-feedback">
+  <mk-heading size="2xl"><h2>Feedback</h2></mk-heading>
+  <mk-stack gap="6">
+
+    <article>
+      <mk-heading level="3" size="lg">mk-alert</mk-heading>
+      <mk-stack gap="3">
+        <mk-alert variant="info">Informational alert message.</mk-alert>
+        <mk-alert variant="success">Success! Your order has been placed.</mk-alert>
+        <mk-alert variant="warning">Warning: stock is running low.</mk-alert>
+        <mk-alert variant="danger" dismissible>Danger alert — dismissible. Click × to close.</mk-alert>
+      </mk-stack>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-spinner</mk-heading>
+      <mk-cluster gap="4">
+        <mk-spinner size="sm"></mk-spinner>
+        <mk-spinner size="md"></mk-spinner>
+        <mk-spinner size="lg"></mk-spinner>
+      </mk-cluster>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-skeleton</mk-heading>
+      <mk-stack gap="3">
+        <mk-skeleton variant="text"></mk-skeleton>
+        <mk-skeleton variant="rect"></mk-skeleton>
+        <mk-skeleton variant="circle"></mk-skeleton>
+      </mk-stack>
+    </article>
+
+    <article>
+      <mk-heading level="3" size="lg">mk-toast / mk-modal / mk-drawer</mk-heading>
+      <mk-cluster gap="2">
+        <mk-button variant="primary"><button type="button" data-demo="toast">Show toast</button></mk-button>
+        <mk-button variant="secondary"><button type="button" data-demo="modal">Open modal</button></mk-button>
+        <mk-button variant="secondary"><button type="button" data-demo="drawer-right">Open right drawer</button></mk-button>
+        <mk-button variant="ghost"><button type="button" data-demo="drawer-left">Open left drawer</button></mk-button>
+      </mk-cluster>
+      <mk-toast hidden></mk-toast>
+      <mk-modal hidden><dialog></dialog></mk-modal>
+      <mk-drawer hidden><dialog></dialog></mk-drawer>
+    </article>
+
+  </mk-stack>
+{syntax off}
+<script type="module">
+  import { showToast, openModal, openDrawer } from '@markommerce/theme-blank';
+
+  document.querySelector('[data-demo="toast"]')?.addEventListener('click', () => {
+    showToast('Demo toast notification!', { variant: 'info' });
+  });
+
+  document.querySelector('[data-demo="modal"]')?.addEventListener('click', () => {
+    openModal('<p>Are you sure?</p><button type="button" id="mk-modal-close-btn">Close</button>', { dismissible: true });
+    setTimeout(() => {
+      document.getElementById('mk-modal-close-btn')?.addEventListener('click', () => {
+        document.querySelector('mk-modal')?.removeAttribute('open');
+      });
+    }, 0);
+  });
+
+  document.querySelector('[data-demo="drawer-right"]')?.addEventListener('click', () => {
+    openDrawer('<p>Mini-cart placeholder</p><button type="button" class="mk-drawer-close-btn">Close</button>', { placement: 'right', dismissible: true });
+  });
+
+  document.querySelector('[data-demo="drawer-left"]')?.addEventListener('click', () => {
+    openDrawer('<p>Mini-cart placeholder</p><button type="button" class="mk-drawer-close-btn">Close</button>', { placement: 'left', dismissible: true });
+  });
+</script>
+{/syntax}
+</section>

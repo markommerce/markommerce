@@ -1,0 +1,47 @@
+@layer components {
+  mk-alert {
+    display: block;
+    position: relative;
+    padding: var(--mk-space-4);
+    border-radius: var(--mk-radius-base);
+    border: 1px solid var(--mk-alert-border-color, var(--mk-color-border));
+    background-color: var(--mk-alert-bg, var(--mk-color-surface-2));
+    color: var(--mk-alert-fg, var(--mk-color-fg));
+  }
+
+  mk-alert[variant="info"] {
+    background-color: var(--mk-alert-bg-info, var(--mk-color-info-subtle, oklch(95% 0.03 240deg)));
+    color: var(--mk-alert-fg-info, var(--mk-color-info, oklch(40% 0.15 240deg)));
+    border-color: var(--mk-alert-border-color-info, var(--mk-color-info, oklch(40% 0.15 240deg)));
+  }
+
+  mk-alert[variant="success"] {
+    background-color: var(--mk-alert-bg-success, var(--mk-color-success-subtle, oklch(95% 0.03 145deg)));
+    color: var(--mk-alert-fg-success, var(--mk-color-success, oklch(40% 0.15 145deg)));
+    border-color: var(--mk-alert-border-color-success, var(--mk-color-success, oklch(40% 0.15 145deg)));
+  }
+
+  mk-alert[variant="warning"] {
+    background-color: var(--mk-alert-bg-warning, var(--mk-color-warning-subtle, oklch(95% 0.05 70deg)));
+    color: var(--mk-alert-fg-warning, var(--mk-color-warning, oklch(50% 0.2 70deg)));
+    border-color: var(--mk-alert-border-color-warning, var(--mk-color-warning, oklch(50% 0.2 70deg)));
+  }
+
+  mk-alert[variant="danger"] {
+    background-color: var(--mk-alert-bg-danger, var(--mk-color-danger-subtle, oklch(95% 0.03 25deg)));
+    color: var(--mk-alert-fg-danger, var(--mk-color-danger, oklch(45% 0.2 25deg)));
+    border-color: var(--mk-alert-border-color-danger, var(--mk-color-danger, oklch(45% 0.2 25deg)));
+  }
+
+  .mk-alert-close {
+    position: absolute;
+    inset-block-start: var(--mk-space-2);
+    inset-inline-end: var(--mk-space-2);
+    background: none;
+    border: none;
+    padding: var(--mk-space-1);
+    cursor: pointer;
+    color: var(--mk-color-fg-muted);
+    line-height: 1;
+  }
+}

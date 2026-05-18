@@ -76,7 +76,13 @@
   mk-switch:not(:defined),
   mk-field:not(:defined),
   mk-fieldset:not(:defined),
-  mk-form:not(:defined) {
+  mk-form:not(:defined),
+  mk-alert:not(:defined),
+  mk-toast:not(:defined),
+  mk-spinner:not(:defined),
+  mk-skeleton:not(:defined),
+  mk-modal:not(:defined),
+  mk-drawer:not(:defined) {
     /* No declarations — the @layer components tag selectors supply the real layout.
      * This selector group is retained as a documentation hook and downstream override
      * point. The trailing comment also satisfies stylelint's block-no-empty rule. */

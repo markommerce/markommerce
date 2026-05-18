@@ -1,0 +1,43 @@
+@layer components {
+  /*
+   * Content contract: server-rendered markup MUST take the form
+   *   <mk-drawer><dialog>…content…</dialog></mk-drawer>
+   * Content lives inside <dialog>, never as a sibling of <dialog> directly under
+   * <mk-drawer>. Sibling content of the dialog inside the wrapper is unsupported
+   * and would render unintentionally because the dialog is display:none but the
+   * wrapper uses display:contents, leaking the sibling into the parent layout flow.
+   */
+  mk-drawer {
+    display: contents;
+  }
+
+  mk-drawer > dialog {
+    background: var(--mk-drawer-bg);
+    color: var(--mk-drawer-fg);
+    padding: var(--mk-drawer-padding);
+    box-shadow: var(--mk-drawer-shadow);
+    border: none;
+    inline-size: var(--mk-drawer-width-md);
+    block-size: 100vh;
+    max-block-size: 100vh;
+    margin: 0;
+  }
+
+  mk-drawer[placement="right"] > dialog {
+    inset-block: 0;
+    inset-inline: auto 0;
+  }
+
+  mk-drawer[placement="left"] > dialog {
+    inset-block: 0;
+    inset-inline: 0 auto;
+  }
+
+  mk-drawer[size="sm"] > dialog {
+    inline-size: var(--mk-drawer-width-sm);
+  }
+
+  mk-drawer[size="lg"] > dialog {
+    inline-size: var(--mk-drawer-width-lg);
+  }
+}

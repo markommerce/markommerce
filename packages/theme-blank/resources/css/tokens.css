@@ -118,6 +118,67 @@
     --mk-field-gap: var(--mk-space-1);
     --mk-field-hint-color: var(--mk-color-fg-muted);
     --mk-field-error-color: var(--mk-color-error);
+
+    /* --- Alert ----------------------------------------------------------- */
+    --mk-alert-bg-info: var(--blue-1);
+    --mk-alert-bg-success: var(--green-1);
+    --mk-alert-bg-warning: var(--yellow-1);
+    --mk-alert-bg-danger: var(--red-1);
+    --mk-alert-fg-info: var(--blue-9);
+    --mk-alert-fg-success: var(--green-9);
+    --mk-alert-fg-warning: var(--yellow-9);
+    --mk-alert-fg-danger: var(--red-9);
+    --mk-alert-padding: var(--mk-space-3);
+    --mk-alert-radius: var(--mk-radius-base);
+    --mk-alert-border-color-info: var(--blue-3);
+    --mk-alert-border-color-success: var(--green-3);
+    --mk-alert-border-color-warning: var(--yellow-3);
+    --mk-alert-border-color-danger: var(--red-3);
+
+    /* --- Toast ----------------------------------------------------------- */
+    --mk-toast-bg: var(--mk-color-surface);
+    --mk-toast-fg: var(--mk-color-on-surface);
+    --mk-toast-region-gap: var(--mk-space-2);
+    --mk-toast-region-inset: var(--mk-space-4);
+    --mk-toast-shadow: var(--mk-shadow-lg);
+    --mk-toast-radius: var(--mk-radius-base);
+    --mk-toast-padding: var(--mk-space-3);
+    --mk-toast-min-width: 18rem;
+    --mk-toast-max-width: 24rem;
+
+    /* --- Modal ----------------------------------------------------------- */
+    --mk-modal-bg: var(--mk-color-surface);
+    --mk-modal-fg: var(--mk-color-on-surface);
+    --mk-modal-radius: var(--mk-radius-lg);
+    --mk-modal-padding: var(--mk-space-5);
+    --mk-modal-shadow: var(--mk-shadow-lg);
+    --mk-modal-backdrop-color: color-mix(in srgb, var(--gray-9) 60%, transparent);
+    --mk-modal-width-sm: 24rem;
+    --mk-modal-width-md: 32rem;
+    --mk-modal-width-lg: 48rem;
+
+    /* --- Drawer ---------------------------------------------------------- */
+    --mk-drawer-bg: var(--mk-color-surface);
+    --mk-drawer-fg: var(--mk-color-on-surface);
+    --mk-drawer-width-sm: 20rem;
+    --mk-drawer-width-md: 28rem;
+    --mk-drawer-width-lg: 40rem;
+    --mk-drawer-shadow: var(--mk-shadow-lg);
+    --mk-drawer-padding: var(--mk-space-5);
+
+    /* --- Spinner --------------------------------------------------------- */
+    --mk-spinner-size-sm: 1rem;
+    --mk-spinner-size-base: 1.5rem;
+    --mk-spinner-size-lg: 2.5rem;
+    --mk-spinner-thickness: 2px;
+    --mk-spinner-color: var(--mk-color-primary);
+    --mk-spinner-duration: var(--mk-duration-slow);
+
+    /* --- Skeleton -------------------------------------------------------- */
+    --mk-skeleton-bg: var(--gray-2);
+    --mk-skeleton-shimmer-color: var(--gray-0);
+    --mk-skeleton-radius: var(--mk-radius-base);
+    --mk-skeleton-duration: var(--mk-duration-slow);
   }
 
   /* Dark-mode overrides — flip only the tokens that change in dark theme */
@@ -128,5 +189,8 @@
     --mk-color-border: var(--gray-7);
     --mk-color-fg: var(--gray-1);
     --mk-color-bg: var(--gray-9);
+    --mk-toast-bg: var(--gray-8);
+    --mk-modal-bg: var(--gray-8);
+    --mk-skeleton-bg: var(--gray-7);
   }
 }

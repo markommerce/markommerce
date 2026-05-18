@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ToastOptions, ModalOptions, ModalHandle } from './index';
+import type { ToastOptions, ModalOptions, ModalHandle, DrawerOptions, DrawerHandle, DrawerPlacement } from './index';
 
 describe('theme-blank index', () => {
   it('exports a showToast function', async () => {
@@ -41,20 +41,17 @@ describe('theme-blank index', () => {
   describe('showToast', () => {
     beforeEach(() => {
       vi.restoreAllMocks();
+      document.body.innerHTML = '';
     });
 
-    it('showToast() emits a console.warn containing the Phase 4 stub message', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('showToast() delegates to toast-controller and creates a toast in the region', async () => {
       const { showToast } = await import('./index');
       showToast('hello');
-      expect(warnSpy).toHaveBeenCalledOnce();
-      expect(warnSpy.mock.calls[0]?.[0]).toContain(
-        '[markommerce/theme-blank] showToast() stub — real implementation lands in Phase 4',
-      );
+      expect(document.querySelector('ol.mk-toast-region')).not.toBeNull();
+      expect(document.querySelector('mk-toast')).not.toBeNull();
     });
 
     it('showToast() returns undefined', async () => {
-      vi.spyOn(console, 'warn').mockImplementation(() => {});
       const { showToast } = await import('./index');
       const result = showToast('hello');
       expect(result).toBeUndefined();
@@ -64,20 +61,16 @@ describe('theme-blank index', () => {
   describe('openModal', () => {
     beforeEach(() => {
       vi.restoreAllMocks();
+      document.body.innerHTML = '';
     });
 
-    it('openModal() emits a console.warn containing the Phase 4 stub message', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('openModal() delegates to modal-controller and appends an mk-modal element', async () => {
       const { openModal } = await import('./index');
       openModal('some content');
-      expect(warnSpy).toHaveBeenCalledOnce();
-      expect(warnSpy.mock.calls[0]?.[0]).toContain(
-        '[markommerce/theme-blank] openModal() stub — real implementation lands in Phase 4',
-      );
+      expect(document.body.querySelector('mk-modal')).not.toBeNull();
     });
 
     it('openModal() returns an object with a callable close method', async () => {
-      vi.spyOn(console, 'warn').mockImplementation(() => {});
       const { openModal } = await import('./index');
       const handle = openModal('some content');
       expect(handle).toBeDefined();
@@ -85,12 +78,29 @@ describe('theme-blank index', () => {
     });
 
     it('openModal() close method returns void', async () => {
-      vi.spyOn(console, 'warn').mockImplementation(() => {});
       const { openModal } = await import('./index');
       const handle = openModal('some content');
       const result = handle.close();
       expect(result).toBeUndefined();
     });
+  });
+
+  it('exports DrawerOptions, DrawerHandle, DrawerPlacement type aliases from index.ts', () => {
+    const opts: DrawerOptions = { size: 'sm', placement: 'left', dismissible: true };
+    expect(opts.size).toBe('sm');
+    expect(opts.placement).toBe('left');
+    expect(opts.dismissible).toBe(true);
+
+    const handle: DrawerHandle = { close: () => {} };
+    expect(typeof handle.close).toBe('function');
+
+    const placement: DrawerPlacement = 'right';
+    expect(placement).toBe('right');
+  });
+
+  it('exports an openDrawer function', async () => {
+    const module = await import('./index');
+    expect(typeof module.openDrawer).toBe('function');
   });
 
   it('the entry file does not call defineAllComponents()', async () => {

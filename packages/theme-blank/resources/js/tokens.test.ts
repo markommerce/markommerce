@@ -95,4 +95,119 @@ describe('tokens.css', () => {
     expect(pkg.exports['./css/tokens.css']).toBeDefined();
     expect(pkg.exports['./css/tokens.css']).toBe('./resources/css/tokens.css');
   });
+
+  it('declares all 10 mk-alert tokens inside :root', () => {
+    const layerBlock = tokensCss.match(/@layer tokens\s*\{([\s\S]*)\}/);
+    expect(layerBlock).not.toBeNull();
+    const rootBlock = layerBlock![1].match(/:root\s*\{([\s\S]*?)\}/);
+    expect(rootBlock).not.toBeNull();
+    const inside = rootBlock![1];
+    expect(inside).toContain('--mk-alert-bg-info:');
+    expect(inside).toContain('--mk-alert-bg-success:');
+    expect(inside).toContain('--mk-alert-bg-warning:');
+    expect(inside).toContain('--mk-alert-bg-danger:');
+    expect(inside).toContain('--mk-alert-fg-info:');
+    expect(inside).toContain('--mk-alert-fg-success:');
+    expect(inside).toContain('--mk-alert-fg-warning:');
+    expect(inside).toContain('--mk-alert-fg-danger:');
+    expect(inside).toContain('--mk-alert-padding:');
+    expect(inside).toContain('--mk-alert-radius:');
+  });
+
+  it('declares all 4 mk-alert-border-color tokens inside :root', () => {
+    const layerBlock = tokensCss.match(/@layer tokens\s*\{([\s\S]*)\}/);
+    expect(layerBlock).not.toBeNull();
+    const rootBlock = layerBlock![1].match(/:root\s*\{([\s\S]*?)\}/);
+    expect(rootBlock).not.toBeNull();
+    const inside = rootBlock![1];
+    expect(inside).toContain('--mk-alert-border-color-info:');
+    expect(inside).toContain('--mk-alert-border-color-success:');
+    expect(inside).toContain('--mk-alert-border-color-warning:');
+    expect(inside).toContain('--mk-alert-border-color-danger:');
+  });
+
+  it('declares all 9 mk-toast tokens inside :root', () => {
+    const layerBlock = tokensCss.match(/@layer tokens\s*\{([\s\S]*)\}/);
+    expect(layerBlock).not.toBeNull();
+    const rootBlock = layerBlock![1].match(/:root\s*\{([\s\S]*?)\}/);
+    expect(rootBlock).not.toBeNull();
+    const inside = rootBlock![1];
+    expect(inside).toContain('--mk-toast-bg:');
+    expect(inside).toContain('--mk-toast-fg:');
+    expect(inside).toContain('--mk-toast-region-gap:');
+    expect(inside).toContain('--mk-toast-region-inset:');
+    expect(inside).toContain('--mk-toast-shadow:');
+    expect(inside).toContain('--mk-toast-radius:');
+    expect(inside).toContain('--mk-toast-padding:');
+    expect(inside).toContain('--mk-toast-min-width:');
+    expect(inside).toContain('--mk-toast-max-width:');
+  });
+
+  it('declares all 7 mk-modal tokens inside :root', () => {
+    const layerBlock = tokensCss.match(/@layer tokens\s*\{([\s\S]*)\}/);
+    expect(layerBlock).not.toBeNull();
+    const rootBlock = layerBlock![1].match(/:root\s*\{([\s\S]*?)\}/);
+    expect(rootBlock).not.toBeNull();
+    const inside = rootBlock![1];
+    expect(inside).toContain('--mk-modal-bg:');
+    expect(inside).toContain('--mk-modal-fg:');
+    expect(inside).toContain('--mk-modal-radius:');
+    expect(inside).toContain('--mk-modal-padding:');
+    expect(inside).toContain('--mk-modal-shadow:');
+    expect(inside).toContain('--mk-modal-backdrop-color:');
+    expect(inside).toContain('--mk-modal-width-sm:');
+    expect(inside).toContain('--mk-modal-width-md:');
+    expect(inside).toContain('--mk-modal-width-lg:');
+  });
+
+  it('declares all 5 mk-drawer tokens inside :root', () => {
+    const layerBlock = tokensCss.match(/@layer tokens\s*\{([\s\S]*)\}/);
+    expect(layerBlock).not.toBeNull();
+    const rootBlock = layerBlock![1].match(/:root\s*\{([\s\S]*?)\}/);
+    expect(rootBlock).not.toBeNull();
+    const inside = rootBlock![1];
+    expect(inside).toContain('--mk-drawer-bg:');
+    expect(inside).toContain('--mk-drawer-fg:');
+    expect(inside).toContain('--mk-drawer-width-sm:');
+    expect(inside).toContain('--mk-drawer-width-md:');
+    expect(inside).toContain('--mk-drawer-width-lg:');
+    expect(inside).toContain('--mk-drawer-shadow:');
+    expect(inside).toContain('--mk-drawer-padding:');
+  });
+
+  it('declares all 4 mk-spinner token groups inside :root', () => {
+    const layerBlock = tokensCss.match(/@layer tokens\s*\{([\s\S]*)\}/);
+    expect(layerBlock).not.toBeNull();
+    const rootBlock = layerBlock![1].match(/:root\s*\{([\s\S]*?)\}/);
+    expect(rootBlock).not.toBeNull();
+    const inside = rootBlock![1];
+    expect(inside).toContain('--mk-spinner-size-sm:');
+    expect(inside).toContain('--mk-spinner-size-base:');
+    expect(inside).toContain('--mk-spinner-size-lg:');
+    expect(inside).toContain('--mk-spinner-thickness:');
+    expect(inside).toContain('--mk-spinner-color:');
+    expect(inside).toContain('--mk-spinner-duration:');
+  });
+
+  it('declares all 4 mk-skeleton tokens inside :root', () => {
+    const layerBlock = tokensCss.match(/@layer tokens\s*\{([\s\S]*)\}/);
+    expect(layerBlock).not.toBeNull();
+    const rootBlock = layerBlock![1].match(/:root\s*\{([\s\S]*?)\}/);
+    expect(rootBlock).not.toBeNull();
+    const inside = rootBlock![1];
+    expect(inside).toContain('--mk-skeleton-bg:');
+    expect(inside).toContain('--mk-skeleton-shimmer-color:');
+    expect(inside).toContain('--mk-skeleton-radius:');
+    expect(inside).toContain('--mk-skeleton-duration:');
+  });
+
+  it('overrides at least 3 feedback tokens inside [data-theme="dark"]', () => {
+    expect(tokensCss).toContain('[data-theme="dark"]');
+    const darkBlock = tokensCss.match(/\[data-theme="dark"\]\s*\{([\s\S]*?)\}/);
+    expect(darkBlock).not.toBeNull();
+    const inside = darkBlock![1];
+    expect(inside).toContain('--mk-toast-bg:');
+    expect(inside).toContain('--mk-modal-bg:');
+    expect(inside).toContain('--mk-skeleton-bg:');
+  });
 });

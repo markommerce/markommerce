@@ -1,9 +1,9 @@
 ---
 title: markommerce/theme-blank
-description: Unstyled baseline theme for Markommerce --- design tokens, page layouts, CSS layer wiring, and a stub JS API ready for extension.
+description: Unstyled baseline theme for Markommerce --- design tokens, page layouts, CSS layer wiring, and a full set of feedback components.
 ---
 
-`markommerce/theme-blank` is the foundational theme layer for Markommerce storefronts. It ships a complete set of semantic design tokens (the `--mk-*` namespace), a CSS reset and base styles, five server-rendered page layout templates, a `layouts.css` that establishes grid structures inside `@layer theme`, and a JavaScript API stub (`showToast`, `openModal`) whose real behavior arrives in Phase 4. The package is designed to be overridden wholesale or incrementally --- every token, every layout block, and every CSS layer is a documented extension point.
+`markommerce/theme-blank` is the foundational theme layer for Markommerce storefronts. It ships a complete set of semantic design tokens (the `--mk-*` namespace), a CSS reset and base styles, five server-rendered page layout templates, a `layouts.css` that establishes grid structures inside `@layer theme`, and a full JavaScript API (`showToast`, `openModal`, `openDrawer`) backed by real custom-element implementations. The package is designed to be overridden wholesale or incrementally --- every token, every layout block, and every CSS layer is a documented extension point.
 
 ## Installation
 
@@ -46,7 +46,7 @@ The consumer must load [Open Props](https://open-props.style/) (`open-props/styl
 | `--mk-color-danger` | `var(--red-6)` | Danger/destructive action color |
 | `--mk-color-danger-hover` | `var(--red-7)` | Danger color on hover |
 | `--mk-color-info` | `var(--blue-5)` | Informational state color |
-| `--mk-color-focus-ring` | `var(--blue-5)` | Focus-ring color for `:focus-visible` outlines on all interactive form elements |
+| `--mk-color-focus-ring` | `color-mix(in srgb, var(--mk-color-primary) 35%, transparent)` | Focus-ring color for `:focus-visible` outlines on all interactive form elements |
 
 Dark-mode overrides activate automatically when `data-theme="dark"` is set on any ancestor element. The following tokens flip in dark mode:
 
@@ -58,7 +58,6 @@ Dark-mode overrides activate automatically when `data-theme="dark"` is set on an
 | `--mk-color-border` | `var(--gray-7)` |
 | `--mk-color-fg` | `var(--gray-1)` |
 | `--mk-color-bg` | `var(--gray-9)` |
-| `--mk-color-focus-ring` | `var(--blue-4)` |
 
 ### Spacing
 
@@ -132,17 +131,17 @@ Tokens shared across `mk-input`, `mk-textarea`, `mk-select`, `mk-button`, `mk-fi
 
 | Token | Default value | Purpose |
 | --- | --- | --- |
-| `--mk-input-height-sm` | `var(--size-7)` | Height for small-size inputs and selects |
-| `--mk-input-height-base` | `var(--size-8)` | Default input and select height |
-| `--mk-input-height-lg` | `var(--size-9)` | Height for large-size inputs and selects |
+| `--mk-input-height-sm` | `2rem` | Height for small-size inputs and selects |
+| `--mk-input-height-base` | `2.5rem` | Default input and select height |
+| `--mk-input-height-lg` | `3rem` | Height for large-size inputs and selects |
 | `--mk-input-padding-inline` | `var(--mk-space-3)` | Horizontal padding inside inputs, selects, and textareas |
-| `--mk-input-bg` | `var(--mk-color-surface)` | Background color of input controls |
+| `--mk-input-bg` | `var(--mk-color-bg)` | Background color of input controls |
 | `--mk-input-color` | `var(--mk-color-fg)` | Text color inside input controls |
 | `--mk-input-color-placeholder` | `var(--mk-color-fg-muted)` | Placeholder text color |
 | `--mk-input-border-color` | `var(--mk-color-border)` | Default border color for input controls |
 | `--mk-input-border-color-hover` | `var(--gray-5)` | Border color when an input is hovered |
 | `--mk-input-border-color-focus` | `var(--mk-color-primary)` | Border color when an input is focused |
-| `--mk-input-border-color-error` | `var(--mk-color-danger)` | Border color when an input is invalid |
+| `--mk-input-border-color-error` | `var(--mk-color-error)` | Border color when an input is invalid |
 
 **Button surface:**
 
@@ -156,15 +155,101 @@ Tokens shared across `mk-input`, `mk-textarea`, `mk-select`, `mk-button`, `mk-fi
 | Token | Default value | Purpose |
 | --- | --- | --- |
 | `--mk-field-gap` | `var(--mk-space-1)` | Gap between label, control, hint, and error inside `mk-field` and `mk-fieldset` |
-| `--mk-field-error-color` | `var(--mk-color-danger)` | Text color for inline validation error messages |
+| `--mk-field-error-color` | `var(--mk-color-error)` | Text color for inline validation error messages |
 | `--mk-field-hint-color` | `var(--mk-color-fg-muted)` | Text color for field hint text |
 
-Dark-mode overrides for input tokens (activate when `data-theme="dark"` is set):
+No dark-mode overrides are declared for input tokens. Input controls inherit dark-mode colors from `--mk-color-bg` (page background) and `--mk-color-border` (border), which flip in the main dark-mode block.
+
+### Feedback components
+
+Tokens for `mk-alert`, `mk-toast`, `mk-spinner`, `mk-skeleton`, `mk-modal`, and `mk-drawer`. Declare overrides inside `@layer theme` to reskin all feedback components at once.
+
+**Alert:**
+
+| Token | Default value | Purpose |
+| --- | --- | --- |
+| `--mk-alert-bg-info` | `var(--blue-1)` | Alert background for `info` variant |
+| `--mk-alert-bg-success` | `var(--green-1)` | Alert background for `success` variant |
+| `--mk-alert-bg-warning` | `var(--yellow-1)` | Alert background for `warning` variant |
+| `--mk-alert-bg-danger` | `var(--red-1)` | Alert background for `danger` variant |
+| `--mk-alert-fg-info` | `var(--blue-9)` | Alert foreground for `info` variant |
+| `--mk-alert-fg-success` | `var(--green-9)` | Alert foreground for `success` variant |
+| `--mk-alert-fg-warning` | `var(--yellow-9)` | Alert foreground for `warning` variant |
+| `--mk-alert-fg-danger` | `var(--red-9)` | Alert foreground for `danger` variant |
+| `--mk-alert-border-color-info` | `var(--blue-3)` | Alert border for `info` variant |
+| `--mk-alert-border-color-success` | `var(--green-3)` | Alert border for `success` variant |
+| `--mk-alert-border-color-warning` | `var(--yellow-3)` | Alert border for `warning` variant |
+| `--mk-alert-border-color-danger` | `var(--red-3)` | Alert border for `danger` variant |
+| `--mk-alert-radius` | `var(--mk-radius-base)` | Border radius |
+| `--mk-alert-padding` | `var(--mk-space-4)` | Internal padding |
+
+**Toast:**
+
+| Token | Default value | Purpose |
+| --- | --- | --- |
+| `--mk-toast-bg` | `var(--mk-color-surface)` | Toast background color |
+| `--mk-toast-fg` | `var(--mk-color-on-surface)` | Toast foreground (text) color |
+| `--mk-toast-padding` | `var(--mk-space-3)` | Inner padding |
+| `--mk-toast-radius` | `var(--mk-radius-base)` | Border radius |
+| `--mk-toast-shadow` | `var(--mk-shadow-lg)` | Box shadow |
+| `--mk-toast-min-width` | `18rem` | Minimum width |
+| `--mk-toast-max-width` | `24rem` | Maximum width |
+| `--mk-toast-region-inset` | `var(--mk-space-4)` | Distance from bottom and right viewport edges |
+| `--mk-toast-region-gap` | `var(--mk-space-2)` | Gap between stacked toasts |
+
+**Spinner:**
+
+| Token | Default value | Purpose |
+| --- | --- | --- |
+| `--mk-spinner-size-sm` | `1rem` | Diameter of the small variant |
+| `--mk-spinner-size-base` | `1.5rem` | Diameter of the default variant |
+| `--mk-spinner-size-lg` | `2.5rem` | Diameter of the large variant |
+| `--mk-spinner-thickness` | `2px` | Border width of the spinner ring |
+| `--mk-spinner-color` | `var(--mk-color-primary)` | Color of the animated arc |
+| `--mk-spinner-duration` | `var(--mk-duration-slow)` | Duration of one full rotation |
+
+**Skeleton:**
+
+| Token | Default value | Purpose |
+| --- | --- | --- |
+| `--mk-skeleton-bg` | `var(--gray-2)` | Base shimmer background color |
+| `--mk-skeleton-shimmer-color` | `var(--gray-0)` | Highlight color of the shimmer sweep |
+| `--mk-skeleton-radius` | `var(--mk-radius-base)` | Border radius for `text` and `rect` variants |
+| `--mk-skeleton-duration` | `var(--mk-duration-slow)` | Duration of one shimmer cycle |
+
+**Modal:**
+
+| Token | Default value | Purpose |
+| --- | --- | --- |
+| `--mk-modal-bg` | `var(--mk-color-surface)` | Dialog background color |
+| `--mk-modal-fg` | `var(--mk-color-on-surface)` | Dialog foreground (text) color |
+| `--mk-modal-radius` | `var(--mk-radius-lg)` | Dialog border radius |
+| `--mk-modal-padding` | `var(--mk-space-5)` | Dialog inner padding |
+| `--mk-modal-shadow` | `var(--mk-shadow-lg)` | Dialog box shadow |
+| `--mk-modal-backdrop-color` | `color-mix(in srgb, var(--gray-9) 60%, transparent)` | `::backdrop` background color |
+| `--mk-modal-width-sm` | `24rem` | Width when `size="sm"` |
+| `--mk-modal-width-md` | `32rem` | Width when `size="md"` |
+| `--mk-modal-width-lg` | `48rem` | Width when `size="lg"` |
+
+**Drawer:**
+
+| Token | Default value | Purpose |
+| --- | --- | --- |
+| `--mk-drawer-bg` | `var(--mk-color-surface)` | Drawer background color |
+| `--mk-drawer-fg` | `var(--mk-color-on-surface)` | Drawer foreground (text) color |
+| `--mk-drawer-padding` | `var(--mk-space-5)` | Drawer inner padding |
+| `--mk-drawer-shadow` | `var(--mk-shadow-lg)` | Drawer box shadow |
+| `--mk-drawer-width-sm` | `20rem` | Width when `size="sm"` |
+| `--mk-drawer-width-md` | `28rem` | Width when `size="md"` (also the default) |
+| `--mk-drawer-width-lg` | `40rem` | Width when `size="lg"` |
+
+Dark-mode overrides for feedback tokens (activate when `data-theme="dark"` is set):
 
 | Token | Dark value |
 | --- | --- |
-| `--mk-input-bg` | `var(--gray-8)` |
-| `--mk-input-border-color` | `var(--gray-6)` |
+| `--mk-toast-bg` | `var(--gray-8)` |
+| `--mk-modal-bg` | `var(--gray-8)` |
+| `--mk-skeleton-bg` | `var(--gray-7)` |
 
 ### Breakpoints
 
@@ -341,13 +426,20 @@ A live demo page rendering all primitives and form controls is available at `/ma
 | [mk-fieldset](/docs/packages/theme-blank/mk-fieldset/) | Native `<fieldset>` wrapper with consistent layout |
 | [mk-form](/docs/packages/theme-blank/mk-form/) | Form orchestrator with novalidate + async validation + mk-submit/mk-invalid events |
 
+### Feedback
+
+| Component | Description |
+| --- | --- |
+| [mk-alert](/docs/packages/theme-blank/mk-alert/) | Inline alert banner with semantic variant styles and optional dismissibility |
+| [mk-toast](/docs/packages/theme-blank/mk-toast/) | Transient notification that auto-dismisses after a configurable duration |
+| [mk-spinner](/docs/packages/theme-blank/mk-spinner/) | CSS-animated loading spinner with size variants and built-in screen reader support |
+| [mk-skeleton](/docs/packages/theme-blank/mk-skeleton/) | Animated shimmer placeholder for loading states |
+| [mk-modal](/docs/packages/theme-blank/mk-modal/) | Modal dialog wrapping the native `<dialog>` element with open/close management |
+| [mk-drawer](/docs/packages/theme-blank/mk-drawer/) | Slide-in drawer panel wrapping the native `<dialog>` element with placement support |
+
 ## JS API
 
-`@markommerce/theme-blank` exports a stub JavaScript API from its main entry point. The stubs log a `console.warn` and return sensible no-op values. Real implementations land in Phase 4.
-
-:::caution[Phase 4 stubs]
-`showToast()` and `openModal()` are stubs in Phase 1. They emit a `console.warn` so callers can detect the stub in development. Do not ship code that depends on their behavior before Phase 4.
-:::
+`@markommerce/theme-blank` exports a JavaScript API from its main entry point, backed by real custom-element implementations.
 
 ### `showToast(message, options?)`
 
@@ -397,6 +489,38 @@ handle.close();
 | Method | Signature | Description |
 | --- | --- | --- |
 | `close` | `(): void` | Closes the modal and removes it from the DOM |
+
+### `openDrawer(content, options?)`
+
+```typescript
+import { openDrawer } from '@markommerce/theme-blank';
+import type { DrawerOptions, DrawerHandle } from '@markommerce/theme-blank';
+
+const handle: DrawerHandle = openDrawer('<p>Filter options…</p>', {
+  placement: 'left',
+  size: 'md',
+  dismissible: true,
+});
+
+// Close programmatically:
+handle.close();
+```
+
+**Signature:** `openDrawer(content: HTMLElement | string, options?: DrawerOptions): DrawerHandle`
+
+**`DrawerOptions`:**
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `placement` | `'left' \| 'right'` | `'right'` | Side of the viewport the drawer slides in from |
+| `dismissible` | `boolean` | — | Whether clicking the backdrop closes the drawer |
+| `size` | `'sm' \| 'md' \| 'lg'` | — | Drawer width preset |
+
+**`DrawerHandle`:**
+
+| Method | Signature | Description |
+| --- | --- | --- |
+| `close` | `(): void` | Closes the drawer and removes it from the DOM |
 
 ## Extending the Theme
 
@@ -457,7 +581,7 @@ This means a component's initial paint --- as served by the PHP/Latte template -
 
 ### `:not(:defined)` Safety Net
 
-`base.css` includes a grouped `:not(:defined)` selector covering all 22 custom element tag names (12 layout and typography primitives plus 10 form controls) inside `@layer base`. The selector exists as a documentation hook and downstream override point --- it currently carries no declarations because every component's real layout is supplied by `@layer components` tag selectors, which apply regardless of whether the element's JavaScript constructor has been registered.
+`base.css` includes a grouped `:not(:defined)` selector covering all 28 custom element tag names (12 layout and typography primitives, 10 form controls, and 6 feedback components) inside `@layer base`. The selector exists as a documentation hook and downstream override point --- it currently carries no declarations because every component's real layout is supplied by `@layer components` tag selectors, which apply regardless of whether the element's JavaScript constructor has been registered.
 
 ```css
 @layer base {
@@ -482,14 +606,20 @@ This means a component's initial paint --- as served by the PHP/Latte template -
   mk-switch:not(:defined),
   mk-field:not(:defined),
   mk-fieldset:not(:defined),
-  mk-form:not(:defined) {
+  mk-form:not(:defined),
+  mk-alert:not(:defined),
+  mk-toast:not(:defined),
+  mk-spinner:not(:defined),
+  mk-skeleton:not(:defined),
+  mk-modal:not(:defined),
+  mk-drawer:not(:defined) {
     /* No declarations — @layer components tag selectors supply the real layout.
      * This block is a downstream override point. */
   }
 }
 ```
 
-The `:not(:defined)` pseudo-class matches any custom element whose constructor has not yet been registered via `customElements.define()`. Because the components lay themselves out via plain CSS attribute selectors at `@layer components`, all 22 custom elements render correctly on first paint with no JavaScript. Consumers who want to hide a specific element until its class is registered can add a `visibility: hidden` declaration here inside `@layer theme` (which sits above `base` in the layer order).
+The `:not(:defined)` pseudo-class matches any custom element whose constructor has not yet been registered via `customElements.define()`. Because the components lay themselves out via plain CSS attribute selectors at `@layer components`, all 28 custom elements render correctly on first paint with no JavaScript. Consumers who want to hide a specific element until its class is registered can add a `visibility: hidden` declaration here inside `@layer theme` (which sits above `base` in the layer order).
 
 ### Playwright Smoke Tests
 
