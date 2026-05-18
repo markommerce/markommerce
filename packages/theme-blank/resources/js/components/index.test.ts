@@ -22,6 +22,19 @@ const TAG_NAMES = [
   'mk-badge',
 ] as const;
 
+const FORM_CONTROL_TAG_NAMES = [
+  'mk-button',
+  'mk-input',
+  'mk-textarea',
+  'mk-select',
+  'mk-checkbox',
+  'mk-radio',
+  'mk-switch',
+  'mk-field',
+  'mk-fieldset',
+  'mk-form',
+] as const;
+
 const CLASS_NAMES = [
   'MkStackElement',
   'MkClusterElement',
@@ -192,5 +205,35 @@ describe('components/index', () => {
     );
     const hasExact = './css/components/mk-stack.css' in exports;
     expect(hasWildcard || hasExact, 'exports block should expose css/components/ files').toBe(true);
+  });
+
+  it('components/index.ts imports all 10 form-control modules (mk-button, mk-input, mk-textarea, mk-select, mk-checkbox, mk-radio, mk-switch, mk-field, mk-fieldset, mk-form) in addition to the 12 Phase 2 primitives', () => {
+    const indexPath = path.join(__dirname, 'index.ts');
+    const content = fs.readFileSync(indexPath, 'utf-8');
+    for (const tag of FORM_CONTROL_TAG_NAMES) {
+      expect(content, `index.ts should import ./${tag}`).toContain(`./${tag}`);
+    }
+  });
+
+  describe('importing @markommerce/theme-blank registers all 10 form-control tags via the mixin registry (assert with getRegisteredComponents() — mirror the existing Phase 2 assertion in the same file)', () => {
+    it('importing @markommerce/theme-blank registers all 10 form-control tags via the mixin registry (assert with getRegisteredComponents() — mirror the existing Phase 2 assertion in the same file)', async () => {
+      await import('@markommerce/theme-blank');
+      const { getRegisteredComponents } = await import('@markommerce/frontend');
+      const registered = getRegisteredComponents();
+      const registeredTags = registered.map((c) => c.tagName);
+      for (const tag of FORM_CONTROL_TAG_NAMES) {
+        expect(registeredTags, `${tag} should be registered`).toContain(tag);
+      }
+    });
+  });
+
+  it('base.css ":not(:defined)" selector group now lists all 10 form-control tag names alongside the 12 Phase 2 primitives', () => {
+    const baseCssPath = path.join(__dirname, '../../css/base.css');
+    const content = fs.readFileSync(baseCssPath, 'utf-8');
+    for (const tag of FORM_CONTROL_TAG_NAMES) {
+      expect(content, `base.css should contain :not(:defined) selector for ${tag}`).toContain(
+        `${tag}:not(:defined)`,
+      );
+    }
   });
 });

@@ -42,6 +42,7 @@
     --mk-color-success: var(--green-6);
     --mk-color-warning: var(--yellow-6);
     --mk-color-danger: var(--red-6);
+    --mk-color-danger-hover: var(--red-7);
     --mk-color-info: var(--blue-5);
 
     /* --- Spacing --------------------------------------------------------- */
@@ -95,6 +96,28 @@
     --mk-duration-slow: 500ms;
     --mk-ease-out: var(--ease-out-2);
     --mk-ease-in-out: var(--ease-in-out-3);
+
+    /* --- Focus ----------------------------------------------------------- */
+    --mk-color-focus-ring: color-mix(in srgb, var(--mk-color-primary) 35%, transparent);
+
+    /* --- Input / Select / Textarea --------------------------------------- */
+    --mk-input-bg: var(--mk-color-bg);
+    --mk-input-color: var(--mk-color-fg);
+    --mk-input-color-placeholder: var(--mk-color-fg-muted);
+    --mk-input-border-color: var(--mk-color-border);
+    --mk-input-border-color-hover: var(--gray-5);
+    --mk-input-border-color-focus: var(--mk-color-primary);
+    --mk-input-border-color-error: var(--mk-color-error);
+    --mk-input-height-sm: 2rem;
+    --mk-input-height-base: 2.5rem;
+    --mk-input-height-lg: 3rem;
+    --mk-input-padding-inline: var(--mk-space-3);
+    --mk-radius-input: var(--mk-radius-base);
+
+    /* --- Field ----------------------------------------------------------- */
+    --mk-field-gap: var(--mk-space-1);
+    --mk-field-hint-color: var(--mk-color-fg-muted);
+    --mk-field-error-color: var(--mk-color-error);
   }
 
   /* Dark-mode overrides — flip only the tokens that change in dark theme */

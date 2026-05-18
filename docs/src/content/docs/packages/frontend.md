@@ -135,6 +135,24 @@ Hooks.register('cart:add', handler);
 const result = await Hooks.run('cart:add', payload);
 ```
 
+### `requireInnerControl()`
+
+`requireInnerControl()` is a helper for custom element implementations that wrap a native control (e.g., `<input>`, `<select>`, `<button>`). It queries the element for a required child matching a CSS selector and emits a `console.warn` once per element instance if no match is found.
+
+```typescript
+import { requireInnerControl } from '@markommerce/frontend';
+
+class MkInput extends HTMLElement {
+  connectedCallback() {
+    const input = requireInnerControl(this, 'input');
+    if (!input) return; // warning already emitted
+    input.addEventListener('change', () => { /* … */ });
+  }
+}
+```
+
+The warning fires at most once per element instance regardless of how many times `requireInnerControl()` is called on that element. This prevents log flooding during repeated lifecycle callbacks.
+
 ### DOM Events Helper
 
 `dispatchMarkommerceEvent` wraps `CustomEvent` with sensible defaults (`bubbles: true`, `composed: true`, `cancelable: false`) and full TypeScript type inference when the event name is declared in `MarkommerceEventMap`.
@@ -197,6 +215,12 @@ Subclasses can override `render()` with a narrower return type (e.g., `TemplateR
 | --- | --- | --- |
 | `registerHook` | `<K extends keyof HookRegistry>(name: K, handler: HookHandler<K>, options?: { priority?: number }): void` | Register a hook handler. Lower `priority` values run first (default: `100`). |
 | `runHook` | `<K extends keyof HookRegistry>(name: K, payload: ...) => Promise<...>` | Run all handlers for a hook in priority order. Returns the final transformed value. |
+
+### Helpers
+
+| Function | Signature | Description |
+| --- | --- | --- |
+| `requireInnerControl` | `(element: HTMLElement, selector: string): Element \| null` | Query `element` for a required child matching `selector`. Logs a `console.warn` once per element instance if no match is found. Returns `null` when the child is absent. |
 
 ### DOM Events
 

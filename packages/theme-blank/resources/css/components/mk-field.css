@@ -1,0 +1,30 @@
+@layer components {
+  mk-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mk-field-gap);
+  }
+
+  mk-field [data-mk-error] {
+    display: none;
+    color: var(--mk-field-error-color);
+    font-size: var(--mk-font-size-sm);
+  }
+
+  mk-field[data-state="invalid"] [data-mk-error] {
+    display: block;
+  }
+
+  mk-field[data-touched]:has(input:invalid, textarea:invalid, select:invalid):not(:focus-within) [data-mk-error] {
+    display: block;
+  }
+
+  mk-field [slot="hint"] {
+    color: var(--mk-field-hint-color);
+    font-size: var(--mk-font-size-sm);
+  }
+
+  mk-field[data-state="validating"] {
+    opacity: 0.8;
+  }
+}

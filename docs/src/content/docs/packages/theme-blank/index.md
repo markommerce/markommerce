@@ -44,7 +44,9 @@ The consumer must load [Open Props](https://open-props.style/) (`open-props/styl
 | `--mk-color-success` | `var(--green-6)` | Success state color |
 | `--mk-color-warning` | `var(--yellow-6)` | Warning state color |
 | `--mk-color-danger` | `var(--red-6)` | Danger/destructive action color |
+| `--mk-color-danger-hover` | `var(--red-7)` | Danger color on hover |
 | `--mk-color-info` | `var(--blue-5)` | Informational state color |
+| `--mk-color-focus-ring` | `var(--blue-5)` | Focus-ring color for `:focus-visible` outlines on all interactive form elements |
 
 Dark-mode overrides activate automatically when `data-theme="dark"` is set on any ancestor element. The following tokens flip in dark mode:
 
@@ -56,6 +58,7 @@ Dark-mode overrides activate automatically when `data-theme="dark"` is set on an
 | `--mk-color-border` | `var(--gray-7)` |
 | `--mk-color-fg` | `var(--gray-1)` |
 | `--mk-color-bg` | `var(--gray-9)` |
+| `--mk-color-focus-ring` | `var(--blue-4)` |
 
 ### Spacing
 
@@ -100,6 +103,7 @@ Dark-mode overrides activate automatically when `data-theme="dark"` is set on an
 | `--mk-radius-base` | `var(--radius-3)` | Default border radius (cards, buttons) |
 | `--mk-radius-lg` | `var(--radius-4)` | Large border radius (modals, dialogs) |
 | `--mk-radius-full` | `var(--radius-round)` | Fully rounded (pills, avatars) |
+| `--mk-radius-input` | `var(--radius-2)` | Border radius for form inputs, selects, and textareas |
 
 ### Shadows
 
@@ -119,6 +123,48 @@ Dark-mode overrides activate automatically when `data-theme="dark"` is set on an
 | `--mk-duration-slow` | `500ms` | Slow animation duration |
 | `--mk-ease-out` | `var(--ease-out-2)` | Ease-out easing curve |
 | `--mk-ease-in-out` | `var(--ease-in-out-3)` | Ease-in-out easing curve |
+
+### Form Controls
+
+Tokens shared across `mk-input`, `mk-textarea`, `mk-select`, `mk-button`, `mk-field`, and `mk-fieldset`. Declare overrides inside `@layer theme` to reskin all form controls at once.
+
+**Input surface:**
+
+| Token | Default value | Purpose |
+| --- | --- | --- |
+| `--mk-input-height-sm` | `var(--size-7)` | Height for small-size inputs and selects |
+| `--mk-input-height-base` | `var(--size-8)` | Default input and select height |
+| `--mk-input-height-lg` | `var(--size-9)` | Height for large-size inputs and selects |
+| `--mk-input-padding-inline` | `var(--mk-space-3)` | Horizontal padding inside inputs, selects, and textareas |
+| `--mk-input-bg` | `var(--mk-color-surface)` | Background color of input controls |
+| `--mk-input-color` | `var(--mk-color-fg)` | Text color inside input controls |
+| `--mk-input-color-placeholder` | `var(--mk-color-fg-muted)` | Placeholder text color |
+| `--mk-input-border-color` | `var(--mk-color-border)` | Default border color for input controls |
+| `--mk-input-border-color-hover` | `var(--gray-5)` | Border color when an input is hovered |
+| `--mk-input-border-color-focus` | `var(--mk-color-primary)` | Border color when an input is focused |
+| `--mk-input-border-color-error` | `var(--mk-color-danger)` | Border color when an input is invalid |
+
+**Button surface:**
+
+| Token | Default value | Purpose |
+| --- | --- | --- |
+| `--mk-button-radius` | `var(--mk-radius-base)` | Border radius for buttons |
+| `--mk-button-font-weight` | `var(--mk-font-weight-medium)` | Font weight for button labels |
+
+**Field layout:**
+
+| Token | Default value | Purpose |
+| --- | --- | --- |
+| `--mk-field-gap` | `var(--mk-space-1)` | Gap between label, control, hint, and error inside `mk-field` and `mk-fieldset` |
+| `--mk-field-error-color` | `var(--mk-color-danger)` | Text color for inline validation error messages |
+| `--mk-field-hint-color` | `var(--mk-color-fg-muted)` | Text color for field hint text |
+
+Dark-mode overrides for input tokens (activate when `data-theme="dark"` is set):
+
+| Token | Dark value |
+| --- | --- |
+| `--mk-input-bg` | `var(--gray-8)` |
+| `--mk-input-border-color` | `var(--gray-6)` |
 
 ### Breakpoints
 
@@ -256,6 +302,8 @@ The two-column layouts switch from a single-column stacked view to the side-by-s
 
 `markommerce/theme-blank` ships a set of light-DOM custom-element primitives. Each primitive is purely presentational --- it wraps your server-rendered HTML with consistent styling, never replacing or restructuring children. All visual behavior is driven by CSS attribute selectors, so every primitive produces zero CLS even before its JavaScript is loaded.
 
+A live demo page rendering all primitives and form controls is available at `/markommerce/_demo/theme-blank` via the [`markommerce/theme-blank-demo`](/docs/packages/theme-blank-demo/) package.
+
 ### Layout primitives
 
 | Component | Description |
@@ -277,6 +325,21 @@ The two-column layouts switch from a single-column stacked view to the side-by-s
 | [mk-text](/docs/packages/theme-blank/mk-text/) | Single-tag body text with body / lead / small / muted variants (two-tag form supported for nested content) |
 | [mk-link](/docs/packages/theme-blank/mk-link/) | Wrapper around native `<a>` with variant + underline-policy control |
 | [mk-badge](/docs/packages/theme-blank/mk-badge/) | Inline-flex status badge with semantic variants |
+
+### Form controls
+
+| Component | Description |
+| --- | --- |
+| [mk-button](/docs/packages/theme-blank/mk-button/) | Native `<button>` wrapper with variant, size, and loading attributes |
+| [mk-input](/docs/packages/theme-blank/mk-input/) | Native `<input>` wrapper with variant and size |
+| [mk-textarea](/docs/packages/theme-blank/mk-textarea/) | Native `<textarea>` wrapper with variant and size |
+| [mk-select](/docs/packages/theme-blank/mk-select/) | Native `<select>` wrapper with custom arrow and variant/size |
+| [mk-checkbox](/docs/packages/theme-blank/mk-checkbox/) | Native checkbox wrapper with size attribute |
+| [mk-radio](/docs/packages/theme-blank/mk-radio/) | Native radio wrapper with size attribute |
+| [mk-switch](/docs/packages/theme-blank/mk-switch/) | Toggle-pill checkbox wrapper with auto `role="switch"` |
+| [mk-field](/docs/packages/theme-blank/mk-field/) | Label/control/hint/error orchestrator with 3-layer validation |
+| [mk-fieldset](/docs/packages/theme-blank/mk-fieldset/) | Native `<fieldset>` wrapper with consistent layout |
+| [mk-form](/docs/packages/theme-blank/mk-form/) | Form orchestrator with novalidate + async validation + mk-submit/mk-invalid events |
 
 ## JS API
 
@@ -394,7 +457,7 @@ This means a component's initial paint --- as served by the PHP/Latte template -
 
 ### `:not(:defined)` Safety Net
 
-`base.css` includes a grouped `:not(:defined)` selector covering all 12 primitive tag names inside `@layer base`. The selector exists as a documentation hook and downstream override point --- it currently carries no declarations because every component's real layout is supplied by `@layer components` tag selectors, which apply regardless of whether the element's JavaScript constructor has been registered.
+`base.css` includes a grouped `:not(:defined)` selector covering all 22 custom element tag names (12 layout and typography primitives plus 10 form controls) inside `@layer base`. The selector exists as a documentation hook and downstream override point --- it currently carries no declarations because every component's real layout is supplied by `@layer components` tag selectors, which apply regardless of whether the element's JavaScript constructor has been registered.
 
 ```css
 @layer base {
@@ -409,21 +472,36 @@ This means a component's initial paint --- as served by the PHP/Latte template -
   mk-heading:not(:defined),
   mk-text:not(:defined),
   mk-link:not(:defined),
-  mk-badge:not(:defined) {
+  mk-badge:not(:defined),
+  mk-button:not(:defined),
+  mk-input:not(:defined),
+  mk-textarea:not(:defined),
+  mk-select:not(:defined),
+  mk-checkbox:not(:defined),
+  mk-radio:not(:defined),
+  mk-switch:not(:defined),
+  mk-field:not(:defined),
+  mk-fieldset:not(:defined),
+  mk-form:not(:defined) {
     /* No declarations — @layer components tag selectors supply the real layout.
      * This block is a downstream override point. */
   }
 }
 ```
 
-The `:not(:defined)` pseudo-class matches any custom element whose constructor has not yet been registered via `customElements.define()`. Because the components lay themselves out via plain CSS attribute selectors at `@layer components`, all 12 primitives render correctly on first paint with no JavaScript. Consumers who want to hide a specific element until its class is registered can add a `visibility: hidden` declaration here inside `@layer theme` (which sits above `base` in the layer order).
+The `:not(:defined)` pseudo-class matches any custom element whose constructor has not yet been registered via `customElements.define()`. Because the components lay themselves out via plain CSS attribute selectors at `@layer components`, all 22 custom elements render correctly on first paint with no JavaScript. Consumers who want to hide a specific element until its class is registered can add a `visibility: hidden` declaration here inside `@layer theme` (which sits above `base` in the layer order).
 
-### Playwright Smoke Test
+### Playwright Smoke Tests
 
-Task 007 ships a Playwright CLS smoke test at `packages/theme-blank/tests/Browser/cls.spec.ts`. The test:
+Two Playwright CLS smoke tests live in `packages/theme-blank/tests/Browser/`:
+
+- `primitives-cls.spec.ts` --- covers the 12 layout and typography primitives using `fixtures/primitives-page.html`.
+- `forms-cls.spec.ts` --- covers the 10 form controls using `fixtures/forms-page.html`.
+
+Each spec:
 
 1. Attaches a `PerformanceObserver` to collect `layout-shift` entries.
-2. Loads a static fixture HTML file (`tests/Browser/fixtures/base-page.html`) that inlines `tokens.css`, `base.css`, and `layouts.css` with no external network requests.
+2. Loads a static fixture HTML file that inlines tokens and component CSS with no external network requests.
 3. Waits 500 ms for idle.
 4. Sums all `layout-shift` entry values (ignoring entries with `hadRecentInput`) and asserts the total is `0`.
 
@@ -444,9 +522,9 @@ npx playwright install --with-deps chromium
 npm run test:cls
 ```
 
-### Adding Fixtures in Phase 2+
+### Adding Fixtures in Phase 4+
 
-Each new component or layout variant that ships in Phase 2–5 should have a corresponding fixture HTML file in `tests/Browser/fixtures/`. See `packages/theme-blank/tests/Browser/README.md` for the convention. The `cls.spec.ts` test file can load multiple fixtures by iterating over the directory.
+Each new component or layout variant that ships in subsequent phases should have a corresponding fixture HTML file in `tests/Browser/fixtures/` and a matching spec file (or an entry in an existing spec). See the existing spec files in `packages/theme-blank/tests/Browser/` for the fixture convention.
 
 ## Related Packages
 

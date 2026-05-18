@@ -3,6 +3,20 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const REQUIRED_SECTIONS = ['title:', 'description:', '## Installation', '## Usage', '## API Reference'];
+
+function readDoc(filePath: string): string {
+  try {
+    return readFileSync(filePath, 'utf-8');
+  } catch {
+    return '';
+  }
+}
+
+function componentDocPath(root: string, name: string): string {
+  return resolve(root, `docs/src/content/docs/packages/theme-blank/${name}.md`);
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -146,5 +160,47 @@ describe('theme-blank docs index page', () => {
     // At minimum, if there are PHP blocks, they should follow standards
     // This test passes vacuously if there are no PHP blocks with FQCNs
     expect(true).toBe(true);
+  });
+
+  it('the theme-blank docs index links to /docs/packages/theme-blank-demo/', () => {
+    expect(docsContent).toContain('/docs/packages/theme-blank-demo/');
+  });
+});
+
+describe('theme-blank form-controls docs pages', () => {
+  const formControls = [
+    'mk-button',
+    'mk-input',
+    'mk-textarea',
+    'mk-select',
+    'mk-checkbox',
+    'mk-radio',
+    'mk-switch',
+    'mk-field',
+    'mk-fieldset',
+    'mk-form',
+  ];
+
+  for (const name of formControls) {
+    it(`the ${name} documentation page exists with required sections`, () => {
+      const filePath = componentDocPath(repoRoot, name);
+      expect(existsSync(filePath)).toBe(true);
+      const content = readDoc(filePath);
+      expect(content.length).toBeGreaterThan(0);
+      for (const section of REQUIRED_SECTIONS) {
+        expect(content, `expected "${section}" to appear in ${name}.md`).toContain(section);
+      }
+    });
+  }
+
+  it('the docs index page contains a Form Controls section with links to all 10 components', () => {
+    const indexPath = resolve(repoRoot, 'docs/src/content/docs/packages/theme-blank/index.md');
+    const content = readDoc(indexPath);
+    expect(content).toContain('## Components');
+    expect(content).toContain('### Form controls');
+    const componentNames = ['mk-button', 'mk-input', 'mk-textarea', 'mk-select', 'mk-checkbox', 'mk-radio', 'mk-switch', 'mk-field', 'mk-fieldset', 'mk-form'];
+    for (const name of componentNames) {
+      expect(content, `expected link to ${name} in index.md`).toContain(`/docs/packages/theme-blank/${name}/`);
+    }
   });
 });

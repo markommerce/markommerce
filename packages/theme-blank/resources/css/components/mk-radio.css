@@ -1,0 +1,33 @@
+@layer components {
+  mk-radio {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  mk-radio input[type="radio"] {
+    accent-color: var(--mk-color-primary);
+    inline-size: var(--mk-space-4);
+    block-size: var(--mk-space-4);
+    cursor: pointer;
+  }
+
+  mk-radio[size="sm"] input[type="radio"] {
+    inline-size: var(--mk-space-3);
+    block-size: var(--mk-space-3);
+  }
+
+  mk-radio[size="lg"] input[type="radio"] {
+    inline-size: var(--mk-space-5);
+    block-size: var(--mk-space-5);
+  }
+
+  mk-radio:has(input[type="radio"]:focus-visible) input[type="radio"] {
+    outline: 2px solid var(--mk-color-focus-ring);
+    outline-offset: 2px;
+  }
+
+  mk-radio:has(input[type="radio"]:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

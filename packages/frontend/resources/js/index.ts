@@ -15,3 +15,5 @@ export type { Constructor, Mixin, MixinDescriptor, RegisteredComponent } from '.
 export * from './events';
 export { registerHook, runHook, Hooks } from './hooks';
 export type { HookRegistry, HookHandler } from './hooks';
+
+export { requireInnerControl } from './requireInnerControl';

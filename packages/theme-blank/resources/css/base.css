@@ -49,11 +49,12 @@
     display: block;
   }
 
-  /* CLS safety net documentation hook: every Phase 2 primitive renders correctly
-   * from its @layer components tag selector even before the JS class is defined.
-   * This rule exists so consumers can see at a glance which tags participate in
-   * the contract, and to provide a downstream override point. The :not(:defined)
-   * matcher is intentionally a no-op for layout (components layer wins anyway). */
+  /* CLS safety net documentation hook: every Phase 2 primitive and Phase 3 form
+   * control renders correctly from its @layer components tag selector even before
+   * the JS class is defined. This rule exists so consumers can see at a glance
+   * which tags participate in the contract, and to provide a downstream override
+   * point. The :not(:defined) matcher is intentionally a no-op for layout
+   * (components layer wins anyway). */
   mk-stack:not(:defined),
   mk-cluster:not(:defined),
   mk-grid:not(:defined),
@@ -65,7 +66,17 @@
   mk-heading:not(:defined),
   mk-text:not(:defined),
   mk-link:not(:defined),
-  mk-badge:not(:defined) {
+  mk-badge:not(:defined),
+  mk-button:not(:defined),
+  mk-input:not(:defined),
+  mk-textarea:not(:defined),
+  mk-select:not(:defined),
+  mk-checkbox:not(:defined),
+  mk-radio:not(:defined),
+  mk-switch:not(:defined),
+  mk-field:not(:defined),
+  mk-fieldset:not(:defined),
+  mk-form:not(:defined) {
     /* No declarations — the @layer components tag selectors supply the real layout.
      * This selector group is retained as a documentation hook and downstream override
      * point. The trailing comment also satisfies stylelint's block-no-empty rule. */
