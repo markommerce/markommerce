@@ -4,14 +4,16 @@
  * All tokens are scoped inside @layer tokens so that theme-level overrides
  * (in @layer theme or higher) always win without !important.
  *
- * Tokens reference Open Props variables. The consumer must load Open Props
- * (open-props/style.css) before — or alongside — this file. Open Props ships
- * unlayered, so its variables are always resolved first, which is intentional:
- * semantic tokens never compete with the raw Open Props scale.
+ * Open Props is imported here so this file is self-contained whether loaded
+ * as a <link> tag or bundled via JS. Open Props ships unlayered, so its
+ * variables are always resolved first, which is intentional: semantic tokens
+ * never compete with the raw Open Props scale.
  *
  * Every Markommerce token uses the --mk-* namespace to avoid collisions with
  * custom properties from other systems.
  */
+
+@import 'open-props/open-props.min.css';
 
 /*
  * @custom-media declarations must live at the top level — outside any @layer

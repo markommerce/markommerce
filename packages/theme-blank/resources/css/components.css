@@ -1,0 +1,35 @@
+/**
+ * Aggregates all theme-blank component CSS files so they can be loaded as
+ * a single render-blocking <link> tag in dev mode (devServerStylesheets).
+ * In production, Vite inlines these via the JS side-effect imports in each
+ * component file — this file is only needed for dev-server FOUC prevention.
+ */
+
+@import './components/mk-alert.css';
+@import './components/mk-badge.css';
+@import './components/mk-button.css';
+@import './components/mk-checkbox.css';
+@import './components/mk-cluster.css';
+@import './components/mk-container.css';
+@import './components/mk-cover.css';
+@import './components/mk-divider.css';
+@import './components/mk-drawer.css';
+@import './components/mk-field.css';
+@import './components/mk-fieldset.css';
+@import './components/mk-form.css';
+@import './components/mk-grid.css';
+@import './components/mk-heading.css';
+@import './components/mk-input.css';
+@import './components/mk-link.css';
+@import './components/mk-modal.css';
+@import './components/mk-radio.css';
+@import './components/mk-select.css';
+@import './components/mk-sidebar.css';
+@import './components/mk-skeleton.css';
+@import './components/mk-spinner.css';
+@import './components/mk-stack.css';
+@import './components/mk-switch.css';
+@import './components/mk-switcher.css';
+@import './components/mk-textarea.css';
+@import './components/mk-text.css';
+@import './components/mk-toast.css';

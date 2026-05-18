@@ -307,30 +307,4 @@
     </article>
 
   </mk-stack>
-{syntax off}
-<script type="module">
-  import { showToast, openModal, openDrawer } from '@markommerce/theme-blank';
-
-  document.querySelector('[data-demo="toast"]')?.addEventListener('click', () => {
-    showToast('Demo toast notification!', { variant: 'info' });
-  });
-
-  document.querySelector('[data-demo="modal"]')?.addEventListener('click', () => {
-    openModal('<p>Are you sure?</p><button type="button" id="mk-modal-close-btn">Close</button>', { dismissible: true });
-    setTimeout(() => {
-      document.getElementById('mk-modal-close-btn')?.addEventListener('click', () => {
-        document.querySelector('mk-modal')?.removeAttribute('open');
-      });
-    }, 0);
-  });
-
-  document.querySelector('[data-demo="drawer-right"]')?.addEventListener('click', () => {
-    openDrawer('<p>Mini-cart placeholder</p><button type="button" class="mk-drawer-close-btn">Close</button>', { placement: 'right', dismissible: true });
-  });
-
-  document.querySelector('[data-demo="drawer-left"]')?.addEventListener('click', () => {
-    openDrawer('<p>Mini-cart placeholder</p><button type="button" class="mk-drawer-close-btn">Close</button>', { placement: 'left', dismissible: true });
-  });
-</script>
-{/syntax}
 </section>

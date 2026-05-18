@@ -89,13 +89,13 @@ describe('base.css', () => {
     expect(mediaBlock![1]).toContain('display: block');
   });
 
-  it('includes a documentation comment describing the :not(:defined) CLS safety-net convention', () => {
+  it('hides every custom element via visibility:hidden until its JS class is registered, eliminating dev-mode FOUC', () => {
     expect(baseCss).toContain(':not(:defined)');
     expect(baseCss).toContain('CLS');
-    // The :not(:defined) rule is intentionally a no-op — layout is supplied by
-    // @layer components tag selectors which take precedence regardless of JS
-    // definition state. No visibility: hidden declaration is shipped.
-    expect(baseCss).not.toContain('visibility: hidden');
+    // visibility: hidden is applied so the page transitions from "all elements
+    // invisible" to "all elements styled" in a single frame, rather than showing
+    // staged repaints as Vite injects <style> tags.
+    expect(baseCss).toContain('visibility: hidden');
   });
 
   it("is exported from theme-blank package.json so import '@markommerce/theme-blank/css/base.css' resolves", () => {

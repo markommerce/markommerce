@@ -8,5 +8,11 @@ return [
     'devServerUrl' => 'http://localhost:5173',
     'buildDirectory' => 'build',
     'manifestFilename' => '.vite/manifest.json',
-    'devServerStylesheets' => [],
+    'devServerStylesheets' => [
+        'packages/frontend/resources/css/layers.css',
+        'packages/theme-blank/resources/css/tokens.css',
+        'packages/theme-blank/resources/css/base.css',
+        'packages/theme-blank/resources/css/layouts.css',
+        'packages/theme-blank/resources/css/components.css',
+    ],
 ];

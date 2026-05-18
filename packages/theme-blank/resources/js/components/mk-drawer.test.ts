@@ -230,14 +230,25 @@ describe('mk-drawer', () => {
     dialog2.dispatchEvent(cancelEvent2);
     expect(cancelEvent2.defaultPrevented).toBe(false);
 
-    // Without dismissible — backdrop click (click on dialog itself) should be prevented
+    // Without dismissible — backdrop click on dialog should NOT close
     const { el: el3, dialog: dialog3 } = buildDrawer();
     el3.open = true;
     document.body.appendChild(el3);
     await el3.updateComplete;
-
+    const close3 = vi.spyOn(dialog3, 'close');
     const clickEvent = new MouseEvent('click', { cancelable: true, bubbles: true });
     dialog3.dispatchEvent(clickEvent);
-    expect(clickEvent.defaultPrevented).toBe(true);
+    expect(close3).not.toHaveBeenCalled();
+
+    // With dismissible — backdrop click on dialog should call dialog.close()
+    const { el: el4, dialog: dialog4 } = buildDrawer();
+    el4.open = true;
+    el4.dismissible = true;
+    document.body.appendChild(el4);
+    await el4.updateComplete;
+    const close4 = vi.spyOn(dialog4, 'close');
+    const clickEvent2 = new MouseEvent('click', { cancelable: true, bubbles: true });
+    dialog4.dispatchEvent(clickEvent2);
+    expect(close4).toHaveBeenCalledOnce();
   });
 });

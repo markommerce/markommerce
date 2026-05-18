@@ -49,11 +49,8 @@ export class MkDrawerElement extends MkElement {
   };
 
   #onDialogClick = (event: MouseEvent): void => {
-    if (!this.dismissible) {
-      // Backdrop click: event.target is the dialog itself
-      if (event.target === this.querySelector('dialog')) {
-        event.preventDefault();
-      }
+    if (event.target === this.querySelector('dialog') && this.dismissible) {
+      this.querySelector('dialog')?.close();
     }
   };
 

@@ -49,12 +49,12 @@
     display: block;
   }
 
-  /* CLS safety net documentation hook: every Phase 2 primitive and Phase 3 form
-   * control renders correctly from its @layer components tag selector even before
-   * the JS class is defined. This rule exists so consumers can see at a glance
-   * which tags participate in the contract, and to provide a downstream override
-   * point. The :not(:defined) matcher is intentionally a no-op for layout
-   * (components layer wins anyway). */
+  /* Hide every custom element until its JS class is registered. The browser
+   * removes :not(:defined) the moment customElements.define() runs for that
+   * tag, which happens synchronously during module evaluation — before the
+   * next paint. The net effect: the page goes from "all custom elements
+   * invisible" to "all custom elements visible and fully styled" in a single
+   * frame, eliminating FOUC caused by Vite's dev-mode style injection. */
   mk-stack:not(:defined),
   mk-cluster:not(:defined),
   mk-grid:not(:defined),
@@ -83,8 +83,6 @@
   mk-skeleton:not(:defined),
   mk-modal:not(:defined),
   mk-drawer:not(:defined) {
-    /* No declarations — the @layer components tag selectors supply the real layout.
-     * This selector group is retained as a documentation hook and downstream override
-     * point. The trailing comment also satisfies stylelint's block-no-empty rule. */
+    visibility: hidden;
   }
 }
