@@ -25,22 +25,22 @@ trait HasScopes
     public ?array $scopes = null;
 
     public function setOverride(
-        string $scopeKey,
+        string $signature,
         string $property,
         mixed $value,
     ): void {
         $scopes = $this->scopes ?? [];
-        $scopes[$scopeKey][$property] = $value;
-        ksort($scopes[$scopeKey]);
+        $scopes[$signature][$property] = $value;
+        ksort($scopes[$signature]);
         ksort($scopes);
         $this->scopes = $scopes;
     }
 
     public function override(
-        string $scopeKey,
+        string $signature,
         string $property,
     ): mixed {
-        return $this->scopes[$scopeKey][$property] ?? null;
+        return $this->scopes[$signature][$property] ?? null;
     }
 
     /**
@@ -52,26 +52,26 @@ trait HasScopes
     }
 
     public function hasOverride(
-        string $scopeKey,
+        string $signature,
         string $property,
     ): bool {
-        return array_key_exists($scopeKey, $this->scopes ?? [])
-            && array_key_exists($property, $this->scopes[$scopeKey]);
+        return array_key_exists($signature, $this->scopes ?? [])
+            && array_key_exists($property, $this->scopes[$signature]);
     }
 
     public function clearOverride(
-        string $scopeKey,
+        string $signature,
         string $property,
     ): void {
-        if (!isset($this->scopes[$scopeKey])) {
+        if (!isset($this->scopes[$signature])) {
             return;
         }
 
         $scopes = $this->scopes;
-        unset($scopes[$scopeKey][$property]);
+        unset($scopes[$signature][$property]);
 
-        if ($scopes[$scopeKey] === []) {
-            unset($scopes[$scopeKey]);
+        if ($scopes[$signature] === []) {
+            unset($scopes[$signature]);
         }
 
         ksort($scopes);

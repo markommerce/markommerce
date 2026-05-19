@@ -20,8 +20,8 @@ class NoDriverException extends MarkoException
         ));
 
         return new self(
-            message: 'No scope sort renderer driver installed.',
-            context: 'Attempted to resolve ScopeSortRendererInterface but no implementation is bound.',
+            message: 'No scoped field renderer driver installed.',
+            context: 'Attempted to resolve ScopedFieldRendererInterface but no implementation is bound.',
             suggestion: "Install a scope driver:\n$packageList",
         );
     }

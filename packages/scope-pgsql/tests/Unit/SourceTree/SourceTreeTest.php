@@ -1,12 +1,12 @@
 <?php
 
 declare(strict_types=1);
-use Markommerce\Scope\PgSql\Query\PgSqlScopeSortRenderer;
-use Markommerce\Scope\Query\ScopeSortRendererInterface;
+use Markommerce\Scope\PgSql\Query\PgSqlScopedFieldRenderer;
+use Markommerce\Scope\Query\ScopedFieldRendererInterface;
 
-it('autoloads Markommerce\\Scope\\PgSql\\Query\\PgSqlScopeSortRenderer without a fatal error', function (): void {
-    expect(class_exists(PgSqlScopeSortRenderer::class))
-        ->toBeTrue('Class Markommerce\\Scope\\PgSql\\Query\\PgSqlScopeSortRenderer could not be autoloaded');
+it('autoloads Markommerce\\Scope\\PgSql\\Query\\PgSqlScopedFieldRenderer without a fatal error', function (): void {
+    expect(class_exists(PgSqlScopedFieldRenderer::class))
+        ->toBeTrue('Class Markommerce\\Scope\\PgSql\\Query\\PgSqlScopedFieldRenderer could not be autoloaded');
 });
 
 it('has no remaining upstream-namespace references in packages/scope-pgsql/src/', function (): void {
@@ -96,9 +96,9 @@ it('keeps declare(strict_types=1) at the top of every src file', function (): vo
     expect($missing)->toBe([]);
 });
 
-it('PgSqlScopeSortRenderer implements Markommerce\\Scope\\Query\\ScopeSortRendererInterface', function (): void {
-    $reflection = new ReflectionClass(PgSqlScopeSortRenderer::class);
+it('PgSqlScopedFieldRenderer implements Markommerce\\Scope\\Query\\ScopedFieldRendererInterface', function (): void {
+    $reflection = new ReflectionClass(PgSqlScopedFieldRenderer::class);
 
-    expect($reflection->implementsInterface(ScopeSortRendererInterface::class))
+    expect($reflection->implementsInterface(ScopedFieldRendererInterface::class))
         ->toBeTrue();
 });

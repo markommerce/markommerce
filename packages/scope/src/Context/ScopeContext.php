@@ -73,4 +73,12 @@ class ScopeContext
     {
         return $this->registry;
     }
+
+    /**
+     * @return array<string, string> the full axis-name → active-path map
+     */
+    public function state(): array
+    {
+        return $this->state;
+    }
 }

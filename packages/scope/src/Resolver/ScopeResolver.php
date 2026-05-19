@@ -6,12 +6,14 @@ namespace Markommerce\Scope\Resolver;
 
 use Marko\Database\Entity\Entity;
 use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Scope\Exceptions\InvalidSignatureForAttributeException;
 use Markommerce\Scope\Exceptions\ScopeContextException;
 use Markommerce\Scope\Exceptions\UnknownAxisException;
 use Markommerce\Scope\Exceptions\UnknownScopeException;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Resolution\ScopeWalker;
-use Markommerce\Scope\Scope;
+use Markommerce\Scope\Signature\ScopeSignature;
+use Markommerce\Scope\Signature\ScopeSignatureValidator;
 use Markommerce\Scope\Storage\HasScopesInterface;
 
 readonly class ScopeResolver
@@ -20,6 +22,7 @@ readonly class ScopeResolver
         private ScopeMetadataFactory $scopeMetadataFactory,
         private ScopeWalker $scopeWalker,
         private ScopeContext $scopeContext,
+        private ScopeSignatureValidator $scopeSignatureValidator,
     ) {}
 
     /**
@@ -44,7 +47,6 @@ readonly class ScopeResolver
                 $property,
                 $axes,
                 $this->scopeContext,
-                $this->scopeContext->registry(),
             );
 
             if ($result->isFound()) {
@@ -61,14 +63,20 @@ readonly class ScopeResolver
     public function resolvedAt(
         Entity $entity,
         string $property,
-        Scope $scope,
+        ScopeSignature $signature,
     ): mixed {
         $entityClass = get_class($entity);
         $axes = $this->scopeMetadataFactory->for($entityClass)->axesForProperty($property);
         $storage = $this->findStorage($entity);
 
         if ($storage !== null) {
-            $result = $this->scopeWalker->walkAt($storage, $property, $axes, $scope, $this->scopeContext->registry());
+            $result = $this->scopeWalker->walkAt(
+                $storage,
+                $property,
+                $axes,
+                $signature,
+                $this->scopeContext->registry(),
+            );
 
             if ($result->isFound()) {
                 return $result->value();
@@ -79,19 +87,21 @@ readonly class ScopeResolver
     }
 
     /**
-     * @throws ScopeContextException|UnknownAxisException
+     * @throws ScopeContextException|UnknownAxisException|InvalidSignatureForAttributeException
      */
     public function setOverride(
         Entity $entity,
         string $property,
         mixed $value,
-        Scope $scope,
+        ScopeSignature $signature,
     ): void {
-        $storage = $this->assertScopedAndFindStorage($entity, $property);
+        $entityClass = get_class($entity);
+        $attributeAxes = $this->assertScopedAndGetAxes($entity, $property);
+        $this->scopeSignatureValidator->validate($signature, $attributeAxes);
+
+        $storage = $this->findStorage($entity);
 
         if ($storage === null) {
-            $entityClass = get_class($entity);
-
             throw new ScopeContextException(
                 message: "Entity '$entityClass' has no scope storage: it must implement HasScopesInterface or have a companion that does.",
                 context: "Setting scope override for property '$property' on '$entityClass'",
@@ -99,40 +109,46 @@ readonly class ScopeResolver
             );
         }
 
-        $storage->setOverride($scope->toString(), $property, $value);
+        $storage->setOverride($signature->toString(), $property, $value);
     }
 
     /**
-     * @throws ScopeContextException|UnknownAxisException
+     * @throws ScopeContextException|UnknownAxisException|InvalidSignatureForAttributeException
      */
     public function clearOverride(
         Entity $entity,
         string $property,
-        Scope $scope,
+        ScopeSignature $signature,
     ): void {
-        $storage = $this->assertScopedAndFindStorage($entity, $property);
+        $attributeAxes = $this->assertScopedAndGetAxes($entity, $property);
+        $this->scopeSignatureValidator->validate($signature, $attributeAxes);
+
+        $storage = $this->findStorage($entity);
 
         if ($storage === null) {
             return;
         }
 
-        $storage->clearOverride($scope->toString(), $property);
+        $storage->clearOverride($signature->toString(), $property);
     }
 
     /**
+     * @return list<string>
+     *
      * @throws ScopeContextException|UnknownAxisException
      */
-    private function assertScopedAndFindStorage(
+    private function assertScopedAndGetAxes(
         Entity $entity,
         string $property,
-    ): ?HasScopesInterface {
+    ): array {
         $entityClass = get_class($entity);
+        $metadata = $this->scopeMetadataFactory->for($entityClass);
 
-        if (!$this->scopeMetadataFactory->for($entityClass)->isScoped($property)) {
+        if (!$metadata->isScoped($property)) {
             throw ScopeContextException::propertyNotScoped($property, $entityClass);
         }
 
-        return $this->findStorage($entity);
+        return $metadata->axesForProperty($property);
     }
 
     private function findStorage(Entity $entity): ?HasScopesInterface

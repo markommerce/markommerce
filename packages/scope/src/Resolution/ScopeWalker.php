@@ -5,14 +5,20 @@ declare(strict_types=1);
 namespace Markommerce\Scope\Resolution;
 
 use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Scope\Exceptions\MultiAxisWalkAtNotSupportedException;
 use Markommerce\Scope\Exceptions\UnknownAxisException;
 use Markommerce\Scope\Exceptions\UnknownScopeException;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
-use Markommerce\Scope\Scope;
+use Markommerce\Scope\Signature\ScopeSignature;
+use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 use Markommerce\Scope\Storage\HasScopesInterface;
 
 class ScopeWalker
 {
+    public function __construct(
+        private SignatureCandidateEnumerator $signatureCandidateEnumerator,
+    ) {}
+
     /**
      * @param list<string> $axes
      * @throws UnknownAxisException|UnknownScopeException
@@ -22,19 +28,14 @@ class ScopeWalker
         string $property,
         array $axes,
         ScopeContext $context,
-        ScopeRegistryInterface $registry,
     ): ScopeWalkResult {
-        foreach ($axes as $axis) {
-            $path = $context->get($axis);
+        $candidates = $this->signatureCandidateEnumerator->enumerate($axes, $context);
 
-            if ($path === null) {
-                continue;
-            }
+        foreach ($candidates as $sig) {
+            $sigString = $sig->toString();
 
-            $result = $this->findFirstMatch($overrides, $property, $axis, $path, $registry);
-
-            if ($result->isFound()) {
-                return $result;
+            if ($overrides->hasOverride($sigString, $property)) {
+                return ScopeWalkResult::found($overrides->override($sigString, $property));
             }
         }
 
@@ -45,20 +46,29 @@ class ScopeWalker
      * Walk overrides for a single explicit scope, ignoring any ambient ScopeContext.
      *
      * @param list<string> $axes
-     * @throws UnknownAxisException|UnknownScopeException
+     * @throws MultiAxisWalkAtNotSupportedException|UnknownAxisException|UnknownScopeException
      */
     public function walkAt(
         HasScopesInterface $overrides,
         string $property,
         array $axes,
-        Scope $scope,
+        ScopeSignature $signature,
         ScopeRegistryInterface $registry,
     ): ScopeWalkResult {
-        if (!in_array($scope->axisName, $axes, true)) {
+        if (count($signature->axes()) !== 1) {
+            throw MultiAxisWalkAtNotSupportedException::forSignature($signature);
+        }
+
+        $axisName = $signature->axes()[0];
+
+        if (!in_array($axisName, $axes, true)) {
             return ScopeWalkResult::notFound();
         }
 
-        return $this->findFirstMatch($overrides, $property, $scope->axisName, $scope->path, $registry);
+        /** @var string $path — non-null: axisName is derived from axes(), so get() will always resolve */
+        $path = $signature->get($axisName);
+
+        return $this->findFirstMatch($overrides, $property, $axisName, $path, $registry);
     }
 
     /**

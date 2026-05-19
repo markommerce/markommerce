@@ -6,7 +6,6 @@ it('copies every Unit test file from marko/scope/tests/Unit/ into packages/scope
     $testsDir = __DIR__ . '/Unit';
 
     $expectedFiles = [
-        'ScopeTest.php',
         'ScopeAxisTest.php',
         'ModulePhpTest.php',
         'Attributes/ScopedTest.php',
@@ -20,8 +19,8 @@ it('copies every Unit test file from marko/scope/tests/Unit/ into packages/scope
         'Context/ScopeContextTest.php',
         'Resolution/ScopeWalkerTest.php',
         'Query/ScopedOrderByTest.php',
-        'Query/ScopeSortRendererInterfaceTest.php',
-        'Query/ScopeSortExpressionTest.php',
+        'Query/ScopedFieldRendererInterfaceTest.php',
+        'Query/ScopedFieldExpressionTest.php',
         'Query/ScopedOrderByFactoryTest.php',
         'Metadata/ScopeMetadataFactoryTest.php',
         'Exceptions/ScopeExceptionsTest.php',

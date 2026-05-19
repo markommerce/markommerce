@@ -8,10 +8,10 @@ use Marko\Database\Exceptions\InvalidColumnException;
 use Marko\Database\Query\EntityQueryBuilderInterface;
 use Marko\Database\Query\QuerySpecification;
 use Markommerce\Scope\Context\ScopeContext;
-use Markommerce\Scope\Exceptions\ScopeConfigurationException;
 use Markommerce\Scope\Exceptions\ScopeContextException;
 use Markommerce\Scope\Exceptions\UnknownAxisException;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
+use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 
 readonly class ScopedOrderBy implements QuerySpecification
 {
@@ -22,13 +22,14 @@ readonly class ScopedOrderBy implements QuerySpecification
         public string $property,
         private ScopeMetadataFactory $scopeMetadataFactory,
         private ScopeContext $scopeContext,
-        private ScopeSortRendererInterface $scopeSortRenderer,
+        private ScopedFieldRendererInterface $scopedFieldRenderer,
+        private SignatureCandidateEnumerator $signatureCandidateEnumerator,
         private string $entityClass,
         public string $direction = 'asc',
     ) {}
 
     /**
-     * @throws ScopeContextException|ScopeConfigurationException|UnknownAxisException|InvalidColumnException
+     * @throws ScopeContextException|UnknownAxisException|InvalidColumnException
      */
     public function apply(EntityQueryBuilderInterface $builder): void
     {
@@ -39,37 +40,21 @@ readonly class ScopedOrderBy implements QuerySpecification
         }
 
         $axes = $metadata->axesForProperty($this->property);
-        $paths = [];
+        $candidateSignatures = $this->signatureCandidateEnumerator->enumerate($axes, $this->scopeContext);
 
-        foreach ($axes as $axis) {
-            $currentPath = $this->scopeContext->get($axis);
-
-            if ($currentPath === null) {
-                continue;
-            }
-
-            $hierarchy = $this->scopeContext->registry()->getHierarchy($axis);
-            $walkedPaths = $hierarchy->walkUp($currentPath);
-
-            foreach ($walkedPaths as $path) {
-                $paths[] = ['axis' => $axis, 'path' => $path];
-            }
-        }
-
-        if ($paths === []) {
+        if ($candidateSignatures === []) {
             $builder->orderBy($this->property, strtoupper($this->direction));
 
             return;
         }
 
-        $expression = new ScopeSortExpression(
+        $expression = new ScopedFieldExpression(
             property: $this->property,
             column: $this->property,
-            paths: $paths,
-            direction: $this->direction,
+            candidateSignatures: $candidateSignatures,
         );
 
-        $sql = $this->scopeSortRenderer->render($expression);
+        $sql = $this->scopedFieldRenderer->render($expression);
         $builder->orderByRaw($sql, strtoupper($this->direction));
     }
 }

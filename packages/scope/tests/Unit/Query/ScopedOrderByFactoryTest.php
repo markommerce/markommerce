@@ -7,11 +7,12 @@ use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
+use Markommerce\Scope\Query\ScopedFieldExpression;
+use Markommerce\Scope\Query\ScopedFieldRendererInterface;
 use Markommerce\Scope\Query\ScopedOrderBy;
 use Markommerce\Scope\Query\ScopedOrderByFactory;
-use Markommerce\Scope\Query\ScopeSortExpression;
-use Markommerce\Scope\Query\ScopeSortRendererInterface;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
+use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -57,11 +58,11 @@ function makeFactoryRegistry(): ScopeRegistryInterface
     };
 }
 
-function makeFactoryRenderer(): ScopeSortRendererInterface
+function makeFactoryRenderer(): ScopedFieldRendererInterface
 {
-    return new class () implements ScopeSortRendererInterface
+    return new class () implements ScopedFieldRendererInterface
     {
-        public function render(ScopeSortExpression $expression): string
+        public function render(ScopedFieldExpression $expression): string
         {
             return 'COALESCE(expr)';
         }
@@ -75,8 +76,9 @@ it('constructs a ScopedOrderBy with the entity class, property, and direction', 
     $metadataFactory = new ScopeMetadataFactory($registry);
     $context = new ScopeContext($registry);
     $renderer = makeFactoryRenderer();
+    $enumerator = new SignatureCandidateEnumerator($registry);
 
-    $factory = new ScopedOrderByFactory($metadataFactory, $context, $renderer);
+    $factory = new ScopedOrderByFactory($metadataFactory, $context, $renderer, $enumerator);
     $spec = $factory->create(ScopedOrderByFactoryProduct::class, 'name', 'desc');
 
     expect($spec)->toBeInstanceOf(ScopedOrderBy::class)
@@ -84,13 +86,14 @@ it('constructs a ScopedOrderBy with the entity class, property, and direction', 
         ->and($spec->direction)->toBe('desc');
 });
 
-it('injects ScopeMetadataFactory, ScopeContext, and ScopeSortRendererInterface into the spec', function (): void {
+it('injects ScopeMetadataFactory, ScopeContext, and ScopedFieldRendererInterface into the spec', function (): void {
     $registry = makeFactoryRegistry();
     $metadataFactory = new ScopeMetadataFactory($registry);
     $context = new ScopeContext($registry);
     $renderer = makeFactoryRenderer();
+    $enumerator = new SignatureCandidateEnumerator($registry);
 
-    $factory = new ScopedOrderByFactory($metadataFactory, $context, $renderer);
+    $factory = new ScopedOrderByFactory($metadataFactory, $context, $renderer, $enumerator);
     $spec = $factory->create(ScopedOrderByFactoryProduct::class, 'name', 'asc');
 
     expect($spec)->toBeInstanceOf(ScopedOrderBy::class);
@@ -101,8 +104,9 @@ it('defaults direction to asc when omitted', function (): void {
     $metadataFactory = new ScopeMetadataFactory($registry);
     $context = new ScopeContext($registry);
     $renderer = makeFactoryRenderer();
+    $enumerator = new SignatureCandidateEnumerator($registry);
 
-    $factory = new ScopedOrderByFactory($metadataFactory, $context, $renderer);
+    $factory = new ScopedOrderByFactory($metadataFactory, $context, $renderer, $enumerator);
     $spec = $factory->create(ScopedOrderByFactoryProduct::class, 'name');
 
     expect($spec->direction)->toBe('asc');
@@ -112,4 +116,43 @@ it('is a readonly class with constructor-injected dependencies', function (): vo
     $reflection = new ReflectionClass(ScopedOrderByFactory::class);
 
     expect($reflection->isReadOnly())->toBeTrue();
+});
+
+it('it constructs a ScopedOrderBy with the new enumerator and field renderer dependencies', function (): void {
+    $registry = makeFactoryRegistry();
+    $metadataFactory = new ScopeMetadataFactory($registry);
+    $context = new ScopeContext($registry);
+    $renderer = makeFactoryRenderer();
+    $enumerator = new SignatureCandidateEnumerator($registry);
+
+    $factory = new ScopedOrderByFactory($metadataFactory, $context, $renderer, $enumerator);
+
+    // Verify the factory accepts all four dependencies and creates a ScopedOrderBy
+    $spec = $factory->create(ScopedOrderByFactoryProduct::class, 'name', 'asc');
+
+    // Reflect on the spec to verify enumerator and renderer are injected
+    $reflection = new ReflectionClass($spec);
+    $enumProp = $reflection->getProperty('signatureCandidateEnumerator');
+    $rendererProp = $reflection->getProperty('scopedFieldRenderer');
+
+    expect($enumProp->getValue($spec))->toBe($enumerator)
+        ->and($rendererProp->getValue($spec))->toBe($renderer);
+});
+
+it('it forwards the entity class, property, and direction to the spec', function (): void {
+    $registry = makeFactoryRegistry();
+    $metadataFactory = new ScopeMetadataFactory($registry);
+    $context = new ScopeContext($registry);
+    $renderer = makeFactoryRenderer();
+    $enumerator = new SignatureCandidateEnumerator($registry);
+
+    $factory = new ScopedOrderByFactory($metadataFactory, $context, $renderer, $enumerator);
+    $spec = $factory->create(ScopedOrderByFactoryProduct::class, 'name', 'desc');
+
+    $reflection = new ReflectionClass($spec);
+    $entityClassProp = $reflection->getProperty('entityClass');
+
+    expect($spec->property)->toBe('name')
+        ->and($spec->direction)->toBe('desc')
+        ->and($entityClassProp->getValue($spec))->toBe(ScopedOrderByFactoryProduct::class);
 });

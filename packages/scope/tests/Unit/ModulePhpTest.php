@@ -9,8 +9,8 @@ use Marko\Core\Exceptions\BindingException;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Exceptions\NoDriverException;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
+use Markommerce\Scope\Query\ScopedFieldRendererInterface;
 use Markommerce\Scope\Query\ScopedOrderByFactory;
-use Markommerce\Scope\Query\ScopeSortRendererInterface;
 use Markommerce\Scope\Registry\PhpScopeRegistry;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use Markommerce\Scope\Resolver\ScopeResolver;
@@ -46,20 +46,20 @@ it('registers ScopedOrderByFactory as a singleton', function (): void {
     expect($module['singletons'])->toContain(ScopedOrderByFactory::class);
 });
 
-it('does not bind ScopeSortRendererInterface', function (): void {
+it('does not bind ScopedFieldRendererInterface', function (): void {
     $module = require dirname(__DIR__, 2) . '/module.php';
 
-    expect($module['bindings'])->not->toHaveKey(ScopeSortRendererInterface::class);
+    expect($module['bindings'])->not->toHaveKey(ScopedFieldRendererInterface::class);
 });
 
 it(
-    'ModulePhpTest expects BindingException (not NoDriverException) when ScopeSortRendererInterface is unbound',
+    'ModulePhpTest expects BindingException (not NoDriverException) when ScopedFieldRendererInterface is unbound',
     function (): void {
         $container = new Container();
 
         // Marko's Container::get() only emits NoDriverException for ids starting with 'Marko\\'
-        // ScopeSortRendererInterface starts with 'Markommerce\\', so we get BindingException instead
-        expect(fn () => $container->get(ScopeSortRendererInterface::class))
+        // ScopedFieldRendererInterface starts with 'Markommerce\\', so we get BindingException instead
+        expect(fn () => $container->get(ScopedFieldRendererInterface::class))
                 ->toThrow(BindingException::class);
     },
 );
