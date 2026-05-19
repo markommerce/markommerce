@@ -417,7 +417,6 @@ it('it follows project naming conventions: the FrontendDemoConfig parameter is n
     expect($paramNames)->toContain('frontendDemoConfig');
 });
 
-
 it('it counter.latte renders only the markommerce-counter element and no longer contains primitives or form controls (file-content assertion)', function (): void {
     $lattePath = dirname(__DIR__, 2) . '/resources/views/counter.latte';
 
