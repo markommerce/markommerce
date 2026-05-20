@@ -14,8 +14,6 @@ A driver package is also required:
 composer require markommerce/scope-pgsql
 ```
 
-> **Breaking change in current version.** The old single-axis `Scope` class has been removed. See [CHANGELOG.md](CHANGELOG.md) for the full list of breaking changes.
-
 ## Quick Example
 
 Two-axis composite override — B2B channel + Spanish locale:
