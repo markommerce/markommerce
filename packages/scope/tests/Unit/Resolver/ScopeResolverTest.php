@@ -8,13 +8,17 @@ use Marko\Database\Entity\Entity;
 use Markommerce\Scope\Attributes\Scoped;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Scope\Exceptions\InvalidSignatureForAttributeException;
+use Markommerce\Scope\Exceptions\MultiAxisWalkAtNotSupportedException;
 use Markommerce\Scope\Exceptions\ScopeContextException;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use Markommerce\Scope\Resolution\ScopeWalker;
 use Markommerce\Scope\Resolver\ScopeResolver;
-use Markommerce\Scope\Scope;
+use Markommerce\Scope\Signature\ScopeSignature;
+use Markommerce\Scope\Signature\ScopeSignatureValidator;
+use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 use Markommerce\Scope\Storage\HasScopes;
 use Markommerce\Scope\Storage\HasScopesInterface;
 
@@ -58,6 +62,20 @@ class TraitResolverProduct extends Entity implements HasScopesInterface
 class ManualCompanionProduct extends Entity implements HasScopesInterface
 {
     use HasScopes;
+}
+
+#[Table(name: 'two_axis_products')]
+class TwoAxisProduct extends Entity implements HasScopesInterface
+{
+    use HasScopes;
+
+    /** @noinspection PhpUnused - Entity property for structural definition */
+    #[Column(primaryKey: true, autoIncrement: true)]
+    public ?int $id = null;
+
+    #[Scoped(axes: ['store', 'currency'])]
+    #[Column]
+    public string $price = '0.00';
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -105,15 +123,16 @@ function makeResolverSetup(): array
     $registry = makeResolverRegistry();
     $context = new ScopeContext($registry);
     $scopeMetaFactory = new ScopeMetadataFactory($registry);
-    $walker = new ScopeWalker();
+    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+    $validator = new ScopeSignatureValidator($registry);
 
-    return [$registry, $context, $scopeMetaFactory, $walker];
+    return [$registry, $context, $scopeMetaFactory, $walker, $validator];
 }
 
 function makeResolver(): array
 {
-    [$registry, $context, $scopeMetaFactory, $walker] = makeResolverSetup();
-    $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context);
+    [$registry, $context, $scopeMetaFactory, $walker, $validator] = makeResolverSetup();
+    $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
 
     return [$resolver, $context, $registry];
 }
@@ -145,7 +164,7 @@ it('resolves at an explicit scope via resolvedAt without consulting ScopeContext
     $companion->setOverride('store:global.us', 'name', 'US Name');
     $product->attachCompanion($companion);
 
-    $scope = new Scope('store', 'global');
+    $scope = new ScopeSignature(['store' => 'global']);
     $result = $resolver->resolvedAt($product, 'name', $scope);
 
     expect($result)->toBe('Global Name');
@@ -160,7 +179,7 @@ it('clears an override via clearOverride leaving the companion otherwise intact'
     $companion->setOverride('store:global.us', 'sku', 'SKU-US');
     $product->attachCompanion($companion);
 
-    $scope = new Scope('store', 'global.us');
+    $scope = new ScopeSignature(['store' => 'global.us']);
     $resolver->clearOverride($product, 'name', $scope);
 
     expect($companion->hasOverride('store:global.us', 'name'))->toBeFalse()
@@ -172,7 +191,7 @@ it('throws ScopeContextException when setOverride targets a property without Sco
 
     $product = new ResolverProduct();
     // 'sku' is not marked with #[Scoped]
-    $scope = new Scope('store', 'global.us');
+    $scope = new ScopeSignature(['store' => 'global.us']);
 
     expect(fn () => $resolver->setOverride($product, 'sku', 'SKU-123', $scope))
         ->toThrow(ScopeContextException::class);
@@ -234,7 +253,7 @@ it(
 
         $product = new TraitResolverProduct();
 
-        $scope = new Scope('store', 'global.us');
+        $scope = new ScopeSignature(['store' => 'global.us']);
         $resolver->setOverride($product, 'name', 'Direct Override', $scope);
 
         expect($product->override('store:global.us', 'name'))->toBe('Direct Override')
@@ -248,7 +267,7 @@ it('clears an override directly on the entity when it implements HasScopesInterf
     $product = new TraitResolverProduct();
     $product->setOverride('store:global.us', 'name', 'To Be Cleared');
 
-    $scope = new Scope('store', 'global.us');
+    $scope = new ScopeSignature(['store' => 'global.us']);
     $resolver->clearOverride($product, 'name', $scope);
 
     expect($product->hasOverride('store:global.us', 'name'))->toBeFalse();
@@ -261,7 +280,7 @@ it(
 
         $product = new TraitResolverProduct();
 
-        $scope = new Scope('store', 'global.us');
+        $scope = new ScopeSignature(['store' => 'global.us']);
 
         // Should not throw
         $resolver->clearOverride($product, 'name', $scope);
@@ -277,11 +296,12 @@ it(
         $registry = makeResolverRegistry();
         $context = new ScopeContext($registry);
         $scopeMetaFactory = new ScopeMetadataFactory($registry);
-        $walker = new ScopeWalker();
-        $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context);
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $validator = new ScopeSignatureValidator($registry);
+        $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
 
         $product = new ResolverProduct();
-        $scope = new Scope('store', 'global.us');
+        $scope = new ScopeSignature(['store' => 'global.us']);
 
         expect(fn () => $resolver->setOverride($product, 'name', 'Name', $scope))
             ->toThrow(ScopeContextException::class);
@@ -296,7 +316,7 @@ it('resolvedAt returns the correct value for an explicit scope on a trait-based 
     $product->setOverride('store:global', 'name', 'Global Name');
     $product->setOverride('store:global.us', 'name', 'US Name');
 
-    $scope = new Scope('store', 'global');
+    $scope = new ScopeSignature(['store' => 'global']);
     $result = $resolver->resolvedAt($product, 'name', $scope);
 
     expect($result)->toBe('Global Name');
@@ -310,7 +330,7 @@ it(
         $product = new TraitResolverProduct();
         $product->name = 'column-value';
 
-        $scope = new Scope('store', 'global.us');
+        $scope = new ScopeSignature(['store' => 'global.us']);
         $result = $resolver->resolvedAt($product, 'name', $scope);
 
         expect($result)->toBe('column-value');
@@ -342,7 +362,7 @@ it('does not create or attach a companion when setOverride is called on a trait-
 
     $product = new TraitResolverProduct();
 
-    $scope = new Scope('store', 'global.us');
+    $scope = new ScopeSignature(['store' => 'global.us']);
     $resolver->setOverride($product, 'name', 'Direct', $scope);
 
     expect($product->companions())->toBeEmpty();
@@ -354,11 +374,12 @@ it(
         $registry = makeResolverRegistry();
         $context = new ScopeContext($registry);
         $scopeMetaFactory = new ScopeMetadataFactory($registry);
-        $walker = new ScopeWalker();
-        $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context);
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $validator = new ScopeSignatureValidator($registry);
+        $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
 
         $product = new ResolverProduct();
-        $scope = new Scope('store', 'global.us');
+        $scope = new ScopeSignature(['store' => 'global.us']);
 
         expect(fn () => $resolver->setOverride($product, 'name', 'Name', $scope))
             ->toThrow(ScopeContextException::class);
@@ -369,11 +390,12 @@ it('ScopeResolver setOverride works on a trait-based entity', function (): void 
     $registry = makeResolverRegistry();
     $context = new ScopeContext($registry);
     $scopeMetaFactory = new ScopeMetadataFactory($registry);
-    $walker = new ScopeWalker();
-    $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context);
+    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+    $validator = new ScopeSignatureValidator($registry);
+    $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
 
     $product = new TraitResolverProduct();
-    $scope = new Scope('store', 'global.us');
+    $scope = new ScopeSignature(['store' => 'global.us']);
     $resolver->setOverride($product, 'name', 'Trait Override', $scope);
 
     expect($product->override('store:global.us', 'name'))->toBe('Trait Override')
@@ -384,13 +406,14 @@ it('ScopeResolver setOverride works when a manual HasScopesInterface companion i
     $registry = makeResolverRegistry();
     $context = new ScopeContext($registry);
     $scopeMetaFactory = new ScopeMetadataFactory($registry);
-    $walker = new ScopeWalker();
-    $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context);
+    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+    $validator = new ScopeSignatureValidator($registry);
+    $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
 
     $product = new ResolverProduct();
     $companion = new ManualCompanionProduct();
     $product->attachCompanion($companion);
-    $scope = new Scope('store', 'global.us');
+    $scope = new ScopeSignature(['store' => 'global.us']);
     $resolver->setOverride($product, 'name', 'Companion Override', $scope);
 
     expect($companion->override('store:global.us', 'name'))->toBe('Companion Override');
@@ -403,8 +426,9 @@ it(
         $context = new ScopeContext($registry);
         $context->in('store', 'global.us');
         $scopeMetaFactory = new ScopeMetadataFactory($registry);
-        $walker = new ScopeWalker();
-        $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context);
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $validator = new ScopeSignatureValidator($registry);
+        $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
 
         $product = new ResolverProduct();
         $companion = new ManualCompanionProduct();
@@ -422,3 +446,222 @@ it('ScopeResolver does not have a createCompanion method', function (): void {
 
     expect($reflection->hasMethod('createCompanion'))->toBeFalse();
 });
+
+it('ScopeResolver::resolvedAt accepts a ScopeSignature parameter', function (): void {
+    $reflection = new ReflectionClass(ScopeResolver::class);
+    $method = $reflection->getMethod('resolvedAt');
+    $params = $method->getParameters();
+
+    $signatureParam = array_find($params, fn (ReflectionParameter $p) => $p->getName() === 'signature');
+
+    expect($signatureParam)->not->toBeNull();
+    expect($signatureParam->getType()?->getName())->toBe(ScopeSignature::class);
+});
+
+it('ScopeResolver::setOverride accepts a ScopeSignature parameter', function (): void {
+    $reflection = new ReflectionClass(ScopeResolver::class);
+    $method = $reflection->getMethod('setOverride');
+    $params = $method->getParameters();
+
+    $signatureParam = array_find($params, fn (ReflectionParameter $p) => $p->getName() === 'signature');
+
+    expect($signatureParam)->not->toBeNull();
+    expect($signatureParam->getType()?->getName())->toBe(ScopeSignature::class);
+});
+
+it('ScopeResolver::clearOverride accepts a ScopeSignature parameter', function (): void {
+    $reflection = new ReflectionClass(ScopeResolver::class);
+    $method = $reflection->getMethod('clearOverride');
+    $params = $method->getParameters();
+
+    $signatureParam = array_find($params, fn (ReflectionParameter $p) => $p->getName() === 'signature');
+
+    expect($signatureParam)->not->toBeNull();
+    expect($signatureParam->getType()?->getName())->toBe(ScopeSignature::class);
+});
+
+it('setOverride writes the value to storage under the signature\'s canonical string key', function (): void {
+    [$resolver] = makeResolver();
+
+    $product = new TraitResolverProduct();
+    $scope = new ScopeSignature(['store' => 'global.us']);
+    $resolver->setOverride($product, 'name', 'Written Value', $scope);
+
+    expect($product->override('store:global.us', 'name'))->toBe('Written Value');
+});
+
+it(
+    'setOverride throws InvalidSignatureForAttributeException when the signature mentions an axis not in the attribute axes (case 16)',
+    function (): void {
+        [$resolver] = makeResolver();
+
+        $product = new TraitResolverProduct();
+        // 'name' has only 'store' axis; 'website' is not a declared axis for it
+        $scope = new ScopeSignature(['website' => 'global.us']);
+
+        expect(fn () => $resolver->setOverride($product, 'name', 'Value', $scope))
+            ->toThrow(InvalidSignatureForAttributeException::class);
+    },
+);
+
+it(
+    'setOverride throws InvalidSignatureForAttributeException when the signature value is not in the registry hierarchy (case 17)',
+    function (): void {
+        [$resolver] = makeResolver();
+
+        $product = new TraitResolverProduct();
+        // 'name' has 'store' axis; 'nonexistent.node' is not in the hierarchy
+        $scope = new ScopeSignature(['store' => 'nonexistent.node']);
+
+        expect(fn () => $resolver->setOverride($product, 'name', 'Value', $scope))
+            ->toThrow(InvalidSignatureForAttributeException::class);
+    },
+);
+
+it('setOverride accepts a single-axis signature for a single-axis attribute', function (): void {
+    [$resolver] = makeResolver();
+
+    $product = new TraitResolverProduct();
+    $scope = new ScopeSignature(['store' => 'global.us']);
+
+    // Should not throw
+    $resolver->setOverride($product, 'name', 'Valid Value', $scope);
+
+    expect($product->override('store:global.us', 'name'))->toBe('Valid Value');
+});
+
+it('setOverride accepts a two-axis composite signature for a two-axis attribute', function (): void {
+    $registry = makeResolverRegistry([
+        'store' => ['global', 'global.us'],
+        'currency' => ['usd', 'eur'],
+    ]);
+    $context = new ScopeContext($registry);
+    $scopeMetaFactory = new ScopeMetadataFactory($registry);
+    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+    $validator = new ScopeSignatureValidator($registry);
+    $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
+
+    $product = new TwoAxisProduct();
+    $scope = new ScopeSignature(['store' => 'global.us', 'currency' => 'usd']);
+
+    // Should not throw
+    $resolver->setOverride($product, 'price', '9.99', $scope);
+
+    expect($product->override('currency:usd|store:global.us', 'price'))->toBe('9.99');
+});
+
+it('setOverride accepts a partial signature (subset of the attribute axes)', function (): void {
+    $registry = makeResolverRegistry([
+        'store' => ['global', 'global.us'],
+        'currency' => ['usd', 'eur'],
+    ]);
+    $context = new ScopeContext($registry);
+    $scopeMetaFactory = new ScopeMetadataFactory($registry);
+    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+    $validator = new ScopeSignatureValidator($registry);
+    $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
+
+    $product = new TwoAxisProduct();
+    // Only 'store' axis, which is a subset of ['store', 'currency']
+    $scope = new ScopeSignature(['store' => 'global.us']);
+
+    // Should not throw
+    $resolver->setOverride($product, 'price', '7.99', $scope);
+
+    expect($product->override('store:global.us', 'price'))->toBe('7.99');
+});
+
+it('clearOverride removes the entry under the signature\'s canonical string key', function (): void {
+    [$resolver] = makeResolver();
+
+    $product = new TraitResolverProduct();
+    $product->setOverride('store:global.us', 'name', 'To Remove');
+
+    $scope = new ScopeSignature(['store' => 'global.us']);
+    $resolver->clearOverride($product, 'name', $scope);
+
+    expect($product->hasOverride('store:global.us', 'name'))->toBeFalse();
+});
+
+it('clearOverride throws InvalidSignatureForAttributeException for an invalid signature', function (): void {
+    [$resolver] = makeResolver();
+
+    $product = new TraitResolverProduct();
+    // 'website' is not a declared axis for 'name'
+    $scope = new ScopeSignature(['website' => 'global.us']);
+
+    expect(fn () => $resolver->clearOverride($product, 'name', $scope))
+        ->toThrow(InvalidSignatureForAttributeException::class);
+});
+
+it('resolved continues to use the active ScopeContext without requiring a signature', function (): void {
+    [$resolver, $context] = makeResolver();
+    $context->in('store', 'global.us');
+
+    $product = new TraitResolverProduct();
+    $product->setOverride('store:global.us', 'name', 'Context-Resolved Name');
+
+    $result = $resolver->resolved($product, 'name');
+
+    expect($result)->toBe('Context-Resolved Name');
+});
+
+it('resolvedAt delegates to walkAt which throws on multi-axis signatures', function (): void {
+    $registry = makeResolverRegistry([
+        'store' => ['global', 'global.us'],
+        'currency' => ['usd', 'eur'],
+    ]);
+    $context = new ScopeContext($registry);
+    $scopeMetaFactory = new ScopeMetadataFactory($registry);
+    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+    $validator = new ScopeSignatureValidator($registry);
+    $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
+
+    $product = new TwoAxisProduct();
+    // Multi-axis signature — walkAt does not support these
+    $scope = new ScopeSignature(['store' => 'global.us', 'currency' => 'usd']);
+
+    expect(fn () => $resolver->resolvedAt($product, 'price', $scope))
+        ->toThrow(MultiAxisWalkAtNotSupportedException::class);
+});
+
+it(
+    'the resolver does not call the validator on the read (resolved / resolvedAt) path (verified via instrumented validator)',
+    function (): void {
+        $registry = makeResolverRegistry();
+        $context = new ScopeContext($registry);
+        $context->in('store', 'global.us');
+        $scopeMetaFactory = new ScopeMetadataFactory($registry);
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+
+        $callCount = 0;
+        $instrumentedValidator = new class ($registry, $callCount) extends ScopeSignatureValidator
+        {
+            public function __construct(
+                ScopeRegistryInterface $scopeRegistry,
+                private int &$callCount,
+            ) {
+                parent::__construct($scopeRegistry);
+            }
+
+            public function validate(
+                ScopeSignature $scopeSignature,
+                array $attributeAxes,
+            ): void {
+                $this->callCount++;
+                parent::validate($scopeSignature, $attributeAxes);
+            }
+        };
+
+        $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $instrumentedValidator);
+
+        $product = new TraitResolverProduct();
+        $product->setOverride('store:global.us', 'name', 'Read Value');
+
+        // Call both read paths
+        $resolver->resolved($product, 'name');
+        $resolver->resolvedAt($product, 'name', new ScopeSignature(['store' => 'global.us']));
+
+        expect($callCount)->toBe(0);
+    },
+);

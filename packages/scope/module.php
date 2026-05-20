@@ -11,6 +11,8 @@ use Markommerce\Scope\Registry\PhpScopeRegistry;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use Markommerce\Scope\Resolution\ScopeWalker;
 use Markommerce\Scope\Resolver\ScopeResolver;
+use Markommerce\Scope\Signature\ScopeSignatureValidator;
+use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 
 return [
     'bindings' => [
@@ -21,6 +23,8 @@ return [
     'singletons' => [
         ScopeContext::class,
         ScopeMetadataFactory::class,
+        SignatureCandidateEnumerator::class,
+        ScopeSignatureValidator::class,
         ScopeResolver::class,
         ScopedOrderByFactory::class,
         ScopeWalker::class,

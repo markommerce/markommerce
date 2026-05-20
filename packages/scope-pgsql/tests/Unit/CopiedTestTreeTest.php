@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 it(
-    'contains expected Unit test file packages/scope-pgsql/tests/Unit/Query/PgSqlScopeSortRendererTest.php',
+    'contains expected Unit test file packages/scope-pgsql/tests/Unit/Query/PgSqlScopedFieldRendererTest.php',
     function (): void {
         // __DIR__ = packages/scope-pgsql/tests/Unit
-        expect(file_exists(__DIR__ . '/Query/PgSqlScopeSortRendererTest.php'))->toBeTrue(
-            'Missing: packages/scope-pgsql/tests/Unit/Query/PgSqlScopeSortRendererTest.php',
+        expect(file_exists(__DIR__ . '/Query/PgSqlScopedFieldRendererTest.php'))->toBeTrue(
+            'Missing: packages/scope-pgsql/tests/Unit/Query/PgSqlScopedFieldRendererTest.php',
         );
     },
 );

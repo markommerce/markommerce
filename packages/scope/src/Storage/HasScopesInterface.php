@@ -7,23 +7,23 @@ namespace Markommerce\Scope\Storage;
 interface HasScopesInterface
 {
     public function setOverride(
-        string $scopeKey,
+        string $signature,
         string $property,
         mixed $value,
     ): void;
 
     public function override(
-        string $scopeKey,
+        string $signature,
         string $property,
     ): mixed;
 
     public function hasOverride(
-        string $scopeKey,
+        string $signature,
         string $property,
     ): bool;
 
     public function clearOverride(
-        string $scopeKey,
+        string $signature,
         string $property,
     ): void;
 

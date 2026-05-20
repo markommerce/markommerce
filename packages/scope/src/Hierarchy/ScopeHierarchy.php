@@ -7,13 +7,16 @@ namespace Markommerce\Scope\Hierarchy;
 use Markommerce\Scope\Exceptions\ScopeConfigurationException;
 use Markommerce\Scope\Exceptions\UnknownScopeException;
 
-readonly class ScopeHierarchy
+class ScopeHierarchy
 {
     /** @var array<string, bool> */
     private array $pathMap;
 
     /** @var list<string> */
     private array $paths;
+
+    /** @var array<string, list<string>> */
+    private array $walkUpCache = [];
 
     /**
      * @param list<string> $paths
@@ -84,6 +87,10 @@ readonly class ScopeHierarchy
             throw UnknownScopeException::forAxisAndPath('', $path);
         }
 
+        if (isset($this->walkUpCache[$path])) {
+            return $this->walkUpCache[$path];
+        }
+
         $result = [$path];
         $current = $path;
 
@@ -91,6 +98,8 @@ readonly class ScopeHierarchy
             $current = substr($current, 0, $dotPos);
             $result[] = $current;
         }
+
+        $this->walkUpCache[$path] = $result;
 
         return $result;
     }

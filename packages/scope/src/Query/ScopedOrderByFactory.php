@@ -6,13 +6,15 @@ namespace Markommerce\Scope\Query;
 
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
+use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 
 readonly class ScopedOrderByFactory
 {
     public function __construct(
         private ScopeMetadataFactory $scopeMetadataFactory,
         private ScopeContext $scopeContext,
-        private ScopeSortRendererInterface $scopeSortRenderer,
+        private ScopedFieldRendererInterface $scopedFieldRenderer,
+        private SignatureCandidateEnumerator $signatureCandidateEnumerator,
     ) {}
 
     /**
@@ -27,7 +29,8 @@ readonly class ScopedOrderByFactory
             property: $property,
             scopeMetadataFactory: $this->scopeMetadataFactory,
             scopeContext: $this->scopeContext,
-            scopeSortRenderer: $this->scopeSortRenderer,
+            scopedFieldRenderer: $this->scopedFieldRenderer,
+            signatureCandidateEnumerator: $this->signatureCandidateEnumerator,
             entityClass: $entityClass,
             direction: $direction,
         );

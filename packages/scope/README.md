@@ -14,14 +14,18 @@ A driver package is also required:
 composer require markommerce/scope-pgsql
 ```
 
+> **Breaking change in current version.** The old single-axis `Scope` class has been removed. See [CHANGELOG.md](CHANGELOG.md) for the full list of breaking changes.
+
 ## Quick Example
+
+Two-axis composite override — B2B channel + Spanish locale:
 
 ```php
 use Marko\Database\Attributes\Column;
 use Marko\Database\Attributes\Table;
 use Marko\Database\Entity\Entity;
 use Markommerce\Scope\Attributes\Scoped;
-use Markommerce\Scope\Scope;
+use Markommerce\Scope\Signature\ScopeSignature;
 use Markommerce\Scope\Storage\HasScopes;
 use Markommerce\Scope\Storage\HasScopesInterface;
 
@@ -30,19 +34,26 @@ class Product extends Entity implements HasScopesInterface
 {
     use HasScopes;
 
-    #[Column(length: 255)]
-    #[Scoped(axes: ['locale'])]
-    public string $name = '';
+    #[Column(type: 'decimal', precision: 10, scale: 2)]
+    #[Scoped(axes: ['channel', 'locale'])]
+    public float $price = 100.00;
 }
 
-// Set a scoped override
-$scopeResolver->setOverride($product, 'name', 'Widget DE', new Scope('locale', 'de'));
+// Single-axis override: B2B channel price
+$scopeResolver->setOverride($product, 'price', 85.00, ScopeSignature::fromArray(['channel' => 'b2b']));
 
-// Resolve with hierarchy fallback (de-DE walks up to de)
-$scopeContext->in('locale', 'de-DE');
-$localizedName = $scopeResolver->resolved($product, 'name');
+// Single-axis override: Spanish locale price
+$scopeResolver->setOverride($product, 'price', 90.00, ScopeSignature::fromArray(['locale' => 'es']));
+
+// Composite override: B2B + Spanish — highest priority
+$scopeResolver->setOverride($product, 'price', 75.00, ScopeSignature::fromArray(['channel' => 'b2b', 'locale' => 'es']));
+
+// Resolution priority: composite > channel:b2b > locale:es
+$scopeContext->in('channel', 'b2b');
+$scopeContext->in('locale', 'es');
+$price = $scopeResolver->resolved($product, 'price'); // 75.00
 ```
 
 ## Documentation
 
-Full usage, API reference, and examples: [markommerce/scope](https://markommerce.dev/docs/packages/scope/)
+Full usage, API reference, and examples: [markommerce/scope](/docs/packages/scope/)

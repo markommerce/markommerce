@@ -13,23 +13,21 @@ use Markommerce\Scope\Exceptions\UnknownScopeException;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Metadata\ScopeMetadata;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
+use Markommerce\Scope\Query\ScopedFieldExpression;
+use Markommerce\Scope\Query\ScopedFieldRendererInterface;
 use Markommerce\Scope\Query\ScopedOrderBy;
 use Markommerce\Scope\Query\ScopedOrderByFactory;
-use Markommerce\Scope\Query\ScopeSortExpression;
-use Markommerce\Scope\Query\ScopeSortRendererInterface;
 use Markommerce\Scope\Registry\PhpScopeRegistry;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use Markommerce\Scope\Resolution\ScopeWalker;
 use Markommerce\Scope\Resolution\ScopeWalkResult;
 use Markommerce\Scope\Resolver\ScopeResolver;
-use Markommerce\Scope\Scope;
 use Markommerce\Scope\Storage\HasScopesInterface;
 use Markommerce\Scope\Storage\ScopedDataSerializer;
 use Markommerce\Scope\Validation\ScopedEntityValidator;
 
 it('autoloads every Markommerce\\Scope\\ class without a fatal error', function (): void {
     $classes = [
-        Scope::class,
         Scoped::class,
         ScopeAxis::class,
         ScopeContext::class,
@@ -44,8 +42,8 @@ it('autoloads every Markommerce\\Scope\\ class without a fatal error', function 
         ScopeMetadataFactory::class,
         ScopedOrderBy::class,
         ScopedOrderByFactory::class,
-        ScopeSortExpression::class,
-        ScopeSortRendererInterface::class,
+        ScopedFieldExpression::class,
+        ScopedFieldRendererInterface::class,
         PhpScopeRegistry::class,
         ScopeRegistryInterface::class,
         ScopeWalker::class,
@@ -197,4 +195,78 @@ it('NoDriverException::noDriverInstalled()->getSuggestion() mentions markommerce
     $exception = NoDriverException::noDriverInstalled();
 
     expect($exception->getSuggestion())->toContain('markommerce/scope-pgsql');
+});
+
+it('the Scope class file no longer exists in packages/scope/src', function (): void {
+    $scopeFile = dirname(__DIR__, 3) . '/src/Scope.php';
+
+    expect(file_exists($scopeFile))->toBeFalse('packages/scope/src/Scope.php should have been deleted');
+});
+
+it('no PHP file under packages/scope or packages/scope-pgsql imports Markommerce\Scope\Scope', function (): void {
+    $packagesRoot = dirname(__DIR__, 4);
+    $dirsToCheck = [
+        $packagesRoot . '/scope/src',
+        $packagesRoot . '/scope/tests',
+        $packagesRoot . '/scope-pgsql/src',
+        $packagesRoot . '/scope-pgsql/tests',
+    ];
+
+    $thisFile = __FILE__;
+    $violations = [];
+    foreach ($dirsToCheck as $dir) {
+        if (!is_dir($dir)) {
+            continue;
+        }
+
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir));
+        foreach ($files as $file) {
+            if (!$file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+
+            if ($file->getRealPath() === realpath($thisFile)) {
+                continue;
+            }
+
+            $contents = file_get_contents($file->getPathname());
+            if (preg_match('/use Markommerce\\\\Scope\\\\Scope;/', $contents)) {
+                $violations[] = $file->getPathname();
+            }
+        }
+    }
+
+    expect($violations)->toBe([], 'Files still importing the deleted Scope class: ' . implode(', ', $violations));
+});
+
+it('no documentation file under docs imports Markommerce\Scope\Scope in a code block', function (): void {
+    $docsRoot = dirname(__DIR__, 5) . '/docs';
+
+    if (!is_dir($docsRoot)) {
+        test()->markTestSkipped('docs/ directory not available — skipping.');
+    }
+
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($docsRoot));
+    $violations = [];
+
+    foreach ($files as $file) {
+        if (!$file->isFile()) {
+            continue;
+        }
+
+        $ext = $file->getExtension();
+        if ($ext !== 'md' && $ext !== 'mdx') {
+            continue;
+        }
+
+        $contents = file_get_contents($file->getPathname());
+        if (preg_match('/use Markommerce\\\\Scope\\\\Scope;/', $contents)) {
+            $violations[] = $file->getPathname();
+        }
+    }
+
+    expect($violations)->toBe(
+        [],
+        'These doc files still contain a Scope import: ' . implode(', ', $violations),
+    );
 });

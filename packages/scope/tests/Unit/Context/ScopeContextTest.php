@@ -105,6 +105,37 @@ it('clears a single axis via clear and all axes via clearAll', function (): void
     expect($context->get('locale'))->toBeNull();
 });
 
+it('exposes the full active-state map (axis-name → active-path) via the state() method, not just keys', function (): void {
+    $registry = makeScopeRegistry(['geo' => ['eu', 'eu.de', 'us'], 'locale' => ['en', 'fr']]);
+    $context = new ScopeContext($registry);
+    $context->in('geo', 'eu.de')->in('locale', 'en');
+
+    $state = $context->state();
+
+    expect($state)->toBe(['geo' => 'eu.de', 'locale' => 'en']);
+});
+
+it('returns an empty array when no axes are active', function (): void {
+    $registry = makeScopeRegistry(['geo' => ['eu', 'eu.de']]);
+    $context = new ScopeContext($registry);
+
+    expect($context->state())->toBe([]);
+});
+
+it('returns a different map after the active path for an existing axis is changed via in()', function (): void {
+    $registry = makeScopeRegistry(['geo' => ['eu', 'eu.de', 'eu.fr']]);
+    $context = new ScopeContext($registry);
+    $context->in('geo', 'eu.de');
+
+    $before = $context->state();
+    $context->in('geo', 'eu.fr');
+    $after = $context->state();
+
+    expect($before)->toBe(['geo' => 'eu.de'])
+        ->and($after)->toBe(['geo' => 'eu.fr'])
+        ->and($before)->not->toBe($after);
+});
+
 it('lists all axes currently set via activeAxes', function (): void {
     $registry = makeScopeRegistry(['geo' => ['eu', 'eu.de', 'us'], 'locale' => ['en', 'fr'], 'channel' => ['web']]);
     $context = new ScopeContext($registry);

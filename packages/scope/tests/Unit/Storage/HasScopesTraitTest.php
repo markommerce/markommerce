@@ -121,3 +121,64 @@ it('HasScopesInterface declares the override methods', function (): void {
         ->and($reflection->hasMethod('clearOverride'))->toBeTrue()
         ->and($reflection->hasMethod('overrides'))->toBeTrue();
 });
+
+it('HasScopesInterface::setOverride parameter is named $signature', function (): void {
+    $reflection = new ReflectionClass(HasScopesInterface::class);
+    $method = $reflection->getMethod('setOverride');
+    $firstParam = $method->getParameters()[0];
+
+    expect($firstParam->getName())->toBe('signature');
+});
+
+it('HasScopesInterface::override parameter is named $signature', function (): void {
+    $reflection = new ReflectionClass(HasScopesInterface::class);
+    $method = $reflection->getMethod('override');
+    $firstParam = $method->getParameters()[0];
+
+    expect($firstParam->getName())->toBe('signature');
+});
+
+it('HasScopesInterface::hasOverride parameter is named $signature', function (): void {
+    $reflection = new ReflectionClass(HasScopesInterface::class);
+    $method = $reflection->getMethod('hasOverride');
+    $firstParam = $method->getParameters()[0];
+
+    expect($firstParam->getName())->toBe('signature');
+});
+
+it('HasScopesInterface::clearOverride parameter is named $signature', function (): void {
+    $reflection = new ReflectionClass(HasScopesInterface::class);
+    $method = $reflection->getMethod('clearOverride');
+    $firstParam = $method->getParameters()[0];
+
+    expect($firstParam->getName())->toBe('signature');
+});
+
+it('all existing HasScopesTraitTest assertions still pass with the renamed parameter', function (): void {
+    $entity = new TraitProduct();
+    $entity->setOverride('locale:es', 'name', 'Camisa');
+    $entity->setOverride('geo:eu.de', 'price', 19.99);
+
+    expect($entity->override('locale:es', 'name'))->toBe('Camisa')
+        ->and($entity->hasOverride('locale:es', 'name'))->toBeTrue()
+        ->and($entity->hasOverride('locale:es', 'missing'))->toBeFalse();
+
+    $entity->clearOverride('locale:es', 'name');
+
+    expect($entity->hasOverride('locale:es', 'name'))->toBeFalse()
+        ->and($entity->override('geo:eu.de', 'price'))->toBe(19.99);
+});
+
+it('HasScopes trait method signatures match the interface parameter names exactly', function (): void {
+    $reflection = new ReflectionClass(TraitProduct::class);
+
+    $setOverrideParam = $reflection->getMethod('setOverride')->getParameters()[0];
+    $overrideParam = $reflection->getMethod('override')->getParameters()[0];
+    $hasOverrideParam = $reflection->getMethod('hasOverride')->getParameters()[0];
+    $clearOverrideParam = $reflection->getMethod('clearOverride')->getParameters()[0];
+
+    expect($setOverrideParam->getName())->toBe('signature')
+        ->and($overrideParam->getName())->toBe('signature')
+        ->and($hasOverrideParam->getName())->toBe('signature')
+        ->and($clearOverrideParam->getName())->toBe('signature');
+});

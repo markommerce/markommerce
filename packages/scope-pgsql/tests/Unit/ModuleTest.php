@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Markommerce\Scope\PgSql\Query\PgSqlScopeSortRenderer;
-use Markommerce\Scope\Query\ScopeSortRendererInterface;
+use Markommerce\Scope\PgSql\Query\PgSqlScopedFieldRenderer;
+use Markommerce\Scope\Query\ScopedFieldRendererInterface;
 
 it('returns an array with bindings key', function (): void {
     $module = require dirname(__DIR__, 2) . '/module.php';
@@ -12,11 +12,11 @@ it('returns an array with bindings key', function (): void {
         ->and($module)->toHaveKey('bindings');
 });
 
-it('binds ScopeSortRendererInterface to PgSqlScopeSortRenderer', function (): void {
+it('binds ScopedFieldRendererInterface to PgSqlScopedFieldRenderer', function (): void {
     $module = require dirname(__DIR__, 2) . '/module.php';
 
-    expect($module['bindings'])->toHaveKey(ScopeSortRendererInterface::class)
-        ->and($module['bindings'][ScopeSortRendererInterface::class])->toBe(PgSqlScopeSortRenderer::class);
+    expect($module['bindings'])->toHaveKey(ScopedFieldRendererInterface::class)
+        ->and($module['bindings'][ScopedFieldRendererInterface::class])->toBe(PgSqlScopedFieldRenderer::class);
 });
 
 it('does not re-bind markommerce/scope interfaces', function (): void {
@@ -27,7 +27,7 @@ it('does not re-bind markommerce/scope interfaces', function (): void {
         fn (string $key): bool => str_starts_with(
             $key,
             'Markommerce\\Scope\\',
-        ) && $key !== ScopeSortRendererInterface::class,
+        ) && $key !== ScopedFieldRendererInterface::class,
     );
 
     expect($scopeInterfaces)->toBeEmpty();

@@ -10,10 +10,12 @@ use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Exceptions\ScopeContextException;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
+use Markommerce\Scope\Query\ScopedFieldExpression;
+use Markommerce\Scope\Query\ScopedFieldRendererInterface;
 use Markommerce\Scope\Query\ScopedOrderBy;
-use Markommerce\Scope\Query\ScopeSortExpression;
-use Markommerce\Scope\Query\ScopeSortRendererInterface;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
+use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
+use Markommerce\Scope\Storage\HasScopesInterface;
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -23,6 +25,12 @@ class ScopedOrderByProduct
     public string $name = '';
 
     public string $sku = '';
+}
+
+class ScopedOrderByMultiAxisProduct
+{
+    #[Scoped(axes: ['store', 'locale'])]
+    public string $title = '';
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -289,13 +297,13 @@ function makeBuilderSpy(): EntityQueryBuilderInterface
     };
 }
 
-function makeRenderer(string $sql = 'COALESCE(json_extract(scopes, \'$.store.en\'), name)'): ScopeSortRendererInterface
+function makeRenderer(string $sql = 'COALESCE(json_extract(scopes, \'$.store.en\'), name)'): ScopedFieldRendererInterface
 {
-    return new readonly class ($sql) implements ScopeSortRendererInterface
+    return new readonly class ($sql) implements ScopedFieldRendererInterface
     {
         public function __construct(private string $sql) {}
 
-        public function render(ScopeSortExpression $expression): string
+        public function render(ScopedFieldExpression $expression): string
         {
             return $this->sql;
         }
@@ -304,18 +312,20 @@ function makeRenderer(string $sql = 'COALESCE(json_extract(scopes, \'$.store.en\
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
-it('accepts ScopeMetadataFactory, ScopeContext, and ScopeSortRendererInterface in constructor', function (): void {
+it('accepts ScopeMetadataFactory, ScopeContext, and ScopedFieldRendererInterface in constructor', function (): void {
     $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
     $factory = new ScopeMetadataFactory($registry);
     $context = new ScopeContext($registry);
     $renderer = makeRenderer();
+    $enumerator = new SignatureCandidateEnumerator($registry);
 
     $spec = new ScopedOrderBy(
         property: 'name',
         direction: 'desc',
         scopeMetadataFactory: $factory,
         scopeContext: $context,
-        scopeSortRenderer: $renderer,
+        scopedFieldRenderer: $renderer,
+        signatureCandidateEnumerator: $enumerator,
         entityClass: ScopedOrderByProduct::class,
     );
 
@@ -328,12 +338,14 @@ it('accepts a property name and optional direction defaulting to asc', function 
     $factory = new ScopeMetadataFactory($registry);
     $context = new ScopeContext($registry);
     $renderer = makeRenderer();
+    $enumerator = new SignatureCandidateEnumerator($registry);
 
     $spec = new ScopedOrderBy(
         property: 'name',
         scopeMetadataFactory: $factory,
         scopeContext: $context,
-        scopeSortRenderer: $renderer,
+        scopedFieldRenderer: $renderer,
+        signatureCandidateEnumerator: $enumerator,
         entityClass: ScopedOrderByProduct::class,
     );
 
@@ -349,12 +361,14 @@ it('calls orderByRaw with the renderer-generated COALESCE expression when scope 
 
     $sql = "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(`scopes`, '$.store.en.gb')), name)";
     $renderer = makeRenderer($sql);
+    $enumerator = new SignatureCandidateEnumerator($registry);
 
     $spec = new ScopedOrderBy(
         property: 'name',
         scopeMetadataFactory: $factory,
         scopeContext: $context,
-        scopeSortRenderer: $renderer,
+        scopedFieldRenderer: $renderer,
+        signatureCandidateEnumerator: $enumerator,
         entityClass: ScopedOrderByProduct::class,
     );
 
@@ -372,12 +386,14 @@ it('falls back to plain orderBy when no scope is active for any of the property\
     $context = new ScopeContext($registry);
     // No scope set on context
     $renderer = makeRenderer();
+    $enumerator = new SignatureCandidateEnumerator($registry);
 
     $spec = new ScopedOrderBy(
         property: 'name',
         scopeMetadataFactory: $factory,
         scopeContext: $context,
-        scopeSortRenderer: $renderer,
+        scopedFieldRenderer: $renderer,
+        signatureCandidateEnumerator: $enumerator,
         entityClass: ScopedOrderByProduct::class,
     );
 
@@ -394,12 +410,14 @@ it('throws ScopeContextException when the property is not Scoped', function (): 
     $factory = new ScopeMetadataFactory($registry);
     $context = new ScopeContext($registry);
     $renderer = makeRenderer();
+    $enumerator = new SignatureCandidateEnumerator($registry);
 
     $spec = new ScopedOrderBy(
         property: 'sku',
         scopeMetadataFactory: $factory,
         scopeContext: $context,
-        scopeSortRenderer: $renderer,
+        scopedFieldRenderer: $renderer,
+        signatureCandidateEnumerator: $enumerator,
         entityClass: ScopedOrderByProduct::class,
     );
 
@@ -415,12 +433,14 @@ it(
         $context = new ScopeContext($registry);
         $context->in('store', 'en');
         $renderer = makeRenderer('COALESCE(expr)');
+        $enumerator = new SignatureCandidateEnumerator($registry);
 
         $spec = new ScopedOrderBy(
             property: 'name',
             scopeMetadataFactory: $factory,
             scopeContext: $context,
-            scopeSortRenderer: $renderer,
+            scopedFieldRenderer: $renderer,
+            signatureCandidateEnumerator: $enumerator,
             entityClass: ScopedOrderByProduct::class,
             direction: $direction,
         );
@@ -436,17 +456,18 @@ it(
     ['desc', 'DESC'],
 ]);
 
-it('builds a ScopeSortExpression by reading ScopeMetadata for the entity class on apply', function (): void {
+it('builds a ScopedFieldExpression by reading ScopeMetadata for the entity class on apply', function (): void {
     $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
     $factory = new ScopeMetadataFactory($registry);
     $context = new ScopeContext($registry);
     $context->in('store', 'en.gb');
+    $enumerator = new SignatureCandidateEnumerator($registry);
 
-    $renderer = new class () implements ScopeSortRendererInterface
+    $renderer = new class () implements ScopedFieldRendererInterface
     {
-        public ?ScopeSortExpression $captured = null;
+        public ?ScopedFieldExpression $captured = null;
 
-        public function render(ScopeSortExpression $expression): string
+        public function render(ScopedFieldExpression $expression): string
         {
             $this->captured = $expression;
 
@@ -458,14 +479,337 @@ it('builds a ScopeSortExpression by reading ScopeMetadata for the entity class o
         property: 'name',
         scopeMetadataFactory: $factory,
         scopeContext: $context,
-        scopeSortRenderer: $renderer,
+        scopedFieldRenderer: $renderer,
+        signatureCandidateEnumerator: $enumerator,
         entityClass: ScopedOrderByProduct::class,
     );
 
     $builder = makeBuilderSpy();
     $spec->apply($builder);
 
-    expect($renderer->captured)->toBeInstanceOf(ScopeSortExpression::class)
+    expect($renderer->captured)->toBeInstanceOf(ScopedFieldExpression::class)
         ->and($renderer->captured->property)->toBe('name')
         ->and($renderer->captured->column)->toBe('name');
 });
+
+it('builds a COALESCE-based orderByRaw using the candidate signatures from the enumerator', function (): void {
+    $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
+    $factory = new ScopeMetadataFactory($registry);
+    $context = new ScopeContext($registry);
+    $context->in('store', 'en.gb');
+    $enumerator = new SignatureCandidateEnumerator($registry);
+
+    $capturedExpression = null;
+    $renderer = new class (Closure::fromCallable(
+        function (ScopedFieldExpression $expr) use (&$capturedExpression): string {
+            $capturedExpression = $expr;
+    
+            return 'COALESCE(expr)';
+        }
+    )) implements ScopedFieldRendererInterface {
+        public function __construct(private readonly Closure $fn) {}
+
+        public function render(ScopedFieldExpression $expression): string
+        {
+            return ($this->fn)($expression);
+        }
+    };
+
+    $spec = new ScopedOrderBy(
+        property: 'name',
+        scopeMetadataFactory: $factory,
+        scopeContext: $context,
+        scopedFieldRenderer: $renderer,
+        signatureCandidateEnumerator: $enumerator,
+        entityClass: ScopedOrderByProduct::class,
+    );
+
+    $builder = makeBuilderSpy();
+    $spec->apply($builder);
+
+    expect($builder->orderByRawCalls)->toHaveCount(1)
+        ->and($capturedExpression)->toBeInstanceOf(ScopedFieldExpression::class)
+        ->and($capturedExpression->candidateSignatures)->not->toBeEmpty();
+});
+
+it('it falls back to plain orderBy when the enumerator produces zero candidates', function (): void {
+    $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
+    $factory = new ScopeMetadataFactory($registry);
+    $context = new ScopeContext($registry);
+    // No scope set — enumerator will return zero candidates
+    $renderer = makeRenderer();
+    $enumerator = new SignatureCandidateEnumerator($registry);
+
+    $spec = new ScopedOrderBy(
+        property: 'name',
+        scopeMetadataFactory: $factory,
+        scopeContext: $context,
+        scopedFieldRenderer: $renderer,
+        signatureCandidateEnumerator: $enumerator,
+        entityClass: ScopedOrderByProduct::class,
+    );
+
+    $builder = makeBuilderSpy();
+    $spec->apply($builder);
+
+    expect($builder->orderByCalls)->toHaveCount(1)
+        ->and($builder->orderByCalls[0]['column'])->toBe('name')
+        ->and($builder->orderByRawCalls)->toBeEmpty();
+});
+
+it(
+    'it produces signatures in descending-score order in the COALESCE chain (the order is preserved as enumerator output)',
+    function (): void {
+        $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
+        $factory = new ScopeMetadataFactory($registry);
+        $context = new ScopeContext($registry);
+        $context->in('store', 'en.gb');
+        $enumerator = new SignatureCandidateEnumerator($registry);
+
+        $capturedSignatures = null;
+        $renderer = new class (Closure::fromCallable(
+            function (ScopedFieldExpression $expr) use (&$capturedSignatures): string {
+                $capturedSignatures = $expr->candidateSignatures;
+    
+                return 'COALESCE(expr)';
+            }
+        )) implements ScopedFieldRendererInterface {
+            public function __construct(private readonly Closure $fn) {}
+
+            public function render(ScopedFieldExpression $expression): string
+            {
+                return ($this->fn)($expression);
+            }
+        };
+
+        $spec = new ScopedOrderBy(
+            property: 'name',
+            scopeMetadataFactory: $factory,
+            scopeContext: $context,
+            scopedFieldRenderer: $renderer,
+            signatureCandidateEnumerator: $enumerator,
+            entityClass: ScopedOrderByProduct::class,
+        );
+
+        $spec->apply(makeBuilderSpy());
+
+        // The enumerator walks up from most-specific (en.gb) to least-specific (en)
+        // Signatures must appear in the same order as enumerator output
+        $expectedSignatures = $enumerator->enumerate(['store'], $context);
+
+        expect($capturedSignatures)->toBe($expectedSignatures);
+    },
+);
+
+it('it throws ScopeContextException when the property is not @Scoped on the entity', function (): void {
+    $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
+    $factory = new ScopeMetadataFactory($registry);
+    $context = new ScopeContext($registry);
+    $renderer = makeRenderer();
+    $enumerator = new SignatureCandidateEnumerator($registry);
+
+    $spec = new ScopedOrderBy(
+        property: 'sku',
+        scopeMetadataFactory: $factory,
+        scopeContext: $context,
+        scopedFieldRenderer: $renderer,
+        signatureCandidateEnumerator: $enumerator,
+        entityClass: ScopedOrderByProduct::class,
+    );
+
+    $builder = makeBuilderSpy();
+    expect(fn () => $spec->apply($builder))->toThrow(ScopeContextException::class);
+});
+
+it(
+    'it passes ASC or DESC direction to the query builder unchanged',
+    function (string $direction, string $expectedUpper): void {
+        $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
+        $factory = new ScopeMetadataFactory($registry);
+        $context = new ScopeContext($registry);
+        $context->in('store', 'en');
+        $renderer = makeRenderer('COALESCE(expr)');
+        $enumerator = new SignatureCandidateEnumerator($registry);
+
+        $spec = new ScopedOrderBy(
+            property: 'name',
+            scopeMetadataFactory: $factory,
+            scopeContext: $context,
+            scopedFieldRenderer: $renderer,
+            signatureCandidateEnumerator: $enumerator,
+            entityClass: ScopedOrderByProduct::class,
+            direction: $direction,
+        );
+
+        $builder = makeBuilderSpy();
+        $spec->apply($builder);
+
+        expect($builder->orderByRawCalls)->toHaveCount(1)
+            ->and($builder->orderByRawCalls[0]['direction'])->toBe($expectedUpper);
+    },
+)->with([
+    ['asc', 'ASC'],
+    ['desc', 'DESC'],
+    ['ASC', 'ASC'],
+    ['DESC', 'DESC'],
+]);
+
+it(
+    'it does NOT call HasScopesInterface::overrides() at all during apply (the SQL path never reads stored override keys; it derives the chain from the enumerator only)',
+    function (): void {
+        $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
+        $factory = new ScopeMetadataFactory($registry);
+        $context = new ScopeContext($registry);
+        $context->in('store', 'en.gb');
+        $renderer = makeRenderer('COALESCE(expr)');
+        $enumerator = new SignatureCandidateEnumerator($registry);
+
+        $spec = new ScopedOrderBy(
+            property: 'name',
+            scopeMetadataFactory: $factory,
+            scopeContext: $context,
+            scopedFieldRenderer: $renderer,
+            signatureCandidateEnumerator: $enumerator,
+            entityClass: ScopedOrderByProduct::class,
+        );
+
+        // Create a spy that tracks calls to overrides()
+        $hasScopes = new class () implements HasScopesInterface
+        {
+            public int $overridesCalled = 0;
+
+            public function setOverride(
+                string $signature,
+                string $property,
+                mixed $value,
+            ): void {}
+
+            public function override(
+                string $signature,
+                string $property,
+            ): mixed
+            {
+                return null;
+            }
+
+            public function hasOverride(
+                string $signature,
+                string $property,
+            ): bool
+            {
+                return false;
+            }
+
+            public function clearOverride(
+                string $signature,
+                string $property,
+            ): void {}
+
+            public function overrides(): array
+            {
+                $this->overridesCalled++;
+
+                return [];
+            }
+        };
+
+        $builder = makeBuilderSpy();
+        $spec->apply($builder);
+
+        // The ScopedOrderBy SQL path must not interact with HasScopesInterface at all
+        expect($hasScopes->overridesCalled)->toBe(0);
+    },
+);
+
+it(
+    'it emits the cap-exceeded warning once when the candidate count exceeds the configured cap (verified by injecting a low-cap enumerator)',
+    function (): void {
+        // Two axes with 2 paths each produce at least 4 candidates for a context set to the most specific path.
+        // A cap of 1 will be exceeded and should fire E_USER_WARNING exactly once.
+        $registry = makeScopedOrderByRegistry([
+            'store' => ['en', 'en.gb'],
+            'locale' => ['default', 'default.formal'],
+        ]);
+        $factory = new ScopeMetadataFactory($registry);
+        $context = new ScopeContext($registry);
+        $context->in('store', 'en.gb');
+        $context->in('locale', 'default.formal');
+
+        // Cap = 1: enumerator will emit the warning when generating the 2nd candidate
+        $enumerator = new SignatureCandidateEnumerator($registry, cap: 1);
+        $renderer = makeRenderer('COALESCE(expr)');
+
+        $spec = new ScopedOrderBy(
+            property: 'title',
+            scopeMetadataFactory: $factory,
+            scopeContext: $context,
+            scopedFieldRenderer: $renderer,
+            signatureCandidateEnumerator: $enumerator,
+            entityClass: ScopedOrderByMultiAxisProduct::class,
+        );
+
+        $warningCount = 0;
+        set_error_handler(function (int $errno, string $errstr) use (&$warningCount): bool {
+            if ($errno === E_USER_WARNING && str_contains($errstr, 'cap')) {
+                $warningCount++;
+            }
+
+            return true;
+        });
+
+        $spec->apply(makeBuilderSpy());
+
+        restore_error_handler();
+
+        expect($warningCount)->toBe(1);
+    },
+);
+
+it(
+    'for the same attribute axes and context, the JSONB keys appearing in the COALESCE chain match the order in which the walker iterates candidates (no algorithmic drift)',
+    function (): void {
+        $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
+        $factory = new ScopeMetadataFactory($registry);
+        $context = new ScopeContext($registry);
+        $context->in('store', 'en.gb');
+        $enumerator = new SignatureCandidateEnumerator($registry);
+
+        // Capture which signatures the renderer receives (SQL COALESCE chain order)
+        $sqlCandidates = null;
+        $renderer = new class (Closure::fromCallable(
+            function (ScopedFieldExpression $expr) use (&$sqlCandidates): string {
+                $sqlCandidates = $expr->candidateSignatures;
+    
+                return 'COALESCE(expr)';
+            }
+        )) implements ScopedFieldRendererInterface {
+            public function __construct(private readonly Closure $fn) {}
+
+            public function render(ScopedFieldExpression $expression): string
+            {
+                return ($this->fn)($expression);
+            }
+        };
+
+        $spec = new ScopedOrderBy(
+            property: 'name',
+            scopeMetadataFactory: $factory,
+            scopeContext: $context,
+            scopedFieldRenderer: $renderer,
+            signatureCandidateEnumerator: $enumerator,
+            entityClass: ScopedOrderByProduct::class,
+        );
+
+        $spec->apply(makeBuilderSpy());
+
+        // Get the order in which the PHP walker iterates candidates for the same axes+context
+        $walkerCandidates = $enumerator->enumerate(['store'], $context);
+
+        expect($sqlCandidates)->not->toBeNull()
+            ->and(count($sqlCandidates))->toBe(count($walkerCandidates));
+
+        foreach ($sqlCandidates as $index => $sqlSig) {
+            expect($sqlSig->toString())->toBe($walkerCandidates[$index]->toString());
+        }
+    },
+);
