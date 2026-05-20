@@ -76,20 +76,12 @@ function makeConfigStub(array $axes): ConfigRepositoryInterface
     };
 }
 
-it('loads axes from injected config into PhpScopeRegistry', function (): void {
+it('builds an axis from a scopes map keyed by scope path', function (): void {
     $config = makeConfigStub([
-        'geo' => ['hierarchy' => ['eu', 'eu.de', 'us']],
-        'locale' => ['hierarchy' => ['en', 'fr']],
-    ]);
-
-    $registry = new PhpScopeRegistry($config);
-
-    expect($registry)->toBeInstanceOf(ScopeRegistryInterface::class);
-});
-
-it('returns ScopeAxis instances from getAxis for registered names', function (): void {
-    $config = makeConfigStub([
-        'geo' => ['hierarchy' => ['eu', 'eu.de', 'us']],
+        'geo' => [
+            'default' => 'eu',
+            'scopes' => ['eu' => [], 'eu.de' => [], 'us' => []],
+        ],
     ]);
 
     $registry = new PhpScopeRegistry($config);
@@ -98,25 +90,94 @@ it('returns ScopeAxis instances from getAxis for registered names', function ():
         ->and($registry->getAxis('geo')->name)->toBe('geo');
 });
 
+it('preserves scope declaration order when building the hierarchy', function (): void {
+    $config = makeConfigStub([
+        'geo' => [
+            'default' => 'eu',
+            'scopes' => ['eu' => [], 'eu.de' => [], 'us' => []],
+        ],
+    ]);
+
+    $registry = new PhpScopeRegistry($config);
+
+    expect($registry->getAxis('geo')->hierarchy->paths())->toBe(['eu', 'eu.de', 'us']);
+});
+
+it('assigns the configured default scope to the built axis', function (): void {
+    $config = makeConfigStub([
+        'geo' => [
+            'default' => 'eu',
+            'scopes' => ['eu' => [], 'eu.de' => [], 'us' => []],
+        ],
+    ]);
+
+    $registry = new PhpScopeRegistry($config);
+
+    expect($registry->getAxis('geo')->default)->toBe('eu');
+});
+
+it('throws ScopeConfigurationException when an axis omits the default key', function (): void {
+    $config = makeConfigStub([
+        'geo' => [
+            'scopes' => ['eu' => [], 'us' => []],
+        ],
+    ]);
+
+    expect(fn () => new PhpScopeRegistry($config))->toThrow(ScopeConfigurationException::class);
+});
+
+it('throws ScopeConfigurationException when the default is not a key in the scopes map', function (): void {
+    $config = makeConfigStub([
+        'geo' => [
+            'default' => 'global',
+            'scopes' => ['eu' => [], 'us' => []],
+        ],
+    ]);
+
+    expect(fn () => new PhpScopeRegistry($config))->toThrow(ScopeConfigurationException::class);
+});
+
+it('throws ScopeConfigurationException when the scopes map is empty', function (): void {
+    $config = makeConfigStub([
+        'geo' => [
+            'default' => 'eu',
+            'scopes' => [],
+        ],
+    ]);
+
+    expect(fn () => new PhpScopeRegistry($config))->toThrow(ScopeConfigurationException::class);
+});
+
+it('throws ScopeConfigurationException when scopes is not an array', function (): void {
+    $config = makeConfigStub([
+        'geo' => [
+            'default' => 'eu',
+            'scopes' => 'not-an-array',
+        ],
+    ]);
+
+    expect(fn () => new PhpScopeRegistry($config))->toThrow(ScopeConfigurationException::class);
+});
+
+it('accepts an empty top-level axes array without error', function (): void {
+    $config = makeConfigStub([]);
+
+    $registry = new PhpScopeRegistry($config);
+
+    expect($registry->listAxes())->toBe([]);
+});
+
 it('throws UnknownAxisException when getAxis is called with unknown axis', function (): void {
     $config = makeConfigStub([
-        'geo' => ['hierarchy' => ['eu', 'eu.de']],
+        'geo' => [
+            'default' => 'eu',
+            'scopes' => ['eu' => [], 'eu.de' => []],
+        ],
     ]);
 
     $registry = new PhpScopeRegistry($config);
 
     expect(fn () => $registry->getAxis('unknown'))->toThrow(UnknownAxisException::class);
-});
-
-it('throws ScopeConfigurationException when config has duplicate axis names', function (): void {
-    // PHP arrays cannot have duplicate keys, so we test duplicate paths in a hierarchy
-    // which is the only way to get duplication at axis registration level.
-    // We test duplicate hierarchy paths causing ScopeConfigurationException.
-    $config = makeConfigStub([
-        'geo' => ['hierarchy' => ['eu', 'eu', 'us']],
-    ]);
-
-    expect(fn () => new PhpScopeRegistry($config))->toThrow(ScopeConfigurationException::class);
 });
 
 it('throws ScopeConfigurationException when config shape is malformed', function (): void {
@@ -129,9 +190,9 @@ it('throws ScopeConfigurationException when config shape is malformed', function
 
 it('returns the list of all registered axis names in registration order', function (): void {
     $config = makeConfigStub([
-        'geo' => ['hierarchy' => ['eu', 'us']],
-        'locale' => ['hierarchy' => ['en', 'fr']],
-        'channel' => ['hierarchy' => ['web', 'mobile']],
+        'geo' => ['default' => 'eu', 'scopes' => ['eu' => [], 'us' => []]],
+        'locale' => ['default' => 'en', 'scopes' => ['en' => [], 'fr' => []]],
+        'channel' => ['default' => 'web', 'scopes' => ['web' => [], 'mobile' => []]],
     ]);
 
     $registry = new PhpScopeRegistry($config);

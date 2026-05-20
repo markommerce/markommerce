@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Marko\Core\Exceptions\MarkoException;
+use Markommerce\Scope\Exceptions\InvalidSignatureForAttributeException;
 use Markommerce\Scope\Exceptions\ScopeConfigurationException;
 use Markommerce\Scope\Exceptions\ScopeContextException;
 use Markommerce\Scope\Exceptions\ScopeStorageException;
@@ -63,4 +64,42 @@ it('extends MarkoException for all scope exceptions', function (): void {
         ->and(ScopeConfigurationException::malformedConfig('store', 'reason'))->toBeInstanceOf(MarkoException::class)
         ->and(ScopeContextException::axisNotSet('currency'))->toBeInstanceOf(MarkoException::class)
         ->and(ScopeStorageException::missingColumn('scopes', 'products'))->toBeInstanceOf(MarkoException::class);
+});
+
+it('builds a ScopeConfigurationException when an axis is missing its default scope', function (): void {
+    $exception = ScopeConfigurationException::missingDefault('store');
+
+    expect($exception)->toBeInstanceOf(ScopeConfigurationException::class)
+        ->and($exception->getMessage())->toContain('store')
+        ->and($exception->getContext())->not->toBeEmpty()
+        ->and($exception->getSuggestion())->not->toBeEmpty();
+});
+
+it('builds a ScopeConfigurationException when the default scope is not declared in the scopes map', function (): void {
+    $exception = ScopeConfigurationException::defaultNotInScopes('store', 'global');
+
+    expect($exception)->toBeInstanceOf(ScopeConfigurationException::class)
+        ->and($exception->getMessage())->toContain('store')
+        ->and($exception->getMessage())->toContain('global')
+        ->and($exception->getContext())->not->toBeEmpty()
+        ->and($exception->getSuggestion())->not->toBeEmpty();
+});
+
+it('builds a ScopeConfigurationException when an axis declares an empty scopes map', function (): void {
+    $exception = ScopeConfigurationException::emptyScopesMap('store');
+
+    expect($exception)->toBeInstanceOf(ScopeConfigurationException::class)
+        ->and($exception->getMessage())->toContain('store')
+        ->and($exception->getContext())->not->toBeEmpty()
+        ->and($exception->getSuggestion())->not->toBeEmpty();
+});
+
+it('throws InvalidSignatureForAttributeException for a default-scope signature', function (): void {
+    $exception = InvalidSignatureForAttributeException::forDefaultScope('locale', 'default');
+
+    expect($exception)->toBeInstanceOf(InvalidSignatureForAttributeException::class)
+        ->and($exception->getMessage())->toContain('locale')
+        ->and($exception->getMessage())->toContain('default')
+        ->and($exception->getContext())->not->toBeEmpty()
+        ->and($exception->getSuggestion())->toContain('base column');
 });

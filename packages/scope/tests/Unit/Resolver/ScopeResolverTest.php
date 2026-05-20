@@ -80,19 +80,28 @@ class TwoAxisProduct extends Entity implements HasScopesInterface
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function makeResolverRegistry(array $axes = ['store' => ['global', 'global.us']]): ScopeRegistryInterface
+/**
+ * @param array<string, list<string>> $axes
+ * @param array<string, string> $defaults
+ */
+function makeResolverRegistry(array $axes = ['store' => ['global', 'global.us']], array $defaults = []): ScopeRegistryInterface
 {
-    return new class ($axes) implements ScopeRegistryInterface
+    return new class ($axes, $defaults) implements ScopeRegistryInterface
     {
         /** @var array<string, ScopeAxis> */
         private array $builtAxes;
 
-        public function __construct(array $axes)
+        /** @param array<string, list<string>> $axes @param array<string, string> $defaults */
+        public function __construct(array $axes, array $defaults = [])
         {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
+                $default = $defaults[$name] ?? '__test_default';
+                if (!in_array($default, $paths, true)) {
+                    $paths = array_merge([$default], $paths);
+                }
                 $hierarchy = new ScopeHierarchy($paths);
-                $this->builtAxes[$name] = new ScopeAxis(name: $name, hierarchy: $hierarchy);
+                $this->builtAxes[$name] = new ScopeAxis(name: $name, hierarchy: $hierarchy, default: $default);
             }
         }
 

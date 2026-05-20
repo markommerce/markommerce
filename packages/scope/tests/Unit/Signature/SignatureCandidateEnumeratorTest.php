@@ -11,21 +11,26 @@ use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 
 /**
  * @param array<string, list<string>> $axes
+ * @param array<string, string> $defaults
  */
-function makeRegistry(array $axes = []): ScopeRegistryInterface
+function makeRegistry(array $axes = [], array $defaults = []): ScopeRegistryInterface
 {
-    return new class ($axes) implements ScopeRegistryInterface
+    return new class ($axes, $defaults) implements ScopeRegistryInterface
     {
         /** @var array<string, ScopeAxis> */
         private array $builtAxes;
 
-        /** @param array<string, list<string>> $axes */
-        public function __construct(array $axes)
+        /** @param array<string, list<string>> $axes @param array<string, string> $defaults */
+        public function __construct(array $axes, array $defaults = [])
         {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
+                $default = $defaults[$name] ?? '__test_default';
+                if (!in_array($default, $paths, true)) {
+                    $paths = array_merge([$default], $paths);
+                }
                 $hierarchy = new ScopeHierarchy($paths);
-                $this->builtAxes[$name] = new ScopeAxis(name: $name, hierarchy: $hierarchy);
+                $this->builtAxes[$name] = new ScopeAxis(name: $name, hierarchy: $hierarchy, default: $default);
             }
         }
 
@@ -380,6 +385,89 @@ it('returns an empty list when no axes are declared', function (): void {
 
     $enumerator = new SignatureCandidateEnumerator($registry);
     $result = $enumerator->enumerate([], $context);
+
+    expect($result)->toBe([]);
+});
+
+it('returns an empty list for a single-axis attribute resolved to its default', function (): void {
+    // Single axis channel at its default value
+    // After filtering, channel is OMIT-only → empty list
+    $registry = makeRegistry(['channel' => ['b2b']]);
+    $context = new ScopeContext($registry);
+    $context->in('channel', '__test_default');
+
+    $enumerator = new SignatureCandidateEnumerator($registry);
+    $result = $enumerator->enumerate(['channel'], $context);
+
+    expect($result)->toBe([]);
+});
+
+it('enumerates partial composites when some axes are default and others are not', function (): void {
+    // channel is at its default value (__test_default), locale is at a non-default value
+    // Only locale-based candidates should appear (channel is omitted)
+    $registry = makeRegistry(['channel' => ['b2b'], 'locale' => ['es']]);
+    $context = new ScopeContext($registry);
+    $context->in('channel', '__test_default')->in('locale', 'es');
+
+    $enumerator = new SignatureCandidateEnumerator($registry);
+    $result = $enumerator->enumerate(['channel', 'locale'], $context);
+
+    $strings = array_map(fn ($s) => $s->toString(), $result);
+    // channel is at default → filtered → only locale:es remains
+    expect($strings)->toBe(['locale:es']);
+});
+
+it('enumerates candidates normally for axes at non-default scopes', function (): void {
+    // When both axes are at non-default values, enumeration should work as usual
+    $registry = makeRegistry(['channel' => ['b2b'], 'locale' => ['es']]);
+    $context = new ScopeContext($registry);
+    $context->in('channel', 'b2b')->in('locale', 'es');
+
+    $enumerator = new SignatureCandidateEnumerator($registry);
+    $result = $enumerator->enumerate(['channel', 'locale'], $context);
+
+    $strings = array_map(fn ($s) => $s->toString(), $result);
+    expect($strings)->toBe(['channel:b2b|locale:es', 'channel:b2b', 'locale:es']);
+});
+
+it('returns an empty candidate list when every attribute axis is at its default', function (): void {
+    // Both channel and locale are set to their default values
+    // After filtering defaults, both axes are OMIT-only → no candidates
+    $registry = makeRegistry(['channel' => ['b2b'], 'locale' => ['es']]);
+    $context = new ScopeContext($registry);
+    $context->in('channel', '__test_default')->in('locale', '__test_default');
+
+    $enumerator = new SignatureCandidateEnumerator($registry);
+    $result = $enumerator->enumerate(['channel', 'locale'], $context);
+
+    expect($result)->toBe([]);
+});
+
+it('filters the default scope out of hierarchy walk-up results', function (): void {
+    // Hierarchy: global (default) -> global.eu -> global.eu.de
+    // walkUp('global.eu') yields ['global.eu', 'global']
+    // After filter (remove default 'global'): only 'global.eu' remains
+    $registry = makeRegistry(['geo' => ['global.eu']], ['geo' => 'global']);
+    $context = new ScopeContext($registry);
+    $context->in('geo', 'global.eu');
+
+    $enumerator = new SignatureCandidateEnumerator($registry);
+    $result = $enumerator->enumerate(['geo'], $context);
+
+    // Only geo:global.eu should be present — global (the default) is filtered out
+    $strings = array_map(fn ($s) => $s->toString(), $result);
+    expect($strings)->toBe(['geo:global.eu']);
+});
+
+it('omits an axis whose context value equals the axis default scope', function (): void {
+    // channel's default is '__test_default'; context is set to that default value
+    // The axis should be treated as OMIT-only (no candidates should include channel)
+    $registry = makeRegistry(['channel' => ['b2b']]);
+    $context = new ScopeContext($registry);
+    $context->in('channel', '__test_default');
+
+    $enumerator = new SignatureCandidateEnumerator($registry);
+    $result = $enumerator->enumerate(['channel'], $context);
 
     expect($result)->toBe([]);
 });

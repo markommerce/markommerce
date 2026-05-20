@@ -81,7 +81,9 @@ class ScopeWalker
         string $path,
         ScopeRegistryInterface $registry,
     ): ScopeWalkResult {
+        $axisDefault = $registry->getAxis($axis)->default;
         $walked = $registry->getHierarchy($axis)->walkUp($path);
+        $walked = array_values(array_filter($walked, fn (string $p): bool => $p !== $axisDefault));
 
         $matchedScope = array_find(
             $walked,

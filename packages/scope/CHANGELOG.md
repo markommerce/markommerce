@@ -16,9 +16,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `MultiAxisWalkAtNotSupportedException` --- thrown when `ScopeWalker::walkAt()` is called with a multi-axis `ScopeSignature`. Use `walk()` with a `ScopeContext` for multi-axis resolution.
 - `ScopedFieldRendererInterface` --- interface implemented by driver packages to emit DB-specific `COALESCE` expressions for scoped field ordering. Replaces the removed `ScopeSortRendererInterface`.
 - `ScopedFieldExpression` --- value object carrying property, column, and ordered candidate signatures for driver rendering. Replaces `ScopeSortExpression`.
+- `default` axis property on `ScopeAxis` --- every axis now carries its configured default scope path. Used by `SignatureCandidateEnumerator`, `ScopeWalker`, and `ScopeSignatureValidator` to identify the default.
+- `packages/scope/config/scope.php` --- ships default `locale` (default: `default`), `market` (default: `default`), and `channel` (default: `web`) axes out of the box.
+- `ScopeConfigurationException` factory methods: `emptyScopesMap`, `missingDefault`, `defaultNotInScopes` --- thrown during registry construction when the config schema is violated.
+- `InvalidSignatureForAttributeException::forDefaultScope` --- thrown by `ScopeSignatureValidator` (and therefore `ScopeResolver::setOverride` / `clearOverride`) when a signature names an axis at its configured default scope.
+- `Markommerce\Scope\Storage\DefaultScopeGuard` --- a static-configured guard that polices direct `HasScopes::setOverride()` / `clearOverride()` calls at a default-scope signature. `packages/scope/module.php` gains a `boot` callback that wires the guard from the active `ScopeRegistryInterface`. Direct trait writes at a default-scope signature throw `ScopeStorageException::defaultScopeWrite`.
 
 ### Changed
 
+- **BREAKING**: Axis config schema --- `hierarchy` (indexed list) replaced by `scopes` (associative map) plus required `default` (string key). Multi-source contributions deep-merge through `Marko\Config\ConfigMerger`.
+- **BREAKING**: `SignatureCandidateEnumerator` now filters the axis default out of `walkUp` results. An all-default context produces an empty candidate list and downstream SQL skips the `scopes` JSON column entirely, falling back to a plain `ORDER BY "<column>"`.
+- **BREAKING**: `ScopeWalker::walkAt()` (and therefore `ScopeResolver::resolvedAt()`) now filters the axis default out of `walkUp` results too, so a stored override at `axis:default` is never returned. The base column property is the authoritative default value.
+- **BREAKING**: Writing an override at a default-scope signature through `ScopeResolver::setOverride()` / `clearOverride()` now throws `InvalidSignatureForAttributeException`.
 - **BREAKING**: `Markommerce\Scope\Scope` class removed. Use `Markommerce\Scope\Signature\ScopeSignature::fromArray([...])` instead. Old single-axis `Scope` objects are not forward-compatible.
 - **BREAKING**: `ScopeResolver::setOverride`, `clearOverride`, and `resolvedAt` now take `ScopeSignature` instead of the removed `Scope` class.
 - **BREAKING**: `ScopeWalker::walkAt` takes a `ScopeSignature` (single-axis only --- passing a multi-axis signature throws `MultiAxisWalkAtNotSupportedException`).

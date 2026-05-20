@@ -39,4 +39,16 @@ class InvalidSignatureForAttributeException extends MarkoException
             suggestion: "Ensure the value '$value' is declared in the hierarchy for axis '$axis'",
         );
     }
+
+    public static function forDefaultScope(
+        string $axis,
+        string $defaultScope,
+    ): self
+    {
+        return new self(
+            message: "Signature names axis '$axis' at its default scope '$defaultScope'; the base column already holds the default value",
+            context: "Validating ScopeSignature axis '$axis' value '$defaultScope' against the axis default",
+            suggestion: "Remove the '$axis' axis from the signature, or edit the base column property directly — the base column already holds the default value for axis '$axis'",
+        );
+    }
 }

@@ -45,7 +45,9 @@ class SignatureCandidateEnumerator
         foreach ($attributeAxes as $axis) {
             $path = $state[$axis] ?? null;
             if ($path !== null && $this->scopeRegistry->hasAxis($axis)) {
+                $axisDefault = $this->scopeRegistry->getAxis($axis)->default;
                 $walked = $this->scopeRegistry->getHierarchy($axis)->walkUp($path);
+                $walked = array_values(array_filter($walked, fn (string $p): bool => $p !== $axisDefault));
                 $axisValues[$axis] = array_merge($walked, [null]);
             } else {
                 // Axis not active in context — OMIT-only loop (one null iteration)

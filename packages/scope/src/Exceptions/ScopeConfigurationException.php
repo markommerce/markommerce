@@ -40,6 +40,33 @@ class ScopeConfigurationException extends MarkoException
         );
     }
 
+    public static function missingDefault(string $axis): self
+    {
+        return new self(
+            message: "Scope axis '$axis' is missing a 'default' scope declaration",
+            context: "Building scope axis '$axis' from configuration",
+            suggestion: "Add a 'default' key to the '$axis' axis configuration naming the root/global scope path (e.g. 'default: global')",
+        );
+    }
+
+    public static function defaultNotInScopes(string $axis, string $default): self
+    {
+        return new self(
+            message: "Default scope '$default' for axis '$axis' is not declared in the axis scopes map",
+            context: "Validating scope axis '$axis' configuration — the declared default '$default' was not found among the registered scope paths",
+            suggestion: "Either add '$default' to the '$axis' scopes map or change the 'default' value to one of the already-declared scope paths",
+        );
+    }
+
+    public static function emptyScopesMap(string $axis): self
+    {
+        return new self(
+            message: "Scope axis '$axis' declares an empty scopes map — at least one scope path is required",
+            context: "Building scope axis '$axis' from configuration",
+            suggestion: "Add at least one scope path to the '$axis' axis 'scopes' map and declare which path is the 'default'",
+        );
+    }
+
     /**
      * @param class-string $entityClass
      */

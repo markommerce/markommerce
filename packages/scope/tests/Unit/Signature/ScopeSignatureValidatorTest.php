@@ -18,12 +18,17 @@ class InstrumentedRegistry implements ScopeRegistryInterface
     /** @var array<string, ScopeHierarchy> */
     private array $hierarchies;
 
+    /** @var array<string, string> */
+    private array $axisDefaults;
+
     /**
      * @param array<string, ScopeHierarchy> $axisHierarchies
+     * @param array<string, string> $axisDefaults
      */
-    public function __construct(array $axisHierarchies)
+    public function __construct(array $axisHierarchies, array $axisDefaults = [])
     {
         $this->hierarchies = $axisHierarchies;
+        $this->axisDefaults = $axisDefaults;
     }
 
     public function hasAxis(string $name): bool
@@ -33,7 +38,14 @@ class InstrumentedRegistry implements ScopeRegistryInterface
 
     public function getAxis(string $name): ScopeAxis
     {
-        throw new RuntimeException('Not implemented');
+        $default = $this->axisDefaults[$name] ?? '__test_default';
+        $hierarchy = $this->hierarchies[$name];
+
+        if (!$hierarchy->exists($default)) {
+            $hierarchy = new ScopeHierarchy(array_merge([$default], $hierarchy->paths()));
+        }
+
+        return new ScopeAxis(name: $name, hierarchy: $hierarchy, default: $default);
     }
 
     public function listAxes(): array
@@ -51,19 +63,25 @@ class InstrumentedRegistry implements ScopeRegistryInterface
 
 /**
  * @param array<string, ScopeHierarchy> $axisHierarchies
+ * @param array<string, string> $axisDefaults
  */
-function makeSignatureValidatorRegistry(array $axisHierarchies): ScopeRegistryInterface
+function makeSignatureValidatorRegistry(array $axisHierarchies, array $axisDefaults = []): ScopeRegistryInterface
 {
-    return new class ($axisHierarchies) implements ScopeRegistryInterface {
+    return new class ($axisHierarchies, $axisDefaults) implements ScopeRegistryInterface {
         /** @var array<string, ScopeHierarchy> */
         private array $hierarchies;
 
+        /** @var array<string, string> */
+        private array $axisDefaults;
+
         /**
          * @param array<string, ScopeHierarchy> $axisHierarchies
+         * @param array<string, string> $axisDefaults
          */
-        public function __construct(array $axisHierarchies)
+        public function __construct(array $axisHierarchies, array $axisDefaults = [])
         {
             $this->hierarchies = $axisHierarchies;
+            $this->axisDefaults = $axisDefaults;
         }
 
         public function hasAxis(string $name): bool
@@ -73,7 +91,14 @@ function makeSignatureValidatorRegistry(array $axisHierarchies): ScopeRegistryIn
 
         public function getAxis(string $name): ScopeAxis
         {
-            throw new RuntimeException('Not implemented');
+            $default = $this->axisDefaults[$name] ?? '__test_default';
+            $hierarchy = $this->hierarchies[$name];
+
+            if (!$hierarchy->exists($default)) {
+                $hierarchy = new ScopeHierarchy(array_merge([$default], $hierarchy->paths()));
+            }
+
+            return new ScopeAxis(name: $name, hierarchy: $hierarchy, default: $default);
         }
 
         public function listAxes(): array
@@ -215,4 +240,59 @@ it('does not cache failures (a failing validation re-throws on repeat)', functio
     expect(fn () => $validator->validate($signature, ['channel']))->toThrow(
         InvalidSignatureForAttributeException::class,
     );
+});
+
+it('rejects a single-axis signature naming the axis at its default scope', function (): void {
+    $registry = makeSignatureValidatorRegistry(
+        ['channel' => new ScopeHierarchy(['b2c', 'b2b'])],
+        ['channel' => 'b2c'],
+    );
+    $validator = new ScopeSignatureValidator($registry);
+    $signature = new ScopeSignature(['channel' => 'b2c']);
+
+    expect(fn () => $validator->validate($signature, ['channel']))->toThrow(
+        InvalidSignatureForAttributeException::class,
+    );
+});
+
+it('rejects a default-scope axis inside a multi-axis composite signature', function (): void {
+    $registry = makeSignatureValidatorRegistry(
+        [
+            'channel' => new ScopeHierarchy(['b2c', 'b2b']),
+            'locale' => new ScopeHierarchy(['en', 'es']),
+        ],
+        ['locale' => 'en'],
+    );
+    $validator = new ScopeSignatureValidator($registry);
+    $signature = new ScopeSignature(['channel' => 'b2b', 'locale' => 'en']);
+
+    expect(fn () => $validator->validate($signature, ['channel', 'locale']))->toThrow(
+        InvalidSignatureForAttributeException::class,
+    );
+});
+
+it('accepts a signature naming an axis at a non-default scope', function (): void {
+    $registry = makeSignatureValidatorRegistry(
+        ['channel' => new ScopeHierarchy(['b2c', 'b2b'])],
+        ['channel' => 'b2c'],
+    );
+    $validator = new ScopeSignatureValidator($registry);
+    $signature = new ScopeSignature(['channel' => 'b2b']);
+
+    expect(fn () => $validator->validate($signature, ['channel']))->not->toThrow(Throwable::class);
+});
+
+it('accepts a partial signature that omits an axis entirely', function (): void {
+    $registry = makeSignatureValidatorRegistry(
+        [
+            'channel' => new ScopeHierarchy(['b2c', 'b2b']),
+            'locale' => new ScopeHierarchy(['en', 'es']),
+        ],
+        ['channel' => 'b2c', 'locale' => 'en'],
+    );
+    $validator = new ScopeSignatureValidator($registry);
+    // Omits 'locale' entirely — this is a valid partial/composite signature
+    $signature = new ScopeSignature(['channel' => 'b2b']);
+
+    expect(fn () => $validator->validate($signature, ['channel', 'locale']))->not->toThrow(Throwable::class);
 });

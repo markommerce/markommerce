@@ -34,19 +34,28 @@ class WalkerTraitProduct extends Entity implements HasScopesInterface
     public ?int $id = null;
 }
 
-function makeWalkerRegistry(array $axes = []): ScopeRegistryInterface
+/**
+ * @param array<string, list<string>> $axes
+ * @param array<string, string> $defaults
+ */
+function makeWalkerRegistry(array $axes = [], array $defaults = []): ScopeRegistryInterface
 {
-    return new class ($axes) implements ScopeRegistryInterface
+    return new class ($axes, $defaults) implements ScopeRegistryInterface
     {
         /** @var array<string, ScopeAxis> */
         private array $builtAxes;
 
-        public function __construct(array $axes)
+        /** @param array<string, list<string>> $axes @param array<string, string> $defaults */
+        public function __construct(array $axes, array $defaults = [])
         {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
+                $default = $defaults[$name] ?? '__test_default';
+                if (!in_array($default, $paths, true)) {
+                    $paths = array_merge([$default], $paths);
+                }
                 $hierarchy = new ScopeHierarchy($paths);
-                $this->builtAxes[$name] = new ScopeAxis(name: $name, hierarchy: $hierarchy);
+                $this->builtAxes[$name] = new ScopeAxis(name: $name, hierarchy: $hierarchy, default: $default);
             }
         }
 
@@ -649,4 +658,40 @@ it('walkAt ignores the ScopeContext entirely (the signature axes determine the l
 
     expect($result->isFound())->toBeTrue()
         ->and($result->value())->toBe('Hemd');
+});
+
+it('walkAt returns notFound for a signature at the axis default even when a stored override exists at axis:default', function (): void {
+    // geo axis default is '__test_default'
+    // A signature pointing at the default value should return notFound
+    // even when there is a stored override keyed at 'geo:__test_default'
+    $registry = makeWalkerRegistry(['geo' => ['eu', 'eu.de']]);
+    $signature = new ScopeSignature(['geo' => '__test_default']);
+
+    $overrides = new WalkerTraitProduct();
+    // Deliberately store an override at the default scope key
+    $overrides->setOverride('geo:__test_default', 'name', 'Should-Not-Return');
+
+    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+    $result = $walker->walkAt($overrides, 'name', ['geo'], $signature, $registry);
+
+    expect($result->isFound())->toBeFalse();
+});
+
+it('walkAt skips a default ancestor while still matching a non-default descendant override during walk-up', function (): void {
+    // geo hierarchy: global (default) -> global.eu -> global.eu.de
+    // walkUp('global.eu') = ['global.eu', 'global']
+    // After filtering default 'global': only 'global.eu' is searched
+    // Override is stored at 'geo:global.eu' — should be found
+    $registry = makeWalkerRegistry(['geo' => ['global.eu']], ['geo' => 'global']);
+    $signature = new ScopeSignature(['geo' => 'global.eu']);
+
+    $overrides = new WalkerTraitProduct();
+    $overrides->setOverride('geo:global', 'name', 'Should-Not-Return');
+    $overrides->setOverride('geo:global.eu', 'name', 'EU-override');
+
+    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+    $result = $walker->walkAt($overrides, 'name', ['geo'], $signature, $registry);
+
+    expect($result->isFound())->toBeTrue()
+        ->and($result->value())->toBe('EU-override');
 });
