@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace Markommerce\Scope\Storage;
 
+use Markommerce\Scope\Exceptions\ScopeStorageException;
+
 interface HasScopesInterface
 {
+    /**
+     * @throws ScopeStorageException
+     */
     public function setOverride(
         string $signature,
         string $property,
@@ -22,6 +27,9 @@ interface HasScopesInterface
         string $property,
     ): bool;
 
+    /**
+     * @throws ScopeStorageException
+     */
     public function clearOverride(
         string $signature,
         string $property,

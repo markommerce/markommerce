@@ -35,19 +35,28 @@ class ScopedOrderByMultiAxisProduct
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function makeScopedOrderByRegistry(array $axes = []): ScopeRegistryInterface
+/**
+ * @param array<string, list<string>> $axes
+ * @param array<string, string> $defaults
+ */
+function makeScopedOrderByRegistry(array $axes = [], array $defaults = []): ScopeRegistryInterface
 {
-    return new class ($axes) implements ScopeRegistryInterface
+    return new class ($axes, $defaults) implements ScopeRegistryInterface
     {
         /** @var array<string, ScopeAxis> */
         private array $builtAxes;
 
-        public function __construct(private readonly array $axes)
+        /** @param array<string, list<string>> $axes @param array<string, string> $defaults */
+        public function __construct(private readonly array $axes, array $defaults = [])
         {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
+                $default = $defaults[$name] ?? '__test_default';
+                if (!in_array($default, $paths, true)) {
+                    $paths = array_merge([$default], $paths);
+                }
                 $hierarchy = new ScopeHierarchy($paths);
-                $this->builtAxes[$name] = new ScopeAxis(name: $name, hierarchy: $hierarchy);
+                $this->builtAxes[$name] = new ScopeAxis(name: $name, hierarchy: $hierarchy, default: $default);
             }
         }
 
@@ -96,6 +105,11 @@ function makeBuilderSpy(): EntityQueryBuilderInterface
             return $this;
         }
 
+        public function selectRaw(string $expression, array $bindings = []): static
+        {
+            return $this;
+        }
+
         public function distinct(): static
         {
             return $this;
@@ -139,6 +153,11 @@ function makeBuilderSpy(): EntityQueryBuilderInterface
         }
 
         public function whereJsonMissing(string $path): static
+        {
+            return $this;
+        }
+
+        public function whereRaw(string $expression, array $bindings = []): static
         {
             return $this;
         }

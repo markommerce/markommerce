@@ -32,8 +32,8 @@ function makeFactoryRegistry(): ScopeRegistryInterface
 
         public function __construct()
         {
-            $hierarchy = new ScopeHierarchy(['en', 'en.gb']);
-            $this->builtAxes = ['store' => new ScopeAxis(name: 'store', hierarchy: $hierarchy)];
+            $hierarchy = new ScopeHierarchy(['__test_default', 'en', 'en.gb']);
+            $this->builtAxes = ['store' => new ScopeAxis(name: 'store', hierarchy: $hierarchy, default: '__test_default')];
         }
 
         public function hasAxis(string $name): bool

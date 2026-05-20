@@ -68,25 +68,42 @@ readonly class PhpScopeRegistry implements ScopeRegistryInterface
         $axes = [];
 
         foreach ($rawAxes as $name => $definition) {
+            $axisName = (string) $name;
+
             if (!is_array($definition)) {
                 throw ScopeConfigurationException::malformedConfig(
-                    (string) $name,
+                    $axisName,
                     'axis definition must be an array',
                 );
             }
 
-            $paths = $definition['hierarchy'] ?? [];
+            $scopes = $definition['scopes'] ?? null;
 
-            if (!is_array($paths)) {
+            if (!is_array($scopes)) {
                 throw ScopeConfigurationException::malformedConfig(
-                    (string) $name,
-                    "'hierarchy' must be an array of paths",
+                    $axisName,
+                    "'scopes' must be an array",
                 );
             }
 
+            if ($scopes === []) {
+                throw ScopeConfigurationException::emptyScopesMap($axisName);
+            }
+
+            if (!array_key_exists('default', $definition)) {
+                throw ScopeConfigurationException::missingDefault($axisName);
+            }
+
+            $default = $definition['default'];
+
+            if (!array_key_exists($default, $scopes)) {
+                throw ScopeConfigurationException::defaultNotInScopes($axisName, (string) $default);
+            }
+
             /** @var list<string> $paths */
-            $hierarchy = new ScopeHierarchy($paths);
-            $axes[(string) $name] = new ScopeAxis(name: (string) $name, hierarchy: $hierarchy);
+            $paths = array_keys($scopes);
+            $hierarchy = ScopeHierarchy::fromPaths($paths);
+            $axes[$axisName] = new ScopeAxis(name: $axisName, hierarchy: $hierarchy, default: (string) $default);
         }
 
         return $axes;

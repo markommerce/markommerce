@@ -13,6 +13,7 @@ use Markommerce\Scope\Resolution\ScopeWalker;
 use Markommerce\Scope\Resolver\ScopeResolver;
 use Markommerce\Scope\Signature\ScopeSignatureValidator;
 use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
+use Markommerce\Scope\Storage\DefaultScopeGuard;
 
 return [
     'bindings' => [
@@ -29,4 +30,12 @@ return [
         ScopedOrderByFactory::class,
         ScopeWalker::class,
     ],
+    'boot' => function (ContainerInterface $container): void {
+        $registry = $container->get(ScopeRegistryInterface::class);
+        $defaults = [];
+        foreach ($registry->listAxes() as $axisName) {
+            $defaults[$axisName] = $registry->getAxis($axisName)->default;
+        }
+        DefaultScopeGuard::configure($defaults);
+    },
 ];

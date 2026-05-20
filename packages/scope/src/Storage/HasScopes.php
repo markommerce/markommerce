@@ -6,6 +6,7 @@ namespace Markommerce\Scope\Storage;
 
 use Marko\Database\Attributes\Column;
 use Marko\Database\Entity\Entity;
+use Markommerce\Scope\Exceptions\ScopeStorageException;
 
 /**
  * Provides scope override storage for entities.
@@ -24,11 +25,15 @@ trait HasScopes
     #[Column(name: 'scopes', type: 'json', nullable: true)]
     public ?array $scopes = null;
 
+    /**
+     * @throws ScopeStorageException
+     */
     public function setOverride(
         string $signature,
         string $property,
         mixed $value,
     ): void {
+        DefaultScopeGuard::assertWritable($signature);
         $scopes = $this->scopes ?? [];
         $scopes[$signature][$property] = $value;
         ksort($scopes[$signature]);
@@ -59,10 +64,14 @@ trait HasScopes
             && array_key_exists($property, $this->scopes[$signature]);
     }
 
+    /**
+     * @throws ScopeStorageException
+     */
     public function clearOverride(
         string $signature,
         string $property,
     ): void {
+        DefaultScopeGuard::assertWritable($signature);
         if (!isset($this->scopes[$signature])) {
             return;
         }

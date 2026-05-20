@@ -19,7 +19,7 @@ composer require markommerce/scope-pgsql
 
 ## Configuration
 
-Declare axes and their path hierarchies in `config/scope.php`:
+Declare axes in `config/scope.php`. Each axis requires a `default` key naming the root/global scope (where the base entity property value lives) and a `scopes` map listing every valid scope path:
 
 ```php title="config/scope.php"
 <?php
@@ -29,38 +29,50 @@ declare(strict_types=1);
 return [
     'axes' => [
         'locale' => [
-            'hierarchy' => [
-                'en',
-                'de',
-                'de-DE',
-                'de-AT',
-                'fr',
-                'fr-FR',
-                'fr-BE',
+            'default' => 'default',
+            'scopes'  => [
+                'default' => [],
+                'en'      => [],
+                'de'      => [],
+                'de-DE'   => [],
+                'de-AT'   => [],
+                'fr'      => [],
+                'fr-FR'   => [],
+                'fr-BE'   => [],
             ],
         ],
         'channel' => [
-            'hierarchy' => [
-                'b2b',
-                'b2c',
+            'default' => 'web',
+            'scopes'  => [
+                'web' => [],
+                'b2b' => [],
+                'b2c' => [],
             ],
         ],
         'market' => [
-            'hierarchy' => [
-                'eu',
-                'eu.de',
-                'eu.fr',
-                'eu.at',
-                'us',
-                'us.east',
-                'us.west',
+            'default' => 'default',
+            'scopes'  => [
+                'default'  => [],
+                'eu'       => [],
+                'eu.de'    => [],
+                'eu.fr'    => [],
+                'eu.at'    => [],
+                'us'       => [],
+                'us.east'  => [],
+                'us.west'  => [],
             ],
         ],
     ],
 ];
 ```
 
+The package ships a minimal `config/scope.php` with `locale`, `market`, and `channel` axes as a starting point. Extend it with the scope paths your application needs.
+
 Paths use dot notation. `walkUp('eu.de')` yields `['eu.de', 'eu']`, so a value set at `eu` is inherited by `eu.de` when no `eu.de`-specific override exists.
+
+**The default scope is the axis's base value.** The scope named by the `default` key represents the entity's base property value --- storing an override there is an error. `setOverride()` and `clearOverride()` both throw `ScopeStorageException` when the signature references an axis at its default scope. Signatures containing a default-scope path also fail `ScopeSignatureValidator` validation. This enforces the invariant that the base column is the single source of truth for the default-scope value.
+
+**Configuration is validated at boot.** `PhpScopeRegistry` throws `ScopeConfigurationException` if any axis is missing the `default` key, declares an empty `scopes` map, or names a `default` path that is not in the `scopes` map.
 
 ## Usage
 
@@ -254,7 +266,7 @@ $price = $scopeResolver->resolved($product, 'price'); // 65.00
 
 ### Writing overrides
 
-Use `ScopeResolver::setOverride()` to attach a scoped value to an entity before persisting:
+Use `ScopeResolver::setOverride()` to attach a scoped value to an entity before persisting. The signature must not reference any axis at its configured default scope --- doing so throws `ScopeStorageException`. To change the default-scope value, set the entity's base property directly:
 
 ```php
 <?php
@@ -265,8 +277,8 @@ use Markommerce\Scope\Resolver\ScopeResolver;
 use Markommerce\Scope\Signature\ScopeSignature;
 
 $product = new Product();
-$product->name = 'Widget';
-$product->price = 100.00;
+$product->name = 'Widget';       // base (default-scope) value — set directly
+$product->price = 100.00;        // base (default-scope) value — set directly
 
 // Set a German locale override for the name
 $scopeResolver->setOverride($product, 'name', 'Widget DE', ScopeSignature::fromArray(['locale' => 'de']));
@@ -441,15 +453,19 @@ return [
 | `Markommerce\Scope\Signature\ScopeSignature` | Value object representing one or more axis+path pairs; use `ScopeSignature::fromArray(['axis' => 'path'])` or `new ScopeSignature(['axis' => 'path'])` |
 | `Markommerce\Scope\Signature\SignatureCandidateEnumerator` | Enumerates all candidate signatures for multi-axis resolution in descending-score order |
 | `Markommerce\Scope\Signature\ScopeSignatureValidator` | Validates a `ScopeSignature` against the axes declared on a `#[Scoped]` attribute |
-| `Markommerce\Scope\Storage\HasScopesInterface` | Interface for entities that store scoped overrides directly via the `HasScopes` trait |
+| `Markommerce\Scope\Storage\HasScopesInterface` | Interface for entities that store scoped overrides; `setOverride()` and `clearOverride()` throw `ScopeStorageException` when given a default-scope signature |
 | `Markommerce\Scope\Storage\HasScopes` | Trait that adds a `$scopes` JSON column and the override storage methods. The consuming class must also declare `implements HasScopesInterface` --- PHP does not allow traits to enforce interface implementation. |
+| `Markommerce\Scope\Storage\DefaultScopeGuard` | Static guard configured at boot; polices `HasScopes::setOverride()` and `clearOverride()` by throwing `ScopeStorageException` when a signature targets an axis at its configured default scope |
 | `Markommerce\Scope\Query\ScopedOrderBy` | `QuerySpecification` that orders by resolved scope value |
 | `Markommerce\Scope\Query\ScopedOrderByFactory` | Factory for building `ScopedOrderBy` specifications |
 | `Markommerce\Scope\Query\ScopedFieldRendererInterface` | Interface implemented by driver packages to emit DB-specific `COALESCE` expressions |
 | `Markommerce\Scope\Registry\ScopeRegistryInterface` | Interface for scope axis/hierarchy providers |
+| `Markommerce\Scope\Axis\ScopeAxis` | Value object representing a configured axis; exposes `$name`, `$hierarchy`, and `$default` (the axis's root/global scope path) |
 | `Markommerce\Scope\Hierarchy\ScopeHierarchy` | Ordered list of declared paths; provides `walkUp()` for fallback traversal |
 | `Markommerce\Scope\Exceptions\InvalidSignatureException` | Thrown when a `ScopeSignature` is constructed with invalid input |
-| `Markommerce\Scope\Exceptions\InvalidSignatureForAttributeException` | Thrown when signature axes do not match the target property's `#[Scoped]` attribute |
+| `Markommerce\Scope\Exceptions\InvalidSignatureForAttributeException` | Thrown when signature axes do not match the target property's `#[Scoped]` attribute, or when a signature names an axis at its default scope |
+| `Markommerce\Scope\Exceptions\ScopeConfigurationException` | Thrown at boot when an axis definition is malformed, missing `default`, declares an empty `scopes` map, or names a `default` path absent from `scopes` |
+| `Markommerce\Scope\Exceptions\ScopeStorageException` | Thrown by `setOverride()`/`clearOverride()` when attempting to write an override at an axis's default scope |
 | `Markommerce\Scope\Exceptions\MultiAxisWalkAtNotSupportedException` | Thrown when `walkAt()` is called with a multi-axis signature |
 
 ### `ScopeContext`
@@ -491,6 +507,14 @@ return [
 |--------|-------------|
 | `create(string $entityClass, string $property, string $direction = 'asc'): ScopedOrderBy` | Build a `QuerySpecification` that orders by the resolved scope value for the active context. |
 
+### `ScopeAxis`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `$name` | `string` | The axis name as declared in config (e.g. `locale`, `market`, `channel`). |
+| `$hierarchy` | `ScopeHierarchy` | All declared scope paths for this axis. |
+| `$default` | `string` | The root/global scope path for this axis. Overrides at this path are rejected by `DefaultScopeGuard`. |
+
 ### `ScopeHierarchy`
 
 | Method | Description |
@@ -501,9 +525,22 @@ return [
 | `isAncestor(string $ancestor, string $descendant): bool` | Return true if `$ancestor` is a strict ancestor of `$descendant`. |
 | `walkUp(string $path): list<string>` | Return the path and all ancestors in deepest-first order. |
 
+### `DefaultScopeGuard`
+
+| Method | Description |
+|--------|-------------|
+| `configure(array $axisDefaults): void` | (Static) Provide the axis → default-scope map. Called once at module boot. |
+| `assertWritable(string $signature): void` | (Static) Throw `ScopeStorageException` if the signature contains any axis at its configured default scope. |
+| `reset(): void` | (Static) Clear the configured defaults. Intended for testing only. |
+| `isConfigured(): bool` | (Static) Return `true` if defaults have been configured. |
+
 ## Caveats
 
 **`ScopeContext` is a mutable singleton.** It holds active paths for the entire PHP process lifetime. In long-running processes (FPM workers, queue daemons, ReactPHP servers), the bootstrap layer must call `$scopeContext->clearAll()` between requests or jobs to prevent cross-request scope leakage.
+
+**Writing to the default scope is an error.** The axis `default` (e.g. `locale:default`) represents the base entity property. Passing a signature that names any axis at its configured default scope to `setOverride()` or `clearOverride()` throws `ScopeStorageException`. Edit the entity's base property directly instead. The same restriction applies to `ScopeSignatureValidator::validate()`, which throws `InvalidSignatureForAttributeException::forDefaultScope` in this case.
+
+**Default-scope values are never enumerated as candidates.** `SignatureCandidateEnumerator` strips default-scope paths from the walk-up results. If all active context paths happen to equal their axis defaults, the enumerator returns no candidates and resolution falls through to the base column value without a DB lookup.
 
 **`walkAt` is single-axis only.** `ScopeWalker::walkAt()` accepts only a single-axis `ScopeSignature`. Passing a multi-axis signature throws `MultiAxisWalkAtNotSupportedException`. Use `walk()` with a `ScopeContext` for multi-axis resolution.
 

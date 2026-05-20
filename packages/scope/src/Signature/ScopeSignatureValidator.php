@@ -41,6 +41,10 @@ class ScopeSignatureValidator
             if ($value !== null && !$this->scopeRegistry->getHierarchy($axis)->exists($value)) {
                 throw InvalidSignatureForAttributeException::forUnknownValue($value, $axis);
             }
+
+            if ($value !== null && $value === $this->scopeRegistry->getAxis($axis)->default) {
+                throw InvalidSignatureForAttributeException::forDefaultScope($axis, $value);
+            }
         }
 
         $this->cache[$cacheKey] = true;

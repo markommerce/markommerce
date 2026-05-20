@@ -11,5 +11,6 @@ readonly class ScopeAxis
     public function __construct(
         public string $name,
         public ScopeHierarchy $hierarchy,
+        public string $default,
     ) {}
 }

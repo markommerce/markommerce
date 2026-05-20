@@ -120,30 +120,43 @@ function buildPgIntSchemaDiff(string $tableName): SchemaDiff
 /**
  * Build a ScopeRegistryInterface that has 'channel' and 'locale' axes.
  *
+ * The second parameter allows callers to override per-axis defaults.
+ * When omitted, every axis uses the sentinel '__test_default' so that
+ * all-default contexts produce an empty candidate list (plain SQL).
+ *
  * @param array<string, list<string>> $axes
+ * @param array<string, string> $defaults
  */
-function buildPgIntRegistry(array $axes = []): ScopeRegistryInterface
+function buildPgIntRegistry(array $axes = [], array $defaults = []): ScopeRegistryInterface
 {
     if ($axes === []) {
         $axes = [
-            'channel' => ['default', 'default.web', 'default.mobile'],
-            'locale' => ['en', 'en.gb', 'de'],
+            'channel' => ['__test_default', 'default', 'default.web', 'default.mobile'],
+            'locale'  => ['__test_default', 'en', 'en.gb', 'de'],
         ];
     }
 
-    return new class ($axes) implements ScopeRegistryInterface
+    return new class ($axes, $defaults) implements ScopeRegistryInterface
     {
         /** @var array<string, ScopeAxis> */
         private array $builtAxes;
 
-        /** @param array<string, list<string>> $axes */
-        public function __construct(array $axes)
+        /**
+         * @param array<string, list<string>> $axes
+         * @param array<string, string> $defaults
+         */
+        public function __construct(array $axes, array $defaults)
         {
             $this->builtAxes = [];
 
             foreach ($axes as $name => $paths) {
+                $axisDefault = $defaults[$name] ?? '__test_default';
                 $hierarchy = new ScopeHierarchy($paths);
-                $this->builtAxes[$name] = new ScopeAxis(name: $name, hierarchy: $hierarchy);
+                $this->builtAxes[$name] = new ScopeAxis(
+                    name: $name,
+                    hierarchy: $hierarchy,
+                    default: $axisDefault,
+                );
             }
         }
 
@@ -616,5 +629,172 @@ it(
 
         expect($skipped)->toBeTrue()
             ->and($skipMessage)->toContain('DB_HOST');
+    },
+)->group('integration-destructive');
+
+it(
+    'builds the postgres scope registry from the scopes-map configuration schema',
+    function (): void {
+        $registry = buildPgIntRegistry();
+
+        expect($registry->hasAxis('channel'))->toBeTrue()
+            ->and($registry->hasAxis('locale'))->toBeTrue()
+            ->and($registry->getAxis('channel')->default)->toBe('__test_default')
+            ->and($registry->getAxis('locale')->default)->toBe('__test_default')
+            ->and($registry->getAxis('channel')->hierarchy->exists('__test_default'))->toBeTrue()
+            ->and($registry->getAxis('channel')->hierarchy->exists('default.web'))->toBeTrue()
+            ->and($registry->getAxis('locale')->hierarchy->exists('__test_default'))->toBeTrue()
+            ->and($registry->getAxis('locale')->hierarchy->exists('en.gb'))->toBeTrue();
+    },
+)->group('integration-destructive');
+
+it(
+    'orders by a plain column with no scopes json access for an all-default context',
+    function (): void {
+        /** @var PostgresTestConnection $conn */
+        $conn = $this->conn;
+        $tableName = $this->tableName;
+
+        // Insert a product with no overrides.
+        $conn->execute(
+            sprintf('INSERT INTO "%s" ("name", "price", "scopes") VALUES (?, ?, null)', $tableName),
+            ['Alpha', '1.00'],
+        );
+
+        [$resolver, $context, $registry, $metadataFactory, $enumerator] = buildPgIntResolver();
+
+        // All-default context: both axes at '__test_default' → candidate list is empty
+        $context->in('channel', '__test_default')->in('locale', '__test_default');
+
+        $renderer = new PgSqlScopedFieldRenderer();
+        $orderBy = new ScopedOrderBy(
+            property: 'name',
+            scopeMetadataFactory: $metadataFactory,
+            scopeContext: $context,
+            scopedFieldRenderer: $renderer,
+            signatureCandidateEnumerator: $enumerator,
+            entityClass: PgIntProduct::class,
+            direction: 'asc',
+        );
+
+        $builder = new PgSqlEntityQueryBuilder($conn);
+        $builder->table($tableName);
+        $orderBy->apply($builder);
+
+        // Capture the rendered SQL from the expression directly
+        $candidates = $enumerator->enumerate(['channel', 'locale'], $context);
+        $renderedExpr = $renderer->render(new ScopedFieldExpression(
+            property: 'name',
+            column: 'name',
+            candidateSignatures: $candidates,
+        ));
+
+        // Plain column — no JSONB access, no COALESCE
+        expect($renderedExpr)->toBe('"name"')
+            ->and($renderedExpr)->not->toContain('scopes->')
+            ->and($renderedExpr)->not->toContain('COALESCE(');
+
+        // Query still executes and returns the row
+        $rows = $builder->get();
+        expect($rows)->toHaveCount(1);
+    },
+)->group('integration-destructive');
+
+it(
+    'emits a COALESCE expression over scopes json when a non-default scope is active',
+    function (): void {
+        /** @var PostgresTestConnection $conn */
+        $conn = $this->conn;
+        $tableName = $this->tableName;
+
+        // Insert a product with a locale-specific override.
+        $overrides = json_encode(
+            ['locale:en' => ['name' => 'En Name']],
+            JSON_THROW_ON_ERROR,
+        );
+        $conn->execute(
+            sprintf('INSERT INTO "%s" ("name", "price", "scopes") VALUES (?, ?, ?::jsonb)', $tableName),
+            ['Default Name', '1.00', $overrides],
+        );
+
+        [$resolver, $context, $registry, $metadataFactory, $enumerator] = buildPgIntResolver();
+
+        // locale is non-default → candidates are non-empty → COALESCE is emitted
+        $context->in('channel', '__test_default')->in('locale', 'en.gb');
+
+        $renderer = new PgSqlScopedFieldRenderer();
+        $candidates = $enumerator->enumerate(['channel', 'locale'], $context);
+
+        $renderedExpr = $renderer->render(new ScopedFieldExpression(
+            property: 'name',
+            column: 'name',
+            candidateSignatures: $candidates,
+        ));
+
+        expect($renderedExpr)->toContain('COALESCE(')
+            ->and($renderedExpr)->toContain('"scopes"');
+
+        // Verify the ordering works correctly at the DB level
+        $orderBy = new ScopedOrderBy(
+            property: 'name',
+            scopeMetadataFactory: $metadataFactory,
+            scopeContext: $context,
+            scopedFieldRenderer: $renderer,
+            signatureCandidateEnumerator: $enumerator,
+            entityClass: PgIntProduct::class,
+            direction: 'asc',
+        );
+
+        $builder = new PgSqlEntityQueryBuilder($conn);
+        $builder->table($tableName);
+        $orderBy->apply($builder);
+
+        $rows = $builder->get();
+        expect($rows)->toHaveCount(1);
+    },
+)->group('integration-destructive');
+
+it(
+    'persists and resolves an override at a non-default scope',
+    function (): void {
+        /** @var PostgresTestConnection $conn */
+        $conn = $this->conn;
+
+        [$resolver, $context] = buildPgIntResolver();
+        $context->in('channel', 'default.web')->in('locale', 'en.gb');
+
+        $product = new PgIntProduct();
+        $product->name = 'Default Name';
+        $product->price = '10.00';
+
+        $signature = new ScopeSignature(['channel' => 'default.web', 'locale' => 'en.gb']);
+        $resolver->setOverride($product, 'name', 'GB Web Name', $signature);
+
+        $scopesJson = json_encode($product->overrides(), JSON_THROW_ON_ERROR);
+        $conn->execute(
+            sprintf('INSERT INTO "%s" ("name", "price", "scopes") VALUES (?, ?, ?::jsonb)', $this->tableName),
+            [$product->name, $product->price, $scopesJson],
+        );
+
+        $rows = $conn->query(
+            sprintf('SELECT "scopes" FROM "%s" LIMIT 1', $this->tableName),
+        );
+
+        $rawScopes = $rows[0]['scopes'];
+        $decoded = json_decode($rawScopes, true, 512, JSON_THROW_ON_ERROR);
+
+        $rehydrated = new PgIntProduct();
+        $rehydrated->name = 'Default Name';
+        $rehydrated->price = '10.00';
+
+        foreach ($decoded as $sig => $values) {
+            foreach ($values as $property => $value) {
+                $rehydrated->setOverride($sig, $property, $value);
+            }
+        }
+
+        $result = $resolver->resolved($rehydrated, 'name');
+
+        expect($result)->toBe('GB Web Name');
     },
 )->group('integration-destructive');
