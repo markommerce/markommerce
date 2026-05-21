@@ -443,6 +443,238 @@ return [
 ];
 ```
 
+## Scope Resolution
+
+Before user code runs, `ScopeResolutionPipeline` resolves the current scope path for every registered axis and writes the results into `ScopeContext`. Axes are processed in registration order (the order they appear in `ScopeRegistryInterface::listAxes()`). Within each axis a chain of resolvers is tried in order --- the first resolver that returns a non-null, valid path wins, and the remaining resolvers are skipped.
+
+### Configuration
+
+Add a `'resolvers'` key under each axis in `config/scope.php`. Each entry is either a **class-string** (resolved from the container, dependencies injected) or an **array** with a `'class'` key plus any additional constructor arguments:
+
+```php title="config/scope.php"
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Scope\Resolver\Resolution\Builtin\AcceptLanguageResolver;
+use Markommerce\Scope\Resolver\Resolution\Builtin\CookieResolver;
+use Markommerce\Scope\Resolver\Resolution\Builtin\StaticResolver;
+use Markommerce\Scope\Resolver\Resolution\Builtin\SubdomainResolver;
+
+return [
+    'axes' => [
+        'locale' => [
+            'default'   => 'default',
+            'scopes'    => ['default' => [], 'en' => [], 'de' => [], 'fr' => []],
+            'resolvers' => [
+                // Class-string form — instantiated via the container (full DI)
+                AcceptLanguageResolver::class,
+
+                // Array form — instantiated directly; extra keys become constructor args
+                ['class' => CookieResolver::class, 'cookieName' => 'store_locale'],
+
+                // Final fallback: always returns 'en'
+                ['class' => StaticResolver::class, 'value' => 'en'],
+            ],
+        ],
+        'channel' => [
+            'default'   => 'web',
+            'scopes'    => ['web' => [], 'b2b' => []],
+            'resolvers' => [
+                ['class' => SubdomainResolver::class, 'segment' => 0],
+                ['class' => StaticResolver::class, 'value' => 'web'],
+            ],
+        ],
+    ],
+];
+```
+
+Order matters: the first resolver that returns a non-null path wins. If no resolver matches, the axis falls back to its configured `default` scope.
+
+### Built-in resolvers
+
+| Resolver | Constructor params | Channels | Description |
+|---|---|---|---|
+| `CookieResolver` | `cookieName: string` | HTTP only | Reads a named cookie from `$_COOKIE` (or an injected array for testing). |
+| `HeaderResolver` | `headerName: string` | HTTP only | Reads a named HTTP request header. |
+| `SubdomainResolver` | `segment: int = 0` | HTTP only | Reads a segment of the `Host` header split by `.` (0 = leftmost subdomain). No-ops on raw IPs. |
+| `PathPrefixResolver` | `segment: int = 0` | HTTP only | Reads a segment of the URL path split by `/` (0 = first path component). |
+| `QueryParamResolver` | `paramName: string` | HTTP only | Reads a named query-string parameter. |
+| `AcceptLanguageResolver` | _(none)_ | HTTP only | Parses the `Accept-Language` header (RFC 7231, q-values) and returns the highest-preference language tag that exists in the axis hierarchy; falls back to the bare language code (without region) if needed. |
+| `StaticResolver` | `value: string` | Universal | Always returns the configured value regardless of channel. Use as a final fallback. |
+
+HTTP-only resolvers return `null` immediately when the channel is not `CHANNEL_HTTP`, so the same resolver chain works unchanged on CLI and queue channels.
+
+### Channel semantics
+
+The pipeline runs with one of three channel constants from `ScopeResolutionContext`:
+
+| Constant | Trigger |
+|---|---|
+| `CHANNEL_HTTP` | Every incoming HTTP request |
+| `CHANNEL_CLI` | Every CLI command (`CommandInterface::execute`) |
+| `CHANNEL_QUEUE` | Queue jobs that opt in via `JobScopeWrapper::withScope()` |
+
+HTTP-only resolvers (`CookieResolver`, `HeaderResolver`, `SubdomainResolver`, `PathPrefixResolver`, `QueryParamResolver`, `AcceptLanguageResolver`) no-op when the channel is not `CHANNEL_HTTP`. `StaticResolver` is channel-agnostic and works everywhere.
+
+### Cross-axis dependencies
+
+Axes resolve in registration order. Each resolver receives a `ScopeResolutionContext` that includes a `$resolved` map containing the paths already committed for all preceding axes. Use this to make one axis conditional on another:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Scope\Axis\ScopeAxis;
+use Markommerce\Scope\Resolver\Resolution\ScopeAxisResolverInterface;
+use Markommerce\Scope\Resolver\Resolution\ScopeResolutionContext;
+
+readonly class ChannelDependentMarketResolver implements ScopeAxisResolverInterface
+{
+    public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $scopeResolutionContext): ?string
+    {
+        // Read the already-resolved channel axis
+        $channel = $scopeResolutionContext->resolved['channel'] ?? null;
+
+        if ($channel === 'b2b') {
+            return 'eu';
+        }
+
+        return null; // defer to next resolver
+    }
+}
+```
+
+### Lifecycle hooks
+
+The pipeline is wired into three application lifecycle points:
+
+#### HTTP --- automatic via global middleware (marko ≥ TBD required) <!-- TODO: fill in marko version after release -->
+
+`ScopeResolutionMiddleware` is declared in `packages/scope/module.php` as a global middleware entry with priority 5. Marko's module system picks it up automatically --- no manual registration is needed. The middleware runs the pipeline before the controller and clears `ScopeContext` in a `finally` block after the response is produced, preventing cross-request leakage in FPM and long-running server processes.
+
+#### CLI --- automatic via plugin on `CommandInterface`
+
+`ScopeResolutionCommandPlugin` applies a `#[Before]` and `#[After]` intercept to every `CommandInterface::execute()` call. The `#[Before]` hook defensively calls `clear()` first (see caveat below), then runs the pipeline with `CHANNEL_CLI`. The `#[After]` hook clears `ScopeContext` when the command exits normally.
+
+**Caveat:** `#[After]` does not run when a command throws an uncaught exception --- this is a known limitation of Marko's plugin chain. The `#[Before]` hook compensates by calling `clear()` at the start of every command, ensuring a clean context even if the previous command crashed. CLI processes are typically short-lived (one command per invocation), so a leaked context is lost when the process exits.
+
+#### Queue --- manual opt-in via `JobScopeWrapper`
+
+Marko's queue `Worker` deserializes jobs and calls `handle()` directly, bypassing the container --- plugin auto-wiring is not possible for queue jobs. Applications must explicitly wrap job logic with `JobScopeWrapper::withScope()`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Scope\Queue\JobScopeWrapper;
+
+class SendOrderConfirmationJob
+{
+    public function __construct(
+        private readonly JobScopeWrapper $jobScopeWrapper,
+        private readonly int $orderId,
+    ) {}
+
+    public function handle(): void
+    {
+        $this->jobScopeWrapper->withScope(function (): void {
+            // ScopeContext is populated here with CHANNEL_QUEUE
+            $this->doActualWork();
+        });
+    }
+}
+```
+
+`withScope()` clears any previously-leaked context first, runs the pipeline with `CHANNEL_QUEUE`, executes the callable, and clears context in a `finally` block regardless of whether the callable throws.
+
+### Error behavior
+
+Resolver failures are never fatal. If a resolver throws, the pipeline:
+
+1. Wraps the exception in `ScopeResolutionException::resolverFailed()`.
+2. Logs the error via `LoggerInterface` if one is bound (silent otherwise).
+3. Continues to the next resolver in the chain.
+
+Invalid paths (a resolver returns a string that does not exist in the axis hierarchy) are treated the same way: logged and skipped. If the entire chain produces no valid path, the axis falls back to its configured `default`.
+
+### Writing a custom resolver
+
+Implement `ScopeAxisResolverInterface`. Return a string path when your resolver can determine the scope, or `null` to defer to the next resolver in the chain:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Scope\Resolver;
+
+use Marko\Routing\Http\Request;
+use Markommerce\Scope\Axis\ScopeAxis;
+use Markommerce\Scope\Resolver\Resolution\ScopeAxisResolverInterface;
+use Markommerce\Scope\Resolver\Resolution\ScopeResolutionContext;
+
+readonly class CustomerGroupResolver implements ScopeAxisResolverInterface
+{
+    public function __construct(
+        private Request $request,
+    ) {}
+
+    public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $scopeResolutionContext): ?string
+    {
+        if ($scopeResolutionContext->channel !== ScopeResolutionContext::CHANNEL_HTTP) {
+            return null;
+        }
+
+        // Read a custom header set by your authentication middleware
+        $group = $scopeResolutionContext->request->header('X-Customer-Group');
+
+        if ($group === null || $group === '') {
+            return null;
+        }
+
+        // Return the value only if it exists in the axis hierarchy
+        if ($scopeAxis->hierarchy->exists($group)) {
+            return $group;
+        }
+
+        return null;
+    }
+}
+```
+
+Register it in `config/scope.php`:
+
+```php title="config/scope.php"
+<?php
+
+declare(strict_types=1);
+
+use App\Scope\Resolver\CustomerGroupResolver;
+
+return [
+    'axes' => [
+        'channel' => [
+            'default'   => 'web',
+            'scopes'    => ['web' => [], 'b2b' => [], 'b2c' => []],
+            'resolvers' => [
+                CustomerGroupResolver::class,
+            ],
+        ],
+    ],
+];
+```
+
+If the resolver needs constructor arguments that are not in the container, use the array form instead:
+
+```php
+'resolvers' => [
+    ['class' => CustomerGroupResolver::class, 'headerName' => 'X-Customer-Group'],
+],
+```
+
 ## API Reference
 
 | Class / Interface | Description |
@@ -467,6 +699,22 @@ return [
 | `Markommerce\Scope\Exceptions\ScopeConfigurationException` | Thrown at boot when an axis definition is malformed, missing `default`, declares an empty `scopes` map, or names a `default` path absent from `scopes` |
 | `Markommerce\Scope\Exceptions\ScopeStorageException` | Thrown by `setOverride()`/`clearOverride()` when attempting to write an override at an axis's default scope |
 | `Markommerce\Scope\Exceptions\MultiAxisWalkAtNotSupportedException` | Thrown when `walkAt()` is called with a multi-axis signature |
+| `Markommerce\Scope\Exceptions\InvalidResolverConfigException` | Thrown at boot (or first use) when a resolver entry in `config/scope.php` references a non-existent class, is missing the `'class'` key, or the class does not implement `ScopeAxisResolverInterface` |
+| `Markommerce\Scope\Exceptions\ScopeResolutionException` | Thrown (and caught internally) when a resolver fails or returns an invalid path; logged and skipped, never propagated to user code |
+| `Markommerce\Scope\Resolver\Resolution\ScopeAxisResolverInterface` | Implement this to write a custom resolver; `resolve()` returns a scope path string or `null` to defer |
+| `Markommerce\Scope\Resolver\Resolution\ScopeResolutionContext` | Passed to every resolver; exposes `$channel`, `$request`, `$registry`, and `$resolved` (already-resolved axis map) |
+| `Markommerce\Scope\Resolver\Resolution\ScopeResolutionPipeline` | Iterates registered axes, runs the resolver chain, and writes results into `ScopeContext` |
+| `Markommerce\Scope\Resolver\Resolution\ScopeResolverChainFactory` | Builds the resolver chain for a given axis from `config/scope.php`; results are cached per axis |
+| `Markommerce\Scope\Resolver\Resolution\Builtin\CookieResolver` | Reads a named cookie (HTTP only) |
+| `Markommerce\Scope\Resolver\Resolution\Builtin\HeaderResolver` | Reads a named HTTP request header (HTTP only) |
+| `Markommerce\Scope\Resolver\Resolution\Builtin\SubdomainResolver` | Reads a subdomain segment from the `Host` header (HTTP only) |
+| `Markommerce\Scope\Resolver\Resolution\Builtin\PathPrefixResolver` | Reads a URL path segment (HTTP only) |
+| `Markommerce\Scope\Resolver\Resolution\Builtin\QueryParamResolver` | Reads a query-string parameter (HTTP only) |
+| `Markommerce\Scope\Resolver\Resolution\Builtin\AcceptLanguageResolver` | Parses `Accept-Language` and matches against the axis hierarchy (HTTP only) |
+| `Markommerce\Scope\Resolver\Resolution\Builtin\StaticResolver` | Returns a fixed value regardless of channel (universal) |
+| `Markommerce\Scope\Middleware\ScopeResolutionMiddleware` | HTTP global middleware that runs the pipeline before the controller and clears context in a `finally` block |
+| `Markommerce\Scope\Plugins\ScopeResolutionCommandPlugin` | Plugin on `CommandInterface` that runs the pipeline before CLI command execution and clears context afterward |
+| `Markommerce\Scope\Queue\JobScopeWrapper` | Manual opt-in helper for queue jobs; call `withScope(callable $work)` inside `handle()` |
 
 ### `ScopeContext`
 

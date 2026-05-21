@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Scope resolution pipeline** --- axes are resolved automatically before user code runs via `ScopeResolutionPipeline`. Configure resolvers per axis in `config/scope.php` under `'resolvers' => [...]`; the first resolver that returns a non-null path wins.
+- **Built-in resolvers** --- seven HTTP and universal resolvers ship out of the box: `CookieResolver`, `HeaderResolver`, `SubdomainResolver`, `PathPrefixResolver`, `QueryParamResolver`, `AcceptLanguageResolver` (HTTP-only, no-op on CLI/queue), and `StaticResolver` (channel-agnostic).
+- **Lifecycle hooks** --- HTTP requests use `ScopeResolutionMiddleware` registered as global middleware (priority 5); CLI commands use `ScopeResolutionCommandPlugin` on `CommandInterface`; queue jobs use the manual opt-in helper `JobScopeWrapper::withScope()`.
+- `ScopeAxisResolverInterface` --- implement this interface to write custom resolvers; resolvers receive `ScopeAxis` and `ScopeResolutionContext` (which carries `$channel` and the already-resolved `$resolved` map for cross-axis dependencies).
+
 - `ScopeSignature` value object --- use `ScopeSignature::fromArray(['axis' => 'path'])` or `new ScopeSignature(['axis' => 'path'])` to create scope identifiers. Multi-axis composites are supported: `ScopeSignature::fromArray(['channel' => 'b2b', 'locale' => 'es'])`.
 - `SignatureCandidateEnumerator` --- enumerates all candidate signatures for multi-axis resolution in descending-score order.
 - `ScopeSignatureValidator` --- validates a `ScopeSignature` against the axes declared on a `#[Scoped]` attribute.

@@ -15,6 +15,7 @@ use Markommerce\Scope\Query\ScopedFieldRendererInterface;
 use Markommerce\Scope\Query\ScopedOrderByFactory;
 use Markommerce\Scope\Registry\PhpScopeRegistry;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
+use Markommerce\Scope\Resolver\Resolution\ScopeResolverChainFactory;
 use Markommerce\Scope\Resolver\ScopeResolver;
 use Markommerce\Scope\Storage\DefaultScopeGuard;
 
@@ -105,11 +106,18 @@ it('configures DefaultScopeGuard from the scope registry during module boot', fu
             ['geo', $geoAxis],
         ]);
 
+    $factory = $this->createMock(ScopeResolverChainFactory::class);
+    $factory->expects($this->exactly(2))
+        ->method('for')
+        ->willReturn([]);
+
     $container = $this->createMock(ContainerInterface::class);
-    $container->expects($this->once())
+    $container->expects($this->exactly(2))
         ->method('get')
-        ->with(ScopeRegistryInterface::class)
-        ->willReturn($registry);
+        ->willReturnMap([
+            [ScopeRegistryInterface::class, $registry],
+            [ScopeResolverChainFactory::class, $factory],
+        ]);
 
     ($module['boot'])($container);
 
