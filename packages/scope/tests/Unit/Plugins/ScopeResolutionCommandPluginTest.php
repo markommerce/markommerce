@@ -8,10 +8,10 @@ use Marko\Core\Attributes\Plugin;
 use Marko\Core\Command\CommandInterface;
 use Marko\Core\Command\Input;
 use Marko\Core\Command\Output;
+use Marko\Routing\Http\Request;
 use Markommerce\Scope\Plugins\ScopeResolutionCommandPlugin;
 use Markommerce\Scope\Resolver\Resolution\ScopeResolutionContext;
 use Markommerce\Scope\Resolver\Resolution\ScopeResolutionPipeline;
-use Marko\Routing\Http\Request;
 
 /**
  * Fake pipeline that records method calls without needing real dependencies.

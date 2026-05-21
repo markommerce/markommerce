@@ -9,9 +9,9 @@ use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 readonly class ScopeResolutionContext
 {
-    const string CHANNEL_HTTP = 'http';
-    const string CHANNEL_CLI = 'cli';
-    const string CHANNEL_QUEUE = 'queue';
+    public const string CHANNEL_HTTP = 'http';
+    public const string CHANNEL_CLI = 'cli';
+    public const string CHANNEL_QUEUE = 'queue';
 
     /**
      * @param array<string, string> $resolved

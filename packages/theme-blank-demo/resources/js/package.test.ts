@@ -54,29 +54,19 @@ describe('theme-blank-demo package wiring', () => {
     expect(markommerce?.['priority']).toBe(1010);
   });
 
-  it('main.ts imports open-props/style.css so Vite emits the Open Props stylesheet link', () => {
+  it('main.ts does not import open-props/style.css directly — @markommerce/theme-blank bootstraps it transitively', () => {
     expect(fs.existsSync(mainTsPath)).toBe(true);
-    expect(mainTs).toContain("import 'open-props/style.css'");
+    expect(mainTs).not.toContain("import 'open-props/style.css'");
   });
 
-  it('main.ts imports @markommerce/frontend/css/layers.css before any @markommerce/theme-blank stylesheet (layer-order contract)', () => {
-    expect(mainTs).toContain("import '@markommerce/frontend/css/layers.css'");
-    const layersIdx = mainTs.indexOf("import '@markommerce/frontend/css/layers.css'");
-    const themeBlankCssIdx = mainTs.indexOf("import '@markommerce/theme-blank/css/");
-    expect(layersIdx).toBeGreaterThan(-1);
-    expect(themeBlankCssIdx).toBeGreaterThan(-1);
-    expect(layersIdx).toBeLessThan(themeBlankCssIdx);
+  it('main.ts does not import @markommerce/frontend/css/layers.css directly — @markommerce/theme-blank bootstraps the cascade-layer baseline', () => {
+    expect(mainTs).not.toContain("import '@markommerce/frontend/css/layers.css'");
   });
 
-  it('main.ts imports @markommerce/theme-blank/css/tokens.css, base.css, and layouts.css in that order', () => {
-    const tokensIdx = mainTs.indexOf("import '@markommerce/theme-blank/css/tokens.css'");
-    const baseIdx = mainTs.indexOf("import '@markommerce/theme-blank/css/base.css'");
-    const layoutsIdx = mainTs.indexOf("import '@markommerce/theme-blank/css/layouts.css'");
-    expect(tokensIdx).toBeGreaterThan(-1);
-    expect(baseIdx).toBeGreaterThan(-1);
-    expect(layoutsIdx).toBeGreaterThan(-1);
-    expect(tokensIdx).toBeLessThan(baseIdx);
-    expect(baseIdx).toBeLessThan(layoutsIdx);
+  it('main.ts does not import @markommerce/theme-blank/css/tokens.css, base.css, or layouts.css directly — theme-blank index.ts bootstraps them', () => {
+    expect(mainTs).not.toContain("import '@markommerce/theme-blank/css/tokens.css'");
+    expect(mainTs).not.toContain("import '@markommerce/theme-blank/css/base.css'");
+    expect(mainTs).not.toContain("import '@markommerce/theme-blank/css/layouts.css'");
   });
 
   it("main.ts imports the @markommerce/theme-blank package main entry — the side-effect module that registers every primitive and form control (assert \"import '@markommerce/theme-blank'\" appears, not the /js/components subpath which is not exported)", () => {
@@ -126,6 +116,17 @@ describe('theme-blank-demo package wiring', () => {
   it("main.ts imports './extensions' (not './.generated/extensions')", () => {
     expect(mainTs).toContain("import './extensions'");
     expect(mainTs).not.toContain("import './.generated/extensions'");
+  });
+
+  it('removes the redundant explicit CSS imports from theme-blank-demo/resources/js/main.ts', () => {
+    // These imports are now redundant because @markommerce/theme-blank's index.ts
+    // bootstraps the full CSS cascade itself. The consumer (main.ts) only needs
+    // to import '@markommerce/theme-blank' to get all the CSS.
+    expect(mainTs).not.toContain("import '@markommerce/frontend/css/layers.css'");
+    expect(mainTs).not.toContain("import 'open-props/style.css'");
+    expect(mainTs).not.toContain("import '@markommerce/theme-blank/css/tokens.css'");
+    expect(mainTs).not.toContain("import '@markommerce/theme-blank/css/base.css'");
+    expect(mainTs).not.toContain("import '@markommerce/theme-blank/css/layouts.css'");
   });
 });
 

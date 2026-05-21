@@ -16,13 +16,18 @@ npm install @markommerce/theme-blank
 
 ## Quick Example
 
-```latte
-{* extend the 1-column layout in your template *}
-{layout 'theme-blank::layout/1column'}
+Attach a layout to a controller via the `#[Layout]` attribute:
 
-{block content}
-  <p>Hello, Markommerce!</p>
-{/block}
+```php
+<?php
+
+declare(strict_types=1);
+
+use Marko\Layout\Attributes\Layout;
+use Markommerce\ThemeBlank\Layout\OneColumnLayout;
+
+#[Layout(OneColumnLayout::class)]
+class MyController {}
 ```
 
 Override the primary brand colour from your own theme layer:

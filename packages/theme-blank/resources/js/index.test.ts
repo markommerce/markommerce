@@ -112,4 +112,37 @@ describe('theme-blank index', () => {
     const content = fs.readFileSync(indexPath, 'utf-8');
     expect(content).not.toContain('defineAllComponents');
   });
+
+  it('imports the cascade-layer base CSS from theme-blank/resources/js/index.ts', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const indexPath = path.join(__dirname, 'index.ts');
+    const content = fs.readFileSync(indexPath, 'utf-8');
+    expect(content).toContain("import '@markommerce/frontend/css/layers.css'");
+  });
+
+  it('imports open-props, tokens, base and layouts CSS from theme-blank/resources/js/index.ts', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const indexPath = path.join(__dirname, 'index.ts');
+    const content = fs.readFileSync(indexPath, 'utf-8');
+    expect(content).toContain("import 'open-props/style.css'");
+    expect(content).toContain("import '../css/tokens.css'");
+    expect(content).toContain("import '../css/base.css'");
+    expect(content).toContain("import '../css/layouts.css'");
+    // Verify order: layers first, then open-props, then tokens, then base, then layouts
+    const layersIdx = content.indexOf("import '@markommerce/frontend/css/layers.css'");
+    const openPropsIdx = content.indexOf("import 'open-props/style.css'");
+    const tokensIdx = content.indexOf("import '../css/tokens.css'");
+    const baseIdx = content.indexOf("import '../css/base.css'");
+    const layoutsIdx = content.indexOf("import '../css/layouts.css'");
+    expect(layersIdx).toBeLessThan(openPropsIdx);
+    expect(openPropsIdx).toBeLessThan(tokensIdx);
+    expect(tokensIdx).toBeLessThan(baseIdx);
+    expect(baseIdx).toBeLessThan(layoutsIdx);
+  });
 });

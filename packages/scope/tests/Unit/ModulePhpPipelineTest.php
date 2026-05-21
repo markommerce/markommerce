@@ -3,14 +3,17 @@
 declare(strict_types=1);
 
 use Marko\Config\ConfigRepository;
-use Marko\Config\ConfigRepositoryInterface;
-use Marko\Core\Container\Container;
 use Marko\Core\Container\ContainerInterface;
+use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Scope\Exceptions\InvalidResolverConfigException;
+use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Middleware\ScopeResolutionMiddleware;
+use Markommerce\Scope\Registry\PhpScopeRegistry;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
-use Markommerce\Scope\Resolver\Resolution\ScopeResolverChainFactory;
+use Markommerce\Scope\Resolver\Resolution\Builtin\StaticResolver;
 use Markommerce\Scope\Resolver\Resolution\ScopeResolutionPipeline;
+use Markommerce\Scope\Resolver\Resolution\ScopeResolverChainFactory;
 use Markommerce\Scope\Storage\DefaultScopeGuard;
 
 it('module.php registers ScopeResolverChainFactory as a singleton', function (): void {
@@ -57,9 +60,9 @@ it('boot closure surfaces InvalidResolverConfigException from a misconfigured ax
 
     $module = require dirname(__DIR__, 2) . '/module.php';
 
-    $localeAxis = new \Markommerce\Scope\Axis\ScopeAxis(
+    $localeAxis = new ScopeAxis(
         name: 'locale',
-        hierarchy: \Markommerce\Scope\Hierarchy\ScopeHierarchy::fromPaths(['en']),
+        hierarchy: ScopeHierarchy::fromPaths(['en']),
         default: 'en',
     );
 
@@ -67,7 +70,8 @@ it('boot closure surfaces InvalidResolverConfigException from a misconfigured ax
     $registry->method('listAxes')->willReturn(['locale']);
     $registry->method('getAxis')->willReturn($localeAxis);
 
-    $factory = new class extends ScopeResolverChainFactory {
+    $factory = new class () extends ScopeResolverChainFactory
+    {
         public function __construct()
         {
             // skip parent constructor
@@ -75,7 +79,7 @@ it('boot closure surfaces InvalidResolverConfigException from a misconfigured ax
 
         public function for(string $axisName): array
         {
-            throw \Markommerce\Scope\Exceptions\InvalidResolverConfigException::unknownClass('NoSuchClass', $axisName);
+            throw InvalidResolverConfigException::unknownClass('NoSuchClass', $axisName);
         }
     };
 
@@ -85,12 +89,12 @@ it('boot closure surfaces InvalidResolverConfigException from a misconfigured ax
             return match ($id) {
                 ScopeRegistryInterface::class => $registry,
                 ScopeResolverChainFactory::class => $factory,
-                default => throw new \RuntimeException("Unexpected: $id"),
+                default => throw new RuntimeException("Unexpected: $id"),
             };
         });
 
     expect(fn () => ($module['boot'])($container))
-        ->toThrow(\Markommerce\Scope\Exceptions\InvalidResolverConfigException::class);
+        ->toThrow(InvalidResolverConfigException::class);
 
     DefaultScopeGuard::reset();
 });
@@ -102,14 +106,14 @@ it('boot closure pre-builds every axis resolver chain so misconfig throws at boo
 
     $builtAxes = [];
 
-    $localeAxis = new \Markommerce\Scope\Axis\ScopeAxis(
+    $localeAxis = new ScopeAxis(
         name: 'locale',
-        hierarchy: \Markommerce\Scope\Hierarchy\ScopeHierarchy::fromPaths(['en', 'fr']),
+        hierarchy: ScopeHierarchy::fromPaths(['en', 'fr']),
         default: 'en',
     );
-    $marketAxis = new \Markommerce\Scope\Axis\ScopeAxis(
+    $marketAxis = new ScopeAxis(
         name: 'market',
-        hierarchy: \Markommerce\Scope\Hierarchy\ScopeHierarchy::fromPaths(['global', 'eu']),
+        hierarchy: ScopeHierarchy::fromPaths(['global', 'eu']),
         default: 'global',
     );
 
@@ -120,7 +124,8 @@ it('boot closure pre-builds every axis resolver chain so misconfig throws at boo
         ['market', $marketAxis],
     ]);
 
-    $factory = new class ($builtAxes) extends ScopeResolverChainFactory {
+    $factory = new class ($builtAxes) extends ScopeResolverChainFactory
+    {
         /** @param list<string> $builtAxes */
         public function __construct(private array &$builtAxes)
         {
@@ -141,7 +146,7 @@ it('boot closure pre-builds every axis resolver chain so misconfig throws at boo
             return match ($id) {
                 ScopeRegistryInterface::class => $registry,
                 ScopeResolverChainFactory::class => $factory,
-                default => throw new \RuntimeException("Unexpected: $id"),
+                default => throw new RuntimeException("Unexpected: $id"),
             };
         });
 
@@ -160,17 +165,18 @@ it('axis config with resolvers key successfully builds a chain via the factory a
                 'default'   => 'en',
                 'scopes'    => ['en' => [], 'pl' => []],
                 'resolvers' => [
-                    ['class' => \Markommerce\Scope\Resolver\Resolution\Builtin\StaticResolver::class, 'value' => 'en'],
+                    ['class' => StaticResolver::class, 'value' => 'en'],
                 ],
             ],
         ],
     ];
 
     $config = new ConfigRepository(['scope' => $rawConfig]);
-    $registry = new \Markommerce\Scope\Registry\PhpScopeRegistry($config);
+    $registry = new PhpScopeRegistry($config);
 
     $factory = new ScopeResolverChainFactory(
-        new class implements ContainerInterface {
+        new class () implements ContainerInterface
+        {
             public function get(string $id): mixed
             {
                 return new $id();
@@ -187,7 +193,7 @@ it('axis config with resolvers key successfully builds a chain via the factory a
 
             public function bind(string $id, mixed $implementation): void {}
 
-            public function call(\Closure $callable): mixed
+            public function call(Closure $callable): mixed
             {
                 return $callable();
             }
@@ -198,15 +204,16 @@ it('axis config with resolvers key successfully builds a chain via the factory a
     $chain = $factory->for('locale');
 
     expect($chain)->toHaveCount(1)
-        ->and($chain[0])->toBeInstanceOf(\Markommerce\Scope\Resolver\Resolution\Builtin\StaticResolver::class);
+        ->and($chain[0])->toBeInstanceOf(StaticResolver::class);
 });
 
 it('existing config without resolvers key continues to load without error', function (): void {
     $rawConfig = require dirname(__DIR__, 2) . '/config/scope.php';
     $config = new ConfigRepository(['scope' => $rawConfig]);
-    $registry = new \Markommerce\Scope\Registry\PhpScopeRegistry($config);
+    $registry = new PhpScopeRegistry($config);
     $factory = new ScopeResolverChainFactory(
-        new class implements ContainerInterface {
+        new class () implements ContainerInterface
+        {
             public function get(string $id): mixed
             {
                 return new $id();
@@ -223,7 +230,7 @@ it('existing config without resolvers key continues to load without error', func
 
             public function bind(string $id, mixed $implementation): void {}
 
-            public function call(\Closure $callable): mixed
+            public function call(Closure $callable): mixed
             {
                 return $callable();
             }
@@ -243,10 +250,11 @@ it('the pipeline closure returns a working ScopeResolutionPipeline when marko lo
     $rawConfig = require dirname(__DIR__, 2) . '/config/scope.php';
     $config = new ConfigRepository(['scope' => $rawConfig]);
 
-    $registry = new \Markommerce\Scope\Registry\PhpScopeRegistry($config);
+    $registry = new PhpScopeRegistry($config);
     $context = new ScopeContext($registry);
     $factory = new ScopeResolverChainFactory(
-        new class implements ContainerInterface {
+        new class () implements ContainerInterface
+        {
             public function get(string $id): mixed
             {
                 return new $id();
@@ -263,7 +271,7 @@ it('the pipeline closure returns a working ScopeResolutionPipeline when marko lo
 
             public function bind(string $id, mixed $implementation): void {}
 
-            public function call(\Closure $callable): mixed
+            public function call(Closure $callable): mixed
             {
                 return $callable();
             }
@@ -278,7 +286,7 @@ it('the pipeline closure returns a working ScopeResolutionPipeline when marko lo
                 ScopeRegistryInterface::class => $registry,
                 ScopeContext::class => $context,
                 ScopeResolverChainFactory::class => $factory,
-                default => throw new \RuntimeException("Unexpected: $id"),
+                default => throw new RuntimeException("Unexpected: $id"),
             };
         });
 

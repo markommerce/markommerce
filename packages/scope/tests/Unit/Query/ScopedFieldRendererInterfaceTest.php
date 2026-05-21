@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Marko\Database\Exceptions\InvalidColumnException;
 use Markommerce\Scope\Query\ScopedFieldExpression;
 use Markommerce\Scope\Query\ScopedFieldRendererInterface;
 use Markommerce\Scope\Signature\ScopeSignature;

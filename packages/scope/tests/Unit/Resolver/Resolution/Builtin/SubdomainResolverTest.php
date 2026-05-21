@@ -13,7 +13,7 @@ use Markommerce\Scope\Resolver\Resolution\ScopeResolutionContext;
 
 function makeSubdomainStubRegistry(): ScopeRegistryInterface
 {
-    return new class implements ScopeRegistryInterface
+    return new class () implements ScopeRegistryInterface
     {
         public function hasAxis(string $name): bool
         {
@@ -22,7 +22,7 @@ function makeSubdomainStubRegistry(): ScopeRegistryInterface
 
         public function getAxis(string $name): ScopeAxis
         {
-            throw new \RuntimeException('Not implemented');
+            throw new RuntimeException('Not implemented');
         }
 
         public function listAxes(): array
@@ -32,7 +32,7 @@ function makeSubdomainStubRegistry(): ScopeRegistryInterface
 
         public function getHierarchy(string $axisName): ScopeHierarchy
         {
-            throw new \RuntimeException('Not implemented');
+            throw new RuntimeException('Not implemented');
         }
     };
 }

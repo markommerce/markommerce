@@ -13,7 +13,7 @@ use Markommerce\Scope\Resolver\Resolution\SyntheticRequest;
 
 function makeStaticStubRegistry(): ScopeRegistryInterface
 {
-    return new class implements ScopeRegistryInterface
+    return new class () implements ScopeRegistryInterface
     {
         public function hasAxis(string $name): bool
         {
@@ -22,7 +22,7 @@ function makeStaticStubRegistry(): ScopeRegistryInterface
 
         public function getAxis(string $name): ScopeAxis
         {
-            throw new \RuntimeException('Not implemented');
+            throw new RuntimeException('Not implemented');
         }
 
         public function listAxes(): array
@@ -30,9 +30,9 @@ function makeStaticStubRegistry(): ScopeRegistryInterface
             return [];
         }
 
-        public function getHierarchy(string $axisName): \Markommerce\Scope\Hierarchy\ScopeHierarchy
+        public function getHierarchy(string $axisName): ScopeHierarchy
         {
-            throw new \RuntimeException('Not implemented');
+            throw new RuntimeException('Not implemented');
         }
     };
 }

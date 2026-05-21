@@ -13,16 +13,16 @@ use Markommerce\Scope\Resolver\Resolution\ScopeResolutionContext;
 
 function makeHeaderTestRegistry(): ScopeRegistryInterface
 {
-    return new class implements ScopeRegistryInterface
+    return new class () implements ScopeRegistryInterface
     {
         public function hasAxis(string $name): bool
         {
             return false;
         }
 
-        public function getAxis(string $name): \Markommerce\Scope\Axis\ScopeAxis
+        public function getAxis(string $name): ScopeAxis
         {
-            throw new \RuntimeException('Not implemented');
+            throw new RuntimeException('Not implemented');
         }
 
         public function listAxes(): array
@@ -30,9 +30,9 @@ function makeHeaderTestRegistry(): ScopeRegistryInterface
             return [];
         }
 
-        public function getHierarchy(string $axisName): \Markommerce\Scope\Hierarchy\ScopeHierarchy
+        public function getHierarchy(string $axisName): ScopeHierarchy
         {
-            throw new \RuntimeException('Not implemented');
+            throw new RuntimeException('Not implemented');
         }
     };
 }

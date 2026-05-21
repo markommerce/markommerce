@@ -14,7 +14,7 @@ use Markommerce\Scope\Resolver\Resolution\SyntheticRequest;
 
 function makeAcceptLanguageStubRegistry(): ScopeRegistryInterface
 {
-    return new class implements ScopeRegistryInterface
+    return new class () implements ScopeRegistryInterface
     {
         public function hasAxis(string $name): bool
         {
@@ -23,7 +23,7 @@ function makeAcceptLanguageStubRegistry(): ScopeRegistryInterface
 
         public function getAxis(string $name): ScopeAxis
         {
-            throw new \RuntimeException('Not implemented');
+            throw new RuntimeException('Not implemented');
         }
 
         public function listAxes(): array
@@ -33,7 +33,7 @@ function makeAcceptLanguageStubRegistry(): ScopeRegistryInterface
 
         public function getHierarchy(string $axisName): ScopeHierarchy
         {
-            throw new \RuntimeException('Not implemented');
+            throw new RuntimeException('Not implemented');
         }
     };
 }

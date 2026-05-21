@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Marko\Log\Contracts\LoggerInterface;
+use Marko\Log\LogLevel;
 use Marko\Routing\Http\Request;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
@@ -26,7 +27,8 @@ function makePipelineRegistry(
     array $defaults = [],
     array $order = [],
 ): ScopeRegistryInterface {
-    return new class ($axes, $defaults, $order) implements ScopeRegistryInterface {
+    return new class ($axes, $defaults, $order) implements ScopeRegistryInterface
+    {
         /** @var array<string, ScopeAxis> */
         private array $builtAxes;
 
@@ -87,7 +89,8 @@ function makePipelineRegistry(
  */
 function makePipelineChainFactory(array $chains = []): ScopeResolverChainFactory
 {
-    return new class ($chains) extends ScopeResolverChainFactory {
+    return new class ($chains) extends ScopeResolverChainFactory
+    {
         /** @param array<string, list<ScopeAxisResolverInterface>> $chains */
         public function __construct(private readonly array $chains)
         {
@@ -108,7 +111,8 @@ function makePipelineRequest(): Request
 
 function makeFakeResolver(?string $returns): ScopeAxisResolverInterface
 {
-    return new class ($returns) implements ScopeAxisResolverInterface {
+    return new class ($returns) implements ScopeAxisResolverInterface
+    {
         public function __construct(private readonly ?string $returns) {}
 
         public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $context): ?string
@@ -129,7 +133,8 @@ it('iterates axes in registry registration order', function (): void {
         order: ['locale', 'geo', 'store'],
     );
 
-    $localeResolver = new class ($visited, 'locale') implements ScopeAxisResolverInterface {
+    $localeResolver = new class ($visited, 'locale') implements ScopeAxisResolverInterface
+    {
         /** @param list<string> $visited */
         public function __construct(private array &$visited, private readonly string $axisName) {}
 
@@ -141,7 +146,8 @@ it('iterates axes in registry registration order', function (): void {
         }
     };
 
-    $geoResolver = new class ($visited, 'geo') implements ScopeAxisResolverInterface {
+    $geoResolver = new class ($visited, 'geo') implements ScopeAxisResolverInterface
+    {
         /** @param list<string> $visited */
         public function __construct(private array &$visited, private readonly string $axisName) {}
 
@@ -153,7 +159,8 @@ it('iterates axes in registry registration order', function (): void {
         }
     };
 
-    $storeResolver = new class ($visited, 'store') implements ScopeAxisResolverInterface {
+    $storeResolver = new class ($visited, 'store') implements ScopeAxisResolverInterface
+    {
         /** @param list<string> $visited */
         public function __construct(private array &$visited, private readonly string $axisName) {}
 
@@ -231,7 +238,8 @@ it('exposes resolved axes to later resolvers via context resolved map', function
     $geoResolver = makeFakeResolver('eu');
 
     // store resolver captures the resolved map to assert it contains 'geo'
-    $storeResolver = new class ($capturedResolved) implements ScopeAxisResolverInterface {
+    $storeResolver = new class ($capturedResolved) implements ScopeAxisResolverInterface
+    {
         /** @param array<string, string> $capturedResolved */
         public function __construct(private array &$capturedResolved) {}
 
@@ -265,7 +273,8 @@ it('propagates the request and channel into the ScopeResolutionContext for every
         defaults: ['store' => 'default'],
     );
 
-    $resolver = new class ($capturedRequest, $capturedChannel) implements ScopeAxisResolverInterface {
+    $resolver = new class ($capturedRequest, $capturedChannel) implements ScopeAxisResolverInterface
+    {
         public function __construct(
             private mixed &$capturedRequest,
             private mixed &$capturedChannel,
@@ -337,10 +346,11 @@ it('skips a resolver that throws an exception and tries the next one', function 
         defaults: ['store' => 'default'],
     );
 
-    $throwingResolver = new class implements ScopeAxisResolverInterface {
+    $throwingResolver = new class () implements ScopeAxisResolverInterface
+    {
         public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $context): ?string
         {
-            throw new \RuntimeException('Resolver exploded');
+            throw new RuntimeException('Resolver exploded');
         }
     };
 
@@ -364,10 +374,11 @@ it('never propagates a Throwable thrown by a resolver out of run', function (): 
         defaults: ['store' => 'default'],
     );
 
-    $throwingResolver = new class implements ScopeAxisResolverInterface {
+    $throwingResolver = new class () implements ScopeAxisResolverInterface
+    {
         public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $context): ?string
         {
-            throw new \Error('Fatal error from resolver');
+            throw new Error('Fatal error from resolver');
         }
     };
 
@@ -377,13 +388,14 @@ it('never propagates a Throwable thrown by a resolver out of run', function (): 
     $pipeline = new ScopeResolutionPipeline($registry, $context, $factory);
 
     // Must not throw anything
-    expect(fn () => $pipeline->run(makePipelineRequest(), 'http'))->not->toThrow(\Throwable::class);
+    expect(fn () => $pipeline->run(makePipelineRequest(), 'http'))->not->toThrow(Throwable::class);
 });
 
 it('logs ScopeResolutionException via the injected logger when a resolver fails', function (): void {
     $loggedMessages = [];
 
-    $logger = new class ($loggedMessages) implements LoggerInterface {
+    $logger = new class ($loggedMessages) implements LoggerInterface
+    {
         /** @param list<string> $loggedMessages */
         public function __construct(private array &$loggedMessages) {}
 
@@ -406,7 +418,7 @@ it('logs ScopeResolutionException via the injected logger when a resolver fails'
 
         public function debug(string $message, array $context = []): void {}
 
-        public function log(\Marko\Log\LogLevel $level, string $message, array $context = []): void {}
+        public function log(LogLevel $level, string $message, array $context = []): void {}
     };
 
     $registry = makePipelineRegistry(
@@ -414,10 +426,11 @@ it('logs ScopeResolutionException via the injected logger when a resolver fails'
         defaults: ['store' => 'default'],
     );
 
-    $throwingResolver = new class implements ScopeAxisResolverInterface {
+    $throwingResolver = new class () implements ScopeAxisResolverInterface
+    {
         public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $context): ?string
         {
-            throw new \RuntimeException('Resolver exploded');
+            throw new RuntimeException('Resolver exploded');
         }
     };
 
@@ -437,10 +450,11 @@ it('operates correctly when the logger is null', function (): void {
         defaults: ['store' => 'default'],
     );
 
-    $throwingResolver = new class implements ScopeAxisResolverInterface {
+    $throwingResolver = new class () implements ScopeAxisResolverInterface
+    {
         public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $context): ?string
         {
-            throw new \RuntimeException('Resolver exploded');
+            throw new RuntimeException('Resolver exploded');
         }
     };
 

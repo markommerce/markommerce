@@ -3,7 +3,7 @@
  *
  * Note: Redefining {block body} here discards the parent's body content
  * entirely — including the parent's header/main/footer definitions — and
- * substitutes only a content block. This is intentional for "empty" pages
+ * substitutes only a content slot. This is intentional for "empty" pages
  * (e.g. error pages, login, install wizards) that do not want the standard
  * chrome. The parent blocks (header, main, footer) are not available for
  * further override when this layout is used.
@@ -11,5 +11,5 @@
 {layout 'theme-blank::layout/base'}
 
 {block body}
-{block content}{/block}
+{slot content}{/slot}
 {/block}

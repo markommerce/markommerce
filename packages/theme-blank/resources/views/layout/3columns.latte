@@ -3,9 +3,9 @@
 {block main}
 <mk-container>
     <div class="mk-layout-3col">
-        <aside>{block sidebar-left}{/block}</aside>
-        {block content}{/block}
-        <aside>{block sidebar-right}{/block}</aside>
+        <aside>{slot sidebar-left}{/slot}</aside>
+        {slot content}{/slot}
+        <aside>{slot sidebar-right}{/slot}</aside>
     </div>
 </mk-container>
 {/block}

@@ -3,8 +3,8 @@
 {block main}
 <mk-container>
     <mk-sidebar>
-        <aside>{block sidebar-left}{/block}</aside>
-        {block content}{/block}
+        <aside>{slot sidebar-left}{/slot}</aside>
+        {slot content}{/slot}
     </mk-sidebar>
 </mk-container>
 {/block}

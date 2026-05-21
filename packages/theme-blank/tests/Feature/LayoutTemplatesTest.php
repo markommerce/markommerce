@@ -155,7 +155,7 @@ it('base.latte exposes title, head-extra, body, header, main, footer blocks', fu
     expect($contents)->toContain('{block footer}');
 });
 
-it('empty.latte extends base.latte and exposes only a content block via body', function (): void {
+it('empty.latte extends base.latte and exposes only a content slot via body', function (): void {
     $templatePath = dirname(__DIR__, 2) . '/resources/views/layout/empty.latte';
 
     expect(file_exists($templatePath))->toBeTrue();
@@ -163,10 +163,10 @@ it('empty.latte extends base.latte and exposes only a content block via body', f
     $contents = file_get_contents($templatePath);
     expect($contents)->toContain("layout 'theme-blank::layout/base'");
     expect($contents)->toContain('{block body}');
-    expect($contents)->toContain('{block content}');
+    expect($contents)->toContain('{slot content}{/slot}');
 });
 
-it('1column.latte extends base.latte, wraps main in mk-container, exposes a content block', function (): void {
+it('1column.latte extends base.latte, wraps main in mk-container, exposes a content slot', function (): void {
     $templatePath = dirname(__DIR__, 2) . '/resources/views/layout/1column.latte';
 
     expect(file_exists($templatePath))->toBeTrue();
@@ -175,10 +175,10 @@ it('1column.latte extends base.latte, wraps main in mk-container, exposes a cont
     expect($contents)->toContain("layout 'theme-blank::layout/base'");
     expect($contents)->toContain('{block main}');
     expect($contents)->toContain('<mk-container>');
-    expect($contents)->toContain('{block content}');
+    expect($contents)->toContain('{slot content}{/slot}');
 });
 
-it('2columns-left.latte extends base.latte, wraps main in mk-container and mk-sidebar, exposes sidebar-left and content blocks', function (): void {
+it('2columns-left.latte extends base.latte, wraps main in mk-container and mk-sidebar, exposes sidebar-left and content slots', function (): void {
     $templatePath = dirname(__DIR__, 2) . '/resources/views/layout/2columns-left.latte';
 
     expect(file_exists($templatePath))->toBeTrue();
@@ -189,11 +189,11 @@ it('2columns-left.latte extends base.latte, wraps main in mk-container and mk-si
     expect($contents)->toContain('<mk-container>');
     expect($contents)->toContain('<mk-sidebar>');
     expect($contents)->toContain('<aside>');
-    expect($contents)->toContain('{block sidebar-left}');
-    expect($contents)->toContain('{block content}');
+    expect($contents)->toContain('{slot sidebar-left}{/slot}');
+    expect($contents)->toContain('{slot content}{/slot}');
 });
 
-it('2columns-right.latte extends base.latte, wraps main in mk-container and mk-sidebar with side=right, exposes sidebar-right and content blocks', function (): void {
+it('2columns-right.latte extends base.latte, wraps main in mk-container and mk-sidebar with side=right, exposes sidebar-right and content slots', function (): void {
     $templatePath = dirname(__DIR__, 2) . '/resources/views/layout/2columns-right.latte';
 
     expect(file_exists($templatePath))->toBeTrue();
@@ -204,11 +204,11 @@ it('2columns-right.latte extends base.latte, wraps main in mk-container and mk-s
     expect($contents)->toContain('<mk-container>');
     expect($contents)->toContain('mk-sidebar side="right"');
     expect($contents)->toContain('<aside>');
-    expect($contents)->toContain('{block sidebar-right}');
-    expect($contents)->toContain('{block content}');
+    expect($contents)->toContain('{slot sidebar-right}{/slot}');
+    expect($contents)->toContain('{slot content}{/slot}');
 });
 
-it('3columns.latte extends base.latte, wraps main in .mk-layout-3col, exposes sidebar-left, sidebar-right, and content blocks', function (): void {
+it('3columns.latte extends base.latte, wraps main in .mk-layout-3col, exposes sidebar-left, sidebar-right, and content slots', function (): void {
     $templatePath = dirname(__DIR__, 2) . '/resources/views/layout/3columns.latte';
 
     expect(file_exists($templatePath))->toBeTrue();
@@ -217,9 +217,109 @@ it('3columns.latte extends base.latte, wraps main in .mk-layout-3col, exposes si
     expect($contents)->toContain("layout 'theme-blank::layout/base'");
     expect($contents)->toContain('{block main}');
     expect($contents)->toContain('mk-layout-3col');
-    expect($contents)->toContain('{block sidebar-left}');
-    expect($contents)->toContain('{block sidebar-right}');
-    expect($contents)->toContain('{block content}');
+    expect($contents)->toContain('{slot sidebar-left}{/slot}');
+    expect($contents)->toContain('{slot sidebar-right}{/slot}');
+    expect($contents)->toContain('{slot content}{/slot}');
+});
+
+it('it leaves base.latte\'s inheritance blocks unchanged so the leaf layouts still extend it', function (): void {
+    $basePath = dirname(__DIR__, 2) . '/resources/views/layout/base.latte';
+    $contents = file_get_contents($basePath);
+
+    expect($contents)->toContain('{block title}');
+    expect($contents)->toContain('{block head-extra}');
+    expect($contents)->toContain('{block body}');
+    expect($contents)->toContain('{block header}');
+    expect($contents)->toContain('{block main}');
+    expect($contents)->toContain('{block footer}');
+    expect($contents)->not->toContain('{slot ');
+});
+
+it('it converts the inner {block} placeholders to {slot} directives in every leaf layout latte', function (): void {
+    $layouts = [
+        '1column' => ['content'],
+        '2columns-left' => ['content', 'sidebar-left'],
+        '2columns-right' => ['content', 'sidebar-right'],
+        '3columns' => ['content', 'sidebar-left', 'sidebar-right'],
+        'empty' => ['content'],
+    ];
+
+    foreach ($layouts as $name => $slots) {
+        $templatePath = dirname(__DIR__, 2) . "/resources/views/layout/$name.latte";
+        $contents = file_get_contents($templatePath);
+
+        foreach ($slots as $slot) {
+            expect($contents)
+                ->toContain("{slot $slot}{/slot}")
+                ->not->toContain("{block $slot}{/block}");
+        }
+    }
+});
+
+it('it injects content slot data into the 1column layout via marko/view-latte SlotExtension', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-slot-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $themeBlankPath = dirname(__DIR__, 2);
+    $basePath = dirname(__DIR__, 4);
+
+    $originalManifest = themeBlankTestEnsureManifest($basePath);
+
+    $config = themeBlankTestBuildConfig($cacheDir);
+    $view = themeBlankTestBuildView($config, $themeBlankPath, $basePath);
+
+    $result = $view->renderToString('theme-blank::layout/1column', [
+        'slots' => ['content' => '<span>hello-content</span>'],
+    ]);
+
+    expect($result)->toContain('<span>hello-content</span>');
+    expect($result)->toContain('<mk-container>');
+
+    themeBlankTestCleanup($cacheDir);
+    if ($originalManifest !== null) {
+        $manifestPath = $basePath . '/public/build/.vite/manifest.json';
+        if ($originalManifest === '') {
+            @unlink($manifestPath);
+        } else {
+            file_put_contents($manifestPath, $originalManifest);
+        }
+    }
+});
+
+it('it injects sidebar-left and sidebar-right slot data into the 3columns layout', function (): void {
+    $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-3col-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $themeBlankPath = dirname(__DIR__, 2);
+    $basePath = dirname(__DIR__, 4);
+
+    $originalManifest = themeBlankTestEnsureManifest($basePath);
+
+    $config = themeBlankTestBuildConfig($cacheDir);
+    $view = themeBlankTestBuildView($config, $themeBlankPath, $basePath);
+
+    $result = $view->renderToString('theme-blank::layout/3columns', [
+        'slots' => [
+            'content' => '<span>main-content</span>',
+            'sidebar-left' => '<nav>left-nav</nav>',
+            'sidebar-right' => '<nav>right-nav</nav>',
+        ],
+    ]);
+
+    expect($result)->toContain('<span>main-content</span>');
+    expect($result)->toContain('<nav>left-nav</nav>');
+    expect($result)->toContain('<nav>right-nav</nav>');
+    expect($result)->toContain('mk-layout-3col');
+
+    themeBlankTestCleanup($cacheDir);
+    if ($originalManifest !== null) {
+        $manifestPath = $basePath . '/public/build/.vite/manifest.json';
+        if ($originalManifest === '') {
+            @unlink($manifestPath);
+        } else {
+            file_put_contents($manifestPath, $originalManifest);
+        }
+    }
 });
 
 it('layouts.css wraps all rules in @layer theme', function (): void {
