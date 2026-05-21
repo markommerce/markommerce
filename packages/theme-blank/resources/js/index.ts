@@ -10,6 +10,8 @@ import '../css/base.css';
 import '../css/layouts.css';
 
 import './components';
+import { defineAllComponents } from '@markommerce/frontend';
+defineAllComponents();
 import { showToast as _showToast } from './toast-controller';
 import { openDrawer as _openDrawer } from './drawer-controller';
 import { openModal as _openModal } from './modal-controller';

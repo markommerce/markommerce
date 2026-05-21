@@ -1,9 +1,9 @@
 <article class="catalog-product-card">
-    <img class="catalog-product-card__image"
-         src="https://placehold.co/400x400?text={$product->sku}"
-         alt="{$name}"
-         width="400" height="400" loading="lazy">
     <mk-stack gap="2">
+        <img class="catalog-product-card__image"
+            src="https://placehold.co/400x400?text={$product->sku}"
+            alt="{$name}"
+            width="400" height="400" loading="lazy">
         <mk-heading level="3" size="md">{$name}</mk-heading>
         {if $description}
             <mk-text variant="small">{$description}</mk-text>

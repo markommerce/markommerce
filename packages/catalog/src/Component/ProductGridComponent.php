@@ -7,11 +7,12 @@ namespace Markommerce\Catalog\Component;
 use Marko\Database\Exceptions\RepositoryException;
 use Marko\Layout\Attributes\Component;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
+use Markommerce\Catalog\Controller\CategoryController;
 use Markommerce\Catalog\Exceptions\CategoryNotFoundException;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Scope\Resolver\ScopeResolver;
 
-#[Component(template: 'catalog::components/product-grid', handle: 'default', slot: 'content')]
+#[Component(template: 'catalog::components/product-grid', handle: [CategoryController::class, 'show'], slot: 'content')]
 class ProductGridComponent
 {
     public function __construct(
