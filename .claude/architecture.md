@@ -13,7 +13,7 @@ packages/                          # All commerce modules (monorepo)
   catalog/                         # Product & category management
     src/
       Contracts/                   # Public interface contracts
-      Models/                      # Domain models (not Eloquent — plain PHP)
+      Entity/                      # marko/database entities (#[Table]/#[Column] attributes)
       Repositories/                # Data access implementations
       Services/                    # Business logic
       Exceptions/                  # Domain exceptions (extend MarkoException)

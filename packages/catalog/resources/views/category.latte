@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{$category->name}</title>
+</head>
+<body>
+<h1>{$category->name}</h1>
+{if count($resolvedNames) > 0}
+<ul>
+    {foreach $resolvedNames as $name}
+    <li>{$name}</li>
+    {/foreach}
+</ul>
+{else}
+<p>No products found in this category.</p>
+{/if}
+</body>
+</html>
