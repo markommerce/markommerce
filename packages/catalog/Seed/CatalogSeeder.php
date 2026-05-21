@@ -19,7 +19,9 @@ class CatalogSeeder implements SeederInterface
 {
     private const int CATEGORY_COUNT = 5;
 
-    private const int PRODUCT_COUNT = 30;
+    private const int PRODUCTS_PER_CATEGORY = 1000;
+
+    private const int LOCALE_OVERRIDE_PROBABILITY_PERCENT = 10;
 
     public function __construct(
         private readonly ProductRepositoryInterface $productRepository,
@@ -33,8 +35,7 @@ class CatalogSeeder implements SeederInterface
     public function run(): void
     {
         $categories = $this->seedCategories();
-        $products = $this->seedProducts();
-        $this->assignProductsToCategories($products, $categories);
+        $this->seedProductsAndAssignments($categories);
     }
 
     /**
@@ -47,12 +48,12 @@ class CatalogSeeder implements SeederInterface
 
         for ($n = 1; $n <= self::CATEGORY_COUNT; $n++) {
             $category = new Category();
-            $category->name = "Category {$n}";
-            $category->description = "Description for category {$n}";
-            $category->setOverride('locale:de', 'name', "Kategorie {$n}");
-            $category->setOverride('locale:de', 'description', "Beschreibung für Kategorie {$n}");
-            $category->setOverride('locale:fr', 'name', "Catégorie {$n}");
-            $category->setOverride('locale:fr', 'description', "Description pour la catégorie {$n}");
+            $category->name = "Category $n";
+            $category->description = "Description for category $n";
+            $category->setOverride('locale:de', 'name', "Kategorie $n");
+            $category->setOverride('locale:de', 'description', "Beschreibung für Kategorie $n");
+            $category->setOverride('locale:fr', 'name', "Catégorie $n");
+            $category->setOverride('locale:fr', 'description', "Description pour la catégorie $n");
 
             $this->categoryRepository->save($category);
             $categories[] = $category;
@@ -62,55 +63,65 @@ class CatalogSeeder implements SeederInterface
     }
 
     /**
-     * @return list<Product>
+     * Inserts all products via insertBatch, then re-fetches them to get their IDs,
+     * and bulk-inserts all assignments.
+     *
+     * @param list<Category> $categories
      * @throws ScopeStorageException
      */
-    private function seedProducts(): array
+    private function seedProductsAndAssignments(array $categories): void
     {
-        $products = [];
+        $totalProducts = self::CATEGORY_COUNT * self::PRODUCTS_PER_CATEGORY;
+        $entities = [];
 
-        for ($n = 1; $n <= self::PRODUCT_COUNT; $n++) {
+        for ($n = 1; $n <= $totalProducts; $n++) {
             $product = new Product();
-            $product->sku = 'SKU-' . str_pad((string) $n, 4, '0', STR_PAD_LEFT);
-            $product->name = "Product {$n}";
-            $product->description = "Description for product {$n}";
-            $product->setOverride('locale:de', 'name', "Produkt {$n}");
-            $product->setOverride('locale:de', 'description', "Beschreibung für Produkt {$n}");
-            $product->setOverride('locale:fr', 'name', "Produit {$n}");
-            $product->setOverride('locale:fr', 'description', "Description pour le produit {$n}");
-
-            $this->productRepository->save($product);
-            $products[] = $product;
-        }
-
-        return $products;
-    }
-
-    /**
-     * @param list<Product> $products
-     * @param list<Category> $categories
-     */
-    private function assignProductsToCategories(array $products, array $categories): void
-    {
-        $categoryCount = count($categories);
-
-        foreach ($products as $index => $product) {
-            $primaryCategoryIndex = $index % $categoryCount;
-            $this->createAssignment($product, $categories[$primaryCategoryIndex]);
-
-            if ($index % 2 === 0) {
-                $secondaryCategoryIndex = ($primaryCategoryIndex + 1) % $categoryCount;
-                $this->createAssignment($product, $categories[$secondaryCategoryIndex]);
+            $product->sku = 'SKU-' . str_pad((string) $n, 6, '0', STR_PAD_LEFT);
+            $product->name = "Product $n";
+            $product->description = "Description for product $n";
+            if ($this->shouldAddOverride()) {
+                $product->setOverride('locale:de', 'name', "Produkt $n");
+                $product->setOverride('locale:de', 'description', "Beschreibung für Produkt $n");
             }
+
+            if ($this->shouldAddOverride()) {
+                $product->setOverride('locale:fr', 'name', "Produit $n");
+                $product->setOverride('locale:fr', 'description', "Description pour le produit $n");
+            }
+
+            $entities[] = $product;
         }
+
+        $this->productRepository->insertBatch($entities);
+
+        // Re-fetch to obtain auto-assigned IDs, then map by SKU
+        $allProducts = $this->productRepository->findAll()->toArray();
+        $productsBySku = [];
+
+        foreach ($allProducts as $product) {
+            /** @var Product $product */
+            $productsBySku[$product->sku] = $product;
+        }
+
+        $categoryCount = count($categories);
+        $assignments = [];
+
+        for ($n = 1; $n <= $totalProducts; $n++) {
+            $sku = 'SKU-' . str_pad((string) $n, 6, '0', STR_PAD_LEFT);
+            $product = $productsBySku[$sku];
+            $primaryCategoryIndex = ($n - 1) % $categoryCount;
+
+            $assignment = new ProductCategoryAssignment();
+            $assignment->productId = $product->id;
+            $assignment->categoryId = $categories[$primaryCategoryIndex]->id;
+            $assignments[] = $assignment;
+        }
+
+        $this->assignmentRepository->insertBatch($assignments);
     }
 
-    private function createAssignment(Product $product, Category $category): void
+    private function shouldAddOverride(): bool
     {
-        $assignment = new ProductCategoryAssignment();
-        $assignment->productId = $product->id;
-        $assignment->categoryId = $category->id;
-
-        $this->assignmentRepository->save($assignment);
+        return random_int(1, 100) <= self::LOCALE_OVERRIDE_PROBABILITY_PERCENT;
     }
 }

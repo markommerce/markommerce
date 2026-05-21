@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use Marko\Config\ConfigRepositoryInterface;
+use Marko\Config\Exceptions\ConfigNotFoundException;
 use Marko\Core\Container\ContainerInterface;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Exceptions\InvalidResolverConfigException;
-use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Resolver\Resolution\ScopeAxisResolverInterface;
 use Markommerce\Scope\Resolver\Resolution\ScopeResolutionContext;
 use Markommerce\Scope\Resolver\Resolution\ScopeResolverChainFactory;
@@ -49,7 +49,8 @@ class NotAResolver
  */
 function makeChainFactoryFakes(array $config = []): array
 {
-    $container = new class implements ContainerInterface {
+    $container = new class () implements ContainerInterface
+    {
         /** @var array<string, object> */
         private array $bindings = [];
 
@@ -68,7 +69,7 @@ function makeChainFactoryFakes(array $config = []): array
                 return new $id();
             }
 
-            throw new \RuntimeException("Container: class $id not found");
+            throw new RuntimeException("Container: class $id not found");
         }
 
         public function has(string $id): bool
@@ -83,20 +84,21 @@ function makeChainFactoryFakes(array $config = []): array
             $this->bindings[$id] = $instance;
         }
 
-        public function call(\Closure $callable): mixed
+        public function call(Closure $callable): mixed
         {
             return $callable();
         }
     };
 
-    $configRepository = new class ($config) implements ConfigRepositoryInterface {
+    $configRepository = new class ($config) implements ConfigRepositoryInterface
+    {
         /** @param array<string, mixed> $config */
         public function __construct(private readonly array $config) {}
 
         public function get(string $key, ?string $scope = null): mixed
         {
             if (!array_key_exists($key, $this->config)) {
-                throw new \Marko\Config\Exceptions\ConfigNotFoundException("Key '$key' not found");
+                throw new ConfigNotFoundException("Key '$key' not found");
             }
 
             return $this->config[$key];

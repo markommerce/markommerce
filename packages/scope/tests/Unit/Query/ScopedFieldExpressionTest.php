@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Markommerce\Scope\Exceptions\NoDriverException;
 use Markommerce\Scope\Query\ScopedFieldExpression;
 use Markommerce\Scope\Signature\ScopeSignature;
 
@@ -71,7 +72,7 @@ it('ScopedFieldExpression accepts an empty signatures list (fallback-column-only
 });
 
 it('NoDriverException::noDriverInstalled() message and context reference ScopedFieldRendererInterface (not the old ScopeSortRendererInterface vocabulary)', function (): void {
-    $exception = \Markommerce\Scope\Exceptions\NoDriverException::noDriverInstalled();
+    $exception = NoDriverException::noDriverInstalled();
 
     expect($exception->getMessage())->not->toContain('scope sort renderer')
         ->and($exception->getMessage())->not->toContain('ScopeSortRendererInterface')

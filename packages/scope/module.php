@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Marko\Config\ConfigRepositoryInterface;
 use Marko\Core\Container\ContainerInterface;
+use Marko\Log\Contracts\LoggerInterface;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Middleware\ScopeResolutionMiddleware;
@@ -11,8 +12,8 @@ use Markommerce\Scope\Query\ScopedOrderByFactory;
 use Markommerce\Scope\Registry\PhpScopeRegistry;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use Markommerce\Scope\Resolution\ScopeWalker;
-use Markommerce\Scope\Resolver\Resolution\ScopeResolverChainFactory;
 use Markommerce\Scope\Resolver\Resolution\ScopeResolutionPipeline;
+use Markommerce\Scope\Resolver\Resolution\ScopeResolverChainFactory;
 use Markommerce\Scope\Resolver\ScopeResolver;
 use Markommerce\Scope\Signature\ScopeSignatureValidator;
 use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
@@ -25,10 +26,10 @@ return [
         },
         ScopeResolutionPipeline::class => function (ContainerInterface $container): ScopeResolutionPipeline {
             $logger = null;
-            if (interface_exists(\Marko\Log\Contracts\LoggerInterface::class)) {
+            if (interface_exists(LoggerInterface::class)) {
                 try {
-                    $logger = $container->get(\Marko\Log\Contracts\LoggerInterface::class);
-                } catch (\Throwable) {
+                    $logger = $container->get(LoggerInterface::class);
+                } catch (Throwable) {
                     $logger = null;
                 }
             }

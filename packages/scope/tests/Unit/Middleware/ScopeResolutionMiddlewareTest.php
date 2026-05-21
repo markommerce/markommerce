@@ -23,7 +23,8 @@ use Markommerce\Scope\Resolver\Resolution\ScopeResolverChainFactory;
  */
 function makeMiddlewareRegistry(array $axes = [], array $defaults = []): ScopeRegistryInterface
 {
-    return new class ($axes, $defaults) implements ScopeRegistryInterface {
+    return new class ($axes, $defaults) implements ScopeRegistryInterface
+    {
         /** @var array<string, ScopeAxis> */
         private array $builtAxes;
 
@@ -76,7 +77,8 @@ function makeMiddlewareRegistry(array $axes = [], array $defaults = []): ScopeRe
  */
 function makeMiddlewareChainFactory(array $chains = []): ScopeResolverChainFactory
 {
-    return new class ($chains) extends ScopeResolverChainFactory {
+    return new class ($chains) extends ScopeResolverChainFactory
+    {
         /** @param array<string, list<ScopeAxisResolverInterface>> $chains */
         public function __construct(private readonly array $chains)
         {
@@ -122,7 +124,8 @@ it('it runs the pipeline with http channel before calling next', function (): vo
     $registry = makeMiddlewareRegistry(['store' => ['default', 'eu']], ['store' => 'default']);
     $context = new ScopeContext($registry);
 
-    $resolver = new class ($capturedChannel) implements ScopeAxisResolverInterface {
+    $resolver = new class ($capturedChannel) implements ScopeAxisResolverInterface
+    {
         /** @phpstan-ignore property.onlyWritten */
         public function __construct(private mixed &$capturedChannel) {}
 
@@ -193,7 +196,8 @@ it('it clears the scope context after the handler returns successfully', functio
     $registry = makeMiddlewareRegistry(['store' => ['default', 'eu']], ['store' => 'default']);
     $context = new ScopeContext($registry);
 
-    $resolver = new class implements ScopeAxisResolverInterface {
+    $resolver = new class () implements ScopeAxisResolverInterface
+    {
         public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $resolutionContext): string
         {
             return $scopeAxis->default;
@@ -220,7 +224,8 @@ it('it clears the scope context when the handler throws an Exception', function 
     $registry = makeMiddlewareRegistry(['store' => ['default', 'eu']], ['store' => 'default']);
     $context = new ScopeContext($registry);
 
-    $resolver = new class implements ScopeAxisResolverInterface {
+    $resolver = new class () implements ScopeAxisResolverInterface
+    {
         public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $resolutionContext): string
         {
             return $scopeAxis->default;
@@ -234,12 +239,12 @@ it('it clears the scope context when the handler throws an Exception', function 
     $request = makeMiddlewareRequest();
 
     $next = function (Request $req): Response {
-        throw new \RuntimeException('Handler failed');
+        throw new RuntimeException('Handler failed');
     };
 
     try {
         $middleware->handle($request, $next);
-    } catch (\RuntimeException) {
+    } catch (RuntimeException) {
         // expected
     }
 
@@ -252,7 +257,8 @@ it('it clears the scope context when the handler throws an Error (not just Excep
     $registry = makeMiddlewareRegistry(['store' => ['default', 'eu']], ['store' => 'default']);
     $context = new ScopeContext($registry);
 
-    $resolver = new class implements ScopeAxisResolverInterface {
+    $resolver = new class () implements ScopeAxisResolverInterface
+    {
         public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $resolutionContext): string
         {
             return $scopeAxis->default;
@@ -266,12 +272,12 @@ it('it clears the scope context when the handler throws an Error (not just Excep
     $request = makeMiddlewareRequest();
 
     $next = function (Request $req): Response {
-        throw new \Error('Fatal error in handler');
+        throw new Error('Fatal error in handler');
     };
 
     try {
         $middleware->handle($request, $next);
-    } catch (\Error) {
+    } catch (Error) {
         // expected
     }
 
@@ -285,12 +291,12 @@ it('it re-throws exceptions thrown by the handler', function (): void {
     $middleware = new ScopeResolutionMiddleware($pipeline);
 
     $request = makeMiddlewareRequest();
-    $originalException = new \RuntimeException('Handler failed with specific message');
+    $originalException = new RuntimeException('Handler failed with specific message');
 
     $next = function (Request $req) use ($originalException): Response {
         throw $originalException;
     };
 
     expect(fn () => $middleware->handle($request, $next))
-        ->toThrow(\RuntimeException::class, 'Handler failed with specific message');
+        ->toThrow(RuntimeException::class, 'Handler failed with specific message');
 });

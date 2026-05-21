@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Marko\Database\Entity\Entity;
 use Marko\Database\Exceptions\RepositoryException;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Exceptions\DuplicateSkuException;
@@ -51,8 +52,9 @@ it('throws DuplicateSkuException when creating a product whose sku already exist
 });
 
 it('converts a repository uniqueness violation on save into a DuplicateSkuException', function (): void {
-    $repository = new class extends FakeProductRepository {
-        public function save(\Marko\Database\Entity\Entity $entity): void
+    $repository = new class () extends FakeProductRepository
+    {
+        public function save(Entity $entity): void
         {
             throw RepositoryException::invalidEntityType(self::class, Product::class, $entity::class);
         }

@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Marko\Routing\Http\Request;
+use Markommerce\Scope\Axis\ScopeAxis;
+use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use Markommerce\Scope\Resolver\Resolution\ScopeResolutionContext;
 use Markommerce\Scope\Resolver\Resolution\SyntheticRequest;
@@ -11,16 +13,16 @@ use Markommerce\Scope\Resolver\Resolution\SyntheticRequest;
 
 function makeStubRegistry(): ScopeRegistryInterface
 {
-    return new class implements ScopeRegistryInterface
+    return new class () implements ScopeRegistryInterface
     {
         public function hasAxis(string $name): bool
         {
             return false;
         }
 
-        public function getAxis(string $name): \Markommerce\Scope\Axis\ScopeAxis
+        public function getAxis(string $name): ScopeAxis
         {
-            throw new \RuntimeException('Not implemented');
+            throw new RuntimeException('Not implemented');
         }
 
         public function listAxes(): array
@@ -28,9 +30,9 @@ function makeStubRegistry(): ScopeRegistryInterface
             return [];
         }
 
-        public function getHierarchy(string $axisName): \Markommerce\Scope\Hierarchy\ScopeHierarchy
+        public function getHierarchy(string $axisName): ScopeHierarchy
         {
-            throw new \RuntimeException('Not implemented');
+            throw new RuntimeException('Not implemented');
         }
     };
 }
@@ -139,7 +141,7 @@ it('SyntheticRequest factory does not throw when constructed', function (): void
 
     try {
         $request = SyntheticRequest::create();
-    } catch (\Throwable $e) {
+    } catch (Throwable $e) {
         $exception = $e;
     }
 

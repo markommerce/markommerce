@@ -14,8 +14,7 @@ class ProductService
 {
     public function __construct(
         private ProductRepositoryInterface $productRepository,
-    ) {
-    }
+    ) {}
 
     /**
      * @throws DuplicateSkuException

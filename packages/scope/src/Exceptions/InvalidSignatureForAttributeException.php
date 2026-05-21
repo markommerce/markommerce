@@ -17,8 +17,7 @@ class InvalidSignatureForAttributeException extends MarkoException
     public static function forUnknownAxis(
         string $axis,
         array $allowedAxes,
-    ): self
-    {
+    ): self {
         $allowed = implode(', ', $allowedAxes);
 
         return new self(
@@ -31,8 +30,7 @@ class InvalidSignatureForAttributeException extends MarkoException
     public static function forUnknownValue(
         string $value,
         string $axis,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Signature value '$value' for axis '$axis' does not exist in the registry hierarchy",
             context: "Validating ScopeSignature axis '$axis' value '$value' against the registry hierarchy",
@@ -43,8 +41,7 @@ class InvalidSignatureForAttributeException extends MarkoException
     public static function forDefaultScope(
         string $axis,
         string $defaultScope,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Signature names axis '$axis' at its default scope '$defaultScope'; the base column already holds the default value",
             context: "Validating ScopeSignature axis '$axis' value '$defaultScope' against the axis default",

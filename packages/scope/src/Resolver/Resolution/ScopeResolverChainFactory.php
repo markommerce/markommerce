@@ -31,7 +31,7 @@ class ScopeResolverChainFactory
             return $this->cache[$axisName];
         }
 
-        $configKey = "scope.axes.{$axisName}.resolvers";
+        $configKey = "scope.axes.$axisName.resolvers";
 
         if (!$this->configRepository->has($configKey)) {
             $this->cache[$axisName] = [];

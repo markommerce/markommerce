@@ -1,0 +1,12 @@
+<mk-stack gap="5">
+    <mk-heading size="2xl"><h1>{$category->name}</h1></mk-heading>
+    {if count($products) > 0}
+        <mk-grid min="14rem" gap="4">
+            {foreach $products as $product}
+                {include 'catalog::components/product-grid-item', product => $product, name => $resolvedNames[$product->id], description => $resolvedDescs[$product->id]}
+            {/foreach}
+        </mk-grid>
+    {else}
+        <mk-text variant="muted">No products found in this category.</mk-text>
+    {/if}
+</mk-stack>

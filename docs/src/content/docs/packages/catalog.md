@@ -134,7 +134,30 @@ The catalog module registers a storefront route automatically:
 GET /catalog/category/{id}
 ```
 
-`CategoryController` resolves the category and its products, applies `ScopeResolver::resolved()` to each product's `name` field using the active locale context, and renders the `catalog::category` view. The controller returns a `404` response when the category ID does not exist.
+`CategoryController` uses `#[Layout(OneColumnLayout::class)]` from `markommerce/theme-blank` and performs a quick category lookup to return a `404` response when the category ID does not exist. The actual page content --- category heading and product grid --- is rendered by `ProductGridComponent`, which is registered to the layout's `content` slot.
+
+### ProductGridComponent
+
+`ProductGridComponent` is a Marko Layout Component bound to the `content` slot of the `1column` layout. Its `data(int $id)` method receives the `{id}` route parameter, loads the category and its assigned products, and resolves locale-scoped `name` and `description` for each product via `ScopeResolver`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Catalog\Component\ProductGridComponent;
+```
+
+The component returns four keys to its template (`catalog::components/product-grid`):
+
+| Key | Type | Description |
+|---|---|---|
+| `category` | `Category` | The resolved category entity |
+| `products` | `list<Product>` | All products assigned to the category |
+| `resolvedNames` | `array<int, string>` | Locale-resolved name keyed by product ID |
+| `resolvedDescs` | `array<int, string\|null>` | Locale-resolved description keyed by product ID |
+
+The template renders an `mk-heading` with the category name followed by an `mk-grid` of `catalog-product-card` items. When no products are assigned, it renders a muted `mk-text` fallback. Product images are placeholder images keyed by SKU.
 
 ### Seeder
 
@@ -253,3 +276,4 @@ All exceptions extend `MarkoException` and carry a `message`, `context`, and `su
 
 - [markommerce/scope](/docs/packages/scope/) --- Scoped attribute resolution used by `Product` and `Category` entities
 - [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver required to persist and query scoped overrides
+- [markommerce/theme-blank](/docs/packages/theme-blank/) --- Provides `OneColumnLayout` and other PHP Layout classes used by `CategoryController`

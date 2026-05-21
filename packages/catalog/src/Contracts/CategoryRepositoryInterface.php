@@ -10,6 +10,4 @@ use Markommerce\Catalog\Entity\Category;
 /**
  * @extends RepositoryInterface<Category>
  */
-interface CategoryRepositoryInterface extends RepositoryInterface
-{
-}
+interface CategoryRepositoryInterface extends RepositoryInterface {}

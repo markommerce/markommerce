@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
-use Markommerce\Catalog\Entity\ProductCategoryAssignment;
 use Markommerce\Catalog\Exceptions\CategoryNotFoundException;
-use Markommerce\Catalog\Exceptions\ProductNotFoundException;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;

@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Marko\Config\ConfigRepository;
 use Marko\Config\ConfigMerger;
+use Marko\Config\ConfigRepository;
 use Marko\Database\Attributes\Column;
 use Marko\Database\Attributes\Table;
 use Marko\Database\Entity\Entity;

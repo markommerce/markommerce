@@ -280,7 +280,9 @@ This package contributes to three of those layers:
 | `base` | `@markommerce/theme-blank/css/base.css` | Box-sizing reset, body/heading/link/image defaults |
 | `theme` | `@markommerce/theme-blank/css/layouts.css` | Page layout grid structures |
 
-Import all three in your entry point after the layer declaration:
+The `@markommerce/theme-blank` npm package's main entry point (`index.ts`) already imports all five files in the correct order --- layers declaration, Open Props, tokens, base, and layouts. Any consumer that imports `@markommerce/theme-blank` (directly or via a Markommerce module scanner) gets the complete CSS cascade for free. No manual wiring is required.
+
+If you are building a custom entry point that bypasses the scanner, import the files explicitly in this order:
 
 ```typescript title="resources/js/main.ts"
 // 1. Establish cascade-layer order (lowest → highest)
@@ -318,18 +320,53 @@ To override raw Open Props variables (e.g., to swap the entire color palette), w
 
 ## Page Layouts
 
-`markommerce/theme-blank` ships six Latte layout templates in `resources/views/layout/`. Each layout extends the chain and fills named blocks.
+`markommerce/theme-blank` ships six Latte layout templates in `resources/views/layout/` and five PHP Layout classes in `src/Layout/`. The PHP classes are the recommended integration point for Marko controllers; the raw Latte templates remain available for direct template composition.
 
 ### Layout Reference
 
-| Layout | Template path | Blocks exposed |
-| --- | --- | --- |
-| `base` | `theme-blank::layout/base` | `title`, `head-extra`, `body`, `header`, `main`, `footer` |
-| `empty` | `theme-blank::layout/empty` | `content` (no header/footer chrome) |
-| `1column` | `theme-blank::layout/1column` | `content` (centered max-width wrapper) |
-| `2columns-left` | `theme-blank::layout/2columns-left` | `sidebar-left`, `content` |
-| `2columns-right` | `theme-blank::layout/2columns-right` | `content`, `sidebar-right` |
-| `3columns` | `theme-blank::layout/3columns` | `sidebar-left`, `content`, `sidebar-right` |
+| Layout | Template path | PHP class | Slots |
+| --- | --- | --- | --- |
+| `base` | `theme-blank::layout/base` | — | `title`, `head-extra`, `body`, `header`, `main`, `footer` (Latte blocks) |
+| `empty` | `theme-blank::layout/empty` | `EmptyLayout` | `content` (no header/footer chrome) |
+| `1column` | `theme-blank::layout/1column` | `OneColumnLayout` | `content` (centered max-width wrapper) |
+| `2columns-left` | `theme-blank::layout/2columns-left` | `TwoColumnsLeftLayout` | `content`, `sidebar-left` |
+| `2columns-right` | `theme-blank::layout/2columns-right` | `TwoColumnsRightLayout` | `content`, `sidebar-right` |
+| `3columns` | `theme-blank::layout/3columns` | `ThreeColumnsLayout` | `content`, `sidebar-left`, `sidebar-right` |
+
+### PHP Layout Classes
+
+Each content layout has a corresponding PHP class in `Markommerce\ThemeBlank\Layout\`. These classes carry a `#[Component]` attribute that wires the template and declares the available slots. Attach one to a controller using Marko's `#[Layout]` attribute:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Marko\Layout\Attributes\Layout;
+use Marko\Routing\Attributes\Get;
+use Marko\Routing\Http\Response;
+use Markommerce\ThemeBlank\Layout\OneColumnLayout;
+
+#[Layout(OneColumnLayout::class)]
+class MyController
+{
+    #[Get('/my-page')]
+    public function show(): Response
+    {
+        return Response::html('', 200);
+    }
+}
+```
+
+The five available classes and their slots:
+
+| Class | Slots |
+| --- | --- |
+| `OneColumnLayout` | `content` |
+| `TwoColumnsLeftLayout` | `content`, `sidebar-left` |
+| `TwoColumnsRightLayout` | `content`, `sidebar-right` |
+| `ThreeColumnsLayout` | `content`, `sidebar-left`, `sidebar-right` |
+| `EmptyLayout` | `content` |
 
 ### Base Layout
 
@@ -337,48 +374,48 @@ To override raw Open Props variables (e.g., to swap the entire color palette), w
 
 ### Empty Layout
 
-`empty.latte` overrides `{block body}` entirely, discarding the parent's `header`/`main`/`footer` chrome. Use it for error pages, login screens, install wizards, or any page that does not want the standard site structure. Note: because `{block body}` is overridden, the `header`, `main`, and `footer` blocks from `base.latte` are not available for further override when this layout is used.
+`empty.latte` overrides `{block body}` entirely, discarding the parent's `header`/`main`/`footer` chrome. Use `EmptyLayout` (or extend `theme-blank::layout/empty` directly) for error pages, login screens, install wizards, or any page that does not want the standard site structure.
 
 ### Content Layouts
 
-The `1column`, `2columns-left`, `2columns-right`, and `3columns` layouts extend `base.latte` and override `{block main}` with the appropriate CSS grid wrapper. Use them by declaring `{layout}` at the top of any Latte template:
+The `1column`, `2columns-left`, `2columns-right`, and `3columns` layouts expose their regions as `{slot}` placeholders. Components registered for a layout's named slots are injected into the corresponding `{slot}` when the layout renders. In direct Latte composition, use the raw template path with `{layout}`:
 
 ```latte
 {layout 'theme-blank::layout/1column'}
 
-{block content}
+{slot content}
   <h1>Welcome</h1>
   <p>Your page content goes here.</p>
-{/block}
+{/slot}
 ```
 
 ```latte
 {layout 'theme-blank::layout/2columns-left'}
 
-{block sidebar-left}
+{slot sidebar-left}
   <nav>Category navigation</nav>
-{/block}
+{/slot}
 
-{block content}
+{slot content}
   <h1>Category: Shirts</h1>
   {* product grid *}
-{/block}
+{/slot}
 ```
 
 ```latte
 {layout 'theme-blank::layout/3columns'}
 
-{block sidebar-left}
+{slot sidebar-left}
   <nav>Filters</nav>
-{/block}
+{/slot}
 
-{block content}
+{slot content}
   <h1>Search Results</h1>
-{/block}
+{/slot}
 
-{block sidebar-right}
+{slot sidebar-right}
   <aside>Promotions</aside>
-{/block}
+{/slot}
 ```
 
 The two-column layouts switch from a single-column stacked view to the side-by-side grid at `--mk-breakpoint-md` (768 px). The three-column layout switches at `--mk-breakpoint-lg` (1024 px).

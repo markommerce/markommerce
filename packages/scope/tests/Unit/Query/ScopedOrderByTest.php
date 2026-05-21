@@ -522,9 +522,9 @@ it('builds a COALESCE-based orderByRaw using the candidate signatures from the e
     $renderer = new class (Closure::fromCallable(
         function (ScopedFieldExpression $expr) use (&$capturedExpression): string {
             $capturedExpression = $expr;
-    
+
             return 'COALESCE(expr)';
-        }
+        },
     )) implements ScopedFieldRendererInterface {
         public function __construct(private readonly Closure $fn) {}
 
@@ -589,9 +589,9 @@ it(
         $renderer = new class (Closure::fromCallable(
             function (ScopedFieldExpression $expr) use (&$capturedSignatures): string {
                 $capturedSignatures = $expr->candidateSignatures;
-    
+
                 return 'COALESCE(expr)';
-            }
+            },
         )) implements ScopedFieldRendererInterface {
             public function __construct(private readonly Closure $fn) {}
 
@@ -706,16 +706,14 @@ it(
             public function override(
                 string $signature,
                 string $property,
-            ): mixed
-            {
+            ): mixed {
                 return null;
             }
 
             public function hasOverride(
                 string $signature,
                 string $property,
-            ): bool
-            {
+            ): bool {
                 return false;
             }
 
@@ -798,9 +796,9 @@ it(
         $renderer = new class (Closure::fromCallable(
             function (ScopedFieldExpression $expr) use (&$sqlCandidates): string {
                 $sqlCandidates = $expr->candidateSignatures;
-    
+
                 return 'COALESCE(expr)';
-            }
+            },
         )) implements ScopedFieldRendererInterface {
             public function __construct(private readonly Closure $fn) {}
 

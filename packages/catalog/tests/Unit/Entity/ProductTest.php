@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Marko\Database\Attributes\Column;
 use Marko\Database\Attributes\Table;
-use Marko\Database\Entity\Entity;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Scope\Attributes\Scoped;
 use Markommerce\Scope\Storage\HasScopesInterface;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Markommerce\Catalog\Services;
 
+use Marko\Database\Exceptions\RepositoryException;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Contracts\ProductCategoryAssignmentRepositoryInterface;
 use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
@@ -18,12 +19,10 @@ class CategoryAssignmentService
         private ProductRepositoryInterface $productRepository,
         private CategoryRepositoryInterface $categoryRepository,
         private ProductCategoryAssignmentRepositoryInterface $productCategoryAssignmentRepository,
-    ) {
-    }
+    ) {}
 
     /**
-     * @throws ProductNotFoundException
-     * @throws CategoryNotFoundException
+     * @throws ProductNotFoundException|CategoryNotFoundException
      */
     public function assign(int $productId, int $categoryId): void
     {
@@ -49,7 +48,7 @@ class CategoryAssignmentService
     }
 
     /**
-     * @throws \Marko\Database\Exceptions\RepositoryException
+     * @throws RepositoryException
      */
     public function detach(int $productId, int $categoryId): void
     {

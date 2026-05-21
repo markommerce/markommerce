@@ -13,7 +13,8 @@ use Markommerce\Scope\Resolver\Resolution\ScopeResolutionPipeline;
  */
 function makeFakePipeline(): object
 {
-    return new class extends ScopeResolutionPipeline {
+    return new class () extends ScopeResolutionPipeline
+    {
         /** @var list<string> */
         public array $calls = [];
 
@@ -57,7 +58,8 @@ it('withScope runs the pipeline with queue channel', function (): void {
 it('withScope uses a SyntheticRequest as the request', function (): void {
     $capturedRequest = null;
 
-    $recordingPipeline = new class ($capturedRequest) extends ScopeResolutionPipeline {
+    $recordingPipeline = new class ($capturedRequest) extends ScopeResolutionPipeline
+    {
         public function __construct(private mixed &$capturedRequest)
         {
             // skip parent constructor
@@ -100,11 +102,11 @@ it('withScope calls pipeline clear after the callable returns normally', functio
 it('withScope rethrows the original throwable when the callable throws', function (): void {
     $pipeline = makeFakePipeline();
     $wrapper = new JobScopeWrapper($pipeline);
-    $original = new \RuntimeException('original error');
+    $original = new RuntimeException('original error');
 
     expect(fn () => $wrapper->withScope(function () use ($original): void {
         throw $original;
-    }))->toThrow(\RuntimeException::class, 'original error');
+    }))->toThrow(RuntimeException::class, 'original error');
 });
 
 it('withScope calls pipeline clear after the callable throws', function (): void {
@@ -113,9 +115,9 @@ it('withScope calls pipeline clear after the callable throws', function (): void
 
     try {
         $wrapper->withScope(function (): void {
-            throw new \RuntimeException('job failed');
+            throw new RuntimeException('job failed');
         });
-    } catch (\Throwable) {
+    } catch (Throwable) {
         // expected
     }
 
@@ -124,11 +126,11 @@ it('withScope calls pipeline clear after the callable throws', function (): void
 });
 
 it('the class carries no Plugin attribute (verified via reflection)', function (): void {
-    $reflection = new \ReflectionClass(JobScopeWrapper::class);
+    $reflection = new ReflectionClass(JobScopeWrapper::class);
 
     $pluginAttributes = $reflection->getAttributes();
     $pluginAttributeNames = array_map(
-        fn (\ReflectionAttribute $attr) => $attr->getName(),
+        fn (ReflectionAttribute $attr) => $attr->getName(),
         $pluginAttributes,
     );
 

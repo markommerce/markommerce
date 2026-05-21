@@ -17,7 +17,7 @@ class ScopeResolutionException extends MarkoException
         return new self(
             message: "Resolver '$resolverClass' for axis '$axisName' threw an unexpected exception",
             context: "Running resolver '$resolverClass' for axis '$axisName'",
-            suggestion: "Check the resolver implementation for bugs or missing dependencies.",
+            suggestion: 'Check the resolver implementation for bugs or missing dependencies.',
             previous: $previous,
         );
     }

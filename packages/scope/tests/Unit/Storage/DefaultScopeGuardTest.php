@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Markommerce\Scope\Exceptions\ScopeStorageException;
 use Markommerce\Scope\Storage\DefaultScopeGuard;
+use Markommerce\Scope\Storage\HasScopes;
 
 afterEach(function (): void {
     DefaultScopeGuard::reset();
@@ -22,23 +24,25 @@ it('allows writes to non-default-scope signatures when configured with axis defa
 it('throws ScopeStorageException when HasScopes setOverride writes at a default-scope signature', function (): void {
     DefaultScopeGuard::configure(['locale' => 'global']);
 
-    $entity = new class () {
-        use \Markommerce\Scope\Storage\HasScopes;
+    $entity = new class ()
+    {
+        use HasScopes;
     };
 
     expect(fn () => $entity->setOverride('locale:global', 'name', 'Test'))
-        ->toThrow(\Markommerce\Scope\Exceptions\ScopeStorageException::class);
+        ->toThrow(ScopeStorageException::class);
 });
 
 it('throws ScopeStorageException when HasScopes clearOverride targets a default-scope signature', function (): void {
     DefaultScopeGuard::configure(['locale' => 'global']);
 
-    $entity = new class () {
-        use \Markommerce\Scope\Storage\HasScopes;
+    $entity = new class ()
+    {
+        use HasScopes;
     };
 
     expect(fn () => $entity->clearOverride('locale:global', 'name'))
-        ->toThrow(\Markommerce\Scope\Exceptions\ScopeStorageException::class);
+        ->toThrow(ScopeStorageException::class);
 });
 
 it('rejects a multi-axis signature that names any axis at its default', function (): void {
@@ -46,7 +50,7 @@ it('rejects a multi-axis signature that names any axis at its default', function
 
     // 'locale:en' is non-default but 'geo:global' is the default for geo
     expect(fn () => DefaultScopeGuard::assertWritable('locale:en|geo:global'))
-        ->toThrow(\Markommerce\Scope\Exceptions\ScopeStorageException::class);
+        ->toThrow(ScopeStorageException::class);
 });
 
 it('allows all writes when DefaultScopeGuard has not been configured', function (): void {

@@ -354,7 +354,8 @@ it('ignores stored signatures with axes not in the attribute axes (case 7: defen
 
     // Instrumented storage that tracks which signatures are looked up
     $lookedUp = [];
-    $overrides = new class ($lookedUp) implements HasScopesInterface {
+    $overrides = new class ($lookedUp) implements HasScopesInterface
+    {
         use HasScopes;
 
         /** @param array<int, string> $lookedUp */
@@ -528,7 +529,8 @@ it('does NOT iterate HasScopesInterface::overrides() on the resolution path (ver
     $context->in('channel', 'b2b')->in('locale', 'es');
 
     $overridesCalled = 0;
-    $overrides = new class ($overridesCalled) implements HasScopesInterface {
+    $overrides = new class ($overridesCalled) implements HasScopesInterface
+    {
         use HasScopes;
 
         public function __construct(private int &$overridesCalled) {}

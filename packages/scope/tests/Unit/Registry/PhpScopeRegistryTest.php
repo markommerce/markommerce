@@ -7,7 +7,6 @@ use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Exceptions\ScopeConfigurationException;
 use Markommerce\Scope\Exceptions\UnknownAxisException;
 use Markommerce\Scope\Registry\PhpScopeRegistry;
-use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 function makeConfigStub(array $axes): ConfigRepositoryInterface
 {

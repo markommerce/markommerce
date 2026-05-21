@@ -60,7 +60,7 @@ it('seeds the configured number of products', function (): void {
 
     $seeder->run();
 
-    expect($productRepository->products)->toHaveCount(30);
+    expect($productRepository->products)->toHaveCount(5000);
 });
 
 it('gives every seeded product a unique sku', function (): void {

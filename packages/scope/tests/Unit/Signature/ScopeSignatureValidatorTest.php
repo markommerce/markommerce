@@ -67,7 +67,8 @@ class InstrumentedRegistry implements ScopeRegistryInterface
  */
 function makeSignatureValidatorRegistry(array $axisHierarchies, array $axisDefaults = []): ScopeRegistryInterface
 {
-    return new class ($axisHierarchies, $axisDefaults) implements ScopeRegistryInterface {
+    return new class ($axisHierarchies, $axisDefaults) implements ScopeRegistryInterface
+    {
         /** @var array<string, ScopeHierarchy> */
         private array $hierarchies;
 
@@ -146,11 +147,11 @@ it(
         ]);
         $validator = new ScopeSignatureValidator($registry);
         $signature = new ScopeSignature(['market' => 'eu']);
-    
+
         expect(fn () => $validator->validate($signature, ['channel']))->toThrow(
             InvalidSignatureForAttributeException::class,
         );
-    }
+    },
 );
 
 it(
@@ -161,11 +162,11 @@ it(
         ]);
         $validator = new ScopeSignatureValidator($registry);
         $signature = new ScopeSignature(['channel' => 'unknown-value']);
-    
+
         expect(fn () => $validator->validate($signature, ['channel']))->toThrow(
             InvalidSignatureForAttributeException::class,
         );
-    }
+    },
 );
 
 it(
@@ -177,14 +178,14 @@ it(
         ]);
         $validator = new ScopeSignatureValidator($registry);
         $signature = new ScopeSignature(['market' => 'eu']);
-    
+
         try {
             $validator->validate($signature, ['channel']);
             expect(false)->toBeTrue('Expected InvalidSignatureForAttributeException was not thrown');
         } catch (InvalidSignatureForAttributeException $e) {
             expect($e->getMessage())->toContain('market');
         }
-    }
+    },
 );
 
 it(
@@ -195,7 +196,7 @@ it(
         ]);
         $validator = new ScopeSignatureValidator($registry);
         $signature = new ScopeSignature(['channel' => 'no-such-channel']);
-    
+
         try {
             $validator->validate($signature, ['channel']);
             expect(false)->toBeTrue('Expected InvalidSignatureForAttributeException was not thrown');
@@ -204,7 +205,7 @@ it(
                 ->toContain('no-such-channel')
                 ->and($e->getMessage())->toContain('channel');
         }
-    }
+    },
 );
 
 it(
@@ -215,15 +216,15 @@ it(
         ]);
         $validator = new ScopeSignatureValidator($registry);
         $signature = new ScopeSignature(['channel' => 'b2b']);
-    
+
         $validator->validate($signature, ['channel']);
         $callsAfterFirst = $registry->getHierarchyCallCount;
-    
+
         $validator->validate($signature, ['channel']);
         $callsAfterSecond = $registry->getHierarchyCallCount;
-    
+
         expect($callsAfterSecond)->toBe($callsAfterFirst);
-    }
+    },
 );
 
 it('does not cache failures (a failing validation re-throws on repeat)', function (): void {
