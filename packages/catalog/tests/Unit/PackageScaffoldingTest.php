@@ -53,7 +53,7 @@ it('requires markommerce/scope and marko/database', function (): void {
     expect($manifest['require']['marko/database'])->toBe('self.version');
 });
 
-it('requires the marko routing, view, view-latte and layout packages', function (): void {
+it('requires the marko routing, view, view-latte packages and markommerce/layout', function (): void {
     $manifest = readCatalogManifest();
 
     expect($manifest['require'])->toHaveKey('marko/routing');
@@ -62,8 +62,9 @@ it('requires the marko routing, view, view-latte and layout packages', function 
     expect($manifest['require']['marko/view'])->toBe('self.version');
     expect($manifest['require'])->toHaveKey('marko/view-latte');
     expect($manifest['require']['marko/view-latte'])->toBe('self.version');
-    expect($manifest['require'])->toHaveKey('marko/layout');
-    expect($manifest['require']['marko/layout'])->toBe('self.version');
+    expect($manifest['require'])->not->toHaveKey('marko/layout');
+    expect($manifest['require'])->toHaveKey('markommerce/layout');
+    expect($manifest['require']['markommerce/layout'])->toBe('self.version');
 });
 
 it('enables the marko module flag in composer extra', function (): void {

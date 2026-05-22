@@ -4,7 +4,19 @@ declare(strict_types=1);
 
 namespace Markommerce\ThemeBlank\Layout;
 
-use Marko\Layout\Attributes\Component;
+use Markommerce\Layout\Contracts\LayoutDefinition;
+use Markommerce\Layout\Layout;
 
-#[Component(template: 'theme-blank::layout/3columns', slots: ['content', 'sidebar-left', 'sidebar-right'])]
-class ThreeColumnsLayout {}
+class ThreeColumnsLayout implements LayoutDefinition
+{
+    public static function define(): Layout
+    {
+        return new Layout(
+            handle: null,
+            extends: null,
+            context: [],
+            slots: ['content' => [], 'sidebar-left' => [], 'sidebar-right' => []],
+            template: 'theme-blank::layout/3columns',
+        );
+    }
+}

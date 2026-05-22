@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace Markommerce\Catalog\Controller;
 
-use Marko\Layout\Attributes\Layout;
 use Marko\Routing\Attributes\Get;
 use Marko\Routing\Http\Response;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
-use Markommerce\ThemeBlank\Layout\OneColumnLayout;
 
-#[Layout(OneColumnLayout::class)]
 class CategoryController
 {
     public function __construct(

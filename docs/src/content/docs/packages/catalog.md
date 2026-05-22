@@ -134,30 +134,93 @@ The catalog module registers a storefront route automatically:
 GET /catalog/category/{id}
 ```
 
-`CategoryController` uses `#[Layout(OneColumnLayout::class)]` from `markommerce/theme-blank` and performs a quick category lookup to return a `404` response when the category ID does not exist. The actual page content --- category heading and product grid --- is rendered by `ProductGridComponent`, which is registered to the layout's `content` slot.
+`CategoryController` performs a quick category lookup and returns a `404` response when the category ID does not exist. The page is rendered by `markommerce/layout` --- `CategoryController` carries no `#[Layout]` attribute; placement is described entirely in `packages/catalog/layout/category_show.php`.
 
-### ProductGridComponent
+### Layout definition
 
-`ProductGridComponent` is a Marko Layout Component bound to the `content` slot of the `1column` layout. Its `data(int $id)` method receives the `{id}` route parameter, loads the category and its assigned products, and resolves locale-scoped `name` and `description` for each product via `ScopeResolver`:
+The category page layout is declared in `layout/category_show.php`. It extends `OneColumnLayout` from `markommerce/theme-blank`, provides the category via `CategoryDataProvider`, places `ProductGridComponent` in the `content` slot, and uses a `Slot::repeat()` to render a `ProductCard` for each product:
 
-```php
+```php title="packages/catalog/layout/category_show.php"
 <?php
 
 declare(strict_types=1);
 
+use Markommerce\Catalog\Component\ProductCard;
 use Markommerce\Catalog\Component\ProductGridComponent;
+use Markommerce\Catalog\Context\CategoryDataProvider;
+use Markommerce\Catalog\Context\CategoryToken;
+use Markommerce\Catalog\Controller\CategoryController;
+use Markommerce\Catalog\Entity\Product;
+use Markommerce\Catalog\Iteration\ProductIteration;
+use Markommerce\Layout\Layout;
+use Markommerce\Layout\Place;
+use Markommerce\Layout\Provide;
+use Markommerce\Layout\Slot;
+use Markommerce\Layout\Source\Source;
+use Markommerce\ThemeBlank\Layout\OneColumnLayout;
+
+return new Layout(
+    handle: [CategoryController::class, 'show'],
+    extends: OneColumnLayout::class,
+    context: [
+        new Provide(
+            token: CategoryToken::class,
+            provider: CategoryDataProvider::class,
+            props: ['id' => Source::route('id', 'int')],
+        ),
+    ],
+    slots: [
+        'content' => [
+            new Place(
+                component: ProductGridComponent::class,
+                name: 'catalog.product_grid',
+                props: ['category' => Source::context(CategoryToken::class)],
+                slots: [
+                    'products' => Slot::repeat(
+                        dataKey: 'products',
+                        yields: Product::class,
+                        as: ProductIteration::class,
+                        children: [
+                            new Place(
+                                component: ProductCard::class,
+                                name: 'catalog.product_card',
+                                props: ['product' => Source::iterated(ProductIteration::class)],
+                                slots: [],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    ],
+);
 ```
 
-The component returns four keys to its template (`catalog::components/product-grid`):
+### ProductGridComponent
 
-| Key | Type | Description |
+`ProductGridComponent` is a placement-agnostic component. Its `data(Category $category)` method receives the resolved `Category` context object, loads the assigned products, and resolves locale-scoped `name` and `description` via `ScopeResolver`. It returns a `ProductGridData` DTO:
+
+| Property | Type | Description |
 |---|---|---|
-| `category` | `Category` | The resolved category entity |
-| `products` | `list<Product>` | All products assigned to the category |
-| `resolvedNames` | `array<int, string>` | Locale-resolved name keyed by product ID |
-| `resolvedDescs` | `array<int, string\|null>` | Locale-resolved description keyed by product ID |
+| `$category` | `Category` | The resolved category entity |
+| `$products` | `list<Product>` | All products assigned to the category |
+| `$resolvedNames` | `array<int, string>` | Locale-resolved name keyed by product ID |
+| `$resolvedDescs` | `array<int, string\|null>` | Locale-resolved description keyed by product ID |
+| `$extensions` | `ExtensionBag` | Typed extension attributes (third-party use) |
 
-The template renders an `mk-heading` with the category name followed by an `mk-grid` of `catalog-product-card` items. When no products are assigned, it renders a muted `mk-text` fallback. Product images are placeholder images keyed by SKU.
+### ProductCard and ProductCardData
+
+`ProductCard` is the per-item component rendered inside the `products` repeat slot. Its `data(Product $product)` method returns a `ProductCardData` DTO:
+
+| Property | Type | Description |
+|---|---|---|
+| `$product` | `Product` | The product entity |
+| `$resolvedName` | `string` | Locale-resolved product name |
+| `$resolvedDesc` | `string` | Locale-resolved product description |
+| `$inStock` | `bool` | Whether the product is currently in stock |
+| `$extensions` | `ExtensionBag` | Typed extension attributes (third-party use) |
+
+Both `ProductGridData` and `ProductCardData` extend `ExtensibleData`, allowing third-party modules to attach typed extension attributes via `withExtension()` without subclassing the DTO. See [markommerce/layout](/docs/packages/layout/) for details on the extension attribute pattern.
 
 ### Seeder
 
@@ -276,4 +339,5 @@ All exceptions extend `MarkoException` and carry a `message`, `context`, and `su
 
 - [markommerce/scope](/docs/packages/scope/) --- Scoped attribute resolution used by `Product` and `Category` entities
 - [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver required to persist and query scoped overrides
-- [markommerce/theme-blank](/docs/packages/theme-blank/) --- Provides `OneColumnLayout` and other PHP Layout classes used by `CategoryController`
+- [markommerce/layout](/docs/packages/layout/) --- Layout resolution, typed component data DTOs, and extension operations used by the category storefront page
+- [markommerce/theme-blank](/docs/packages/theme-blank/) --- Provides `OneColumnLayout` and other `LayoutDefinition` classes extended by the category layout

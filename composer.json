@@ -18,13 +18,15 @@
         "markommerce/catalog": "self.version",
         "markommerce/core": "self.version",
         "markommerce/frontend": "self.version",
+        "markommerce/layout": "self.version",
         "markommerce/scope": "self.version",
         "markommerce/scope-pgsql": "self.version",
         "markommerce/theme-blank": "self.version"
     },
     "autoload-dev": {
         "psr-4": {
-            "Markommerce\\Catalog\\Tests\\": "packages/catalog/tests/"
+            "Markommerce\\Catalog\\Tests\\": "packages/catalog/tests/",
+            "Markommerce\\Layout\\Tests\\": "packages/layout/tests/"
         }
     },
     "require-dev": {
