@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Markommerce\Layout\Compiler;
 
+use Markommerce\Layout\Attributes\ProvidesHandles;
+use Markommerce\Layout\Exception\ChainedHandleProviderException;
 use Markommerce\Layout\Exception\DanglingAnchorException;
+use Markommerce\Layout\Exception\DuplicateContextTokenException;
 use Markommerce\Layout\Exception\DuplicateNameException;
+use Markommerce\Layout\Exception\DynamicHandleConflictException;
 use Markommerce\Layout\Exception\LayoutException;
 use Markommerce\Layout\Exception\MissingDataKeyException;
 use Markommerce\Layout\Exception\MissingPropException;
@@ -41,6 +45,9 @@ class ValidationPhase
      * @throws RepeatTypeMismatchException
      * @throws TypeMismatchException
      * @throws MissingPropException
+     * @throws DynamicHandleConflictException
+     * @throws DuplicateContextTokenException
+     * @throws ChainedHandleProviderException
      * @throws LayoutException
      */
     public function validate(array $resolvedLayouts): void
@@ -48,6 +55,8 @@ class ValidationPhase
         foreach ($resolvedLayouts as $handleKey => $layout) {
             $this->validateLayout($handleKey, $layout);
         }
+
+        $this->validateCrossHandleConflicts($resolvedLayouts);
     }
 
     /**
@@ -678,5 +687,117 @@ class ValidationPhase
             return $handleKey;
         }
         return $handleKey . ' → ' . implode(' > ', $chain);
+    }
+
+    /**
+     * Validate cross-handle conflicts for layouts with statically-known handleProviders.
+     *
+     * @param array<string, ResolvedLayout> $resolvedLayouts
+     *
+     * @throws DynamicHandleConflictException
+     * @throws DuplicateContextTokenException
+     * @throws ChainedHandleProviderException
+     */
+    private function validateCrossHandleConflicts(array $resolvedLayouts): void
+    {
+        foreach ($resolvedLayouts as $baseHandleKey => $baseLayout) {
+            if ($baseLayout->handleProviders === []) {
+                continue;
+            }
+
+            $basePlacementNames = $this->collectResolvedPlacementNames($baseLayout->slots);
+            $baseContextTokens = array_map(fn($p) => $p->token, $baseLayout->context);
+
+            foreach ($baseLayout->handleProviders as $provideHandle) {
+                $providerClass = $provideHandle->provider;
+
+                if (!class_exists($providerClass)) {
+                    continue;
+                }
+
+                $providerReflection = new ReflectionClass($providerClass);
+                $attrs = $providerReflection->getAttributes(ProvidesHandles::class);
+
+                if ($attrs === []) {
+                    // Opaque provider — cannot validate statically
+                    continue;
+                }
+
+                /** @var ProvidesHandles $providesHandles */
+                $providesHandles = $attrs[0]->newInstance();
+
+                foreach ($providesHandles->handles as $dynamicHandle) {
+                    if (!isset($resolvedLayouts[$dynamicHandle])) {
+                        continue;
+                    }
+
+                    $dynamicLayout = $resolvedLayouts[$dynamicHandle];
+
+                    // Check for chained handleProviders on the dynamic handle
+                    if ($dynamicLayout->handleProviders !== []) {
+                        throw ChainedHandleProviderException::forChain($providerClass, $dynamicHandle);
+                    }
+
+                    // Check for placement name conflicts
+                    $dynamicPlacementNames = $this->collectResolvedPlacementNames($dynamicLayout->slots);
+                    foreach ($dynamicPlacementNames as $name) {
+                        if (in_array($name, $basePlacementNames, true)) {
+                            throw DynamicHandleConflictException::forCollidingPlacement(
+                                $name,
+                                $baseHandleKey,
+                                $dynamicHandle,
+                            );
+                        }
+                    }
+
+                    // Check for context token conflicts
+                    foreach ($dynamicLayout->context as $provide) {
+                        if (in_array($provide->token, $baseContextTokens, true)) {
+                            throw DuplicateContextTokenException::forToken(
+                                $provide->token,
+                                $dynamicHandle,
+                                $baseHandleKey,
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Recursively collect all named placement names from resolved slots.
+     *
+     * @param array<string, list<ResolvedPlace>|ResolvedRepeatSlot> $slots
+     * @return list<string>
+     */
+    private function collectResolvedPlacementNames(array $slots): array
+    {
+        $names = [];
+        foreach ($slots as $value) {
+            if ($value instanceof ResolvedRepeatSlot) {
+                foreach ($value->children as $child) {
+                    $names = array_merge($names, $this->collectResolvedPlaceNames($child));
+                }
+            } else {
+                foreach ($value as $place) {
+                    $names = array_merge($names, $this->collectResolvedPlaceNames($place));
+                }
+            }
+        }
+        return $names;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function collectResolvedPlaceNames(ResolvedPlace $place): array
+    {
+        $names = [];
+        if ($place->name !== null) {
+            $names[] = $place->name;
+        }
+        $names = array_merge($names, $this->collectResolvedPlacementNames($place->slots));
+        return $names;
     }
 }

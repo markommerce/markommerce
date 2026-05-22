@@ -6,9 +6,14 @@ namespace Markommerce\Layout\Compiler;
 
 use Markommerce\Layout\Contracts\LayoutDefinition;
 use Markommerce\Layout\Discovery\DiscoveredExtension;
+use Markommerce\Layout\Discovery\DiscoveredLayout;
 use Markommerce\Layout\Discovery\DiscoveryResult;
+use Markommerce\Layout\Exception\CircularInheritanceException;
 use Markommerce\Layout\Exception\DanglingAnchorException;
+use Markommerce\Layout\Exception\DefaultHandleConflictException;
+use Markommerce\Layout\Exception\DuplicateContextTokenException;
 use Markommerce\Layout\Exception\ExtensionConflictException;
+use Markommerce\Layout\Exception\UnknownParentHandleException;
 use Markommerce\Layout\Layout;
 use Markommerce\Layout\LayoutExtension;
 use Markommerce\Layout\Operation\Append;
@@ -25,33 +30,123 @@ use Markommerce\Layout\Slot;
 
 class ResolutionPhase
 {
+    public const string HANDLE_DEFAULT = 'default';
+
     /**
      * Resolve discovered layouts and extensions into a map of handle key => ResolvedLayout.
      *
      * @return array<string, ResolvedLayout>
      *
+     * @throws CircularInheritanceException
      * @throws DanglingAnchorException
+     * @throws DefaultHandleConflictException
+     * @throws DuplicateContextTokenException
      * @throws ExtensionConflictException
+     * @throws UnknownParentHandleException
      */
     public function resolve(DiscoveryResult $discoveryResult): array
     {
-        $result = [];
-
+        // Build a map of handle key => DiscoveredLayout for routable layouts.
+        $routableLayouts = [];
         foreach ($discoveryResult->layouts as $discoveredLayout) {
             $layout = $discoveredLayout->layout;
-
-            // Skip handle-less base layouts — they are not routable.
             if ($layout->handle === null) {
                 continue;
             }
-
             $handleKey = $this->computeHandleKey($layout->handle);
+            $routableLayouts[$handleKey] = $discoveredLayout;
+        }
 
-            // Resolve extends chain.
-            $mergedLayout = $this->resolveExtendsChain($layout);
+        // Validate default handle constraints before any resolution.
+        if (isset($routableLayouts[self::HANDLE_DEFAULT])) {
+            $this->validateDefaultHandle($routableLayouts[self::HANDLE_DEFAULT]->layout);
+        }
 
-            // Convert placements to ResolvedPlace objects.
-            $resolvedSlots = $this->convertSlots($mergedLayout['slots']);
+        // Determine resolution order: parents must be resolved before children.
+        $orderedKeys = $this->topologicalSort($routableLayouts);
+
+        // Collect default layout's resolved slots/context for Half A merge.
+        /** @var array<string, list<ResolvedPlace>|ResolvedRepeatSlot> $defaultSlots */
+        $defaultSlots = [];
+        /** @var list<\Markommerce\Layout\Provide> $defaultContext */
+        $defaultContext = [];
+        /** @var Layout|null $defaultLayout */
+        $defaultLayout = null;
+        /** @var string $defaultSourceFile */
+        $defaultSourceFile = '';
+        if (isset($routableLayouts[self::HANDLE_DEFAULT])) {
+            $defaultDiscoveredLayout = $routableLayouts[self::HANDLE_DEFAULT];
+            $defaultLayout = $defaultDiscoveredLayout->layout;
+            $defaultSourceFile = $defaultDiscoveredLayout->sourceFile;
+            $mergedDefault = $this->resolveExtendsChain($defaultLayout);
+            $defaultSlots = $this->convertSlots($mergedDefault['slots']);
+            $defaultContext = $mergedDefault['context'];
+        }
+
+        // $resolvedLayoutsWithoutDefault: used for inherits lookups to prevent double-merge.
+        $resolvedLayoutsWithoutDefault = [];
+        $result = [];
+
+        foreach ($orderedKeys as $handleKey) {
+            $discoveredLayout = $routableLayouts[$handleKey];
+            $layout = $discoveredLayout->layout;
+            // $layout->handle is guaranteed non-null — only routable (non-null handle) layouts are in $routableLayouts.
+            assert($layout->handle !== null);
+
+            // Skip the default handle itself in this loop — it is processed separately.
+            if ($handleKey === self::HANDLE_DEFAULT) {
+                continue;
+            }
+
+            if ($layout->inherits !== null) {
+                // When inherits is present, we need shell → parent → own ordering.
+                // Resolve the extends chain shell only (no own slots from this layout merged in).
+                $shellData = $this->resolveExtendsChainShellOnly($layout);
+                $shellResolvedSlots = $this->convertSlots($shellData['slots']);
+                $ownResolvedSlots = $this->convertSlots($layout->slots);
+
+                // Apply inheritance: shell + parent + own.
+                // The inherits lookup reads $resolvedLayoutsWithoutDefault (pre-Half-A) to prevent double-merge.
+                [$resolvedSlots, $resolvedContext, $resolvedTemplate] = $this->applyInheritanceWithShellAndOwn(
+                    $shellResolvedSlots,
+                    $ownResolvedSlots,
+                    $shellData['context'],
+                    $layout->context,
+                    $shellData['template'],
+                    $layout->template,
+                    $layout->inherits,
+                    $handleKey,
+                    $resolvedLayoutsWithoutDefault,
+                );
+            } else {
+                // No inheritance: standard extends-chain resolution.
+                $mergedLayout = $this->resolveExtendsChain($layout);
+
+                $resolvedSlots = $this->convertSlots($mergedLayout['slots']);
+                $resolvedContext = $mergedLayout['context'];
+                $resolvedTemplate = $mergedLayout['template'];
+            }
+
+            // Store pre-Half-A version for inherits lookups.
+            $resolvedLayoutsWithoutDefault[$handleKey] = new ResolvedLayout(
+                handle: $layout->handle,
+                handleKey: $handleKey,
+                template: $resolvedTemplate,
+                slots: $resolvedSlots,
+                context: $resolvedContext,
+                handleProviders: $layout->handleProviders,
+            );
+
+            // Half A: prepend default placements and context providers (before own operations).
+            if ($defaultLayout !== null) {
+                $resolvedSlots = $this->prependDefaultSlots($defaultSlots, $resolvedSlots);
+                $resolvedContext = $this->mergeDefaultContext($defaultContext, $resolvedContext, $handleKey);
+            }
+
+            // Apply the layout's own operations (after extends chain, inheritance, and default Half A merge).
+            foreach ($layout->operations as $operation) {
+                $resolvedSlots = $this->applyOperation($resolvedSlots, $operation, $discoveredLayout->sourceFile);
+            }
 
             // Apply matching extensions.
             $matchingExtensions = $this->collectMatchingExtensions(
@@ -64,13 +159,270 @@ class ResolutionPhase
             $result[$handleKey] = new ResolvedLayout(
                 handle: $layout->handle,
                 handleKey: $handleKey,
-                template: $mergedLayout['template'],
+                template: $resolvedTemplate,
                 slots: $resolvedSlots,
-                context: $mergedLayout['context'],
+                context: $resolvedContext,
+                handleProviders: $layout->handleProviders,
             );
         }
 
+        // Half B: apply default handle's own operations and default-targeted extensions to every non-default handle.
+        if ($defaultLayout !== null) {
+            $defaultExtensions = $this->collectMatchingExtensions(
+                self::HANDLE_DEFAULT,
+                self::HANDLE_DEFAULT,
+                $discoveryResult->extensions,
+            );
+
+            foreach ($result as $handleKey => $resolvedLayout) {
+                $slots = $resolvedLayout->slots;
+
+                // Apply default layout's own operations.
+                foreach ($defaultLayout->operations as $operation) {
+                    $slots = $this->applyOperation($slots, $operation, $defaultSourceFile);
+                }
+
+                // Apply default-targeted extensions.
+                $slots = $this->applyExtensions($slots, $defaultExtensions);
+
+                $result[$handleKey] = new ResolvedLayout(
+                    handle: $resolvedLayout->handle,
+                    handleKey: $resolvedLayout->handleKey,
+                    template: $resolvedLayout->template,
+                    slots: $slots,
+                    context: $resolvedLayout->context,
+                    handleProviders: $resolvedLayout->handleProviders,
+                );
+            }
+        }
+
         return $result;
+    }
+
+    /**
+     * Validate that the 'default' handle does not declare forbidden fields.
+     *
+     * @throws DefaultHandleConflictException
+     */
+    private function validateDefaultHandle(Layout $layout): void
+    {
+        if ($layout->extends !== null) {
+            throw DefaultHandleConflictException::forField('extends');
+        }
+        if ($layout->inherits !== null) {
+            throw DefaultHandleConflictException::forField('inherits');
+        }
+        if (!empty($layout->handleProviders)) {
+            throw DefaultHandleConflictException::forField('handleProviders');
+        }
+    }
+
+    /**
+     * Prepend default slots into sibling slots (default placements come first).
+     *
+     * @param array<string, list<ResolvedPlace>|ResolvedRepeatSlot> $defaultSlots
+     * @param array<string, list<ResolvedPlace>|ResolvedRepeatSlot> $siblingSlots
+     *
+     * @return array<string, list<ResolvedPlace>|ResolvedRepeatSlot>
+     */
+    private function prependDefaultSlots(array $defaultSlots, array $siblingSlots): array
+    {
+        $merged = $siblingSlots;
+        foreach ($defaultSlots as $slotName => $defaultEntries) {
+            if (isset($merged[$slotName]) && is_array($defaultEntries) && is_array($merged[$slotName])) {
+                $merged[$slotName] = array_merge($defaultEntries, $merged[$slotName]);
+            } else {
+                // Default slot not present in sibling — prepend it.
+                $merged = [$slotName => $defaultEntries] + $merged;
+            }
+        }
+        return $merged;
+    }
+
+    /**
+     * Merge default context providers ahead of sibling context providers.
+     * Throws DuplicateContextTokenException if any tokens overlap.
+     *
+     * @param list<\Markommerce\Layout\Provide> $defaultContext
+     * @param list<\Markommerce\Layout\Provide> $siblingContext
+     *
+     * @return list<\Markommerce\Layout\Provide>
+     *
+     * @throws DuplicateContextTokenException
+     */
+    private function mergeDefaultContext(array $defaultContext, array $siblingContext, string $siblingHandleKey): array
+    {
+        $defaultTokens = array_map(fn(\Markommerce\Layout\Provide $p) => $p->token, $defaultContext);
+        foreach ($siblingContext as $provide) {
+            if (in_array($provide->token, $defaultTokens, true)) {
+                throw DuplicateContextTokenException::forToken($provide->token, self::HANDLE_DEFAULT, $siblingHandleKey);
+            }
+        }
+        return array_merge($defaultContext, $siblingContext);
+    }
+
+    /**
+     * Sort routable layouts topologically so parents are resolved before children.
+     *
+     * @param array<string, DiscoveredLayout> $routableLayouts
+     *
+     * @return list<string>
+     *
+     * @throws CircularInheritanceException
+     */
+    private function topologicalSort(array $routableLayouts): array
+    {
+        $ordered = [];
+        $visited = [];
+        $visiting = [];
+
+        foreach (array_keys($routableLayouts) as $handleKey) {
+            $this->topoVisit($handleKey, $routableLayouts, $ordered, $visited, $visiting, []);
+        }
+
+        return $ordered;
+    }
+
+    /**
+     * @param array<string, DiscoveredLayout> $routableLayouts
+     * @param list<string> $ordered
+     * @param array<string, true> $visited
+     * @param array<string, true> $visiting
+     * @param list<string> $chain
+     *
+     * @throws CircularInheritanceException
+     */
+    private function topoVisit(
+        string $handleKey,
+        array $routableLayouts,
+        array &$ordered,
+        array &$visited,
+        array &$visiting,
+        array $chain,
+    ): void {
+        if (isset($visited[$handleKey])) {
+            return;
+        }
+
+        $chain[] = $handleKey;
+
+        if (isset($visiting[$handleKey])) {
+            throw CircularInheritanceException::forChain($chain);
+        }
+
+        $visiting[$handleKey] = true;
+
+        $parentHandle = $routableLayouts[$handleKey]->layout->inherits ?? null;
+
+        if ($parentHandle !== null) {
+            if (!isset($routableLayouts[$parentHandle])) {
+                throw UnknownParentHandleException::forParent($parentHandle, $handleKey);
+            }
+            $this->topoVisit($parentHandle, $routableLayouts, $ordered, $visited, $visiting, $chain);
+        }
+
+        unset($visiting[$handleKey]);
+        $visited[$handleKey] = true;
+        $ordered[] = $handleKey;
+    }
+
+    /**
+     * Merge shell, parent handle, and own slots/context into the final resolved state.
+     *
+     * Order: shell → parent handle → own.
+     *
+     * @param array<string, list<ResolvedPlace>|ResolvedRepeatSlot> $shellResolvedSlots
+     * @param array<string, list<ResolvedPlace>|ResolvedRepeatSlot> $ownResolvedSlots
+     * @param list<\Markommerce\Layout\Provide> $shellContext
+     * @param list<\Markommerce\Layout\Provide> $ownContext
+     * @param array<string, ResolvedLayout> $resolvedSoFar
+     *
+     * @return array{0: array<string, list<ResolvedPlace>|ResolvedRepeatSlot>, 1: list<\Markommerce\Layout\Provide>, 2: ?string}
+     *
+     * @throws DuplicateContextTokenException
+     */
+    private function applyInheritanceWithShellAndOwn(
+        array $shellResolvedSlots,
+        array $ownResolvedSlots,
+        array $shellContext,
+        array $ownContext,
+        ?string $shellTemplate,
+        ?string $ownTemplate,
+        string $parentHandleKey,
+        string $childHandleKey,
+        array $resolvedSoFar,
+    ): array {
+        $parentResolved = $resolvedSoFar[$parentHandleKey];
+
+        // Merge slots in order: shell → parent → own.
+        // Start with shell slots.
+        $mergedSlots = $shellResolvedSlots;
+
+        // Append parent's slots after shell.
+        foreach ($parentResolved->slots as $slotName => $parentEntries) {
+            if (isset($mergedSlots[$slotName]) && is_array($mergedSlots[$slotName]) && is_array($parentEntries)) {
+                $mergedSlots[$slotName] = array_merge($mergedSlots[$slotName], $parentEntries);
+            } else {
+                $mergedSlots[$slotName] = $parentEntries;
+            }
+        }
+
+        // Append own slots after parent's.
+        foreach ($ownResolvedSlots as $slotName => $ownEntries) {
+            if (isset($mergedSlots[$slotName]) && is_array($mergedSlots[$slotName]) && is_array($ownEntries)) {
+                $mergedSlots[$slotName] = array_merge($mergedSlots[$slotName], $ownEntries);
+            } else {
+                $mergedSlots[$slotName] = $ownEntries;
+            }
+        }
+
+        // Check for duplicate context tokens between parent and child (shell + own).
+        $parentTokens = array_map(fn(\Markommerce\Layout\Provide $p) => $p->token, $parentResolved->context);
+        $shellTokens = array_map(fn(\Markommerce\Layout\Provide $p) => $p->token, $shellContext);
+        $allIncomingTokens = array_merge($shellTokens, $parentTokens);
+
+        foreach ($ownContext as $provide) {
+            if (in_array($provide->token, $allIncomingTokens, true)) {
+                throw DuplicateContextTokenException::forToken($provide->token, $parentHandleKey, $childHandleKey);
+            }
+        }
+        foreach ($shellContext as $provide) {
+            if (in_array($provide->token, $parentTokens, true)) {
+                throw DuplicateContextTokenException::forToken($provide->token, $parentHandleKey, $childHandleKey);
+            }
+        }
+
+        // Merge context: shell → parent → own.
+        $mergedContext = array_merge($shellContext, $parentResolved->context, $ownContext);
+
+        // Template: own if set, else parent's, else shell's.
+        $effectiveTemplate = $ownTemplate ?? $parentResolved->template ?? $shellTemplate;
+
+        return [$mergedSlots, $mergedContext, $effectiveTemplate];
+    }
+
+    /**
+     * Resolve only the extends chain's shell slots (no own slots from this layout merged in).
+     * Used when inherits is also set, to keep the ordering correct.
+     *
+     * @return array{slots: array<string, list<Place>|Slot>, template: ?string, context: list<\Markommerce\Layout\Provide>}
+     */
+    private function resolveExtendsChainShellOnly(Layout $layout): array
+    {
+        if ($layout->extends === null) {
+            return [
+                'slots' => [],
+                'template' => null,
+                'context' => [],
+            ];
+        }
+
+        /** @var class-string<LayoutDefinition> $extendsClass */
+        $extendsClass = $layout->extends;
+        $parentLayout = $extendsClass::define();
+
+        // Resolve the full extends chain of the shell (which includes the shell layout's own slots).
+        return $this->resolveExtendsChain($parentLayout);
     }
 
     /**
@@ -599,13 +951,14 @@ class ResolutionPhase
         $result = [];
         foreach ($slots as $slotName => $value) {
             if ($value instanceof ResolvedRepeatSlot) {
+                $mappedChildren = $callback($value->children);
                 $result[$slotName] = new ResolvedRepeatSlot(
                     dataKey: $value->dataKey,
                     yields: $value->yields,
                     as: $value->as,
                     children: array_map(
                         fn(ResolvedPlace $child) => $this->mapPlacementsInPlace($child, $callback),
-                        $value->children,
+                        $mappedChildren,
                     ),
                 );
             } else {

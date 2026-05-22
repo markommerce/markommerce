@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Markommerce\Layout\Cache;
 
 use Markommerce\Layout\Provide;
+use Markommerce\Layout\ProvideHandle;
 use Markommerce\Layout\Source\ContextSource;
 use Markommerce\Layout\Source\IteratedSource;
 use Markommerce\Layout\Source\ParentDataSource;
@@ -40,18 +41,40 @@ class PhpCodeEmitter
     {
         $slotsCode = $this->emitSlots($tree->slots);
         $contextCode = $this->emitList($tree->context, fn($item) => $this->emitProvide($item));
+        $handleProvidersCode = $this->emitList(
+            $tree->handleProviders,
+            fn($item) => $this->emitProvideHandle($item),
+        );
+        $placementNamesCode = $this->emitStringList($tree->placementNames);
         return sprintf(
             'new \%s(' . "\n" .
             '        handleKey: %s,' . "\n" .
             '        template: %s,' . "\n" .
             '        slots: %s,' . "\n" .
             '        context: %s,' . "\n" .
+            '        handleProviders: %s,' . "\n" .
+            '        placementNames: %s,' . "\n" .
             '    )',
             PreparedTree::class,
             $this->emitString($tree->handleKey),
             $this->emitNullableString($tree->template),
             $slotsCode,
             $contextCode,
+            $handleProvidersCode,
+            $placementNamesCode,
+        );
+    }
+
+    private function emitProvideHandle(ProvideHandle $provideHandle): string
+    {
+        return sprintf(
+            'new \%s(' . "\n" .
+            '            provider: %s,' . "\n" .
+            '            props: %s,' . "\n" .
+            '        )',
+            ProvideHandle::class,
+            $this->emitString($provideHandle->provider),
+            $this->emitProps($provideHandle->props),
         );
     }
 

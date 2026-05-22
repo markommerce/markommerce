@@ -490,3 +490,392 @@ it('carries the effective template through the extends chain', function (): void
     expect($result['child_own_template']->template)->toBe('layouts/child_own.latte')
         ->and($result['child_no_template']->template)->toBe('layouts/base.latte');
 });
+
+// =============================================================================
+// Task 025: Layout own operations
+// =============================================================================
+
+it('applies layout operations after resolving the extends chain', function (): void {
+    // BaseLayoutDefinition provides a 'header' placement in 'main'.
+    // The child layout has an operation that appends a placement to 'main'.
+    $childLayout = new Layout(
+        handle: 'ops_after_extends',
+        extends: BaseLayoutDefinition::class,
+        context: [],
+        slots: [],
+        operations: [new \Markommerce\Layout\Operation\Append('main', new Place('NewComponent', 'new', [], []))],
+        template: null,
+    );
+
+    $result = (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$childLayout]),
+    );
+
+    // After extends chain: main = [header]
+    // After own operations (Append): main = [header, new]
+    expect($result['ops_after_extends']->slots['main'])->toHaveCount(2)
+        ->and($result['ops_after_extends']->slots['main'][0]->component)->toBe('BaseHeader')
+        ->and($result['ops_after_extends']->slots['main'][1]->component)->toBe('NewComponent');
+});
+
+it('applies layout operations before applying extension-file operations', function (): void {
+    // Layout has its own operation: Append 'own' to 'main'.
+    // Extension file has an operation: InsertAfter 'own' with 'ext'.
+    // Expected order: [own, ext] — the extension can target 'own' because layout ops ran first.
+    $layout = new Layout(
+        handle: 'ops_order_handle',
+        extends: null,
+        context: [],
+        slots: ['main' => [new Place('BaseComponent', 'base', [], [])]],
+        operations: [new \Markommerce\Layout\Operation\Append('main', new Place('OwnComponent', 'own', [], []))],
+    );
+    $extension = new LayoutExtension(
+        handle: 'ops_order_handle',
+        operations: [new \Markommerce\Layout\Operation\InsertAfter('own', new Place('ExtComponent', 'ext', [], []))],
+        priority: 0,
+    );
+
+    $result = (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$layout], [$extension]),
+    );
+
+    // main = [base, own, ext]
+    expect($result['ops_order_handle']->slots['main'])->toHaveCount(3)
+        ->and($result['ops_order_handle']->slots['main'][0]->component)->toBe('BaseComponent')
+        ->and($result['ops_order_handle']->slots['main'][1]->component)->toBe('OwnComponent')
+        ->and($result['ops_order_handle']->slots['main'][2]->component)->toBe('ExtComponent');
+});
+
+it('allows a layout to Remove a placement provided by the extended shell', function (): void {
+    // BaseLayoutDefinition provides 'header' in 'main'.
+    // The child layout removes 'header' via its own operations.
+    $childLayout = new Layout(
+        handle: 'remove_from_shell',
+        extends: BaseLayoutDefinition::class,
+        context: [],
+        slots: [],
+        operations: [new \Markommerce\Layout\Operation\Remove('header')],
+        template: null,
+    );
+
+    $result = (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$childLayout]),
+    );
+
+    // After extends: main = [header]
+    // After own Remove('header'): main = []
+    expect($result['remove_from_shell']->slots['main'])->toHaveCount(0);
+});
+
+it('allows a layout to MergeProps onto a placement provided by extends', function (): void {
+    // BaseLayoutDefinition provides 'header' in 'main' with no props.
+    // The child layout merges props onto 'header' via own operations.
+    $childLayout = new Layout(
+        handle: 'merge_from_shell',
+        extends: BaseLayoutDefinition::class,
+        context: [],
+        slots: [],
+        operations: [new \Markommerce\Layout\Operation\MergeProps('header', ['size' => 'large'])],
+        template: null,
+    );
+
+    $result = (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$childLayout]),
+    );
+
+    expect($result['merge_from_shell']->slots['main'][0]->name)->toBe('header')
+        ->and($result['merge_from_shell']->slots['main'][0]->props)->toBe(['size' => 'large']);
+});
+
+it('throws DanglingAnchorException when a layout operation targets a nonexistent name', function (): void {
+    $layout = new Layout(
+        handle: 'dangling_own_op',
+        extends: null,
+        context: [],
+        slots: ['main' => [new Place('SomeComponent', 'exists', [], [])]],
+        operations: [new \Markommerce\Layout\Operation\Remove('nonexistent')],
+    );
+
+    expect(fn() => (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$layout]),
+    ))->toThrow(DanglingAnchorException::class);
+});
+
+it('preserves existing behavior when the operations list is empty', function (): void {
+    $layout = new Layout(
+        handle: 'no_ops_handle',
+        extends: null,
+        context: [],
+        slots: ['main' => [
+            new Place('ComponentA', 'a', [], []),
+            new Place('ComponentB', 'b', [], []),
+        ]],
+        operations: [],
+    );
+
+    $result = (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$layout]),
+    );
+
+    expect($result['no_ops_handle']->slots['main'])->toHaveCount(2)
+        ->and($result['no_ops_handle']->slots['main'][0]->component)->toBe('ComponentA')
+        ->and($result['no_ops_handle']->slots['main'][1]->component)->toBe('ComponentB');
+});
+
+// =============================================================================
+// Task 026: Handle inheritance resolution
+// =============================================================================
+
+it('resolves a single-level inheritance chain by appending parent placements before child placements', function (): void {
+    $parentLayout = new Layout(
+        handle: 'parent.handle',
+        extends: null,
+        context: [],
+        slots: ['main' => [new Place('ParentComponent', 'parent-item', [], [])]],
+    );
+    $childLayout = new Layout(
+        handle: 'child.handle',
+        extends: null,
+        inherits: 'parent.handle',
+        context: [],
+        slots: ['main' => [new Place('ChildComponent', 'child-item', [], [])]],
+    );
+
+    $result = (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$parentLayout, $childLayout]),
+    );
+
+    expect($result)->toHaveKey('child.handle')
+        ->and($result['child.handle']->slots['main'])->toHaveCount(2)
+        ->and($result['child.handle']->slots['main'][0]->component)->toBe('ParentComponent')
+        ->and($result['child.handle']->slots['main'][1]->component)->toBe('ChildComponent');
+});
+
+it('resolves a multi-level inheritance chain in ancestor-first order', function (): void {
+    $grandparentLayout = new Layout(
+        handle: 'grandparent.handle',
+        extends: null,
+        context: [],
+        slots: ['main' => [new Place('GrandparentComponent', 'grandparent-item', [], [])]],
+    );
+    $parentLayout = new Layout(
+        handle: 'parent.handle',
+        extends: null,
+        inherits: 'grandparent.handle',
+        context: [],
+        slots: ['main' => [new Place('ParentComponent', 'parent-item', [], [])]],
+    );
+    $childLayout = new Layout(
+        handle: 'child.handle',
+        extends: null,
+        inherits: 'parent.handle',
+        context: [],
+        slots: ['main' => [new Place('ChildComponent', 'child-item', [], [])]],
+    );
+
+    $result = (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$grandparentLayout, $parentLayout, $childLayout]),
+    );
+
+    expect($result)->toHaveKey('child.handle')
+        ->and($result['child.handle']->slots['main'])->toHaveCount(3)
+        ->and($result['child.handle']->slots['main'][0]->component)->toBe('GrandparentComponent')
+        ->and($result['child.handle']->slots['main'][1]->component)->toBe('ParentComponent')
+        ->and($result['child.handle']->slots['main'][2]->component)->toBe('ChildComponent');
+});
+
+it('merges parent context providers ahead of child context providers', function (): void {
+    $parentProvide = new \Markommerce\Layout\Provide('ParentToken', 'ParentProvider', []);
+    $childProvide = new \Markommerce\Layout\Provide('ChildToken', 'ChildProvider', []);
+
+    $parentLayout = new Layout(
+        handle: 'context.parent',
+        extends: null,
+        context: [$parentProvide],
+        slots: [],
+    );
+    $childLayout = new Layout(
+        handle: 'context.child',
+        extends: null,
+        inherits: 'context.parent',
+        context: [$childProvide],
+        slots: [],
+    );
+
+    $result = (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$parentLayout, $childLayout]),
+    );
+
+    expect($result['context.child']->context)->toHaveCount(2)
+        ->and($result['context.child']->context[0]->token)->toBe('ParentToken')
+        ->and($result['context.child']->context[1]->token)->toBe('ChildToken');
+});
+
+it('allows the child to remove a placement contributed by the parent via Remove operation', function (): void {
+    $parentLayout = new Layout(
+        handle: 'parent.remove',
+        extends: null,
+        context: [],
+        slots: ['main' => [
+            new Place('ParentComponent', 'parent-item', [], []),
+            new Place('AnotherComponent', 'another-item', [], []),
+        ]],
+    );
+    $childLayout = new Layout(
+        handle: 'child.remove',
+        extends: null,
+        inherits: 'parent.remove',
+        context: [],
+        slots: [],
+        operations: [new \Markommerce\Layout\Operation\Remove('parent-item')],
+    );
+
+    $result = (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$parentLayout, $childLayout]),
+    );
+
+    expect($result['child.remove']->slots['main'])->toHaveCount(1)
+        ->and($result['child.remove']->slots['main'][0]->component)->toBe('AnotherComponent');
+});
+
+it('allows the child to wrap a placement contributed by the parent via WrapWith operation', function (): void {
+    $parentLayout = new Layout(
+        handle: 'parent.wrap',
+        extends: null,
+        context: [],
+        slots: ['main' => [new Place('ParentComponent', 'parent-item', [], [])]],
+    );
+    $childLayout = new Layout(
+        handle: 'child.wrap',
+        extends: null,
+        inherits: 'parent.wrap',
+        context: [],
+        slots: [],
+        operations: [new \Markommerce\Layout\Operation\WrapWith('parent-item', 'WrapperDecorator')],
+    );
+
+    $result = (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$parentLayout, $childLayout]),
+    );
+
+    expect($result['child.wrap']->slots['main'])->toHaveCount(1)
+        ->and($result['child.wrap']->slots['main'][0]->component)->toBe('ParentComponent')
+        ->and($result['child.wrap']->slots['main'][0]->decorators)->toBe(['WrapperDecorator']);
+});
+
+it('throws CircularInheritanceException when a chain points back to itself', function (): void {
+    // A inherits B, B inherits A — direct cycle
+    $layoutA = new Layout(
+        handle: 'cycle.a',
+        extends: null,
+        inherits: 'cycle.b',
+        context: [],
+        slots: [],
+    );
+    $layoutB = new Layout(
+        handle: 'cycle.b',
+        extends: null,
+        inherits: 'cycle.a',
+        context: [],
+        slots: [],
+    );
+
+    expect(fn() => (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$layoutA, $layoutB]),
+    ))->toThrow(\Markommerce\Layout\Exception\CircularInheritanceException::class);
+});
+
+it('throws CircularInheritanceException for a multi-step cycle A → B → C → A', function (): void {
+    $layoutA = new Layout(
+        handle: 'multi.a',
+        extends: null,
+        inherits: 'multi.b',
+        context: [],
+        slots: [],
+    );
+    $layoutB = new Layout(
+        handle: 'multi.b',
+        extends: null,
+        inherits: 'multi.c',
+        context: [],
+        slots: [],
+    );
+    $layoutC = new Layout(
+        handle: 'multi.c',
+        extends: null,
+        inherits: 'multi.a',
+        context: [],
+        slots: [],
+    );
+
+    expect(fn() => (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$layoutA, $layoutB, $layoutC]),
+    ))->toThrow(\Markommerce\Layout\Exception\CircularInheritanceException::class);
+});
+
+it('throws UnknownParentHandleException when inherits references a handle that is not defined', function (): void {
+    $childLayout = new Layout(
+        handle: 'orphan.child',
+        extends: null,
+        inherits: 'nonexistent.parent',
+        context: [],
+        slots: [],
+    );
+
+    expect(fn() => (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$childLayout]),
+    ))->toThrow(\Markommerce\Layout\Exception\UnknownParentHandleException::class);
+});
+
+it('throws DuplicateContextTokenException when parent and child Provide entries declare the same token', function (): void {
+    $sharedProvide = new \Markommerce\Layout\Provide('SharedToken', 'SomeProvider', []);
+
+    $parentLayout = new Layout(
+        handle: 'dup.parent',
+        extends: null,
+        context: [$sharedProvide],
+        slots: [],
+    );
+    $childLayout = new Layout(
+        handle: 'dup.child',
+        extends: null,
+        inherits: 'dup.parent',
+        context: [$sharedProvide],
+        slots: [],
+    );
+
+    expect(fn() => (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$parentLayout, $childLayout]),
+    ))->toThrow(\Markommerce\Layout\Exception\DuplicateContextTokenException::class);
+});
+
+it('composes extends and inherits on the same layout: shell then parent then own slots, in order', function (): void {
+    // The parent handle has its own placements.
+    $parentLayout = new Layout(
+        handle: 'compose.parent',
+        extends: null,
+        context: [],
+        slots: ['main' => [new Place('ParentComponent', 'parent-item', [], [])]],
+    );
+
+    // The child extends a shell (BaseLayoutDefinition: provides 'header' in 'main'),
+    // inherits the parent handle (which adds 'parent-item'),
+    // and adds its own slot entry ('child-item').
+    $childLayout = new Layout(
+        handle: 'compose.child',
+        extends: BaseLayoutDefinition::class,
+        inherits: 'compose.parent',
+        context: [],
+        slots: ['main' => [new Place('ChildComponent', 'child-item', [], [])]],
+    );
+
+    $result = (new ResolutionPhase())->resolve(
+        makeDiscoveryResult([$parentLayout, $childLayout]),
+    );
+
+    // Expected order: shell ('header') → parent ('parent-item') → own ('child-item')
+    expect($result['compose.child']->slots['main'])->toHaveCount(3)
+        ->and($result['compose.child']->slots['main'][0]->component)->toBe('BaseHeader')
+        ->and($result['compose.child']->slots['main'][1]->component)->toBe('ParentComponent')
+        ->and($result['compose.child']->slots['main'][2]->component)->toBe('ChildComponent');
+});

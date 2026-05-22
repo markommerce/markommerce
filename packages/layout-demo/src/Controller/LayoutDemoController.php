@@ -10,7 +10,7 @@ use Markommerce\LayoutDemo\Middleware\EnsureLayoutDemoEnabledMiddleware;
 
 class LayoutDemoController
 {
-    #[Get('/markommerce/_demo/layout/{id}')]
+    #[Get('/markommerce/_demo/layout/{page}')]
     #[Middleware([EnsureLayoutDemoEnabledMiddleware::class])]
     public function show(): void {}
 }

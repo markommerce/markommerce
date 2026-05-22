@@ -22,8 +22,11 @@ use Markommerce\Layout\Provide;
 use Markommerce\Layout\Slot;
 use Markommerce\Layout\Source\Source;
 use Markommerce\LayoutDemo\Component\GalleryComponent;
+use Markommerce\LayoutDemo\Component\GalleryDeprecatedComponent;
 use Markommerce\LayoutDemo\Component\GalleryFooterComponent;
 use Markommerce\LayoutDemo\Component\GalleryHeaderComponent;
+use Markommerce\LayoutDemo\Component\GalleryNoticeComponent;
+use Markommerce\LayoutDemo\Component\GalleryPlaceholderComponent;
 use Markommerce\LayoutDemo\Component\ItemComponent;
 use Markommerce\LayoutDemo\Context\GalleryContextProvider;
 use Markommerce\LayoutDemo\Context\GalleryToken;
@@ -40,7 +43,7 @@ return new Layout(
         new Provide(
             token: GalleryToken::class,
             provider: GalleryContextProvider::class,
-            props: ['id' => Source::route('id', 'int')],
+            props: ['gallery' => Source::query('gallery', 1, 'int')],
         ),
     ],
     slots: [
@@ -57,7 +60,7 @@ return new Layout(
                 name: 'layout_demo.gallery',
                 props: [
                     'gallery' => Source::context(GalleryToken::class),
-                    'page' => Source::query('page', 1, 'int'),
+                    'page' => Source::route('page', 'int'),
                 ],
                 slots: [
                     'items' => Slot::repeat(
@@ -87,6 +90,27 @@ return new Layout(
                 props: [],
                 slots: [],
                 template: 'layout-demo::gallery-footer',
+            ),
+            new Place(
+                component: GalleryNoticeComponent::class,
+                name: 'layout_demo.notice',
+                props: [],
+                slots: [],
+                template: 'layout-demo::gallery-notice',
+            ),
+            new Place(
+                component: GalleryPlaceholderComponent::class,
+                name: 'layout_demo.placeholder',
+                props: [],
+                slots: [],
+                template: 'layout-demo::gallery-placeholder',
+            ),
+            new Place(
+                component: GalleryDeprecatedComponent::class,
+                name: 'layout_demo.deprecated',
+                props: [],
+                slots: [],
+                template: 'layout-demo::gallery-deprecated',
             ),
         ],
     ],
@@ -154,6 +178,28 @@ class GalleryComponent
 
 When a third-party module needs to attach extra data to a DTO without subclassing it, extend `ExtensibleData` instead of a plain `readonly class`. The `ExtensionBag` holds typed extension attributes keyed by class name, and plugins attach attributes via `$data->withExtension(new MyExtension(...))`.
 
+### Prop-only components
+
+Components that have no computation to perform — decorators, badges, labels — can omit the `data()` method entirely. The runtime then passes any props declared in the layout file directly to the Latte template as template variables. This is how `MergeProps` and `ReplaceProps` work for simple components: they modify the raw prop map before the template renders.
+
+```php title="packages/layout-demo/src/Component/GalleryNoticeComponent.php"
+<?php
+
+declare(strict_types=1);
+
+namespace Markommerce\LayoutDemo\Component;
+
+class GalleryNoticeComponent {}
+```
+
+```latte title="packages/layout-demo/resources/views/gallery-notice.latte"
+<p class="layout-demo-gallery-notice{if isset($class)} {$class}{/if}">
+    Default notice from base layout
+</p>
+```
+
+Because `GalleryNoticeComponent` has no `data()` method, a `MergeProps` or `ReplaceProps` operation that adds a `class` key will pass that value straight to `$class` in the template.
+
 ## Context Providers
 
 A context provider resolves a domain object — a category, a gallery, a logged-in customer — before the component tree renders. It is declared in the layout file with `Provide` and implemented by a class that satisfies `ContextProvider`.
@@ -191,12 +237,17 @@ class GalleryContextProvider implements ContextProvider
      */
     public function provide(array $props): object
     {
-        $id = (int) ($props['id'] ?? 1);
+        $id = (int) ($props['gallery'] ?? 1);
 
         $items = match ($id) {
             2 => [
                 new Item(id: 1, label: 'Second Gallery Item A'),
                 new Item(id: 2, label: 'Second Gallery Item B'),
+            ],
+            3 => [
+                new Item(id: 1, label: 'Third Gallery Item A'),
+                new Item(id: 2, label: 'Third Gallery Item B'),
+                new Item(id: 3, label: 'Third Gallery Item C'),
             ],
             default => [
                 new Item(id: 1, label: 'Alpha'),
@@ -205,7 +256,11 @@ class GalleryContextProvider implements ContextProvider
             ],
         };
 
-        $title = $id === 2 ? 'Gallery Two' : 'Gallery One';
+        $title = match ($id) {
+            2 => 'Gallery Two',
+            3 => 'Gallery Three',
+            default => 'Gallery One',
+        };
 
         return new GalleryEntity(title: $title, items: $items);
     }
@@ -218,9 +273,9 @@ In the layout file, declare the provider inside the `context` array:
 
 ```php
 new Provide(
-    token: GalleryToken::class,      // key in the context bag
-    provider: GalleryContextProvider::class,  // ContextProvider FQCN
-    props: ['id' => Source::route('id', 'int')],  // props forwarded to provide()
+    token: GalleryToken::class,              // key in the context bag
+    provider: GalleryContextProvider::class, // ContextProvider FQCN
+    props: ['gallery' => Source::query('gallery', 1, 'int')],
 ),
 ```
 
@@ -247,8 +302,8 @@ Any component prop can then read the resolved object with `Source::context(Galle
 Reads a route parameter and optionally casts it.
 
 ```php
-// Read the 'id' segment as an integer
-Source::route('id', 'int');
+// Read the 'page' segment as an integer
+Source::route('page', 'int');
 ```
 
 Allowed casts: `'string'` (default), `'int'`, `'bool'`.
@@ -258,8 +313,8 @@ Allowed casts: `'string'` (default), `'int'`, `'bool'`.
 Reads a query-string parameter with an optional default value.
 
 ```php
-// Read ?page=, default to 1, cast to int
-Source::query('page', 1, 'int');
+// Read ?gallery=, default to 1, cast to int
+Source::query('gallery', 1, 'int');
 ```
 
 Allowed casts: `'string'` (default), `'int'`, `'bool'`.
@@ -349,9 +404,189 @@ use Markommerce\LayoutDemo\Entity\Item;
 class ItemIteration {}
 ```
 
+## Handles
+
+A **handle** is the key that connects a layout to a request. When the middleware receives an incoming request it resolves the controller action, looks up the compiled tree whose `handle` matches, and renders it. Think of handles as Magento layout handles: named identifiers that select which layout tree to render.
+
+### What a handle is
+
+Every `Layout` that is meant to respond to a real HTTP request sets `handle` to a `[ControllerClass::class, 'actionMethod']` pair or to an arbitrary string:
+
+```php
+// Controller-action pair — matches the request automatically via routing
+handle: [LayoutDemoController::class, 'show'],
+
+// Named string handle — useful for default, inherited, and dynamic handles
+handle: 'layout_demo.variant.featured',
+```
+
+The compiled artifact maps every handle key to its resolved component tree. At runtime the middleware looks up the key and renders the corresponding tree — no compilation happens on the hot path.
+
+### The default handle
+
+The special string handle `'default'` acts as a sitewide base that is merged into every other compiled tree. Placements declared in the default handle appear in every page. Use it for global UI elements such as site-wide notices, banners, or analytics snippets.
+
+```php title="packages/layout-demo/layout/default.php"
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Layout\Layout;
+use Markommerce\Layout\Place;
+use Markommerce\LayoutDemo\Component\SitewideNoticeComponent;
+
+return new Layout(
+    handle: 'default',
+    extends: null,
+    slots: [
+        'content' => [
+            new Place(
+                component: SitewideNoticeComponent::class,
+                name: 'default.sitewide_notice',
+                props: [],
+                slots: [],
+                template: 'layout-demo::sitewide-notice',
+            ),
+        ],
+    ],
+);
+```
+
+Constraints on the default handle:
+
+- Must not declare `extends` — it has no parent shell.
+- Must not declare `inherits` — it is always a root node.
+- Must not declare `handleProviders` — dynamic handle resolution is not supported at the default level.
+
+### Inheriting a handle
+
+A layout can declare `inherits:` to copy the full compiled tree of another handle and then apply its own `operations` on top. This is useful when one route is a strict variant of another — it has the same component tree but with a small tweak (for example, removing the footer for an embedded view).
+
+```php title="packages/layout-demo/layout/layout_demo_child.php"
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Layout\Layout;
+use Markommerce\Layout\Operation\Remove;
+use Markommerce\LayoutDemo\Controller\LayoutDemoController;
+
+return new Layout(
+    handle: 'layout_demo_child',
+    extends: null,
+    inherits: LayoutDemoController::class . '::show',
+    operations: [
+        new Remove(name: 'layout_demo.gallery_footer'),
+    ],
+);
+```
+
+How inheritance works:
+
+1. The compiler resolves the parent handle (`LayoutDemoController::show`) into its full component tree.
+2. The child's `operations` are applied on top of that tree, exactly as extension-file operations would be.
+3. The result is a new, independent compiled tree keyed to `'layout_demo_child'`. Changes to the parent do not propagate at runtime — both trees are compiled independently.
+
+`inherits:` takes a string handle key. For controller-action pairs write it as `ClassName::methodName`.
+
+`Remove` can be used in `operations` to strip placements that the parent tree contains but the child does not need, as shown above.
+
+### Dynamic handles
+
+A **dynamic handle** is a handle whose tree is merged into the base tree at runtime, based on request context. This pattern extends a layout with additional placements only for certain requests — for example, showing a "featured" callout only when a query parameter signals a featured variant.
+
+Dynamic handles are provided by classes that implement `HandleProvider`:
+
+```php
+namespace Markommerce\Layout\Contracts;
+
+interface HandleProvider
+{
+    /**
+     * @param array<string, mixed> $props
+     * @return list<string>
+     */
+    public function provide(array $props): array;
+}
+```
+
+The provider receives resolved props (declared in `ProvideHandle::$props`) and returns zero or more handle keys. Every key returned must correspond to a handle that exists in the compiled artifact.
+
+To tell the compiler which handle keys a provider can return, decorate the class with `#[ProvidesHandles]`:
+
+```php title="packages/layout-demo/src/Handle/GalleryVariantHandleProvider.php"
+<?php
+
+declare(strict_types=1);
+
+namespace Markommerce\LayoutDemo\Handle;
+
+use Markommerce\Layout\Attributes\ProvidesHandles;
+use Markommerce\Layout\Contracts\HandleProvider;
+
+#[ProvidesHandles(handles: ['layout_demo.variant.featured'])]
+class GalleryVariantHandleProvider implements HandleProvider
+{
+    /**
+     * @param array<string, mixed> $props
+     * @return list<string>
+     */
+    public function provide(array $props): array
+    {
+        if (($props['variant'] ?? '') === 'featured') {
+            return ['layout_demo.variant.featured'];
+        }
+
+        return [];
+    }
+}
+```
+
+The `#[ProvidesHandles]` attribute lists every handle key the provider can return. The compiler reads this list at compile time and validates that each key exists in the artifact — a provider that returns a handle key not listed in the attribute will throw `UnknownDynamicHandleException` at runtime.
+
+Wire a provider into a layout using `ProvideHandle` in the `handleProviders` array:
+
+```php title="packages/layout-demo/layout/layout_demo.php (excerpt)"
+use Markommerce\Layout\ProvideHandle;
+use Markommerce\LayoutDemo\Handle\GalleryVariantHandleProvider;
+
+return new Layout(
+    handle: [LayoutDemoController::class, 'show'],
+    // ... context, slots ...
+    handleProviders: [
+        new ProvideHandle(
+            provider: GalleryVariantHandleProvider::class,
+            props: ['variant' => Source::query('variant', '', 'string')],
+        ),
+    ],
+);
+```
+
+`ProvideHandle::$props` works exactly like `Provide::$props` for context providers: it declares which `Source` descriptors are resolved and forwarded to `HandleProvider::provide()` as the `$props` array.
+
+Important rules for dynamic handles:
+
+- Providers run **after** `ContextProvider`s have executed, so `props` can read from the resolved context bag via `Source::context()`.
+- Providers must return **statically known** handle keys — every possible return value must appear in `#[ProvidesHandles]`.
+- A dynamic handle's own layout file must not declare `handleProviders`. Chaining providers is not supported and will throw `ChainedHandleProviderException`.
+- Placement names in the dynamic handle's tree must not collide with names in the base tree. Collisions throw `DynamicHandleConflictException`.
+
+### Resolution order
+
+When the compiler builds a compiled tree for a handle, it applies the following steps in order:
+
+1. **`extends`** — Merge the `LayoutDefinition` shell (e.g. `OneColumnLayout`) to provide the outer template and named slots.
+2. **`inherits`** — Copy the full compiled tree of the parent handle and apply this layout's own `operations` on top.
+3. **Default handle** — Merge the `'default'` handle's placements into every compiled tree.
+4. **Own ops** — Apply the `operations` declared directly in this layout file.
+5. **Extension-file ops** — Collect all `LayoutExtension` files targeting this handle and apply their operations in ascending `priority` order.
+6. **Runtime dynamic-handle merge** — At request time, run each `HandleProvider`, look up the returned handle trees in the artifact, and merge their placements into the rendered tree.
+
 ## Extending a Layout
 
 Any module can add, remove, or modify placements in an existing compiled layout without touching the original file. Extension files live at `{module}/layout/extensions/{name}.php` and return a `LayoutExtension`.
+
+The layout-demo extension exercises all nine available operations:
 
 ```php title="packages/layout-demo/layout/extensions/layout_demo_extension.php"
 <?php
@@ -359,19 +594,30 @@ Any module can add, remove, or modify placements in an existing compiled layout 
 declare(strict_types=1);
 
 use Markommerce\Layout\LayoutExtension;
+use Markommerce\Layout\Operation\Append;
+use Markommerce\Layout\Operation\InsertAfter;
 use Markommerce\Layout\Operation\InsertBefore;
 use Markommerce\Layout\Operation\MergeProps;
+use Markommerce\Layout\Operation\Prepend;
+use Markommerce\Layout\Operation\Remove;
+use Markommerce\Layout\Operation\Replace;
+use Markommerce\Layout\Operation\ReplaceProps;
 use Markommerce\Layout\Operation\WrapWith;
 use Markommerce\Layout\Place;
 use Markommerce\LayoutDemo\Component\FeaturedBadgeComponent;
+use Markommerce\LayoutDemo\Component\GalleryAnnouncementComponent;
+use Markommerce\LayoutDemo\Component\GalleryCustomComponent;
+use Markommerce\LayoutDemo\Component\GallerySubtitleComponent;
+use Markommerce\LayoutDemo\Component\GallerySummaryComponent;
 use Markommerce\LayoutDemo\Component\GalleryWrapperDecorator;
 use Markommerce\LayoutDemo\Controller\LayoutDemoController;
 
 return new LayoutExtension(
     handle: [LayoutDemoController::class, 'show'],
     operations: [
+        // Insert a badge before each repeat-slot item
         new InsertBefore(
-            anchorName: 'layout_demo.gallery',
+            anchorName: 'layout_demo.item',
             placement: new Place(
                 component: FeaturedBadgeComponent::class,
                 name: 'layout_demo.featured_badge',
@@ -380,32 +626,195 @@ return new LayoutExtension(
                 template: 'layout-demo::featured-badge',
             ),
         ),
+        // Insert a subtitle after the gallery header
+        new InsertAfter(
+            anchorName: 'layout_demo.gallery_header',
+            placement: new Place(
+                component: GallerySubtitleComponent::class,
+                name: 'layout_demo.gallery_subtitle',
+                props: [],
+                slots: [],
+                template: 'layout-demo::gallery-subtitle',
+            ),
+        ),
+        // Wrap the gallery section with a decorator
         new WrapWith(
-            name: 'layout_demo.gallery_header',
+            name: 'layout_demo.gallery',
             decorator: GalleryWrapperDecorator::class,
         ),
+        // Add a CSS class to the footer via prop merge
         new MergeProps(
             name: 'layout_demo.gallery_footer',
             props: ['class' => 'highlighted'],
+        ),
+        // Replace all props on the notice (adds a class, removes any defaults)
+        new ReplaceProps(
+            name: 'layout_demo.notice',
+            props: ['class' => 'extension-notice'],
+        ),
+        // Replace the placeholder with a custom component
+        new Replace(
+            name: 'layout_demo.placeholder',
+            placement: new Place(
+                component: GalleryCustomComponent::class,
+                name: 'layout_demo.custom',
+                props: [],
+                slots: [],
+                template: 'layout-demo::gallery-custom',
+            ),
+        ),
+        // Remove the deprecated element entirely
+        new Remove(
+            name: 'layout_demo.deprecated',
+        ),
+        // Prepend an announcement to the top of the content slot
+        new Prepend(
+            slotPath: 'content',
+            placement: new Place(
+                component: GalleryAnnouncementComponent::class,
+                name: 'layout_demo.announcement',
+                props: [],
+                slots: [],
+                template: 'layout-demo::gallery-announcement',
+            ),
+        ),
+        // Append a summary to the bottom of the content slot
+        new Append(
+            slotPath: 'content',
+            placement: new Place(
+                component: GallerySummaryComponent::class,
+                name: 'layout_demo.summary',
+                props: [],
+                slots: [],
+                template: 'layout-demo::gallery-summary',
+            ),
         ),
     ],
     priority: 0,
 );
 ```
 
-### Operations
+### Operations reference
 
-| Operation | What it does |
-|---|---|
-| `InsertBefore` | Insert a new placement immediately before the named component |
-| `InsertAfter` | Insert a new placement immediately after the named component |
-| `Prepend` | Prepend a placement to a named slot |
-| `Append` | Append a placement to a named slot |
-| `Remove` | Remove the named placement from the tree |
-| `Replace` | Replace the named placement with a different one |
-| `MergeProps` | Merge additional prop bindings into a named placement |
-| `ReplaceProps` | Fully replace the props of a named placement |
-| `WrapWith` | Wrap a named placement with a `DecoratorInterface` implementation |
+Every operation targets a placement by name or by slot path. Operations that target a named placement recurse through the entire tree — including into repeat-slot children — so an operation can reach any placement regardless of nesting depth.
+
+#### `InsertBefore`
+
+Inserts a new `Place` immediately before the named placement in the same sibling list. When the anchor is inside a repeat slot, the inserted placement appears before every rendered item.
+
+```php
+new InsertBefore(
+    anchorName: 'layout_demo.item',     // target placement name
+    placement: new Place(...),           // the new placement to insert
+),
+```
+
+#### `InsertAfter`
+
+Inserts a new `Place` immediately after the named placement.
+
+```php
+new InsertAfter(
+    anchorName: 'layout_demo.gallery_header',
+    placement: new Place(...),
+),
+```
+
+#### `Prepend`
+
+Prepends a new placement to the beginning of a top-level named slot. Use this to inject content at the very start of a slot without knowing what placements the base layout put there.
+
+```php
+new Prepend(
+    slotPath: 'content',    // top-level slot name
+    placement: new Place(...),
+),
+```
+
+#### `Append`
+
+Appends a new placement to the end of a top-level named slot.
+
+```php
+new Append(
+    slotPath: 'content',
+    placement: new Place(...),
+),
+```
+
+#### `WrapWith`
+
+Wraps the named placement with a `DecoratorInterface` implementation. The decorator renders its outer markup and calls `$inner()` to render the original placement inside it.
+
+```php
+new WrapWith(
+    name: 'layout_demo.gallery',
+    decorator: GalleryWrapperDecorator::class,
+),
+```
+
+```php title="packages/layout-demo/src/Component/GalleryWrapperDecorator.php"
+class GalleryWrapperDecorator implements DecoratorInterface
+{
+    public function render(callable $inner): string
+    {
+        return '<div class="gallery-wrapper">' . $inner() . '</div>';
+    }
+}
+```
+
+#### `MergeProps`
+
+Merges additional prop bindings into the named placement. Existing props are preserved; only the keys listed here are added or overwritten.
+
+```php
+new MergeProps(
+    name: 'layout_demo.gallery_footer',
+    props: ['class' => 'highlighted'],
+),
+```
+
+For prop-only components (no `data()` method), merged props are passed directly to the template as variables.
+
+#### `ReplaceProps`
+
+Replaces the entire prop map of the named placement. All props declared in the base layout are discarded and replaced with the new map.
+
+```php
+new ReplaceProps(
+    name: 'layout_demo.notice',
+    props: ['class' => 'extension-notice'],
+),
+```
+
+Use `ReplaceProps` when you need to completely reset the props, for example to remove a default prop that would otherwise be merged. Prefer `MergeProps` when you only need to add or override specific keys.
+
+#### `Replace`
+
+Replaces the named placement with an entirely different `Place`. The original component is removed and the new one takes its position.
+
+```php
+new Replace(
+    name: 'layout_demo.placeholder',
+    placement: new Place(
+        component: GalleryCustomComponent::class,
+        name: 'layout_demo.custom',
+        props: [],
+        slots: [],
+        template: 'layout-demo::gallery-custom',
+    ),
+),
+```
+
+#### `Remove`
+
+Removes the named placement from the tree entirely.
+
+```php
+new Remove(
+    name: 'layout_demo.deprecated',
+),
+```
 
 ### Priority ordering
 

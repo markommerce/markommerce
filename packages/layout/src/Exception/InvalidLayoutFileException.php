@@ -14,4 +14,13 @@ class InvalidLayoutFileException extends LayoutException
             suggestion: "Ensure '$filePath' ends with 'return new Layout(...)' or 'return new LayoutExtension(...)' as appropriate.",
         );
     }
+
+    public static function forInvalidHandleProvider(string $handleKey, string $providerClass): self
+    {
+        return new self(
+            message: "Handle provider '$providerClass' for handle '$handleKey' does not implement HandleProvider.",
+            context: "Compiling layout '$handleKey' — each entry in handleProviders must be a class that implements Markommerce\\Layout\\Contracts\\HandleProvider.",
+            suggestion: "Ensure '$providerClass' implements Markommerce\\Layout\\Contracts\\HandleProvider.",
+        );
+    }
 }

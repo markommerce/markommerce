@@ -76,13 +76,43 @@ none
 - Migration tooling from `marko/layout` to `markommerce/layout` (catalog and theme-blank are migrated manually here; `markommerce/theme-blank-demo` and `markommerce/frontend-demo` keep using `marko/layout` and are NOT migrated in this plan — they continue to work via the still-active `marko/layout` global middleware)
 - String-keyed base layouts (only class-based `LayoutDefinition` in v1)
 
+### Added scope (tasks 023-032 — multi-handle system)
+- Default handle: a `Layout(handle: 'default', …)` whose placements/operations are compile-time-merged into every other handle's tree. No runtime cost beyond the existing single-tree lookup.
+- Handle inheritance: a `Layout` can declare `inherits: 'other_handle'`. The parent tree is flattened into the child at compile time. Single-parent only; cycles are a loud compile error. Multi-parent inheritance is explicitly deferred.
+- Dynamic handles: a layout can declare `handleProviders: [new ProvideHandle(provider: SomeHandleProvider::class, props: …)]`. At runtime, after context providers run, providers return additional handle keys whose precompiled trees are merged into the base before rendering.
+- Layout files can now carry **operations** alongside placements (new `Layout::$operations` field). This makes a layout file a first-class participant in the extension vocabulary — e.g., a `catalog.product_listing` layout can `Remove` a default-handle placement it inherits.
+- `LayoutExtension` is unchanged. Files in `layout/extensions/` still target a handle from outside.
+
+#### Canonical resolution order (tasks 025/026/027)
+For each handle `H` that is NOT `'default'`:
+
+1. **Resolve `H`'s own `extends:` chain** (structural shell from `LayoutDefinition`).
+2. **Resolve `H`'s `inherits:` parent** recursively, parent fully resolved through steps 1–6 first. The parent's pre-default-merge resolved tree is what `inherits:` consumes (see step 8 below for why).
+3. **Merge parent's slot entries** on top of the shell's slot entries.
+4. **Merge parent's context providers** ahead of `H`'s own.
+5. **Default-merge Half A**: prepend `'default'`'s slot placements + context providers into `H`'s tree. (Lets steps 6–7 below operate on default-contributed placements.)
+6. **Apply `H`'s own `Layout::$operations`** (task 025).
+7. **Apply matching extension-file operations** in priority order (existing behavior).
+8. **Default-merge Half B**: after every handle has gone through steps 1–7, apply `'default'`'s **operations** (and `LayoutExtension` files targeting `'default'`) across every sibling handle. Strip the `'default'` entry from the resolved-layouts map. (Runs as the final compile step — see task 027.)
+
+At runtime, after step 8's artifact is loaded:
+
+9. **Match route → base handle key** (task 016, unchanged).
+10. **Run base tree's context providers** (renderer Phase 0).
+11. **Run base tree's `handleProviders`**, collect returned handle keys, dedup, fetch each from artifact (task 029).
+12. **`TreeMerger` folds dynamic trees into the base**: append their slot entries, concatenate their context providers, apply their operations on top (task 029).
+13. **Renderer Phase 0/1/2** runs on the merged tree (renderer unchanged).
+
+No change is required to `CompileIfStaleMiddleware` for tasks 023–032: it already globs `packages/*/layout/*.php` and `packages/*/layout/extensions/*.php`, which covers all new layout files (`default.php`, inheriting layouts, layouts with `handleProviders`).
+
 ## Success Criteria
 - [ ] `markommerce/catalog` `composer.json` no longer requires `marko/layout`
 - [ ] `markommerce/theme-blank` `composer.json` no longer requires `marko/layout`
 - [ ] `vendor/bin/marko layout:compile` produces `var/cache/markommerce/layouts.php` from real layout files
 - [ ] Category page route renders end-to-end via the new system, including iterated `ProductCard` placements with `StockBadge` sub-slots
 - [ ] A demo layout extension in tests (insert + wrap + merge-props) takes effect on the resolved tree
-- [ ] All ten named exceptions are thrown with location + suggestion when their condition is triggered (covered by tests)
+- [ ] All ten named exceptions from tasks 001–022 are thrown with location + suggestion when their condition is triggered (covered by tests)
+- [ ] All seven new handle-system exceptions from task 023 (`CircularInheritanceException`, `UnknownParentHandleException`, `DefaultHandleConflictException`, `DynamicHandleConflictException`, `UnknownDynamicHandleException`, `DuplicateContextTokenException`, `ChainedHandleProviderException`) are thrown with location + suggestion when their condition is triggered (covered by tests in tasks 023/026/027/028/029/030)
 - [ ] `CompileIfStaleMiddleware` triggers recompile when a layout source is touched in dev
 - [ ] All tests passing; PHPStan level 8 clean; 80%+ coverage on the new package
 
@@ -112,6 +142,16 @@ none
 | 020 | Migrate `markommerce/frontend-demo` off `marko/layout` | 019 | completed |
 | 021 | Create `markommerce/layout-demo` showcase module | 020 | completed |
 | 022 | Create docs guide for layouts | 021 | completed |
+| 023 | Handle-system exception catalog (CircularInheritance, UnknownParentHandle, DefaultHandleConflict, DynamicHandleConflict) | none | completed |
+| 024 | Extend `Layout` value object with `operations` and `inherits` fields | 023 | completed |
+| 025 | Compiler applies `Layout::$operations` after `extends:` chain | 024 | completed |
+| 026 | Handle inheritance: flatten parent tree into child, single-parent with cycle detection | 025 | completed |
+| 027 | Default handle: compile-time merge of `'default'` placements/operations into every other handle | 026 | completed |
+| 028 | `HandleProvider` contract + `ProvideHandle` declaration in `Layout` | 024 | completed |
+| 029 | Middleware invokes `HandleProvider`s and merges multiple trees at runtime | 027, 028 | completed |
+| 030 | Cross-handle conflict validation (placement-name + context-token collisions) | 029 | completed |
+| 031 | Layout-demo exercises default + inherits + dynamic handles end-to-end | 030 | completed |
+| 032 | Document default / inheritance / dynamic handles in guide and API reference | 031 | completed |
 
 ## Architecture Notes
 

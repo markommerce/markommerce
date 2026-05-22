@@ -349,8 +349,11 @@ Value object representing a single compiled layout tree.
 |---|---|---|
 | `$handle` | `array<int,string>\|string\|null` | Controller FQCN + action, or `null` for base layouts |
 | `$extends` | `class-string\|null` | `LayoutDefinition` class to inherit slots and template from |
+| `$inherits` | `string\|null` | Handle key of the parent layout whose compiled tree this layout copies before applying its own operations |
 | `$context` | `list<Provide>` | Context provider declarations |
 | `$slots` | `array<string, list<Place>\|Slot>` | Named slot contents |
+| `$operations` | `list<Operation>` | Operations applied on top of the inherited tree (used with `inherits`) |
+| `$handleProviders` | `list<ProvideHandle>` | Dynamic handle provider declarations |
 | `$template` | `?string` | Template path (e.g. `theme-blank::layout/1column`) |
 
 ### `Place`
@@ -385,6 +388,15 @@ Registers a context provider for the layout subtree.
 | `$provider` | `string` | `ContextProvider` implementation FQCN |
 | `$props` | `array` | Props forwarded to `provide()` |
 
+### `ProvideHandle`
+
+Registers a dynamic handle provider for a layout. Declared in `Layout::$handleProviders`.
+
+| Property | Type | Description |
+|---|---|---|
+| `$provider` | `class-string` | `HandleProvider` implementation FQCN |
+| `$props` | `array<string, mixed>` | Props resolved and forwarded to `HandleProvider::provide()` |
+
 ### `LayoutExtension`
 
 Carries a set of operations that mutate an existing compiled layout.
@@ -418,6 +430,7 @@ Immutable, typed collection of extension attributes keyed by class name.
 |---|---|
 | `LayoutDefinition` | Implemented by layout shell classes; exposes `static define(): Layout` |
 | `ContextProvider` | Implemented by context provider services; exposes `provide(array $props): object` |
+| `HandleProvider` | Implemented by dynamic handle providers; exposes `provide(array $props): array` — returns `list<string>` of handle keys to merge at runtime |
 | `DecoratorInterface` | Wraps rendered HTML; exposes `template(): string` and `wrap(string $innerHtml, array $data): string` |
 | `ExtensionAttribute` | Marker interface for typed extension attributes |
 | `Operation` | Marker interface for layout extension operations |
@@ -467,6 +480,34 @@ All methods are on `Markommerce\Layout\Source\Source`:
 | Attribute | Target | Description |
 |---|---|---|
 | `IteratesOver` | Class | Marks a component DTO class to declare which item type its slot iterates; used for compile-time slot validation |
+| `ProvidesHandles` | Class | Declares which handle keys a `HandleProvider` implementation can return; required for compile-time validation of dynamic handle keys |
+
+### Exceptions
+
+All exceptions extend `LayoutException` and carry a `message`, `context`, and `suggestion` for actionable error output.
+
+| Class | Factory | Thrown when |
+|---|---|---|
+| `DanglingAnchorException` | `forAnchor(string $name, string $handle)` | An extension operation targets a placement name that does not exist in the compiled tree |
+| `DuplicateExtensionException` | `forExtension(string $handle, int $priority)` | Two extension files for the same handle share the same priority |
+| `DuplicateNameException` | `forName(string $name, string $handle)` | Two placements in the same layout declare the same name |
+| `ExtensionConflictException` | `forConflict(string $name, string $handle)` | An extension operation conflicts with another operation in the same extension |
+| `InvalidLayoutFileException` | `forWrongType(string $filePath, string $actualType)` | A layout file does not return a `Layout` or `LayoutExtension` value object |
+| `InvalidSourceTypeException` | `forSource(string $source, string $value, string $targetType)` | A source value cannot be coerced to the declared target type |
+| `MissingDataKeyException` | `forKey(string $key, string $component)` | A `Slot::repeat()` `dataKey` does not exist on the component's DTO |
+| `MissingPropException` | `forProp(string $prop, string $component)` | A required prop declared in the layout file is missing at render time |
+| `MissingSlotInnerException` | `forSlot(string $slot, string $component)` | A `WrapWith` decorator does not call `$inner()` |
+| `RepeatTypeMismatchException` | `forTypes(string $expected, string $actual)` | A `Slot::repeat()` `yields` type does not match the DTO property type |
+| `TypeMismatchException` | `forTypes(string $expected, string $actual, string $prop)` | A prop value type does not match the component's `data()` parameter type |
+| `UnknownContextException` | `forToken(string $token)` | A `Source::context()` references a token not declared in the layout's `context` array |
+| `UnknownIterationException` | `forToken(string $token)` | A `Source::iterated()` references an iteration token outside a `Slot::repeat()` |
+| `CircularInheritanceException` | `forChain(list<string> $chain)` | A cycle is detected in the `inherits:` chain |
+| `UnknownParentHandleException` | `forParent(string $parent, string $child)` | An `inherits:` value references a handle that does not exist |
+| `DefaultHandleConflictException` | `forField(string $field)` | The `'default'` handle declares `extends`, `inherits`, or `handleProviders` |
+| `DynamicHandleConflictException` | `forCollidingPlacement(string $placementName, string $baseHandle, string $dynamicHandle)` | A dynamic handle tree declares a placement name already present in the base tree |
+| `UnknownDynamicHandleException` | `forHandle(string $handle, string $providerClass)` | A `HandleProvider` returns a handle key that does not exist in the compiled artifact |
+| `DuplicateContextTokenException` | `forToken(string $token, string $sourceHandle, string $targetHandle)` | An inheritance or default merge introduces a context token already defined on the target |
+| `ChainedHandleProviderException` | `forChain(string $providerClass, string $dynamicHandle)` | A dynamic handle's resolved tree itself declares `handleProviders` |
 
 ## Related Packages
 

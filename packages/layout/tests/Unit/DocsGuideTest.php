@@ -78,3 +78,63 @@ it('links to the layout API reference', function () use ($guideFile): void {
     /** @var string $content */
     expect($content)->toContain('/docs/packages/layout/');
 });
+
+it('adds a Handles section to the guide between Repeat Slots and Extending a Layout', function () use ($guideFile): void {
+    $content = file_get_contents($guideFile);
+    expect($content)->not->toBeFalse();
+    /** @var string $content */
+    expect($content)->toContain('## Handles');
+
+    $handlesPos = strpos($content, '## Handles');
+    $repeatSlotsPos = strpos($content, '## Repeat Slots');
+    $extendingPos = strpos($content, '## Extending a Layout');
+
+    expect($handlesPos)->not->toBeFalse();
+    expect($repeatSlotsPos)->not->toBeFalse();
+    expect($extendingPos)->not->toBeFalse();
+    expect($repeatSlotsPos)->toBeLessThan($handlesPos);
+    expect($handlesPos)->toBeLessThan($extendingPos);
+});
+
+it('documents the default handle with the demo default.php example', function () use ($guideFile): void {
+    $content = file_get_contents($guideFile);
+    expect($content)->not->toBeFalse();
+    /** @var string $content */
+    expect($content)->toContain('### The default handle');
+    expect($content)->toContain("handle: 'default'");
+    expect($content)->toContain('default.php');
+    expect($content)->toContain('SitewideNoticeComponent');
+});
+
+it('documents handle inheritance with parent-child example and Remove operation', function () use ($guideFile): void {
+    $content = file_get_contents($guideFile);
+    expect($content)->not->toBeFalse();
+    /** @var string $content */
+    expect($content)->toContain('### Inheriting a handle');
+    expect($content)->toContain('inherits:');
+    expect($content)->toContain('layout_demo_child');
+    expect($content)->toContain('new Remove(');
+});
+
+it('documents the HandleProvider contract and ProvideHandle value object', function () use ($guideFile): void {
+    $content = file_get_contents($guideFile);
+    expect($content)->not->toBeFalse();
+    /** @var string $content */
+    expect($content)->toContain('### Dynamic handles');
+    expect($content)->toContain('HandleProvider');
+    expect($content)->toContain('ProvideHandle');
+    expect($content)->toContain('GalleryVariantHandleProvider');
+    expect($content)->toContain('handleProviders:');
+    expect($content)->toContain('ProvidesHandles');
+});
+
+it('lists the resolution order from extends through dynamic-handle merge', function () use ($guideFile): void {
+    $content = file_get_contents($guideFile);
+    expect($content)->not->toBeFalse();
+    /** @var string $content */
+    expect($content)->toContain('### Resolution order');
+    expect($content)->toContain('extends');
+    expect($content)->toContain('inherits');
+    expect($content)->toContain('default');
+    expect($content)->toContain('dynamic');
+});

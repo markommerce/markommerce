@@ -14,4 +14,17 @@ class InvalidSourceTypeException extends LayoutException
             suggestion: "Ensure the source '$source' resolves to a value compatible with '$targetType'.",
         );
     }
+
+    public static function forDisallowedHandleProviderSource(
+        string $handleKey,
+        string $providerClass,
+        string $propKey,
+        string $sourceType,
+    ): self {
+        return new self(
+            message: "Source type '$sourceType' is not allowed in ProvideHandle::props (prop '$propKey' on '$providerClass' for handle '$handleKey').",
+            context: "Compiling ProvideHandle for handle '$handleKey' — prop '$propKey' uses '$sourceType' which is not valid in a handle provider context.",
+            suggestion: "Use only RouteSource, QuerySource, ContextSource, ServiceSource, or literal scalars in ProvideHandle::props. ParentDataSource and IteratedSource are not allowed.",
+        );
+    }
 }

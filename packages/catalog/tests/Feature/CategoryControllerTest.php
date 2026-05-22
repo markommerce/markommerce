@@ -262,7 +262,7 @@ function catalogControllerTestBuildRouter(
     };
 
     $renderer = new Renderer($view, $container);
-    $layoutMiddleware = new MarkommerceLayoutMiddleware($matcher, $artifactReader, $renderer);
+    $layoutMiddleware = new MarkommerceLayoutMiddleware($matcher, $artifactReader, $renderer, $container);
     $container->instance(MarkommerceLayoutMiddleware::class, $layoutMiddleware);
 
     return new Router($matcher, $container, [MarkommerceLayoutMiddleware::class]);

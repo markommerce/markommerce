@@ -298,7 +298,7 @@ class Renderer implements RendererInterface
         $dto = $place->name !== null ? ($memoized[$place->name] ?? null) : null;
 
         // Build template data: spread DTO public props + extensions key
-        $templateData = $this->buildTemplateData($dto, $place);
+        $templateData = $this->buildTemplateData($dto, $place, $context);
 
         // Render child slots
         $childContext = new ResolutionContext(
@@ -343,17 +343,27 @@ class Renderer implements RendererInterface
     /**
      * Build the template data array from a DTO.
      *
-     * Spreads all public properties of the DTO into the array.
-     * If the DTO extends ExtensibleData, adds an 'extensions' key.
+     * When a DTO exists, spreads all public properties.
+     * When no DTO (component has no data() method), resolves raw props as template data directly,
+     * allowing MergeProps values to reach templates for prop-less components.
      *
      * @return array<string, mixed>
      */
     private function buildTemplateData(
         ?object $dto,
         PreparedPlace $place,
+        ResolutionContext $context,
     ): array {
         if ($dto === null) {
-            return [];
+            if ($place->props === []) {
+                return [];
+            }
+            $resolver = new SourceResolver();
+            $data = [];
+            foreach ($place->props as $key => $source) {
+                $data[$key] = $resolver->resolve($source, $context);
+            }
+            return $data;
         }
 
         $data = [];

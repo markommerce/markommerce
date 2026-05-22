@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Marko\Core\Container\ContainerInterface;
 use Marko\Routing\Http\Request;
 use Marko\Routing\Http\Response;
 use Marko\Routing\MatchedRoute;
@@ -76,6 +77,31 @@ class MLM_FakeRenderer implements RendererInterface
     }
 }
 
+class MLM_FakeContainer implements ContainerInterface
+{
+    public function get(string $id): mixed
+    {
+        if (class_exists($id)) {
+            return new $id();
+        }
+        throw new \RuntimeException("No binding for $id");
+    }
+
+    public function has(string $id): bool
+    {
+        return class_exists($id);
+    }
+
+    public function singleton(string $id): void {}
+
+    public function instance(string $id, object $instance): void {}
+
+    public function call(\Closure $callable): mixed
+    {
+        return $callable();
+    }
+}
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -128,6 +154,7 @@ it('renders the layout for a route that has a compiled handle', function (): voi
         routeMatcher: $routeMatcher,
         artifactReader: $artifactReader,
         renderer: $renderer,
+        container: new MLM_FakeContainer(),
     );
 
     $request = mlm_makeRequest();
@@ -161,6 +188,7 @@ it('falls through to normal dispatch for a route with no layout', function (): v
         routeMatcher: $routeMatcher,
         artifactReader: $artifactReader,
         renderer: $renderer,
+        container: new MLM_FakeContainer(),
     );
 
     $request = mlm_makeRequest();
@@ -197,6 +225,7 @@ it('runs the controller action before rendering the layout', function (): void {
         routeMatcher: $routeMatcher,
         artifactReader: $artifactReader,
         renderer: $renderer,
+        container: new MLM_FakeContainer(),
     );
 
     $request = mlm_makeRequest();
@@ -231,6 +260,7 @@ it('honors a controller redirect instead of rendering the layout', function (): 
         routeMatcher: $routeMatcher,
         artifactReader: $artifactReader,
         renderer: $renderer,
+        container: new MLM_FakeContainer(),
     );
 
     $request = mlm_makeRequest();
@@ -271,6 +301,7 @@ it('passes route parameters through to the renderer', function (): void {
         routeMatcher: $routeMatcher,
         artifactReader: $artifactReader,
         renderer: $renderer,
+        container: new MLM_FakeContainer(),
     );
 
     $request = mlm_makeRequest();
@@ -299,6 +330,7 @@ it('throws a clear error when the compiled artifact is missing', function (): vo
         routeMatcher: $routeMatcher,
         artifactReader: $artifactReader,
         renderer: $renderer,
+        container: new MLM_FakeContainer(),
     );
 
     $request = mlm_makeRequest();
@@ -346,6 +378,7 @@ it('does not double-render when marko/layout\'s LayoutMiddleware is also active'
         routeMatcher: $routeMatcher,
         artifactReader: $artifactReader,
         renderer: $renderer,
+        container: new MLM_FakeContainer(),
     );
 
     $request = mlm_makeRequest();

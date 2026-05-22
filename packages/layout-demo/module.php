@@ -6,5 +6,7 @@ use Markommerce\LayoutDemo\Service\DefaultLabelFormatter;
 use Markommerce\LayoutDemo\Service\LabelFormatterInterface;
 
 return [
-    LabelFormatterInterface::class => DefaultLabelFormatter::class,
+    'bindings' => [
+        LabelFormatterInterface::class => DefaultLabelFormatter::class,
+    ],
 ];

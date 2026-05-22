@@ -124,7 +124,7 @@ function catalogLayoutBuildMiddleware(
     $routeMatcher = $container->get(\Marko\Routing\RouteMatcherInterface::class);
     $renderer = new Renderer($view, $container);
 
-    return new MarkommerceLayoutMiddleware($routeMatcher, $artifactReader, $renderer);
+    return new MarkommerceLayoutMiddleware($routeMatcher, $artifactReader, $renderer, $container);
 }
 
 /**
