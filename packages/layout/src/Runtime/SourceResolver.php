@@ -145,10 +145,8 @@ class SourceResolver
         string $sourceName,
     ): mixed
     {
-        $stringValue = (string) $value;
-
         return match ($as) {
-            'int' => is_numeric($stringValue) ? (int) $stringValue : throw InvalidSourceTypeException::forSource(
+            'int' => is_numeric((string) $value) ? (int) $value : throw InvalidSourceTypeException::forSource(
                 $sourceName,
                 gettype($value),
                 'int',

@@ -655,7 +655,9 @@ class ValidationPhase
         string $handleKey,
     ): void {
         foreach ($place->decorators as $decorator) {
-            if (!isset($allNames[$decorator])) {
+            // Decorators are decorator class names (from WrapWith operations).
+            // Validate that the class exists and implements DecoratorInterface.
+            if (!class_exists($decorator)) {
                 throw DanglingAnchorException::forAnchorWithChain(
                     $decorator,
                     $handleKey,

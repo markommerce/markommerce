@@ -217,7 +217,7 @@ it('renders products inside an mk-grid element', function (): void {
     expect($output)->toContain('<mk-grid');
 });
 
-it('renders one product-grid-item per product, including the resolved name', function (): void {
+it('renders a product grid container with a products slot placeholder when products exist', function (): void {
     $categoryRepository = new FakeCategoryRepository();
     $productRepository = new FakeProductRepository();
     $assignmentRepository = new FakeProductCategoryAssignmentRepository();
@@ -251,36 +251,31 @@ it('renders one product-grid-item per product, including the resolved name', fun
         'category' => $category,
     ]);
 
-    expect($output)->toContain('Blue T-Shirt');
-    expect($output)->toContain('Black Jeans');
+    expect($output)->toContain('<mk-grid');
+    expect($output)->toContain('{slot products}{/slot}');
 });
 
-it('renders the placeholder image src with the product SKU in the URL', function (): void {
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-
-    $category = new Category();
-    $category->name = 'Footwear';
-    $categoryRepository->save($category);
-
+it('renders the product card template with a placeholder image for the product SKU', function (): void {
     $product = new Product();
+    $product->id = 42;
     $product->sku = 'BOOT-001';
     $product->name = 'Hiking Boot';
-    $productRepository->save($product);
 
-    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $assignmentService->assign($product->id, $category->id);
-
-    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category);
+    $data = new \Markommerce\Catalog\Data\ProductCardData(
+        product: $product,
+        resolvedName: 'Hiking Boot',
+        resolvedDesc: '',
+        inStock: true,
+        extensions: new \Markommerce\Layout\ExtensionBag(),
+    );
 
     $engine = productGridBuildLatte();
-    $output = $engine->renderToString('catalog::components/product-grid', [
-        'products' => $data->products,
-        'resolvedNames' => $data->resolvedNames,
-        'resolvedDescs' => $data->resolvedDescs,
-        'category' => $category,
+    $output = $engine->renderToString('catalog::components/product-card', [
+        'product' => $data->product,
+        'resolvedName' => $data->resolvedName,
+        'resolvedDesc' => $data->resolvedDesc,
+        'inStock' => $data->inStock,
+        'extensions' => $data->extensions,
     ]);
 
     expect($output)->toContain('placehold.co');
@@ -337,13 +332,7 @@ it('resolves product names through ScopeResolver rather than the raw column valu
     // Verify the resolved name is in the map (not accessed directly from $product->name).
     expect($data->resolvedNames[$product->id])->toBe('Base Product Name');
 
-    $engine = productGridBuildLatte();
-    $output = $engine->renderToString('catalog::components/product-grid', [
-        'products' => $data->products,
-        'resolvedNames' => $data->resolvedNames,
-        'resolvedDescs' => $data->resolvedDescs,
-        'category' => $category,
-    ]);
-
-    expect($output)->toContain('Base Product Name');
+    // The resolved name is available in the DTO map for product card rendering.
+    // Product-level rendering is handled by catalog::components/product-card via the layout system.
+    expect($data->resolvedNames[$product->id])->toBe('Base Product Name');
 });

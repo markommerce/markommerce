@@ -109,6 +109,9 @@ none
 | 017 | `markommerce/catalog` migration (drop marko/layout, port ProductGridComponent, create category_show.php, update CategoryController) | 016, 018 | completed |
 | 018 | `markommerce/theme-blank` migration (all 5 layout classes → LayoutDefinition) | 004, 009 | completed |
 | 019 | Package README | 001-018 | completed |
+| 020 | Migrate `markommerce/frontend-demo` off `marko/layout` | 019 | completed |
+| 021 | Create `markommerce/layout-demo` showcase module | 020 | completed |
+| 022 | Create docs guide for layouts | 021 | completed |
 
 ## Architecture Notes
 

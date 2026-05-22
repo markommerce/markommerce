@@ -17,5 +17,6 @@ readonly class PreparedPlace
         public array $props,
         public array $slots,
         public array $decorators = [],
+        public string $template = '',
     ) {}
 }

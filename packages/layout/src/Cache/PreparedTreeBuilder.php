@@ -50,6 +50,7 @@ class PreparedTreeBuilder
             props: $resolvedPlace->props,
             slots: $this->buildSlots($resolvedPlace->slots),
             decorators: $resolvedPlace->decorators,
+            template: $resolvedPlace->template,
         );
     }
 }

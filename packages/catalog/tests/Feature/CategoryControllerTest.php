@@ -412,8 +412,8 @@ it('renders an empty-state message when the category has no products', function 
     $response = $router->handle($request);
 
     // The ProductGrid component renders with the category but no products
-    // The response should contain the layout and product grid component
-    expect($response->body())->toContain(ProductGridComponent::class);
+    // The response should contain the layout and product grid template
+    expect($response->body())->toContain('catalog::components/product-grid');
     expect($response->statusCode())->toBe(200);
 });
 

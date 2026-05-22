@@ -26,7 +26,7 @@ it('has a composer.json declaring name markommerce/frontend-demo and type marko-
 });
 
 it(
-    'requires markommerce/frontend, marko/core, marko/routing, marko/view, marko/view-latte, marko/layout all at self.version',
+    'requires markommerce/frontend, marko/core, marko/routing, marko/view, marko/view-latte all at self.version',
     function (): void {
         $manifest = readFrontendDemoManifest(__DIR__ . '/../../composer.json');
 
@@ -35,9 +35,20 @@ it(
         expect($manifest['require']['marko/routing'])->toBe('self.version');
         expect($manifest['require']['marko/view'])->toBe('self.version');
         expect($manifest['require']['marko/view-latte'])->toBe('self.version');
-        expect($manifest['require']['marko/layout'])->toBe('self.version');
     },
 );
+
+it('composer.json no longer lists marko/layout in require', function (): void {
+    $manifest = readFrontendDemoManifest(__DIR__ . '/../../composer.json');
+
+    expect($manifest['require'])->not->toHaveKey('marko/layout');
+});
+
+it('composer.json lists markommerce/layout in require at self.version', function (): void {
+    $manifest = readFrontendDemoManifest(__DIR__ . '/../../composer.json');
+
+    expect($manifest['require']['markommerce/layout'])->toBe('self.version');
+});
 
 it('autoloads Markommerce\\FrontendDemo\\ from src/', function (): void {
     $manifest = readFrontendDemoManifest(__DIR__ . '/../../composer.json');

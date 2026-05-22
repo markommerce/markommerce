@@ -375,7 +375,7 @@ it('renders the category page with a grid of product cards', function (): void {
     $response = $middleware->handle($request, $controllerCallable);
 
     expect($response->statusCode())->toBe(200);
-    expect($response->body())->toContain(ProductGridComponent::class);
+    expect($response->body())->toContain('catalog::components/product-grid');
 });
 
 it('renders a stock badge sub-slot inside each product card', function (): void {

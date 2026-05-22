@@ -321,8 +321,9 @@ class Renderer implements RendererInterface
             $templateData['_slots'] = array_map(fn () => true, $slotHtml);
         }
 
-        // Render the component template
-        $html = $this->view->renderToString($place->component, $templateData);
+        // Render the component template; fall back to FQCN when template is not specified
+        $templateName = $place->template !== '' ? $place->template : $place->component;
+        $html = $this->view->renderToString($templateName, $templateData);
 
         // Inline sub-slot HTML into slot placeholders
         if ($slotHtml !== []) {

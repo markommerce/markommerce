@@ -15,5 +15,6 @@ readonly class Place
         public ?string $name,
         public array $props,
         public array $slots,
+        public string $template = '',
     ) {}
 }

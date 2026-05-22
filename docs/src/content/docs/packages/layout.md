@@ -7,6 +7,10 @@ Layout module for Markommerce. `markommerce/layout` provides a placement-agnosti
 
 Unlike `marko/layout`, component data is a typed DTO rather than a freeform array, iteration slots are first-class, and the extension model gives consumers safe, auditable mutations rather than arbitrary tree overrides.
 
+## Guides
+
+- [Working with Layouts](/docs/guides/working-with-layouts/) — Step-by-step how-to guide for defining layouts, wiring providers, using repeat slots, and extending layouts.
+
 ## Installation
 
 ```bash
@@ -158,7 +162,22 @@ class OneColumnLayout implements LayoutDefinition
 
 ### Context providers
 
-Context objects are made available to all components in a layout subtree via `Provide` + a `ContextProvider` implementation:
+Context objects are made available to all components in a layout subtree via `Provide` + a `ContextProvider` implementation.
+
+**Interface signature:**
+
+```php
+namespace Markommerce\Layout\Contracts;
+
+interface ContextProvider
+{
+    public function provide(array $props): object;
+}
+```
+
+The `$props` array contains the keys declared in `Provide::$props`, resolved at render time by the `Source` descriptors specified there. The returned object is stored in the context bag under the key `Provide::$token` and is available to any component in the subtree via `Source::context()`.
+
+**Concrete example:**
 
 ```php
 <?php
@@ -173,12 +192,27 @@ class CategoryDataProvider implements ContextProvider
         private CategoryRepositoryInterface $categoryRepository,
     ) {}
 
+    /**
+     * @param array<string, mixed> $props
+     */
     public function provide(array $props): object
     {
-        return $this->categoryRepository->find($props['id']);
+        return $this->categoryRepository->find((int) $props['id']);
     }
 }
 ```
+
+Wire the provider in a layout file with a `Provide` declaration inside the `context` array:
+
+```php
+new Provide(
+    token: CategoryToken::class,          // key in the context bag
+    provider: CategoryDataProvider::class, // ContextProvider FQCN
+    props: ['id' => Source::route('id', 'int')],
+),
+```
+
+Any component prop in the same subtree can then read the resolved entity with `Source::context(CategoryToken::class)`.
 
 ### Sources
 

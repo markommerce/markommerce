@@ -176,6 +176,7 @@ class ResolutionPhase
             props: $place->props,
             slots: $this->convertSlots($place->slots),
             decorators: [],
+            template: $place->template,
         );
     }
 
@@ -503,6 +504,7 @@ class ResolutionPhase
                         props: array_merge($place->props, $op->props),
                         slots: $place->slots,
                         decorators: $place->decorators,
+                        template: $place->template,
                     );
                 }
                 return $place;
@@ -536,6 +538,7 @@ class ResolutionPhase
                         props: $op->props,
                         slots: $place->slots,
                         decorators: $place->decorators,
+                        template: $place->template,
                     );
                 }
                 return $place;
@@ -569,6 +572,7 @@ class ResolutionPhase
                         props: $place->props,
                         slots: $place->slots,
                         decorators: array_merge($place->decorators, [$op->decorator]),
+                        template: $place->template,
                     );
                 }
                 return $place;
@@ -583,7 +587,7 @@ class ResolutionPhase
     }
 
     /**
-     * Map over all placement lists in the slot tree (top-level only).
+     * Map over all placement lists in the slot tree, recursing into repeat slots and sub-slots.
      *
      * @param array<string, list<ResolvedPlace>|ResolvedRepeatSlot> $slots
      * @param callable(list<ResolvedPlace>): list<ResolvedPlace> $callback
@@ -595,11 +599,35 @@ class ResolutionPhase
         $result = [];
         foreach ($slots as $slotName => $value) {
             if ($value instanceof ResolvedRepeatSlot) {
-                $result[$slotName] = $value;
+                $result[$slotName] = new ResolvedRepeatSlot(
+                    dataKey: $value->dataKey,
+                    yields: $value->yields,
+                    as: $value->as,
+                    children: array_map(
+                        fn(ResolvedPlace $child) => $this->mapPlacementsInPlace($child, $callback),
+                        $value->children,
+                    ),
+                );
             } else {
-                $result[$slotName] = $callback($value);
+                $mapped = $callback($value);
+                $result[$slotName] = array_map(
+                    fn(ResolvedPlace $place) => $this->mapPlacementsInPlace($place, $callback),
+                    $mapped,
+                );
             }
         }
         return $result;
+    }
+
+    private function mapPlacementsInPlace(ResolvedPlace $place, callable $callback): ResolvedPlace
+    {
+        return new ResolvedPlace(
+            component: $place->component,
+            name: $place->name,
+            props: $place->props,
+            slots: $this->mapPlacements($place->slots, $callback),
+            decorators: $place->decorators,
+            template: $place->template,
+        );
     }
 }

@@ -67,6 +67,7 @@ class PhpCodeEmitter
             '            props: %s,' . "\n" .
             '            slots: %s,' . "\n" .
             '            decorators: %s,' . "\n" .
+            '            template: %s,' . "\n" .
             '        )',
             PreparedPlace::class,
             $this->emitString($place->component),
@@ -74,6 +75,7 @@ class PhpCodeEmitter
             $propsCode,
             $slotsCode,
             $decoratorsCode,
+            $this->emitString($place->template),
         );
     }
 
