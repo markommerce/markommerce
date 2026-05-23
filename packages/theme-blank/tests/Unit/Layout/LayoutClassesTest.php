@@ -2,69 +2,94 @@
 
 declare(strict_types=1);
 
-use Marko\Layout\Attributes\Component;
+use Markommerce\Layout\Contracts\LayoutDefinition;
+use Markommerce\Layout\Layout;
 use Markommerce\ThemeBlank\Layout\EmptyLayout;
 use Markommerce\ThemeBlank\Layout\OneColumnLayout;
 use Markommerce\ThemeBlank\Layout\ThreeColumnsLayout;
 use Markommerce\ThemeBlank\Layout\TwoColumnsLeftLayout;
 use Markommerce\ThemeBlank\Layout\TwoColumnsRightLayout;
 
-it('declares OneColumnLayout with a Component attribute pointing at theme-blank::layout/1column and the content slot', function (): void {
-    $reflection = new ReflectionClass(OneColumnLayout::class);
-    $attributes = $reflection->getAttributes(Component::class);
-
-    expect($attributes)->toHaveCount(1);
-
-    $component = $attributes[0]->newInstance();
-
-    expect($component->template)->toBe('theme-blank::layout/1column');
-    expect($component->slots)->toBe(['content']);
+it('defines OneColumnLayout as a LayoutDefinition', function (): void {
+    expect(OneColumnLayout::class)->toImplement(LayoutDefinition::class);
 });
 
-it('declares TwoColumnsLeftLayout with a Component attribute pointing at theme-blank::layout/2columns-left and the content and sidebar-left slots', function (): void {
-    $reflection = new ReflectionClass(TwoColumnsLeftLayout::class);
-    $attributes = $reflection->getAttributes(Component::class);
-
-    expect($attributes)->toHaveCount(1);
-
-    $component = $attributes[0]->newInstance();
-
-    expect($component->template)->toBe('theme-blank::layout/2columns-left');
-    expect($component->slots)->toBe(['content', 'sidebar-left']);
+it('defines TwoColumnsLeftLayout as a LayoutDefinition', function (): void {
+    expect(TwoColumnsLeftLayout::class)->toImplement(LayoutDefinition::class);
 });
 
-it('declares TwoColumnsRightLayout with a Component attribute pointing at theme-blank::layout/2columns-right and the content and sidebar-right slots', function (): void {
-    $reflection = new ReflectionClass(TwoColumnsRightLayout::class);
-    $attributes = $reflection->getAttributes(Component::class);
-
-    expect($attributes)->toHaveCount(1);
-
-    $component = $attributes[0]->newInstance();
-
-    expect($component->template)->toBe('theme-blank::layout/2columns-right');
-    expect($component->slots)->toBe(['content', 'sidebar-right']);
+it('defines TwoColumnsRightLayout as a LayoutDefinition', function (): void {
+    expect(TwoColumnsRightLayout::class)->toImplement(LayoutDefinition::class);
 });
 
-it('declares ThreeColumnsLayout with a Component attribute pointing at theme-blank::layout/3columns and the content, sidebar-left and sidebar-right slots', function (): void {
-    $reflection = new ReflectionClass(ThreeColumnsLayout::class);
-    $attributes = $reflection->getAttributes(Component::class);
-
-    expect($attributes)->toHaveCount(1);
-
-    $component = $attributes[0]->newInstance();
-
-    expect($component->template)->toBe('theme-blank::layout/3columns');
-    expect($component->slots)->toBe(['content', 'sidebar-left', 'sidebar-right']);
+it('defines ThreeColumnsLayout as a LayoutDefinition', function (): void {
+    expect(ThreeColumnsLayout::class)->toImplement(LayoutDefinition::class);
 });
 
-it('declares EmptyLayout with a Component attribute pointing at theme-blank::layout/empty and the content slot', function (): void {
-    $reflection = new ReflectionClass(EmptyLayout::class);
-    $attributes = $reflection->getAttributes(Component::class);
+it('defines EmptyLayout as a LayoutDefinition', function (): void {
+    expect(EmptyLayout::class)->toImplement(LayoutDefinition::class);
+});
 
-    expect($attributes)->toHaveCount(1);
+it('declares a content slot on the one-column layout', function (): void {
+    $layout = OneColumnLayout::define();
 
-    $component = $attributes[0]->newInstance();
+    expect($layout)->toBeInstanceOf(Layout::class)
+        ->and($layout->slots)->toHaveKey('content');
+});
 
-    expect($component->template)->toBe('theme-blank::layout/empty');
-    expect($component->slots)->toBe(['content']);
+it('declares content and sidebar-left slots on the two-columns-left layout', function (): void {
+    $layout = TwoColumnsLeftLayout::define();
+
+    expect($layout)->toBeInstanceOf(Layout::class)
+        ->and($layout->slots)->toHaveKey('content')
+        ->and($layout->slots)->toHaveKey('sidebar-left');
+});
+
+it('declares content, sidebar-left and sidebar-right slots on the three-columns layout', function (): void {
+    $layout = ThreeColumnsLayout::define();
+
+    expect($layout)->toBeInstanceOf(Layout::class)
+        ->and($layout->slots)->toHaveKey('content')
+        ->and($layout->slots)->toHaveKey('sidebar-left')
+        ->and($layout->slots)->toHaveKey('sidebar-right');
+});
+
+it('returns a Layout with no route handle from a base layout define method', function (): void {
+    $layouts = [
+        OneColumnLayout::define(),
+        TwoColumnsLeftLayout::define(),
+        TwoColumnsRightLayout::define(),
+        ThreeColumnsLayout::define(),
+        EmptyLayout::define(),
+    ];
+
+    foreach ($layouts as $layout) {
+        expect($layout->handle)->toBeNull();
+    }
+});
+
+it('serves as an extends target for another layout', function (): void {
+    $childLayout = new Layout(
+        handle: 'catalog_product_view',
+        extends: OneColumnLayout::class,
+        context: [],
+        slots: [],
+    );
+
+    expect($childLayout->extends)->toBe(OneColumnLayout::class);
+
+    $parentLayout = ($childLayout->extends)::define();
+    expect($parentLayout)->toBeInstanceOf(Layout::class)
+        ->and($parentLayout->template)->toBe('theme-blank::layout/1column')
+        ->and($parentLayout->slots)->toHaveKey('content');
+});
+
+it('no longer depends on marko/layout in composer.json', function (): void {
+    $composerJsonPath = dirname(__DIR__, 3) . '/composer.json';
+    $contents = file_get_contents($composerJsonPath);
+    expect($contents)->not->toBeFalse();
+    /** @var string $contents */
+    $composerJson = json_decode($contents, true);
+
+    expect($composerJson['require'])->not->toHaveKey('marko/layout');
 });

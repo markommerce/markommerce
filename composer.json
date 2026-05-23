@@ -18,19 +18,22 @@
         "markommerce/catalog": "self.version",
         "markommerce/core": "self.version",
         "markommerce/frontend": "self.version",
+        "markommerce/layout": "self.version",
         "markommerce/scope": "self.version",
         "markommerce/scope-pgsql": "self.version",
         "markommerce/theme-blank": "self.version"
     },
     "autoload-dev": {
         "psr-4": {
-            "Markommerce\\Catalog\\Tests\\": "packages/catalog/tests/"
+            "Markommerce\\Catalog\\Tests\\": "packages/catalog/tests/",
+            "Markommerce\\Layout\\Tests\\": "packages/layout/tests/"
         }
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.92",
         "marko/log": "self.version",
         "markommerce/frontend-demo": "self.version",
+        "markommerce/layout-demo": "self.version",
         "markommerce/theme-blank-demo": "self.version",
         "pestphp/pest": "^4.3",
         "phpstan/phpstan": "^2.0",

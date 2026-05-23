@@ -6,16 +6,15 @@ use Latte\Engine;
 use Marko\Config\ConfigRepository;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
-use Marko\Layout\Attributes\Component;
 use Marko\View\Latte\LatteEngineFactory;
 use Marko\View\Latte\ModuleLoader;
 use Marko\View\ModuleTemplateResolver;
 use Marko\View\ViewConfig;
 use Markommerce\Catalog\Component\ProductGridComponent;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
+use Markommerce\Catalog\Data\ProductGridData;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
-use Markommerce\Catalog\Exceptions\CategoryNotFoundException;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
@@ -101,17 +100,6 @@ function productGridBuildComponent(
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-it('declares ProductGridComponent with a Component attribute pointing at the catalog product-grid template in the content slot of theme-blank\'s OneColumnLayout', function (): void {
-    $reflection = new ReflectionClass(ProductGridComponent::class);
-    $componentAttributes = $reflection->getAttributes(Component::class);
-
-    expect($componentAttributes)->not->toBeEmpty();
-
-    $componentAttr = $componentAttributes[0]->newInstance();
-    expect($componentAttr->template)->toBe('catalog::components/product-grid');
-    expect($componentAttr->slot)->toBe('content');
-});
-
 it('injects the category repository, assignment service, and scope resolver', function (): void {
     $reflection = new ReflectionClass(ProductGridComponent::class);
     $constructor = $reflection->getConstructor();
@@ -131,7 +119,7 @@ it('injects the category repository, assignment service, and scope resolver', fu
     expect($paramTypes)->toContain(ScopeResolver::class);
 });
 
-it('returns category, products, and resolved name/description maps from data() for an existing category', function (): void {
+it('returns a typed ProductGridData DTO from data() for an existing category', function (): void {
     $categoryRepository = new FakeCategoryRepository();
     $productRepository = new FakeProductRepository();
     $assignmentRepository = new FakeProductCategoryAssignmentRepository();
@@ -149,19 +137,14 @@ it('returns category, products, and resolved name/description maps from data() f
     $assignmentService->assign($product->id, $category->id);
 
     $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category->id);
+    $data = $component->data($category);
 
-    expect($data)->toHaveKey('category');
-    expect($data)->toHaveKey('products');
-    expect($data)->toHaveKey('resolvedNames');
-    expect($data)->toHaveKey('resolvedDescs');
-
-    expect($data['category'])->toBe($category);
-    expect($data['products'])->toHaveCount(1);
-    expect($data['resolvedNames'][$product->id])->toBe('Running Shoes');
+    expect($data)->toBeInstanceOf(ProductGridData::class);
+    expect($data->products)->toHaveCount(1);
+    expect($data->resolvedNames[$product->id])->toBe('Running Shoes');
 });
 
-it('returns an empty products array from data() when the category has no assigned products', function (): void {
+it('returns an empty products list from data() when the category has no assigned products', function (): void {
     $categoryRepository = new FakeCategoryRepository();
     $productRepository = new FakeProductRepository();
     $assignmentRepository = new FakeProductCategoryAssignmentRepository();
@@ -171,21 +154,12 @@ it('returns an empty products array from data() when the category has no assigne
     $categoryRepository->save($category);
 
     $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category->id);
+    $data = $component->data($category);
 
-    expect($data['products'])->toBeEmpty();
-    expect($data['resolvedNames'])->toBeEmpty();
-    expect($data['resolvedDescs'])->toBeEmpty();
-});
-
-it('throws CategoryNotFoundException from data() when the category id does not exist', function (): void {
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-
-    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-
-    expect(fn () => $component->data(9999))->toThrow(CategoryNotFoundException::class);
+    expect($data)->toBeInstanceOf(ProductGridData::class);
+    expect($data->products)->toBeEmpty();
+    expect($data->resolvedNames)->toBeEmpty();
+    expect($data->resolvedDescs)->toBeEmpty();
 });
 
 it('renders the category name as the page heading via mk-heading', function (): void {
@@ -198,10 +172,15 @@ it('renders the category name as the page heading via mk-heading', function (): 
     $categoryRepository->save($category);
 
     $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category->id);
+    $data = $component->data($category);
 
     $engine = productGridBuildLatte();
-    $output = $engine->renderToString('catalog::components/product-grid', $data);
+    $output = $engine->renderToString('catalog::components/product-grid', [
+        'products' => $data->products,
+        'resolvedNames' => $data->resolvedNames,
+        'resolvedDescs' => $data->resolvedDescs,
+        'category' => $category,
+    ]);
 
     expect($output)->toContain('<mk-heading');
     expect($output)->toContain('Featured Products');
@@ -225,15 +204,20 @@ it('renders products inside an mk-grid element', function (): void {
     $assignmentService->assign($product->id, $category->id);
 
     $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category->id);
+    $data = $component->data($category);
 
     $engine = productGridBuildLatte();
-    $output = $engine->renderToString('catalog::components/product-grid', $data);
+    $output = $engine->renderToString('catalog::components/product-grid', [
+        'products' => $data->products,
+        'resolvedNames' => $data->resolvedNames,
+        'resolvedDescs' => $data->resolvedDescs,
+        'category' => $category,
+    ]);
 
     expect($output)->toContain('<mk-grid');
 });
 
-it('renders one product-grid-item per product, including the resolved name', function (): void {
+it('renders a product grid container with a products slot placeholder when products exist', function (): void {
     $categoryRepository = new FakeCategoryRepository();
     $productRepository = new FakeProductRepository();
     $assignmentRepository = new FakeProductCategoryAssignmentRepository();
@@ -257,37 +241,42 @@ it('renders one product-grid-item per product, including the resolved name', fun
     $assignmentService->assign($product2->id, $category->id);
 
     $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category->id);
+    $data = $component->data($category);
 
     $engine = productGridBuildLatte();
-    $output = $engine->renderToString('catalog::components/product-grid', $data);
+    $output = $engine->renderToString('catalog::components/product-grid', [
+        'products' => $data->products,
+        'resolvedNames' => $data->resolvedNames,
+        'resolvedDescs' => $data->resolvedDescs,
+        'category' => $category,
+    ]);
 
-    expect($output)->toContain('Blue T-Shirt');
-    expect($output)->toContain('Black Jeans');
+    expect($output)->toContain('<mk-grid');
+    expect($output)->toContain('{slot products}{/slot}');
 });
 
-it('renders the placeholder image src with the product SKU in the URL', function (): void {
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-
-    $category = new Category();
-    $category->name = 'Footwear';
-    $categoryRepository->save($category);
-
+it('renders the product card template with a placeholder image for the product SKU', function (): void {
     $product = new Product();
+    $product->id = 42;
     $product->sku = 'BOOT-001';
     $product->name = 'Hiking Boot';
-    $productRepository->save($product);
 
-    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $assignmentService->assign($product->id, $category->id);
-
-    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category->id);
+    $data = new \Markommerce\Catalog\Data\ProductCardData(
+        product: $product,
+        resolvedName: 'Hiking Boot',
+        resolvedDesc: '',
+        inStock: true,
+        extensions: new \Markommerce\Layout\ExtensionBag(),
+    );
 
     $engine = productGridBuildLatte();
-    $output = $engine->renderToString('catalog::components/product-grid', $data);
+    $output = $engine->renderToString('catalog::components/product-card', [
+        'product' => $data->product,
+        'resolvedName' => $data->resolvedName,
+        'resolvedDesc' => $data->resolvedDesc,
+        'inStock' => $data->inStock,
+        'extensions' => $data->extensions,
+    ]);
 
     expect($output)->toContain('placehold.co');
     expect($output)->toContain('BOOT-001');
@@ -303,10 +292,15 @@ it('renders a muted empty state when the category has no products', function ():
     $categoryRepository->save($category);
 
     $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category->id);
+    $data = $component->data($category);
 
     $engine = productGridBuildLatte();
-    $output = $engine->renderToString('catalog::components/product-grid', $data);
+    $output = $engine->renderToString('catalog::components/product-grid', [
+        'products' => $data->products,
+        'resolvedNames' => $data->resolvedNames,
+        'resolvedDescs' => $data->resolvedDescs,
+        'category' => $category,
+    ]);
 
     expect($output)->toContain('No products found');
     expect($output)->toContain('muted');
@@ -332,14 +326,13 @@ it('resolves product names through ScopeResolver rather than the raw column valu
     // Build component with real ScopeResolver
     $scopeResolver = productGridBuildScopeResolver();
     $component = new ProductGridComponent($categoryRepository, $assignmentService, $scopeResolver);
-    $data = $component->data($category->id);
+    $data = $component->data($category);
 
     // In default scope context, resolved() falls back to the base column value.
     // Verify the resolved name is in the map (not accessed directly from $product->name).
-    expect($data['resolvedNames'][$product->id])->toBe('Base Product Name');
+    expect($data->resolvedNames[$product->id])->toBe('Base Product Name');
 
-    $engine = productGridBuildLatte();
-    $output = $engine->renderToString('catalog::components/product-grid', $data);
-
-    expect($output)->toContain('Base Product Name');
+    // The resolved name is available in the DTO map for product card rendering.
+    // Product-level rendering is handled by catalog::components/product-card via the layout system.
+    expect($data->resolvedNames[$product->id])->toBe('Base Product Name');
 });

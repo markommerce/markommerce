@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace Markommerce\Catalog\Component;
 
 use Marko\Database\Exceptions\RepositoryException;
-use Marko\Layout\Attributes\Component;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
-use Markommerce\Catalog\Controller\CategoryController;
-use Markommerce\Catalog\Exceptions\CategoryNotFoundException;
+use Markommerce\Catalog\Data\ProductGridData;
+use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
+use Markommerce\Layout\ExtensionBag;
 use Markommerce\Scope\Resolver\ScopeResolver;
 
-#[Component(template: 'catalog::components/product-grid', handle: [CategoryController::class, 'show'], slot: 'content')]
 class ProductGridComponent
 {
     public function __construct(
@@ -22,18 +21,14 @@ class ProductGridComponent
     ) {}
 
     /**
-     * @return array<string, mixed>
-     * @throws CategoryNotFoundException|RepositoryException
+     * @throws RepositoryException
      */
-    public function data(int $id): array
+    public function data(Category $category): ProductGridData
     {
-        $category = $this->categoryRepository->find($id);
-
-        if ($category === null) {
-            throw CategoryNotFoundException::forId($id);
-        }
-
-        $products = $this->categoryAssignmentService->productsInCategory($id);
+        $id = $category->id;
+        $products = $id !== null
+            ? $this->categoryAssignmentService->productsInCategory($id)
+            : [];
 
         $resolvedNames = [];
         $resolvedDescs = [];
@@ -47,11 +42,12 @@ class ProductGridComponent
             $resolvedDescs[$product->id] = $this->scopeResolver->resolved($product, 'description');
         }
 
-        return [
-            'category' => $category,
-            'products' => $products,
-            'resolvedNames' => $resolvedNames,
-            'resolvedDescs' => $resolvedDescs,
-        ];
+        return new ProductGridData(
+            category: $category,
+            products: $products,
+            resolvedNames: $resolvedNames,
+            resolvedDescs: $resolvedDescs,
+            extensions: new ExtensionBag(),
+        );
     }
 }

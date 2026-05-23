@@ -320,7 +320,7 @@ To override raw Open Props variables (e.g., to swap the entire color palette), w
 
 ## Page Layouts
 
-`markommerce/theme-blank` ships six Latte layout templates in `resources/views/layout/` and five PHP Layout classes in `src/Layout/`. The PHP classes are the recommended integration point for Marko controllers; the raw Latte templates remain available for direct template composition.
+`markommerce/theme-blank` ships six Latte layout templates in `resources/views/layout/` and five PHP Layout classes in `src/Layout/`. The PHP classes implement `LayoutDefinition` from `markommerce/layout` and are the recommended integration point for layout definition files; the raw Latte templates remain available for direct template composition.
 
 ### Layout Reference
 
@@ -335,27 +335,27 @@ To override raw Open Props variables (e.g., to swap the entire color palette), w
 
 ### PHP Layout Classes
 
-Each content layout has a corresponding PHP class in `Markommerce\ThemeBlank\Layout\`. These classes carry a `#[Component]` attribute that wires the template and declares the available slots. Attach one to a controller using Marko's `#[Layout]` attribute:
+Each content layout has a corresponding PHP class in `Markommerce\ThemeBlank\Layout\`. These classes implement `LayoutDefinition` from `markommerce/layout`, exposing a `static define(): Layout` method that declares the available slots and the template path. They are referenced via the `extends` property of a layout definition file --- never attached to a controller directly via an attribute:
 
-```php
+```php title="packages/catalog/layout/category_show.php"
 <?php
 
 declare(strict_types=1);
 
-use Marko\Layout\Attributes\Layout;
-use Marko\Routing\Attributes\Get;
-use Marko\Routing\Http\Response;
+use Markommerce\Catalog\Controller\CategoryController;
+use Markommerce\Layout\Layout;
 use Markommerce\ThemeBlank\Layout\OneColumnLayout;
 
-#[Layout(OneColumnLayout::class)]
-class MyController
-{
-    #[Get('/my-page')]
-    public function show(): Response
-    {
-        return Response::html('', 200);
-    }
-}
+return new Layout(
+    handle: [CategoryController::class, 'show'],
+    extends: OneColumnLayout::class,
+    context: [],
+    slots: [
+        'content' => [
+            // component placements go here
+        ],
+    ],
+);
 ```
 
 The five available classes and their slots:
@@ -695,5 +695,6 @@ Each new component or layout variant that ships in subsequent phases should have
 
 ## Related Packages
 
+- [markommerce/layout](/docs/packages/layout/) --- the layout resolution system that the PHP Layout classes integrate with via `LayoutDefinition`.
 - [markommerce/frontend](/docs/packages/frontend/) --- the kernel that provides the component registry (`registerBase`, `addMixin`, `defineAllComponents`), the hooks registry, `dispatchMarkommerceEvent`, and the cascade-layer declaration file.
 - [markommerce/frontend-demo](/docs/packages/frontend-demo/) --- reference implementation and smoke test for the full frontend stack, using `markommerce-counter` as the canonical example component.

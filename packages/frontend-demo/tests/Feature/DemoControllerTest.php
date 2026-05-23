@@ -5,20 +5,10 @@ declare(strict_types=1);
 use Marko\Config\ConfigRepository;
 use Marko\Config\ConfigRepositoryInterface;
 use Marko\Core\Container\Container as CoreContainer;
-use Marko\Core\Discovery\ClassFileParser;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
 use Marko\Core\Module\ModuleRepositoryInterface;
 use Marko\Core\Path\ProjectPaths;
-use Marko\Layout\Attributes\Component;
-use Marko\Layout\Attributes\Layout;
-use Marko\Layout\ComponentCollector;
-use Marko\Layout\ComponentDataResolver;
-use Marko\Layout\DiscoveringComponentCollector;
-use Marko\Layout\HandleResolver;
-use Marko\Layout\LayoutProcessor;
-use Marko\Layout\LayoutResolver;
-use Marko\Layout\Middleware\LayoutMiddleware;
 use Marko\Routing\Attributes\Get;
 use Marko\Routing\Attributes\Middleware;
 use Marko\Routing\Http\Request;
@@ -38,8 +28,16 @@ use Markommerce\Frontend\View\Latte\ViteExtension;
 use Markommerce\FrontendDemo\Component\DemoCounterComponent;
 use Markommerce\FrontendDemo\Config\FrontendDemoConfig;
 use Markommerce\FrontendDemo\Controller\DemoController;
-use Markommerce\FrontendDemo\Layout\DemoLayout;
 use Markommerce\FrontendDemo\Middleware\EnsureFrontendDemoEnabledMiddleware;
+use Markommerce\Layout\Cache\ArtifactReaderInterface;
+use Markommerce\Layout\Cache\PreparedTree;
+use Markommerce\Layout\Cache\PreparedTreeBuilder;
+use Markommerce\Layout\Compiler\Compiler;
+use Markommerce\Layout\Compiler\ResolutionPhase;
+use Markommerce\Layout\Compiler\ValidationPhase;
+use Markommerce\Layout\Discovery\LayoutDiscovery;
+use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
+use Markommerce\Layout\Runtime\Renderer;
 
 function demoTestCleanup(string $dir): void
 {
@@ -62,13 +60,37 @@ function demoTestCleanup(string $dir): void
     rmdir($dir);
 }
 
+/**
+ * Build a compiled layout artifact (prepared trees) for the frontend-demo layout.
+ *
+ * @return array<string, PreparedTree>
+ */
+function demoTestBuildArtifact(string $frontendDemoPath): array
+{
+    $moduleRepository = new ModuleRepository([
+        new ModuleManifest(
+            name: 'markommerce/frontend-demo',
+            version: '1.0.0',
+            path: $frontendDemoPath,
+            source: 'vendor',
+        ),
+    ]);
+
+    $layoutDiscovery = new LayoutDiscovery($moduleRepository);
+    $resolutionPhase = new ResolutionPhase();
+    $validationPhase = new ValidationPhase();
+    $treeBuilder = new PreparedTreeBuilder();
+    $compiler = new Compiler($layoutDiscovery, $resolutionPhase, $validationPhase, $treeBuilder);
+
+    return $compiler->compile();
+}
+
 function demoTestBuildRouter(
     ConfigRepositoryInterface $config,
     string $frontendPath,
     string $frontendDemoPath,
     string $basePath,
     string $cacheDir,
-    bool $withLayoutMiddleware = true,
 ): Router {
     $moduleRepository = new ModuleRepository([
         new ModuleManifest(
@@ -105,8 +127,6 @@ function demoTestBuildRouter(
     }
 
     $matcher = new RouteMatcher($routes);
-    $layoutResolver = new LayoutResolver();
-    $handleResolver = new HandleResolver();
 
     $container = new CoreContainer();
     $container->instance(ConfigRepositoryInterface::class, $config);
@@ -117,30 +137,25 @@ function demoTestBuildRouter(
     $container->instance(FrontendDemoConfig::class, $frontendDemoConfig);
     $container->instance(EnsureFrontendDemoEnabledMiddleware::class, $ensureMiddleware);
     $container->instance(DemoController::class, new DemoController());
+    $container->instance(DemoCounterComponent::class, new DemoCounterComponent());
 
-    $classFileParser = new ClassFileParser();
-    $innerCollector = new ComponentCollector($handleResolver, $routes);
-    $componentCollector = new DiscoveringComponentCollector($moduleRepository, $classFileParser, $innerCollector);
-    $componentDataResolver = new ComponentDataResolver();
+    $trees = demoTestBuildArtifact($frontendDemoPath);
 
-    $layoutProcessor = new LayoutProcessor(
-        $container,
-        $layoutResolver,
-        $handleResolver,
-        $componentCollector,
-        $componentDataResolver,
-        $view,
-    );
+    $artifactReader = new class($trees) implements ArtifactReaderInterface {
+        /** @param array<string, PreparedTree> $trees */
+        public function __construct(private array $trees) {}
 
-    $globalMiddleware = [];
+        public function read(): array
+        {
+            return $this->trees;
+        }
+    };
 
-    if ($withLayoutMiddleware) {
-        $layoutMiddleware = new LayoutMiddleware($matcher, $layoutProcessor, $layoutResolver);
-        $container->instance(LayoutMiddleware::class, $layoutMiddleware);
-        $globalMiddleware = [LayoutMiddleware::class];
-    }
+    $renderer = new Renderer($view, $container);
+    $layoutMiddleware = new MarkommerceLayoutMiddleware($matcher, $artifactReader, $renderer, $container);
+    $container->instance(MarkommerceLayoutMiddleware::class, $layoutMiddleware);
 
-    return new Router($matcher, $container, $globalMiddleware);
+    return new Router($matcher, $container, [MarkommerceLayoutMiddleware::class]);
 }
 
 function demoTestEnsureManifest(string $basePath): bool
@@ -163,7 +178,7 @@ function demoTestEnsureManifest(string $basePath): bool
     return true;
 }
 
-it('it returns 200 OK when frontend_demo.enabled is true and the demo route is requested', function (): void {
+it('it returns 200 OK when the demo route is requested', function (): void {
     $cacheDir = sys_get_temp_dir() . '/latte-demo-test-200-' . bin2hex(random_bytes(8));
     mkdir($cacheDir, 0755, true);
 
@@ -203,7 +218,7 @@ it('it returns 200 OK when frontend_demo.enabled is true and the demo route is r
     }
 });
 
-it('it returns 404 when frontend_demo.enabled is false because EnsureFrontendDemoEnabledMiddleware short-circuits before LayoutMiddleware runs', function (): void {
+it('it returns 404 when frontend_demo.enabled is false', function (): void {
     $cacheDir = sys_get_temp_dir() . '/latte-demo-test-404-' . bin2hex(random_bytes(8));
     mkdir($cacheDir, 0755, true);
 
@@ -229,7 +244,7 @@ it('it returns 404 when frontend_demo.enabled is false because EnsureFrontendDem
         ],
     ]);
 
-    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir, withLayoutMiddleware: false);
+    $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
     $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
     $response = $router->handle($request);
 
@@ -344,24 +359,47 @@ it('it includes the marko/vite generated script and link tags in the response he
     }
 });
 
-it('it uses the DemoLayout component as the layout for the route', function (): void {
-    $reflection = new ReflectionClass(DemoController::class);
-    $layoutAttributes = $reflection->getAttributes(Layout::class);
+it('it has a layout file that returns a Layout for DemoController::index', function (): void {
+    $layoutPath = dirname(__DIR__, 2) . '/layout/demo.php';
 
-    expect($layoutAttributes)->not->toBeEmpty();
+    expect(file_exists($layoutPath))->toBeTrue();
 
-    $layoutAttr = $layoutAttributes[0]->newInstance();
-    expect($layoutAttr->component)->toBe(DemoLayout::class);
+    $layout = require $layoutPath;
+
+    expect($layout)->toBeInstanceOf(\Markommerce\Layout\Layout::class);
+    expect($layout->handle)->toBe([DemoController::class, 'index']);
 });
 
-it('it composes the DemoCounterComponent into the content slot of DemoLayout', function (): void {
+it('it places DemoCounterComponent in the content slot', function (): void {
+    $layoutPath = dirname(__DIR__, 2) . '/layout/demo.php';
+    $layout = require $layoutPath;
+
+    expect($layout)->toBeInstanceOf(\Markommerce\Layout\Layout::class);
+    expect($layout->slots)->toHaveKey('content');
+
+    $contentSlot = $layout->slots['content'];
+    expect($contentSlot)->toBeArray();
+    expect($contentSlot)->not->toBeEmpty();
+
+    $place = $contentSlot[0];
+    expect($place)->toBeInstanceOf(\Markommerce\Layout\Place::class);
+    expect($place->component)->toBe(DemoCounterComponent::class);
+});
+
+it('it drops the #[Layout] attribute from DemoController', function (): void {
+    $reflection = new ReflectionClass(DemoController::class);
+    $layoutAttributes = $reflection->getAttributes(\Markommerce\Layout\Layout::class);
+    $markoLayoutAttributes = $reflection->getAttributes('Marko\Layout\Attributes\Layout');
+
+    expect($layoutAttributes)->toBeEmpty();
+    expect($markoLayoutAttributes)->toBeEmpty();
+});
+
+it('it drops the #[Component] attribute from DemoCounterComponent', function (): void {
     $reflection = new ReflectionClass(DemoCounterComponent::class);
-    $componentAttributes = $reflection->getAttributes(Component::class);
+    $componentAttributes = $reflection->getAttributes('Marko\Layout\Attributes\Component');
 
-    expect($componentAttributes)->not->toBeEmpty();
-
-    $componentAttr = $componentAttributes[0]->newInstance();
-    expect($componentAttr->slot)->toBe('content');
+    expect($componentAttributes)->toBeEmpty();
 });
 
 it('the demo main.ts imports open-props/style.css so Vite emits the Open Props stylesheet link in the head', function (): void {

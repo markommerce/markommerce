@@ -16,18 +16,23 @@ npm install @markommerce/theme-blank
 
 ## Quick Example
 
-Attach a layout to a controller via the `#[Layout]` attribute:
+Extend a layout definition file from a theme layout shell:
 
 ```php
 <?php
 
 declare(strict_types=1);
 
-use Marko\Layout\Attributes\Layout;
+use Markommerce\Catalog\Controller\CategoryController;
+use Markommerce\Layout\Layout;
 use Markommerce\ThemeBlank\Layout\OneColumnLayout;
 
-#[Layout(OneColumnLayout::class)]
-class MyController {}
+return new Layout(
+    handle: [CategoryController::class, 'show'],
+    extends: OneColumnLayout::class,
+    context: [],
+    slots: ['content' => [/* component placements */]],
+);
 ```
 
 Override the primary brand colour from your own theme layer:
