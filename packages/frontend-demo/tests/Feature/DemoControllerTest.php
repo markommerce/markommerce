@@ -360,7 +360,7 @@ it('it includes the marko/vite generated script and link tags in the response he
 });
 
 it('it has a layout file that returns a Layout for DemoController::index', function (): void {
-    $layoutPath = dirname(__DIR__, 2) . '/layout/demo.php';
+    $layoutPath = dirname(__DIR__, 2) . '/resources/views/layout/demo.php';
 
     expect(file_exists($layoutPath))->toBeTrue();
 
@@ -371,7 +371,7 @@ it('it has a layout file that returns a Layout for DemoController::index', funct
 });
 
 it('it places DemoCounterComponent in the content slot', function (): void {
-    $layoutPath = dirname(__DIR__, 2) . '/layout/demo.php';
+    $layoutPath = dirname(__DIR__, 2) . '/resources/views/layout/demo.php';
     $layout = require $layoutPath;
 
     expect($layout)->toBeInstanceOf(\Markommerce\Layout\Layout::class);
@@ -463,6 +463,75 @@ it('it counter.latte renders only the markommerce-counter element and no longer 
     $contents = file_get_contents($lattePath);
     expect(trim($contents))->toBe('<markommerce-counter start-value="0" suffix=" clicks"></markommerce-counter>');
     expect($contents)->not->toContain('<mk-');
+});
+
+it('loads demo from resources/views/layout/demo.php', function (): void {
+    $layoutPath = dirname(__DIR__, 2) . '/resources/views/layout/demo.php';
+
+    expect(file_exists($layoutPath))->toBeTrue();
+
+    $layout = require $layoutPath;
+
+    expect($layout)->toBeInstanceOf(\Markommerce\Layout\Layout::class);
+    expect($layout->handle)->toBe([DemoController::class, 'index']);
+});
+
+it('discovers the frontend-demo demo layout through LayoutDiscovery from the new path', function (): void {
+    $frontendDemoPath = dirname(__DIR__, 2);
+
+    $moduleRepository = new ModuleRepository([
+        new ModuleManifest(
+            name: 'markommerce/frontend-demo',
+            version: '1.0.0',
+            path: $frontendDemoPath,
+            source: 'vendor',
+        ),
+    ]);
+
+    $layoutDiscovery = new LayoutDiscovery($moduleRepository);
+    $result = $layoutDiscovery->discover();
+
+    $layouts = $result->layouts;
+    expect($layouts)->not->toBeEmpty();
+
+    $sourceFiles = array_map(fn ($discovered) => $discovered->sourceFile, $layouts);
+    $newPath = $frontendDemoPath . '/resources/views/layout/demo.php';
+    expect($sourceFiles)->toContain($newPath);
+});
+
+it('the frontend-demo feature tests still pass when the layout file is at the new path', function (): void {
+    $frontendDemoPath = dirname(__DIR__, 2);
+    $newLayoutPath = $frontendDemoPath . '/resources/views/layout/demo.php';
+    $oldLayoutPath = $frontendDemoPath . '/layout/demo.php';
+
+    expect(file_exists($newLayoutPath))->toBeTrue('layout file must exist at new path');
+    expect(file_exists($oldLayoutPath))->toBeFalse('layout file must not exist at old path');
+
+    $layout = require $newLayoutPath;
+
+    expect($layout)->toBeInstanceOf(\Markommerce\Layout\Layout::class);
+    expect($layout->handle)->toBe([DemoController::class, 'index']);
+    expect($layout->slots)->toHaveKey('content');
+});
+
+it('DemoControllerTest references the layout file at resources/views/layout/demo.php', function (): void {
+    $testFilePath = __FILE__;
+    $contents = file_get_contents($testFilePath);
+
+    // Build the old path pattern from parts to avoid self-referential match.
+    // If this pattern exists in the file, it means an old $layoutPath assignment was not updated.
+    $oldPattern = implode('', ["dirname(__DIR__, 2) . '/", 'layout', '/demo.php\'']);
+
+    expect($contents)->not->toContain($oldPattern);
+    expect($contents)->toContain("dirname(__DIR__, 2) . '/resources/views/layout/demo.php'");
+});
+
+it('has no files remaining under packages/frontend-demo/layout/', function (): void {
+    $layoutDir = dirname(__DIR__, 2) . '/layout';
+
+    $hasFiles = is_dir($layoutDir) && count(array_diff((array) scandir($layoutDir), ['.', '..'])) > 0;
+
+    expect($hasFiles)->toBeFalse();
 });
 
 it('it the /markommerce/_demo response body no longer contains any <mk- element (verified by HTTP request against the live route)', function (): void {

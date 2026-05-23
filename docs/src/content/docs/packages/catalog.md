@@ -134,19 +134,20 @@ The catalog module registers a storefront route automatically:
 GET /catalog/category/{id}
 ```
 
-`CategoryController` performs a quick category lookup and returns a `404` response when the category ID does not exist. The page is rendered by `markommerce/layout` --- `CategoryController` carries no `#[Layout]` attribute; placement is described entirely in `packages/catalog/layout/category_show.php`.
+`CategoryController` performs a quick category lookup and returns a `404` response when the category ID does not exist. The page is rendered by `markommerce/layout` --- `CategoryController` carries no `#[Layout]` attribute; placement is described entirely in `packages/catalog/resources/views/layout/category_show.php`.
 
 ### Layout definition
 
-The category page layout is declared in `layout/category_show.php`. It extends `OneColumnLayout` from `markommerce/theme-blank`, provides the category via `CategoryDataProvider`, places `ProductGridComponent` in the `content` slot, and uses a `Slot::repeat()` to render a `ProductCard` for each product:
+The category page layout is declared in `resources/views/layout/category_show.php`. It extends `OneColumnLayout` from `markommerce/theme-blank`, provides the category via `CategoryDataProvider`, places `ProductGridComponent` in the `content` slot, uses a `Slot::repeat()` to render a `ProductCard` for each product, and places a `StockBadge` in the `badges` slot of each card:
 
-```php title="packages/catalog/layout/category_show.php"
+```php title="packages/catalog/resources/views/layout/category_show.php"
 <?php
 
 declare(strict_types=1);
 
 use Markommerce\Catalog\Component\ProductCard;
 use Markommerce\Catalog\Component\ProductGridComponent;
+use Markommerce\Catalog\Component\StockBadge;
 use Markommerce\Catalog\Context\CategoryDataProvider;
 use Markommerce\Catalog\Context\CategoryToken;
 use Markommerce\Catalog\Controller\CategoryController;
@@ -185,11 +186,23 @@ return new Layout(
                                 component: ProductCard::class,
                                 name: 'catalog.product_card',
                                 props: ['product' => Source::iterated(ProductIteration::class)],
-                                slots: [],
+                                slots: [
+                                    'badges' => [
+                                        new Place(
+                                            component: StockBadge::class,
+                                            name: 'catalog.product_card.stock_badge',
+                                            props: ['inStock' => Source::parentData('inStock', 'bool')],
+                                            slots: [],
+                                            template: 'catalog::components/stock-badge',
+                                        ),
+                                    ],
+                                ],
+                                template: 'catalog::components/product-card',
                             ),
                         ],
                     ),
                 ],
+                template: 'catalog::components/product-grid',
             ),
         ],
     ],
@@ -221,6 +234,17 @@ return new Layout(
 | `$extensions` | `ExtensionBag` | Typed extension attributes (third-party use) |
 
 Both `ProductGridData` and `ProductCardData` extend `ExtensibleData`, allowing third-party modules to attach typed extension attributes via `withExtension()` without subclassing the DTO. See [markommerce/layout](/docs/packages/layout/) for details on the extension attribute pattern.
+
+### StockBadge and StockBadgeData
+
+`StockBadge` is a per-item badge component rendered inside the `badges` slot of each `ProductCard`. It receives its `inStock` prop via `Source::parentData('inStock', 'bool')` from the parent `ProductCardData` DTO. Its `data(bool $inStock)` method returns a `StockBadgeData` DTO:
+
+| Property | Type | Description |
+|---|---|---|
+| `$inStock` | `bool` | Whether the product is currently in stock |
+| `$extensions` | `ExtensionBag` | Typed extension attributes (third-party use) |
+
+`StockBadgeData` extends `ExtensibleData`, making it extensible by third-party modules without subclassing.
 
 ### Seeder
 

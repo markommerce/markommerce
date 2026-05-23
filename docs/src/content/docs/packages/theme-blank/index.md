@@ -337,7 +337,7 @@ To override raw Open Props variables (e.g., to swap the entire color palette), w
 
 Each content layout has a corresponding PHP class in `Markommerce\ThemeBlank\Layout\`. These classes implement `LayoutDefinition` from `markommerce/layout`, exposing a `static define(): Layout` method that declares the available slots and the template path. They are referenced via the `extends` property of a layout definition file --- never attached to a controller directly via an attribute:
 
-```php title="packages/catalog/layout/category_show.php"
+```php title="packages/catalog/resources/views/layout/category_show.php"
 <?php
 
 declare(strict_types=1);

@@ -293,7 +293,7 @@ it('defines the layout for CategoryController show via a layout file instead of 
     expect($attributes)->toBeEmpty();
 
     // The layout file should exist
-    $layoutPath = dirname(__DIR__, 2) . '/layout/category_show.php';
+    $layoutPath = dirname(__DIR__, 2) . '/resources/views/layout/category_show.php';
     expect(file_exists($layoutPath))->toBeTrue();
 });
 

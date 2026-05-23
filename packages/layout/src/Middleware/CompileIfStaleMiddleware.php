@@ -90,7 +90,7 @@ class CompileIfStaleMiddleware implements MiddlewareInterface
         $files = [];
 
         foreach ($this->moduleRepository->all() as $module) {
-            $layoutDir = $module->path . '/layout';
+            $layoutDir = $module->path . '/resources/views/layout';
 
             if (!is_dir($layoutDir)) {
                 continue;

@@ -7,8 +7,8 @@ use Markommerce\Layout\Operation\InsertBefore;
 use Markommerce\Layout\Operation\MergeProps;
 use Markommerce\Layout\Operation\WrapWith;
 
-it('it has an extension file that applies InsertBefore', function (): void {
-    $extensionPath = __DIR__ . '/../../layout/extensions/layout_demo_extension.php';
+it('it loads the extension from resources/views/layout/extensions/layout_demo_extension.php in ExtensionFileTest', function (): void {
+    $extensionPath = __DIR__ . '/../../resources/views/layout/extensions/layout_demo_extension.php';
 
     expect(file_exists($extensionPath))->toBeTrue();
 
@@ -25,7 +25,7 @@ it('it has an extension file that applies InsertBefore', function (): void {
 });
 
 it('it has an extension file that applies WrapWith', function (): void {
-    $extension = require __DIR__ . '/../../layout/extensions/layout_demo_extension.php';
+    $extension = require __DIR__ . '/../../resources/views/layout/extensions/layout_demo_extension.php';
 
     expect($extension)->toBeInstanceOf(LayoutExtension::class);
 
@@ -38,7 +38,7 @@ it('it has an extension file that applies WrapWith', function (): void {
 });
 
 it('it has an extension file that applies MergeProps', function (): void {
-    $extension = require __DIR__ . '/../../layout/extensions/layout_demo_extension.php';
+    $extension = require __DIR__ . '/../../resources/views/layout/extensions/layout_demo_extension.php';
 
     expect($extension)->toBeInstanceOf(LayoutExtension::class);
 

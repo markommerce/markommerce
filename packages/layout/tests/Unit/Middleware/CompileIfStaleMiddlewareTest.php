@@ -92,7 +92,7 @@ function makeTempDir(): string
 
 function makeModuleWithLayoutFile(string $baseDir, string $filename = 'home.php'): array
 {
-    $layoutDir = $baseDir . '/layout';
+    $layoutDir = $baseDir . '/resources/views/layout';
     mkdir($layoutDir, 0755, true);
     $filePath = $layoutDir . '/' . $filename;
     file_put_contents($filePath, '<?php return null;');
@@ -110,6 +110,253 @@ function makeNextReturnsOk(): callable
 {
     return static fn (Request $request): Response => new Response('ok', 200);
 }
+
+// =============================================================================
+// Requirement: it collects layout source files from resources/views/layout of registered modules
+// =============================================================================
+
+it('collects layout source files from resources/views/layout of registered modules', function (): void {
+    $tmpDir = makeTempDir();
+    $artifactPath = makeArtifactFile($tmpDir);
+
+    $moduleDir = $tmpDir . '/module';
+    [, $sourceFile] = makeModuleWithLayoutFile($moduleDir);
+
+    // Make artifact older than source file so recompile is triggered
+    touch($artifactPath, time() - 100);
+    touch($sourceFile, time());
+
+    $compiler = new MiddlewareFakeCompiler();
+    $writer = new MiddlewareFakeArtifactWriter($artifactPath);
+    $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $moduleDir);
+    $repository = new MiddlewareFakeModuleRepository([$module]);
+
+    $middleware = new CompileIfStaleMiddleware(
+        compiler: $compiler,
+        artifactWriter: $writer,
+        moduleRepository: $repository,
+        environment: 'dev',
+    );
+
+    $middleware->handle(new Request(), makeNextReturnsOk());
+
+    expect($compiler->compileCallCount)->toBe(1);
+});
+
+// =============================================================================
+// Requirement: it collects extension source files from resources/views/layout/extensions of registered modules
+// =============================================================================
+
+it('collects extension source files from resources/views/layout/extensions of registered modules', function (): void {
+    $tmpDir = makeTempDir();
+    $artifactPath = makeArtifactFile($tmpDir);
+
+    $moduleDir = $tmpDir . '/module';
+    $extensionsDir = $moduleDir . '/resources/views/layout/extensions';
+    mkdir($extensionsDir, 0755, true);
+    $extensionFile = $extensionsDir . '/product.php';
+    file_put_contents($extensionFile, '<?php return null;');
+
+    // Make artifact older than extension file so recompile triggers
+    touch($artifactPath, time() - 100);
+    touch($extensionFile, time());
+
+    $compiler = new MiddlewareFakeCompiler();
+    $writer = new MiddlewareFakeArtifactWriter($artifactPath);
+    $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $moduleDir);
+    $repository = new MiddlewareFakeModuleRepository([$module]);
+
+    $middleware = new CompileIfStaleMiddleware(
+        compiler: $compiler,
+        artifactWriter: $writer,
+        moduleRepository: $repository,
+        environment: 'dev',
+    );
+
+    $middleware->handle(new Request(), makeNextReturnsOk());
+
+    expect($compiler->compileCallCount)->toBe(1);
+});
+
+// =============================================================================
+// Requirement: it ignores modules that have no resources/views/layout directory
+// =============================================================================
+
+it('ignores modules that have no resources/views/layout directory', function (): void {
+    $tmpDir = makeTempDir();
+    $artifactPath = makeArtifactFile($tmpDir);
+
+    // Create a module dir with NO resources/views/layout directory
+    $moduleDir = $tmpDir . '/module';
+    mkdir($moduleDir, 0755, true);
+
+    // Artifact is old — would trigger recompile if any source files were found
+    touch($artifactPath, time() - 100);
+
+    $compiler = new MiddlewareFakeCompiler();
+    $writer = new MiddlewareFakeArtifactWriter($artifactPath);
+    $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $moduleDir);
+    $repository = new MiddlewareFakeModuleRepository([$module]);
+
+    $middleware = new CompileIfStaleMiddleware(
+        compiler: $compiler,
+        artifactWriter: $writer,
+        moduleRepository: $repository,
+        environment: 'dev',
+    );
+
+    $middleware->handle(new Request(), makeNextReturnsOk());
+
+    expect($compiler->compileCallCount)->toBe(0);
+});
+
+// =============================================================================
+// Requirement: it ignores modules that have resources/views/layout but no extensions subdirectory
+// =============================================================================
+
+it('ignores modules that have resources/views/layout but no extensions subdirectory', function (): void {
+    $tmpDir = makeTempDir();
+    $artifactPath = makeArtifactFile($tmpDir);
+
+    $moduleDir = $tmpDir . '/module';
+    [, $sourceFile] = makeModuleWithLayoutFile($moduleDir);
+
+    // Artifact is newer than source — no recompile
+    touch($sourceFile, time() - 100);
+    touch($artifactPath, time());
+
+    $compiler = new MiddlewareFakeCompiler();
+    $writer = new MiddlewareFakeArtifactWriter($artifactPath);
+    $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $moduleDir);
+    $repository = new MiddlewareFakeModuleRepository([$module]);
+
+    $middleware = new CompileIfStaleMiddleware(
+        compiler: $compiler,
+        artifactWriter: $writer,
+        moduleRepository: $repository,
+        environment: 'dev',
+    );
+
+    $middleware->handle(new Request(), makeNextReturnsOk());
+
+    // Should not crash when extensions dir is absent; no recompile triggered
+    expect($compiler->compileCallCount)->toBe(0);
+});
+
+// =============================================================================
+// Requirement: it triggers a recompile when a source file is newer than the artifact in dev environment
+// =============================================================================
+
+it('triggers a recompile when a source file is newer than the artifact in dev environment', function (): void {
+    $tmpDir = makeTempDir();
+    $artifactPath = makeArtifactFile($tmpDir);
+
+    $moduleDir = $tmpDir . '/module';
+    [, $sourceFile] = makeModuleWithLayoutFile($moduleDir);
+
+    // Source is newer — triggers recompile
+    touch($artifactPath, time() - 100);
+    touch($sourceFile, time());
+
+    $compiler = new MiddlewareFakeCompiler();
+    $writer = new MiddlewareFakeArtifactWriter($artifactPath);
+    $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $moduleDir);
+    $repository = new MiddlewareFakeModuleRepository([$module]);
+
+    $middleware = new CompileIfStaleMiddleware(
+        compiler: $compiler,
+        artifactWriter: $writer,
+        moduleRepository: $repository,
+        environment: 'dev',
+    );
+
+    $middleware->handle(new Request(), makeNextReturnsOk());
+
+    expect($compiler->compileCallCount)->toBe(1);
+});
+
+// =============================================================================
+// Requirement: it does not trigger a recompile when no source files exist
+// =============================================================================
+
+it('does not trigger a recompile when no source files exist', function (): void {
+    $tmpDir = makeTempDir();
+    $artifactPath = makeArtifactFile($tmpDir);
+
+    // Module has layout dir but NO files inside it
+    $moduleDir = $tmpDir . '/module';
+    mkdir($moduleDir . '/resources/views/layout', 0755, true);
+
+    // Artifact is old — would trigger recompile if any source files were found
+    touch($artifactPath, time() - 100);
+
+    $compiler = new MiddlewareFakeCompiler();
+    $writer = new MiddlewareFakeArtifactWriter($artifactPath);
+    $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $moduleDir);
+    $repository = new MiddlewareFakeModuleRepository([$module]);
+
+    $middleware = new CompileIfStaleMiddleware(
+        compiler: $compiler,
+        artifactWriter: $writer,
+        moduleRepository: $repository,
+        environment: 'dev',
+    );
+
+    $middleware->handle(new Request(), makeNextReturnsOk());
+
+    expect($compiler->compileCallCount)->toBe(0);
+});
+
+// =============================================================================
+// Requirement: it does not recompile based on files in the legacy {module}/layout directory
+// =============================================================================
+
+function makeModuleWithLegacyLayoutFile(string $baseDir, string $filename = 'home.php'): array
+{
+    $layoutDir = $baseDir . '/layout';
+    mkdir($layoutDir, 0755, true);
+    $filePath = $layoutDir . '/' . $filename;
+    file_put_contents($filePath, '<?php return null;');
+    return [$baseDir, $filePath];
+}
+
+it('does not recompile based on files in the legacy {module}/layout directory', function (): void {
+    $tmpDir = makeTempDir();
+    $artifactPath = makeArtifactFile($tmpDir);
+
+    $moduleDir = $tmpDir . '/module';
+
+    // Create legacy layout dir with a fresh file that would trigger recompile if inspected
+    [, $legacyFile] = makeModuleWithLegacyLayoutFile($moduleDir);
+    touch($legacyFile, time());
+
+    // Create new resources/views/layout dir with a stale file (older than artifact)
+    $newLayoutDir = $moduleDir . '/resources/views/layout';
+    mkdir($newLayoutDir, 0755, true);
+    $newFile = $newLayoutDir . '/home.php';
+    file_put_contents($newFile, '<?php return null;');
+    touch($newFile, time() - 200);
+
+    // Artifact is between the two: older than legacy but newer than new layout file
+    touch($artifactPath, time() - 100);
+
+    $compiler = new MiddlewareFakeCompiler();
+    $writer = new MiddlewareFakeArtifactWriter($artifactPath);
+    $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $moduleDir);
+    $repository = new MiddlewareFakeModuleRepository([$module]);
+
+    $middleware = new CompileIfStaleMiddleware(
+        compiler: $compiler,
+        artifactWriter: $writer,
+        moduleRepository: $repository,
+        environment: 'dev',
+    );
+
+    $middleware->handle(new Request(), makeNextReturnsOk());
+
+    // The legacy file is fresh but must NOT trigger recompile
+    expect($compiler->compileCallCount)->toBe(0);
+});
 
 // =============================================================================
 // Requirement 1: it recompiles when a layout source file is newer than the artifact

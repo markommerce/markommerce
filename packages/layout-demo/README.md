@@ -13,7 +13,7 @@ composer require --dev markommerce/layout-demo
 ## Quick Example
 
 ```php
-// layout/layout_demo.php
+// resources/views/layout/layout_demo.php
 return new Layout(
     handle: [LayoutDemoController::class, 'show'],
     extends: OneColumnLayout::class,

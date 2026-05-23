@@ -23,15 +23,16 @@ The package declares itself as a `marko-module` and registers `MarkommerceLayout
 
 ### Defining a layout
 
-A layout definition file returns a `Layout` value object from `{module}/layout/{name}.php`. The file's `handle` property ties it to a controller action:
+A layout definition file returns a `Layout` value object from `{module}/resources/views/layout/{name}.php`. The file's `handle` property ties it to a controller action:
 
-```php title="packages/catalog/layout/category_show.php"
+```php title="packages/catalog/resources/views/layout/category_show.php"
 <?php
 
 declare(strict_types=1);
 
 use Markommerce\Catalog\Component\ProductCard;
 use Markommerce\Catalog\Component\ProductGridComponent;
+use Markommerce\Catalog\Component\StockBadge;
 use Markommerce\Catalog\Context\CategoryDataProvider;
 use Markommerce\Catalog\Context\CategoryToken;
 use Markommerce\Catalog\Controller\CategoryController;
@@ -70,11 +71,23 @@ return new Layout(
                                 component: ProductCard::class,
                                 name: 'catalog.product_card',
                                 props: ['product' => Source::iterated(ProductIteration::class)],
-                                slots: [],
+                                slots: [
+                                    'badges' => [
+                                        new Place(
+                                            component: StockBadge::class,
+                                            name: 'catalog.product_card.stock_badge',
+                                            props: ['inStock' => Source::parentData('inStock', 'bool')],
+                                            slots: [],
+                                            template: 'catalog::components/stock-badge',
+                                        ),
+                                    ],
+                                ],
+                                template: 'catalog::components/product-card',
                             ),
                         ],
                     ),
                 ],
+                template: 'catalog::components/product-grid',
             ),
         ],
     ],
@@ -302,7 +315,7 @@ $badge = $data->extensions->get(PromoBadgeExtension::class);
 
 ### Extending a layout
 
-A `LayoutExtension` adds, removes, or modifies placements in an existing layout tree. Extension files live in `{module}/layout/extensions/{name}.php`:
+A `LayoutExtension` adds, removes, or modifies placements in an existing layout tree. Extension files live in `{module}/resources/views/layout/extensions/{name}.php`:
 
 ```php
 <?php

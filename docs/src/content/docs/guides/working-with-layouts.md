@@ -9,9 +9,9 @@ Throughout this guide the `markommerce/layout-demo` package is used as the worke
 
 ## Defining a Layout
 
-A layout definition file lives at `{module}/layout/{name}.php` and returns a `Layout` value object. The `handle` property ties the layout to a specific controller action — the middleware matches incoming requests to that action and selects the correct compiled tree.
+A layout definition file lives at `{module}/resources/views/layout/{name}.php` and returns a `Layout` value object. The `handle` property ties the layout to a specific controller action — the middleware matches incoming requests to that action and selects the correct compiled tree.
 
-```php title="packages/layout-demo/layout/layout_demo.php"
+```php title="packages/layout-demo/resources/views/layout/layout_demo.php"
 <?php
 
 declare(strict_types=1);
@@ -426,7 +426,7 @@ The compiled artifact maps every handle key to its resolved component tree. At r
 
 The special string handle `'default'` acts as a sitewide base that is merged into every other compiled tree. Placements declared in the default handle appear in every page. Use it for global UI elements such as site-wide notices, banners, or analytics snippets.
 
-```php title="packages/layout-demo/layout/default.php"
+```php title="packages/layout-demo/resources/views/layout/default.php"
 <?php
 
 declare(strict_types=1);
@@ -462,7 +462,7 @@ Constraints on the default handle:
 
 A layout can declare `inherits:` to copy the full compiled tree of another handle and then apply its own `operations` on top. This is useful when one route is a strict variant of another — it has the same component tree but with a small tweak (for example, removing the footer for an embedded view).
 
-```php title="packages/layout-demo/layout/layout_demo_child.php"
+```php title="packages/layout-demo/resources/views/layout/layout_demo_child.php"
 <?php
 
 declare(strict_types=1);
@@ -546,7 +546,7 @@ The `#[ProvidesHandles]` attribute lists every handle key the provider can retur
 
 Wire a provider into a layout using `ProvideHandle` in the `handleProviders` array:
 
-```php title="packages/layout-demo/layout/layout_demo.php (excerpt)"
+```php title="packages/layout-demo/resources/views/layout/layout_demo.php (excerpt)"
 use Markommerce\Layout\ProvideHandle;
 use Markommerce\LayoutDemo\Handle\GalleryVariantHandleProvider;
 
@@ -584,11 +584,11 @@ When the compiler builds a compiled tree for a handle, it applies the following 
 
 ## Extending a Layout
 
-Any module can add, remove, or modify placements in an existing compiled layout without touching the original file. Extension files live at `{module}/layout/extensions/{name}.php` and return a `LayoutExtension`.
+Any module can add, remove, or modify placements in an existing compiled layout without touching the original file. Extension files live at `{module}/resources/views/layout/extensions/{name}.php` and return a `LayoutExtension`.
 
 The layout-demo extension exercises all nine available operations:
 
-```php title="packages/layout-demo/layout/extensions/layout_demo_extension.php"
+```php title="packages/layout-demo/resources/views/layout/extensions/layout_demo_extension.php"
 <?php
 
 declare(strict_types=1);

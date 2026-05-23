@@ -24,12 +24,12 @@ function makeLayoutModuleRepository(array $modules): ModuleRepositoryInterface
     };
 }
 
-// --- Helper: create a temp module directory with layout/extensions dirs ---
+// --- Helper: create a temp module directory with resources/views/layout/extensions dirs ---
 
 function makeTempModuleDir(): string
 {
     $tmpDir = sys_get_temp_dir() . '/marko-layout-discovery-' . bin2hex(random_bytes(8));
-    mkdir($tmpDir . '/layout/extensions', 0755, true);
+    mkdir($tmpDir . '/resources/views/layout/extensions', 0755, true);
     return $tmpDir;
 }
 
@@ -37,7 +37,7 @@ function makeTempModuleDir(): string
 
 function writeLayoutFile(string $dir, string $filename, Layout $layout): string
 {
-    $path = $dir . '/layout/' . $filename;
+    $path = $dir . '/resources/views/layout/' . $filename;
     $serialized = serialize($layout);
     file_put_contents($path, '<?php return unserialize(' . var_export($serialized, true) . ');');
     return $path;
@@ -47,7 +47,7 @@ function writeLayoutFile(string $dir, string $filename, Layout $layout): string
 
 function writeExtensionFile(string $dir, string $filename, LayoutExtension $extension): string
 {
-    $path = $dir . '/layout/extensions/' . $filename;
+    $path = $dir . '/resources/views/layout/extensions/' . $filename;
     $serialized = serialize($extension);
     file_put_contents($path, '<?php return unserialize(' . var_export($serialized, true) . ');');
     return $path;
@@ -55,7 +55,7 @@ function writeExtensionFile(string $dir, string $filename, LayoutExtension $exte
 
 // --- Helper: write a file that returns a wrong type ---
 
-function writeWrongTypeFile(string $dir, string $filename, string $subdir = 'layout'): string
+function writeWrongTypeFile(string $dir, string $filename, string $subdir = 'resources/views/layout'): string
 {
     $path = $dir . '/' . $subdir . '/' . $filename;
     file_put_contents($path, '<?php return "this is a string, not a Layout";');
@@ -88,7 +88,7 @@ function removeTempDir(string $dir): void
 // Tests
 // =============================================================================
 
-it('discovers layout files from a module layout directory', function (): void {
+it('discovers layout files in resources/views/layout of a module', function (): void {
     $tmpDir = makeTempModuleDir();
     $layout = new Layout(handle: 'test_handle', extends: null, context: [], slots: []);
     writeLayoutFile($tmpDir, 'test_' . bin2hex(random_bytes(4)) . '.php', $layout);
@@ -105,7 +105,7 @@ it('discovers layout files from a module layout directory', function (): void {
     removeTempDir($tmpDir);
 });
 
-it('discovers extension files from a module layout extensions directory', function (): void {
+it('discovers extension files in resources/views/layout/extensions of a module', function (): void {
     $tmpDir = makeTempModuleDir();
     $extension = new LayoutExtension(handle: 'test_handle', operations: []);
     writeExtensionFile($tmpDir, 'test_' . bin2hex(random_bytes(4)) . '.php', $extension);
@@ -122,45 +122,7 @@ it('discovers extension files from a module layout extensions directory', functi
     removeTempDir($tmpDir);
 });
 
-it('tags each discovered layout with its source file path', function (): void {
-    $tmpDir = makeTempModuleDir();
-    $layout = new Layout(handle: 'tagged_handle', extends: null, context: [], slots: []);
-    $expectedFile = $tmpDir . '/layout/tagged_layout.php';
-    $serialized = serialize($layout);
-    file_put_contents($expectedFile, '<?php return unserialize(' . var_export($serialized, true) . ');');
-
-    $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $tmpDir);
-    $discovery = new LayoutDiscovery(makeLayoutModuleRepository([$module]));
-
-    $result = $discovery->discover();
-
-    expect($result->layouts)->toHaveCount(1)
-        ->and($result->layouts[0]->sourceFile)->toBe($expectedFile)
-        ->and($result->layouts[0]->layout)->toBeInstanceOf(Layout::class);
-
-    removeTempDir($tmpDir);
-});
-
-it('tags each discovered extension with its source file path', function (): void {
-    $tmpDir = makeTempModuleDir();
-    $extension = new LayoutExtension(handle: 'tagged_handle', operations: []);
-    $expectedFile = $tmpDir . '/layout/extensions/tagged_extension.php';
-    $serialized = serialize($extension);
-    file_put_contents($expectedFile, '<?php return unserialize(' . var_export($serialized, true) . ');');
-
-    $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $tmpDir);
-    $discovery = new LayoutDiscovery(makeLayoutModuleRepository([$module]));
-
-    $result = $discovery->discover();
-
-    expect($result->extensions)->toHaveCount(1)
-        ->and($result->extensions[0]->sourceFile)->toBe($expectedFile)
-        ->and($result->extensions[0]->extension)->toBeInstanceOf(LayoutExtension::class);
-
-    removeTempDir($tmpDir);
-});
-
-it('returns an empty result for a module with no layout directory', function (): void {
+it('skips modules with no resources/views/layout directory', function (): void {
     $tmpDir = sys_get_temp_dir() . '/marko-layout-empty-' . bin2hex(random_bytes(8));
     mkdir($tmpDir, 0755, true);
 
@@ -175,36 +137,31 @@ it('returns an empty result for a module with no layout directory', function ():
     removeTempDir($tmpDir);
 });
 
-it('scans across multiple modules', function (): void {
-    $tmpDir1 = makeTempModuleDir();
-    $tmpDir2 = makeTempModuleDir();
+it('skips a layout directory that has no extensions subdirectory', function (): void {
+    $tmpDir = sys_get_temp_dir() . '/marko-layout-no-ext-' . bin2hex(random_bytes(8));
+    mkdir($tmpDir . '/resources/views/layout', 0755, true);
 
-    $layout1 = new Layout(handle: 'handle_one', extends: null, context: [], slots: []);
-    $layout2 = new Layout(handle: 'handle_two', extends: null, context: [], slots: []);
-    $extension1 = new LayoutExtension(handle: 'handle_one', operations: []);
+    $layout = new Layout(handle: 'test_handle', extends: null, context: [], slots: []);
+    $serialized = serialize($layout);
+    file_put_contents(
+        $tmpDir . '/resources/views/layout/test.php',
+        '<?php return unserialize(' . var_export($serialized, true) . ');'
+    );
 
-    writeLayoutFile($tmpDir1, 'layout1.php', $layout1);
-    writeLayoutFile($tmpDir2, 'layout2.php', $layout2);
-    writeExtensionFile($tmpDir1, 'ext1.php', $extension1);
-
-    $modules = [
-        new ModuleManifest(name: 'test/module-one', version: '1.0.0', path: $tmpDir1),
-        new ModuleManifest(name: 'test/module-two', version: '1.0.0', path: $tmpDir2),
-    ];
-    $discovery = new LayoutDiscovery(makeLayoutModuleRepository($modules));
+    $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $tmpDir);
+    $discovery = new LayoutDiscovery(makeLayoutModuleRepository([$module]));
 
     $result = $discovery->discover();
 
-    expect($result->layouts)->toHaveCount(2)
-        ->and($result->extensions)->toHaveCount(1);
+    expect($result->layouts)->toHaveCount(1)
+        ->and($result->extensions)->toHaveCount(0);
 
-    removeTempDir($tmpDir1);
-    removeTempDir($tmpDir2);
+    removeTempDir($tmpDir);
 });
 
-it('throws a loud error when a layout file does not return a Layout', function (): void {
+it('throws InvalidLayoutFileException when a file under resources/views/layout returns a non-Layout value', function (): void {
     $tmpDir = makeTempModuleDir();
-    $badFile = $tmpDir . '/layout/bad_layout_' . bin2hex(random_bytes(4)) . '.php';
+    $badFile = $tmpDir . '/resources/views/layout/bad_layout_' . bin2hex(random_bytes(4)) . '.php';
     file_put_contents($badFile, '<?php return "this is a string, not a Layout";');
 
     $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $tmpDir);
@@ -216,9 +173,9 @@ it('throws a loud error when a layout file does not return a Layout', function (
     removeTempDir($tmpDir);
 });
 
-it('throws a loud error when an extension file does not return a LayoutExtension', function (): void {
+it('throws InvalidLayoutFileException when a file under resources/views/layout/extensions returns a non-LayoutExtension value', function (): void {
     $tmpDir = makeTempModuleDir();
-    $badFile = $tmpDir . '/layout/extensions/bad_ext_' . bin2hex(random_bytes(4)) . '.php';
+    $badFile = $tmpDir . '/resources/views/layout/extensions/bad_ext_' . bin2hex(random_bytes(4)) . '.php';
     file_put_contents($badFile, '<?php return 42;');
 
     $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $tmpDir);
@@ -226,6 +183,32 @@ it('throws a loud error when an extension file does not return a LayoutExtension
 
     expect(fn() => $discovery->discover())
         ->toThrow(InvalidLayoutFileException::class);
+
+    removeTempDir($tmpDir);
+});
+
+it('does not discover layouts placed in the legacy {module}/layout directory', function (): void {
+    $tmpDir = sys_get_temp_dir() . '/marko-layout-legacy-' . bin2hex(random_bytes(8));
+
+    // Create legacy layout directory with a valid Layout file
+    mkdir($tmpDir . '/layout/extensions', 0755, true);
+    $layout = new Layout(handle: 'legacy_handle', extends: null, context: [], slots: []);
+    $serialized = serialize($layout);
+    file_put_contents(
+        $tmpDir . '/layout/legacy.php',
+        '<?php return unserialize(' . var_export($serialized, true) . ');'
+    );
+
+    // Create new resources/views/layout directory (empty — no layout files)
+    mkdir($tmpDir . '/resources/views/layout/extensions', 0755, true);
+
+    $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $tmpDir);
+    $discovery = new LayoutDiscovery(makeLayoutModuleRepository([$module]));
+
+    $result = $discovery->discover();
+
+    expect($result->layouts)->toHaveCount(0)
+        ->and($result->extensions)->toHaveCount(0);
 
     removeTempDir($tmpDir);
 });

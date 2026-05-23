@@ -61,7 +61,7 @@ use Marko\Config\ConfigRepository;
 
 function catalogLayoutLoadLayoutFile(): Layout
 {
-    $path = dirname(__DIR__, 2) . '/layout/category_show.php';
+    $path = dirname(__DIR__, 2) . '/resources/views/layout/category_show.php';
     return require $path;
 }
 

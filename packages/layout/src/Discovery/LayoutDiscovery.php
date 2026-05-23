@@ -26,7 +26,7 @@ readonly class LayoutDiscovery
         $extensions = [];
 
         foreach ($this->moduleRepository->all() as $module) {
-            $layoutDir = $module->path . '/layout';
+            $layoutDir = $module->path . '/resources/views/layout';
 
             if (!is_dir($layoutDir)) {
                 continue;
@@ -75,6 +75,6 @@ readonly class LayoutDiscovery
             return [];
         }
 
-        return array_values($files);
+        return $files;
     }
 }

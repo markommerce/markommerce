@@ -54,9 +54,9 @@ The package exercises these layout system features end to end:
 
 ## Layout Definition
 
-The base layout is defined in `layout/layout_demo.php`. It extends `OneColumnLayout`, registers a `GalleryContextProvider` that hydrates a `GalleryEntity` from the `?gallery` query parameter, places six components into the `content` slot, and wires `GalleryVariantHandleProvider` as a dynamic handle provider:
+The base layout is defined in `resources/views/layout/layout_demo.php`. It extends `OneColumnLayout`, registers a `GalleryContextProvider` that hydrates a `GalleryEntity` from the `?gallery` query parameter, places six components into the `content` slot, and wires `GalleryVariantHandleProvider` as a dynamic handle provider:
 
-```php title="packages/layout-demo/layout/layout_demo.php"
+```php title="packages/layout-demo/resources/views/layout/layout_demo.php"
 <?php
 
 declare(strict_types=1);
@@ -184,7 +184,7 @@ Key patterns this layout demonstrates:
 
 The extension file exercises all nine available mutation operations in a single file:
 
-```php title="packages/layout-demo/layout/extensions/layout_demo_extension.php"
+```php title="packages/layout-demo/resources/views/layout/extensions/layout_demo_extension.php"
 <?php
 
 declare(strict_types=1);
@@ -375,9 +375,9 @@ class GalleryWrapperDecorator implements DecoratorInterface
 
 ## Default Handle
 
-`layout/default.php` demonstrates the reserved `'default'` handle. Placements declared here are prepended to every other compiled layout tree sitewide --- useful for banners, notices, or analytics snippets that must appear on every page.
+`resources/views/layout/default.php` demonstrates the reserved `'default'` handle. Placements declared here are prepended to every other compiled layout tree sitewide --- useful for banners, notices, or analytics snippets that must appear on every page.
 
-```php title="packages/layout-demo/layout/default.php"
+```php title="packages/layout-demo/resources/views/layout/default.php"
 <?php
 
 declare(strict_types=1);
@@ -407,9 +407,9 @@ The `'default'` handle must not declare `extends`, `inherits`, or `handleProvide
 
 ## Handle Inheritance
 
-`layout/layout_demo_child.php` demonstrates `inherits:`. The child layout copies the full compiled tree of `LayoutDemoController::show` and then removes the footer placement:
+`resources/views/layout/layout_demo_child.php` demonstrates `inherits:`. The child layout copies the full compiled tree of `LayoutDemoController::show` and then removes the footer placement:
 
-```php title="packages/layout-demo/layout/layout_demo_child.php"
+```php title="packages/layout-demo/resources/views/layout/layout_demo_child.php"
 <?php
 
 declare(strict_types=1);
@@ -432,9 +432,9 @@ return new Layout(
 
 ## Dynamic Handle
 
-`layout/layout_demo_variant_featured.php` is the tree that `GalleryVariantHandleProvider` merges at runtime when `?variant=featured` is present. It adds a callout component and removes the sitewide notice that the default handle injected:
+`resources/views/layout/layout_demo_variant_featured.php` is the tree that `GalleryVariantHandleProvider` merges at runtime when `?variant=featured` is present. It adds a callout component and removes the sitewide notice that the default handle injected:
 
-```php title="packages/layout-demo/layout/layout_demo_variant_featured.php"
+```php title="packages/layout-demo/resources/views/layout/layout_demo_variant_featured.php"
 <?php
 
 declare(strict_types=1);
