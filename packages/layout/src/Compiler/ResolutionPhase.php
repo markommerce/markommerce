@@ -163,6 +163,7 @@ class ResolutionPhase
                 slots: $resolvedSlots,
                 context: $resolvedContext,
                 handleProviders: $layout->handleProviders,
+                operations: $layout->operations,
             );
         }
 
@@ -192,6 +193,7 @@ class ResolutionPhase
                     slots: $slots,
                     context: $resolvedLayout->context,
                     handleProviders: $resolvedLayout->handleProviders,
+                    operations: $resolvedLayout->operations,
                 );
             }
         }

@@ -33,6 +33,7 @@ class PreparedTreeBuilder
             context: $resolvedLayout->context,
             handleProviders: $resolvedLayout->handleProviders,
             placementNames: $placementNames,
+            operations: $resolvedLayout->operations,
         );
     }
 

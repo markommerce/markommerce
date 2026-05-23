@@ -4,8 +4,20 @@ declare(strict_types=1);
 
 namespace Markommerce\Layout\Cache;
 
+use Markommerce\Layout\Contracts\Operation;
+use Markommerce\Layout\Operation\Append;
+use Markommerce\Layout\Operation\InsertAfter;
+use Markommerce\Layout\Operation\InsertBefore;
+use Markommerce\Layout\Operation\MergeProps;
+use Markommerce\Layout\Operation\Prepend;
+use Markommerce\Layout\Operation\Remove;
+use Markommerce\Layout\Operation\Replace;
+use Markommerce\Layout\Operation\ReplaceProps;
+use Markommerce\Layout\Operation\WrapWith;
+use Markommerce\Layout\Place;
 use Markommerce\Layout\Provide;
 use Markommerce\Layout\ProvideHandle;
+use Markommerce\Layout\Slot;
 use Markommerce\Layout\Source\ContextSource;
 use Markommerce\Layout\Source\IteratedSource;
 use Markommerce\Layout\Source\ParentDataSource;
@@ -46,6 +58,7 @@ class PhpCodeEmitter
             fn($item) => $this->emitProvideHandle($item),
         );
         $placementNamesCode = $this->emitStringList($tree->placementNames);
+        $operationsCode = $this->emitList($tree->operations, fn($op) => $this->emitOperation($op));
         return sprintf(
             'new \%s(' . "\n" .
             '        handleKey: %s,' . "\n" .
@@ -54,6 +67,7 @@ class PhpCodeEmitter
             '        context: %s,' . "\n" .
             '        handleProviders: %s,' . "\n" .
             '        placementNames: %s,' . "\n" .
+            '        operations: %s,' . "\n" .
             '    )',
             PreparedTree::class,
             $this->emitString($tree->handleKey),
@@ -62,7 +76,118 @@ class PhpCodeEmitter
             $contextCode,
             $handleProvidersCode,
             $placementNamesCode,
+            $operationsCode,
         );
+    }
+
+    private function emitOperation(Operation $op): string
+    {
+        return match (true) {
+            $op instanceof Remove => sprintf(
+                'new \%s(name: %s)',
+                Remove::class,
+                $this->emitString($op->name),
+            ),
+            $op instanceof WrapWith => sprintf(
+                'new \%s(name: %s, decorator: %s)',
+                WrapWith::class,
+                $this->emitString($op->name),
+                $this->emitString($op->decorator),
+            ),
+            $op instanceof MergeProps => sprintf(
+                'new \%s(name: %s, props: %s)',
+                MergeProps::class,
+                $this->emitString($op->name),
+                $this->emitProps($op->props),
+            ),
+            $op instanceof ReplaceProps => sprintf(
+                'new \%s(name: %s, props: %s)',
+                ReplaceProps::class,
+                $this->emitString($op->name),
+                $this->emitProps($op->props),
+            ),
+            $op instanceof InsertAfter => sprintf(
+                'new \%s(anchorName: %s, placement: %s)',
+                InsertAfter::class,
+                $this->emitString($op->anchorName),
+                $this->emitPlace($op->placement),
+            ),
+            $op instanceof InsertBefore => sprintf(
+                'new \%s(anchorName: %s, placement: %s)',
+                InsertBefore::class,
+                $this->emitString($op->anchorName),
+                $this->emitPlace($op->placement),
+            ),
+            $op instanceof Append => sprintf(
+                'new \%s(slotPath: %s, placement: %s)',
+                Append::class,
+                $this->emitString($op->slotPath),
+                $this->emitPlace($op->placement),
+            ),
+            $op instanceof Prepend => sprintf(
+                'new \%s(slotPath: %s, placement: %s)',
+                Prepend::class,
+                $this->emitString($op->slotPath),
+                $this->emitPlace($op->placement),
+            ),
+            $op instanceof Replace => sprintf(
+                'new \%s(name: %s, placement: %s)',
+                Replace::class,
+                $this->emitString($op->name),
+                $this->emitPlace($op->placement),
+            ),
+            default => throw new \RuntimeException(
+                sprintf('PhpCodeEmitter: unsupported operation type "%s". Register it in emitOperation().', $op::class),
+            ),
+        };
+    }
+
+    private function emitPlace(Place $place): string
+    {
+        return sprintf(
+            'new \%s(' . "\n" .
+            '            component: %s,' . "\n" .
+            '            name: %s,' . "\n" .
+            '            props: %s,' . "\n" .
+            '            slots: %s,' . "\n" .
+            '            template: %s,' . "\n" .
+            '        )',
+            Place::class,
+            $this->emitString($place->component),
+            $this->emitNullableString($place->name),
+            $this->emitProps($place->props),
+            $this->emitPlaceSlots($place->slots),
+            $this->emitString($place->template),
+        );
+    }
+
+    /**
+     * @param array<string, list<Place>|Slot> $slots
+     */
+    private function emitPlaceSlots(array $slots): string
+    {
+        if ($slots === []) {
+            return '[]';
+        }
+        $parts = [];
+        foreach ($slots as $key => $value) {
+            if ($value instanceof Slot) {
+                $childrenCode = $this->emitList($value->children, fn($c) => $this->emitPlace($c));
+                $slotCode = sprintf(
+                    '\%s::repeat(%s, %s, %s, %s)',
+                    Slot::class,
+                    $this->emitString($value->dataKey),
+                    $this->emitString($value->yields),
+                    $this->emitString($value->as),
+                    $childrenCode,
+                );
+                $parts[] = $this->emitString($key) . ' => ' . $slotCode;
+            } else {
+                $children = array_map([$this, 'emitPlace'], $value);
+                $parts[] = $this->emitString($key) . ' => [' . implode(', ', $children) . ']';
+            }
+        }
+        return '[' . implode(', ', $parts) . ']';
     }
 
     private function emitProvideHandle(ProvideHandle $provideHandle): string
