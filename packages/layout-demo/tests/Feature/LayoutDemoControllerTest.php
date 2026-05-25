@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use Marko\Config\ConfigRepository;
 use Marko\Config\ConfigRepositoryInterface;
+use Marko\Core\Container\Container;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
+use Marko\Core\Path\ProjectPaths;
 use Marko\Routing\Http\Request;
 use Marko\Routing\RouteCollection;
 use Marko\Routing\RouteDiscovery;
@@ -18,7 +20,6 @@ use Marko\View\TemplateResolverInterface;
 use Marko\View\ViewConfig;
 use Marko\View\ViewInterface;
 use Marko\Vite\Vite;
-use Marko\Core\Path\ProjectPaths;
 use Markommerce\Frontend\View\Latte\MarkommerceLatteEngineFactory;
 use Markommerce\Frontend\View\Latte\ViteExtension;
 use Markommerce\Layout\Cache\ArtifactReaderInterface;
@@ -147,7 +148,7 @@ function layoutDemoTestBuildRouter(
     $featuredBadgeComponent = new FeaturedBadgeComponent();
     $galleryWrapperDecorator = new GalleryWrapperDecorator();
 
-    $container = new \Marko\Core\Container\Container();
+    $container = new Container();
     $container->instance(ConfigRepositoryInterface::class, $config);
     $container->instance(ViewInterface::class, $view);
     $container->instance(RouteMatcherInterface::class, $matcher);
@@ -166,7 +167,8 @@ function layoutDemoTestBuildRouter(
 
     $trees = layoutDemoTestBuildArtifact($layoutDemoPath, $themeBlankPath);
 
-    $artifactReader = new class($trees) implements ArtifactReaderInterface {
+    $artifactReader = new class ($trees) implements ArtifactReaderInterface
+    {
         /** @param array<string, PreparedTree> $trees */
         public function __construct(private array $trees) {}
 
@@ -206,6 +208,7 @@ function layoutDemoTestEnsureManifest(string $basePath): bool
                     'isEntry' => true,
                 ];
                 file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT));
+
                 return true;
             }
         }
@@ -361,13 +364,16 @@ it('it returns 404 when layout_demo.enabled is false', function (): void {
     layoutDemoTestCleanup($cacheDir);
 });
 
-it('it compiles to a valid PreparedTree (Compiler::compile() returns the demo handle without throwing)', function (): void {
-    $layoutDemoPath = dirname(__DIR__, 2);
-    $themeBlankPath = $layoutDemoPath . '/../theme-blank';
-
-    $trees = layoutDemoTestBuildArtifact($layoutDemoPath, $themeBlankPath);
-
-    $expectedHandle = LayoutDemoController::class . '::show';
-    expect($trees)->toHaveKey($expectedHandle);
-    expect($trees[$expectedHandle])->toBeInstanceOf(PreparedTree::class);
-});
+it(
+    'it compiles to a valid PreparedTree (Compiler::compile() returns the demo handle without throwing)',
+    function (): void {
+        $layoutDemoPath = dirname(__DIR__, 2);
+        $themeBlankPath = $layoutDemoPath . '/../theme-blank';
+    
+        $trees = layoutDemoTestBuildArtifact($layoutDemoPath, $themeBlankPath);
+    
+        $expectedHandle = LayoutDemoController::class . '::show';
+        expect($trees)->toHaveKey($expectedHandle);
+        expect($trees[$expectedHandle])->toBeInstanceOf(PreparedTree::class);
+    }
+);

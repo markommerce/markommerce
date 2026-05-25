@@ -77,8 +77,7 @@ class PgsqlConfigStorage implements ConfigStorageInterface
         string $key,
         ConfigRow $row,
         int $expectedVersion,
-    ): bool
-    {
+    ): bool {
         $isEmpty = $row->value === null && $row->overrides === [];
 
         if ($isEmpty) {
@@ -98,8 +97,7 @@ class PgsqlConfigStorage implements ConfigStorageInterface
     private function handleEmptyRow(
         string $key,
         int $expectedVersion,
-    ): bool
-    {
+    ): bool {
         $affected = $this->connection->execute(
             sprintf(
                 'DELETE FROM "%s" WHERE config_key = ? AND version = ?',
@@ -138,8 +136,7 @@ class PgsqlConfigStorage implements ConfigStorageInterface
     private function handleInsert(
         string $key,
         ConfigRow $row,
-    ): bool
-    {
+    ): bool {
         $valueJson = $row->value !== null ? json_encode($row->value) : null;
         $overridesJson = json_encode($row->overrides);
 
@@ -173,8 +170,7 @@ class PgsqlConfigStorage implements ConfigStorageInterface
         string $key,
         ConfigRow $row,
         int $expectedVersion,
-    ): bool
-    {
+    ): bool {
         $valueJson = $row->value !== null ? json_encode($row->value) : null;
         $overridesJson = json_encode($row->overrides);
 

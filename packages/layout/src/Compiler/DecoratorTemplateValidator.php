@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Markommerce\Layout\Compiler;
 
 use Markommerce\Layout\Contracts\DecoratorInterface;
-use Markommerce\Layout\Exception\MissingSlotInnerException;
+use Markommerce\Layout\Exceptions\MissingSlotInnerException;
 
 class DecoratorTemplateValidator
 {

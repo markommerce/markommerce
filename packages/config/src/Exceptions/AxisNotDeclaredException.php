@@ -11,8 +11,7 @@ class AxisNotDeclaredException extends MarkoException
     public static function forPropertyAndAxis(
         string $key,
         string $axis,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Config key '$key' does not declare axis '$axis' on its property",
             context: "Writing config key '$key' with a scope signature that includes axis '$axis', but the property does not declare support for that axis",
@@ -27,8 +26,7 @@ class AxisNotDeclaredException extends MarkoException
         string $configClass,
         string $property,
         string $axis,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Axis '$axis' declared on property '$property' in config class '$configClass' is not registered in the scope registry",
             context: "Building config registry — validating #[Scoped] axes on property '$property' in '$configClass'",

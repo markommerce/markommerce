@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use Markommerce\Layout\Attributes\IteratesOver;
+use Markommerce\Layout\Compiler\DecoratorTemplateValidator;
 use Markommerce\Layout\Contracts\DecoratorInterface;
+use Markommerce\Layout\Exceptions\MissingSlotInnerException;
 
 it('defines an IteratesOver attribute targeting classes', function (): void {
     $reflection = new ReflectionClass(IteratesOver::class);
@@ -16,8 +18,8 @@ it('defines an IteratesOver attribute targeting classes', function (): void {
 });
 
 it('exposes the item type from an IteratesOver attribute', function (): void {
-    $attr = new IteratesOver(itemType: \stdClass::class);
-    expect($attr->itemType)->toBe(\stdClass::class);
+    $attr = new IteratesOver(itemType: stdClass::class);
+    expect($attr->itemType)->toBe(stdClass::class);
 });
 
 it('reads the IteratesOver attribute from an annotated token class via reflection', function (): void {
@@ -34,7 +36,10 @@ it('defines a DecoratorInterface contract', function (): void {
     $reflection = new ReflectionClass(DecoratorInterface::class);
     expect($reflection->isInterface())->toBeTrue();
 
-    $methods = array_map(fn (ReflectionMethod $m) => $m->getName(), $reflection->getMethods(ReflectionMethod::IS_PUBLIC));
+    $methods = array_map(
+        fn (ReflectionMethod $m) => $m->getName(),
+        $reflection->getMethods(ReflectionMethod::IS_PUBLIC)
+    );
     expect($methods)->toContain('template')
         ->and($methods)->toContain('wrap');
 
@@ -48,10 +53,10 @@ it('defines a DecoratorInterface contract', function (): void {
 });
 
 it('requires a decorator template to contain a slot inner placeholder', function (): void {
-    $validator = new \Markommerce\Layout\Compiler\DecoratorTemplateValidator();
+    $validator = new DecoratorTemplateValidator();
 
     expect(fn () => $validator->validate(MissingSlotDecoratorFixture::class))
-        ->toThrow(\Markommerce\Layout\Exception\MissingSlotInnerException::class);
+        ->toThrow(MissingSlotInnerException::class);
 });
 
 // ---------------------------------------------------------------------------
@@ -70,7 +75,10 @@ class MissingSlotDecoratorFixture implements DecoratorInterface
         return '<div>No placeholder here</div>';
     }
 
-    public function wrap(string $innerHtml, array $data = []): string
+    public function wrap(
+        string $innerHtml,
+        array $data = [],
+    ): string
     {
         return str_replace('{slot inner}', $innerHtml, $this->template());
     }

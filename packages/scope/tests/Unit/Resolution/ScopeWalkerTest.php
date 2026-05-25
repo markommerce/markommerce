@@ -46,7 +46,10 @@ function makeWalkerRegistry(array $axes = [], array $defaults = []): ScopeRegist
         private array $builtAxes;
 
         /** @param array<string, list<string>> $axes @param array<string, string> $defaults */
-        public function __construct(array $axes, array $defaults = [])
+        public function __construct(
+            array $axes,
+            array $defaults = [],
+        )
         {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
@@ -235,149 +238,173 @@ it(
 
 // ─── New behavioral tests (composite resolution) ──────────────────────────────
 
-it('matches a single-axis override via hierarchy walk-up (case 1: locale:es matches context locale es.es)', function (): void {
-    $registry = makeWalkerRegistry(['locale' => ['es', 'es.es']]);
-    $context = new ScopeContext($registry);
+it(
+    'matches a single-axis override via hierarchy walk-up (case 1: locale:es matches context locale es.es)',
+    function (): void {
+        $registry = makeWalkerRegistry(['locale' => ['es', 'es.es']]);
+        $context = new ScopeContext($registry);
+        $context->in('locale', 'es.es');
+    
+        $overrides = new WalkerTestOverrides();
+        $overrides->setOverride('locale:es', 'name', 'Camisa');
+    
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $result = $walker->walk($overrides, 'name', ['locale'], $context);
+    
+        expect($result->isFound())->toBeTrue()
+            ->and($result->value())->toBe('Camisa');
+    }
+);
+
+it(
+    'picks the deeper hierarchy match within an axis (case 2: locale:es.es wins over locale:es when context is es.es)',
+    function (): void {
+        $registry = makeWalkerRegistry(['locale' => ['es', 'es.es']]);
+        $context = new ScopeContext($registry);
+        $context->in('locale', 'es.es');
+    
+        $overrides = new WalkerTestOverrides();
+        $overrides->setOverride('locale:es', 'name', 'Camisa');
+        $overrides->setOverride('locale:es.es', 'name', 'Camisa-ES');
+    
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $result = $walker->walk($overrides, 'name', ['locale'], $context);
+    
+        expect($result->isFound())->toBeTrue()
+            ->and($result->value())->toBe('Camisa-ES');
+    }
+);
+
+it(
+    'picks the most-specific composite when both composite and partials exist (case 3: channel:b2b|locale:es wins over channel:b2b and locale:es)',
+    function (): void {
+        $registry = makeWalkerRegistry([
+            'channel' => ['b2b', 'b2c'],
+            'locale'  => ['es', 'es.es'],
+        ]);
+        $context = new ScopeContext($registry);
+        $context->in('channel', 'b2b')->in('locale', 'es');
+    
+        $overrides = new WalkerTestOverrides();
+        $overrides->setOverride('channel:b2b', 'name', 'B2B');
+        $overrides->setOverride('locale:es', 'name', 'Camisa');
+        $overrides->setOverride('channel:b2b|locale:es', 'name', 'B2B-Camisa');
+    
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $result = $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
+    
+        expect($result->isFound())->toBeTrue()
+            ->and($result->value())->toBe('B2B-Camisa');
+    }
+);
+
+it(
+    'picks the higher-priority single-axis when only single-axis overrides exist (case 4: channel:b2b wins over locale:es)',
+    function (): void {
+        $registry = makeWalkerRegistry([
+            'channel' => ['b2b', 'b2c'],
+            'locale'  => ['es', 'es.es'],
+        ]);
+        $context = new ScopeContext($registry);
+        $context->in('channel', 'b2b')->in('locale', 'es');
+    
+        $overrides = new WalkerTestOverrides();
+        $overrides->setOverride('channel:b2b', 'name', 'B2B');
+        $overrides->setOverride('locale:es', 'name', 'Camisa');
+    
+        // channel is first axis (higher priority), locale is second
+    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $result = $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
+    
+        expect($result->isFound())->toBeTrue()
+            ->and($result->value())->toBe('B2B');
+    }
+);
+
+it(
+    'falls through to lower-priority axis when higher-priority axis has no applicable override (case 5: locale:es wins when only locale:es exists)',
+    function (): void {
+        $registry = makeWalkerRegistry([
+            'channel' => ['b2b', 'b2c'],
+            'locale'  => ['es', 'es.es'],
+        ]);
+        $context = new ScopeContext($registry);
+        $context->in('channel', 'b2b')->in('locale', 'es');
+    
+        $overrides = new WalkerTestOverrides();
+        // Only locale:es exists — no channel override
+    $overrides->setOverride('locale:es', 'name', 'Camisa');
+    
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $result = $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
+    
+        expect($result->isFound())->toBeTrue()
+            ->and($result->value())->toBe('Camisa');
+    }
+);
+
+it(
+    'does not match an override mentioning an axis not in the context (case 6: market:eu.es does not match a context without market)',
+    function (): void {
+        $registry = makeWalkerRegistry([
+            'locale' => ['es', 'es.es'],
+            'market' => ['eu', 'eu.es'],
+        ]);
+        $context = new ScopeContext($registry);
+        // Only locale is set in context, not market
     $context->in('locale', 'es.es');
-
-    $overrides = new WalkerTestOverrides();
-    $overrides->setOverride('locale:es', 'name', 'Camisa');
-
+    
+        $overrides = new WalkerTestOverrides();
+        $overrides->setOverride('market:eu.es', 'name', 'EU-ES');
+    
+        // Attribute axes only include locale, not market
     $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $result = $walker->walk($overrides, 'name', ['locale'], $context);
+        $result = $walker->walk($overrides, 'name', ['locale'], $context);
+    
+        expect($result->isFound())->toBeFalse();
+    }
+);
 
-    expect($result->isFound())->toBeTrue()
-        ->and($result->value())->toBe('Camisa');
-});
-
-it('picks the deeper hierarchy match within an axis (case 2: locale:es.es wins over locale:es when context is es.es)', function (): void {
-    $registry = makeWalkerRegistry(['locale' => ['es', 'es.es']]);
-    $context = new ScopeContext($registry);
-    $context->in('locale', 'es.es');
-
-    $overrides = new WalkerTestOverrides();
-    $overrides->setOverride('locale:es', 'name', 'Camisa');
-    $overrides->setOverride('locale:es.es', 'name', 'Camisa-ES');
-
-    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $result = $walker->walk($overrides, 'name', ['locale'], $context);
-
-    expect($result->isFound())->toBeTrue()
-        ->and($result->value())->toBe('Camisa-ES');
-});
-
-it('picks the most-specific composite when both composite and partials exist (case 3: channel:b2b|locale:es wins over channel:b2b and locale:es)', function (): void {
-    $registry = makeWalkerRegistry([
-        'channel' => ['b2b', 'b2c'],
-        'locale'  => ['es', 'es.es'],
-    ]);
-    $context = new ScopeContext($registry);
-    $context->in('channel', 'b2b')->in('locale', 'es');
-
-    $overrides = new WalkerTestOverrides();
-    $overrides->setOverride('channel:b2b', 'name', 'B2B');
-    $overrides->setOverride('locale:es', 'name', 'Camisa');
-    $overrides->setOverride('channel:b2b|locale:es', 'name', 'B2B-Camisa');
-
-    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $result = $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
-
-    expect($result->isFound())->toBeTrue()
-        ->and($result->value())->toBe('B2B-Camisa');
-});
-
-it('picks the higher-priority single-axis when only single-axis overrides exist (case 4: channel:b2b wins over locale:es)', function (): void {
-    $registry = makeWalkerRegistry([
-        'channel' => ['b2b', 'b2c'],
-        'locale'  => ['es', 'es.es'],
-    ]);
-    $context = new ScopeContext($registry);
-    $context->in('channel', 'b2b')->in('locale', 'es');
-
-    $overrides = new WalkerTestOverrides();
-    $overrides->setOverride('channel:b2b', 'name', 'B2B');
-    $overrides->setOverride('locale:es', 'name', 'Camisa');
-
-    // channel is first axis (higher priority), locale is second
-    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $result = $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
-
-    expect($result->isFound())->toBeTrue()
-        ->and($result->value())->toBe('B2B');
-});
-
-it('falls through to lower-priority axis when higher-priority axis has no applicable override (case 5: locale:es wins when only locale:es exists)', function (): void {
-    $registry = makeWalkerRegistry([
-        'channel' => ['b2b', 'b2c'],
-        'locale'  => ['es', 'es.es'],
-    ]);
-    $context = new ScopeContext($registry);
-    $context->in('channel', 'b2b')->in('locale', 'es');
-
-    $overrides = new WalkerTestOverrides();
-    // Only locale:es exists — no channel override
-    $overrides->setOverride('locale:es', 'name', 'Camisa');
-
-    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $result = $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
-
-    expect($result->isFound())->toBeTrue()
-        ->and($result->value())->toBe('Camisa');
-});
-
-it('does not match an override mentioning an axis not in the context (case 6: market:eu.es does not match a context without market)', function (): void {
-    $registry = makeWalkerRegistry([
-        'locale' => ['es', 'es.es'],
-        'market' => ['eu', 'eu.es'],
-    ]);
-    $context = new ScopeContext($registry);
-    // Only locale is set in context, not market
-    $context->in('locale', 'es.es');
-
-    $overrides = new WalkerTestOverrides();
-    $overrides->setOverride('market:eu.es', 'name', 'EU-ES');
-
-    // Attribute axes only include locale, not market
-    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $result = $walker->walk($overrides, 'name', ['locale'], $context);
-
-    expect($result->isFound())->toBeFalse();
-});
-
-it('ignores stored signatures with axes not in the attribute axes (case 7: defensive ignore on read)', function (): void {
-    $registry = makeWalkerRegistry([
-        'locale' => ['es', 'es.es'],
-        'market' => ['eu', 'eu.es'],
-    ]);
-    $context = new ScopeContext($registry);
-    $context->in('locale', 'es.es');
-
-    // Instrumented storage that tracks which signatures are looked up
+it(
+    'ignores stored signatures with axes not in the attribute axes (case 7: defensive ignore on read)',
+    function (): void {
+        $registry = makeWalkerRegistry([
+            'locale' => ['es', 'es.es'],
+            'market' => ['eu', 'eu.es'],
+        ]);
+        $context = new ScopeContext($registry);
+        $context->in('locale', 'es.es');
+    
+        // Instrumented storage that tracks which signatures are looked up
     $lookedUp = [];
-    $overrides = new class ($lookedUp) implements HasScopesInterface
-    {
-        use HasScopes;
-
-        /** @param array<int, string> $lookedUp */
-        public function __construct(private array &$lookedUp) {}
-
-        public function hasOverride(string $signature, string $property): bool
+        $overrides = new class ($lookedUp) implements HasScopesInterface
         {
-            $this->lookedUp[] = $signature;
-
-            return array_key_exists($signature, $this->scopes ?? [])
-                && array_key_exists($property, ($this->scopes ?? [])[$signature]);
-        }
-    };
-
-    $overrides->setOverride('market:eu.es', 'name', 'EU-ES');
-
-    // Attribute axes only include locale — market:eu.es must never be queried
+            use HasScopes;
+    
+            /** @param array<int, string> $lookedUp */
+            public function __construct(private array &$lookedUp) {}
+    
+            public function hasOverride(
+                string $signature,
+                string $property,
+            ): bool
+            {
+                $this->lookedUp[] = $signature;
+    
+                return array_key_exists($signature, $this->scopes ?? [])
+                    && array_key_exists($property, ($this->scopes ?? [])[$signature]);
+            }
+        };
+    
+        $overrides->setOverride('market:eu.es', 'name', 'EU-ES');
+    
+        // Attribute axes only include locale — market:eu.es must never be queried
     $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $walker->walk($overrides, 'name', ['locale'], $context);
-
-    expect(array_any($lookedUp, fn (string $sig) => str_contains($sig, 'market')))->toBeFalse();
-});
+        $walker->walk($overrides, 'name', ['locale'], $context);
+    
+        expect(array_any($lookedUp, fn (string $sig) => str_contains($sig, 'market')))->toBeFalse();
+    }
+);
 
 it('returns notFound when no applicable overrides exist (case 8)', function (): void {
     $registry = makeWalkerRegistry([
@@ -395,64 +422,73 @@ it('returns notFound when no applicable overrides exist (case 8)', function (): 
     expect($result->isFound())->toBeFalse();
 });
 
-it('walks hierarchy inside composites (case 9: channel:b2b|locale:es matches context channel b2b, locale es.es)', function (): void {
-    $registry = makeWalkerRegistry([
-        'channel' => ['b2b'],
-        'locale'  => ['es', 'es.es'],
-    ]);
-    $context = new ScopeContext($registry);
-    $context->in('channel', 'b2b')->in('locale', 'es.es');
+it(
+    'walks hierarchy inside composites (case 9: channel:b2b|locale:es matches context channel b2b, locale es.es)',
+    function (): void {
+        $registry = makeWalkerRegistry([
+            'channel' => ['b2b'],
+            'locale'  => ['es', 'es.es'],
+        ]);
+        $context = new ScopeContext($registry);
+        $context->in('channel', 'b2b')->in('locale', 'es.es');
+    
+        $overrides = new WalkerTestOverrides();
+        $overrides->setOverride('channel:b2b|locale:es', 'name', 'B2B-Camisa');
+    
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $result = $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
+    
+        expect($result->isFound())->toBeTrue()
+            ->and($result->value())->toBe('B2B-Camisa');
+    }
+);
 
-    $overrides = new WalkerTestOverrides();
-    $overrides->setOverride('channel:b2b|locale:es', 'name', 'B2B-Camisa');
+it(
+    'scores composites with hierarchy walks (case 10: channel:b2b|locale:es.es wins over channel:b2b|locale:es when context locale is es.es)',
+    function (): void {
+        $registry = makeWalkerRegistry([
+            'channel' => ['b2b'],
+            'locale'  => ['es', 'es.es'],
+        ]);
+        $context = new ScopeContext($registry);
+        $context->in('channel', 'b2b')->in('locale', 'es.es');
+    
+        $overrides = new WalkerTestOverrides();
+        $overrides->setOverride('channel:b2b|locale:es', 'name', 'B2B-Camisa');
+        $overrides->setOverride('channel:b2b|locale:es.es', 'name', 'B2B-Camisa-ES');
+    
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $result = $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
+    
+        expect($result->isFound())->toBeTrue()
+            ->and($result->value())->toBe('B2B-Camisa-ES');
+    }
+);
 
-    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $result = $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
-
-    expect($result->isFound())->toBeTrue()
-        ->and($result->value())->toBe('B2B-Camisa');
-});
-
-it('scores composites with hierarchy walks (case 10: channel:b2b|locale:es.es wins over channel:b2b|locale:es when context locale is es.es)', function (): void {
-    $registry = makeWalkerRegistry([
-        'channel' => ['b2b'],
-        'locale'  => ['es', 'es.es'],
-    ]);
-    $context = new ScopeContext($registry);
-    $context->in('channel', 'b2b')->in('locale', 'es.es');
-
-    $overrides = new WalkerTestOverrides();
-    $overrides->setOverride('channel:b2b|locale:es', 'name', 'B2B-Camisa');
-    $overrides->setOverride('channel:b2b|locale:es.es', 'name', 'B2B-Camisa-ES');
-
-    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $result = $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
-
-    expect($result->isFound())->toBeTrue()
-        ->and($result->value())->toBe('B2B-Camisa-ES');
-});
-
-it('lets higher-priority axis dominate hierarchy depth (case 11: channel:b2b beats locale:es.es when context is {channel: b2b, locale: es.es})', function (): void {
-    $registry = makeWalkerRegistry([
-        'channel' => ['b2b'],
-        'locale'  => ['es', 'es.es'],
-    ]);
-    $context = new ScopeContext($registry);
-    $context->in('channel', 'b2b')->in('locale', 'es.es');
-
-    $overrides = new WalkerTestOverrides();
-    // channel:b2b is a single-axis override for the higher-priority axis
+it(
+    'lets higher-priority axis dominate hierarchy depth (case 11: channel:b2b beats locale:es.es when context is {channel: b2b, locale: es.es})',
+    function (): void {
+        $registry = makeWalkerRegistry([
+            'channel' => ['b2b'],
+            'locale'  => ['es', 'es.es'],
+        ]);
+        $context = new ScopeContext($registry);
+        $context->in('channel', 'b2b')->in('locale', 'es.es');
+    
+        $overrides = new WalkerTestOverrides();
+        // channel:b2b is a single-axis override for the higher-priority axis
     // locale:es.es is deeper in its hierarchy
     $overrides->setOverride('channel:b2b', 'name', 'B2B');
-    $overrides->setOverride('locale:es.es', 'name', 'Camisa-ES');
-
-    // channel is declared first (higher priority)
+        $overrides->setOverride('locale:es.es', 'name', 'Camisa-ES');
+    
+        // channel is declared first (higher priority)
     $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $result = $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
-
-    expect($result->isFound())->toBeTrue()
-        ->and($result->value())->toBe('B2B');
-});
+        $result = $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
+    
+        expect($result->isFound())->toBeTrue()
+            ->and($result->value())->toBe('B2B');
+    }
+);
 
 it('resolves three-axis composites across full and partial compositions (case 12)', function (): void {
     $registry = makeWalkerRegistry([
@@ -520,52 +556,58 @@ it('preserves an explicit null override as found (null-as-found contract preserv
         ->and($result->value())->toBeNull();
 });
 
-it('does NOT iterate HasScopesInterface::overrides() on the resolution path (verified via instrumented storage that counts overrides() calls)', function (): void {
-    $registry = makeWalkerRegistry([
-        'channel' => ['b2b'],
-        'locale'  => ['es'],
-    ]);
-    $context = new ScopeContext($registry);
-    $context->in('channel', 'b2b')->in('locale', 'es');
-
-    $overridesCalled = 0;
-    $overrides = new class ($overridesCalled) implements HasScopesInterface
-    {
-        use HasScopes;
-
-        public function __construct(private int &$overridesCalled) {}
-
-        public function overrides(): array
+it(
+    'does NOT iterate HasScopesInterface::overrides() on the resolution path (verified via instrumented storage that counts overrides() calls)',
+    function (): void {
+        $registry = makeWalkerRegistry([
+            'channel' => ['b2b'],
+            'locale'  => ['es'],
+        ]);
+        $context = new ScopeContext($registry);
+        $context->in('channel', 'b2b')->in('locale', 'es');
+    
+        $overridesCalled = 0;
+        $overrides = new class ($overridesCalled) implements HasScopesInterface
         {
-            $this->overridesCalled++;
-
-            return $this->scopes ?? [];
-        }
-    };
-
-    $overrides->setOverride('channel:b2b', 'name', 'B2B');
-
-    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
-
-    expect($overridesCalled)->toBe(0);
-});
+            use HasScopes;
+    
+            public function __construct(private int &$overridesCalled) {}
+    
+            public function overrides(): array
+            {
+                $this->overridesCalled++;
+    
+                return $this->scopes ?? [];
+            }
+        };
+    
+        $overrides->setOverride('channel:b2b', 'name', 'B2B');
+    
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $walker->walk($overrides, 'name', ['channel', 'locale'], $context);
+    
+        expect($overridesCalled)->toBe(0);
+    }
+);
 
 // ─── Task 005: ScopeSignature-based walkAt ────────────────────────────────────
 
-it('walkAt with a single-axis signature returns the override at that scope (case 14: explicit single-axis still works)', function (): void {
-    $registry = makeWalkerRegistry(['geo' => ['eu', 'eu.de']]);
-    $signature = new ScopeSignature(['geo' => 'eu.de']);
-
-    $overrides = new WalkerTraitProduct();
-    $overrides->setOverride('geo:eu.de', 'name', 'Hemd');
-
-    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $result = $walker->walkAt($overrides, 'name', ['geo'], $signature, $registry);
-
-    expect($result->isFound())->toBeTrue()
-        ->and($result->value())->toBe('Hemd');
-});
+it(
+    'walkAt with a single-axis signature returns the override at that scope (case 14: explicit single-axis still works)',
+    function (): void {
+        $registry = makeWalkerRegistry(['geo' => ['eu', 'eu.de']]);
+        $signature = new ScopeSignature(['geo' => 'eu.de']);
+    
+        $overrides = new WalkerTraitProduct();
+        $overrides->setOverride('geo:eu.de', 'name', 'Hemd');
+    
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $result = $walker->walkAt($overrides, 'name', ['geo'], $signature, $registry);
+    
+        expect($result->isFound())->toBeTrue()
+            ->and($result->value())->toBe('Hemd');
+    }
+);
 
 it('walkAt with a single-axis signature walks up the hierarchy to find an ancestor match', function (): void {
     $registry = makeWalkerRegistry(['geo' => ['eu', 'eu.de']]);
@@ -582,32 +624,38 @@ it('walkAt with a single-axis signature walks up the hierarchy to find an ancest
         ->and($result->value())->toBe('Shirt-EU');
 });
 
-it('walkAt with a single-axis signature returns notFound when the axis is not in the attribute axes', function (): void {
-    $registry = makeWalkerRegistry(['geo' => ['eu', 'eu.de'], 'locale' => ['de']]);
-    $signature = new ScopeSignature(['locale' => 'de']);
-
-    $overrides = new WalkerTraitProduct();
-    $overrides->setOverride('locale:de', 'name', 'Hemd');
-
-    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    // Attribute axes only contains 'geo', not 'locale'
+it(
+    'walkAt with a single-axis signature returns notFound when the axis is not in the attribute axes',
+    function (): void {
+        $registry = makeWalkerRegistry(['geo' => ['eu', 'eu.de'], 'locale' => ['de']]);
+        $signature = new ScopeSignature(['locale' => 'de']);
+    
+        $overrides = new WalkerTraitProduct();
+        $overrides->setOverride('locale:de', 'name', 'Hemd');
+    
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        // Attribute axes only contains 'geo', not 'locale'
     $result = $walker->walkAt($overrides, 'name', ['geo'], $signature, $registry);
+    
+        expect($result->isFound())->toBeFalse();
+    }
+);
 
-    expect($result->isFound())->toBeFalse();
-});
+it(
+    'walkAt with a single-axis signature returns notFound when neither the scope nor any ancestor has an override',
+    function (): void {
+        $registry = makeWalkerRegistry(['geo' => ['eu', 'eu.de']]);
+        $signature = new ScopeSignature(['geo' => 'eu.de']);
+    
+        $overrides = new WalkerTraitProduct();
+        // No overrides set at all
 
-it('walkAt with a single-axis signature returns notFound when neither the scope nor any ancestor has an override', function (): void {
-    $registry = makeWalkerRegistry(['geo' => ['eu', 'eu.de']]);
-    $signature = new ScopeSignature(['geo' => 'eu.de']);
-
-    $overrides = new WalkerTraitProduct();
-    // No overrides set at all
-
-    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $result = $walker->walkAt($overrides, 'name', ['geo'], $signature, $registry);
-
-    expect($result->isFound())->toBeFalse();
-});
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $result = $walker->walkAt($overrides, 'name', ['geo'], $signature, $registry);
+    
+        expect($result->isFound())->toBeFalse();
+    }
+);
 
 it('walkAt throws MultiAxisWalkAtNotSupportedException when the signature has two axes (case 15)', function (): void {
     $registry = makeWalkerRegistry(['geo' => ['eu', 'eu.de'], 'locale' => ['de']]);
@@ -662,38 +710,44 @@ it('walkAt ignores the ScopeContext entirely (the signature axes determine the l
         ->and($result->value())->toBe('Hemd');
 });
 
-it('walkAt returns notFound for a signature at the axis default even when a stored override exists at axis:default', function (): void {
-    // geo axis default is '__test_default'
+it(
+    'walkAt returns notFound for a signature at the axis default even when a stored override exists at axis:default',
+    function (): void {
+        // geo axis default is '__test_default'
     // A signature pointing at the default value should return notFound
     // even when there is a stored override keyed at 'geo:__test_default'
     $registry = makeWalkerRegistry(['geo' => ['eu', 'eu.de']]);
-    $signature = new ScopeSignature(['geo' => '__test_default']);
-
-    $overrides = new WalkerTraitProduct();
-    // Deliberately store an override at the default scope key
+        $signature = new ScopeSignature(['geo' => '__test_default']);
+    
+        $overrides = new WalkerTraitProduct();
+        // Deliberately store an override at the default scope key
     $overrides->setOverride('geo:__test_default', 'name', 'Should-Not-Return');
+    
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $result = $walker->walkAt($overrides, 'name', ['geo'], $signature, $registry);
+    
+        expect($result->isFound())->toBeFalse();
+    }
+);
 
-    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $result = $walker->walkAt($overrides, 'name', ['geo'], $signature, $registry);
-
-    expect($result->isFound())->toBeFalse();
-});
-
-it('walkAt skips a default ancestor while still matching a non-default descendant override during walk-up', function (): void {
-    // geo hierarchy: global (default) -> global.eu -> global.eu.de
+it(
+    'walkAt skips a default ancestor while still matching a non-default descendant override during walk-up',
+    function (): void {
+        // geo hierarchy: global (default) -> global.eu -> global.eu.de
     // walkUp('global.eu') = ['global.eu', 'global']
     // After filtering default 'global': only 'global.eu' is searched
     // Override is stored at 'geo:global.eu' — should be found
     $registry = makeWalkerRegistry(['geo' => ['global.eu']], ['geo' => 'global']);
-    $signature = new ScopeSignature(['geo' => 'global.eu']);
-
-    $overrides = new WalkerTraitProduct();
-    $overrides->setOverride('geo:global', 'name', 'Should-Not-Return');
-    $overrides->setOverride('geo:global.eu', 'name', 'EU-override');
-
-    $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
-    $result = $walker->walkAt($overrides, 'name', ['geo'], $signature, $registry);
-
-    expect($result->isFound())->toBeTrue()
-        ->and($result->value())->toBe('EU-override');
-});
+        $signature = new ScopeSignature(['geo' => 'global.eu']);
+    
+        $overrides = new WalkerTraitProduct();
+        $overrides->setOverride('geo:global', 'name', 'Should-Not-Return');
+        $overrides->setOverride('geo:global.eu', 'name', 'EU-override');
+    
+        $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
+        $result = $walker->walkAt($overrides, 'name', ['geo'], $signature, $registry);
+    
+        expect($result->isFound())->toBeTrue()
+            ->and($result->value())->toBe('EU-override');
+    }
+);

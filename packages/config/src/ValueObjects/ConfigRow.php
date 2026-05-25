@@ -44,8 +44,7 @@ readonly class ConfigRow
     public function withOverride(
         string $signature,
         mixed $value,
-    ): self
-    {
+    ): self {
         return new self(
             key: $this->key,
             value: $this->value,

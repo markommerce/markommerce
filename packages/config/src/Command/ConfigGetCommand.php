@@ -10,6 +10,7 @@ use Marko\Core\Command\Input;
 use Marko\Core\Command\Output;
 use Marko\Core\Container\PreferenceRegistry;
 use Markommerce\Config\Casting\ValueCaster;
+use Markommerce\Config\ConfigResolver;
 use Markommerce\Config\Contracts\ConfigStorageInterface;
 use Markommerce\Config\Contracts\SecretCipherInterface;
 use Markommerce\Config\Encryption\NullSecretCipher;
@@ -64,7 +65,7 @@ readonly class ConfigGetCommand implements CommandInterface
         $preferenceRegistry = new PreferenceRegistry();
         $emptyContext = new ScopeContext($this->scopeRegistry);
 
-        $resolver = new \Markommerce\Config\ConfigResolver(
+        $resolver = new ConfigResolver(
             configRegistry: $this->configRegistry,
             configStorage: $this->configStorage,
             overrideMatcher: $overrideMatcher,
@@ -118,8 +119,7 @@ readonly class ConfigGetCommand implements CommandInterface
     private function handleNotFound(
         string $key,
         Output $output,
-    ): int
-    {
+    ): int {
         $output->writeLine("Error: Config key '$key' not found.");
 
         $allKeys = array_map(
@@ -147,8 +147,7 @@ readonly class ConfigGetCommand implements CommandInterface
     private function closestKeys(
         string $key,
         array $allKeys,
-    ): array
-    {
+    ): array {
         $distances = [];
 
         foreach ($allKeys as $candidate) {

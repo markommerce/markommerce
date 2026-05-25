@@ -25,7 +25,10 @@ class InstrumentedRegistry implements ScopeRegistryInterface
      * @param array<string, ScopeHierarchy> $axisHierarchies
      * @param array<string, string> $axisDefaults
      */
-    public function __construct(array $axisHierarchies, array $axisDefaults = [])
+    public function __construct(
+        array $axisHierarchies,
+        array $axisDefaults = [],
+    )
     {
         $this->hierarchies = $axisHierarchies;
         $this->axisDefaults = $axisDefaults;
@@ -79,7 +82,10 @@ function makeSignatureValidatorRegistry(array $axisHierarchies, array $axisDefau
          * @param array<string, ScopeHierarchy> $axisHierarchies
          * @param array<string, string> $axisDefaults
          */
-        public function __construct(array $axisHierarchies, array $axisDefaults = [])
+        public function __construct(
+            array $axisHierarchies,
+            array $axisDefaults = [],
+        )
         {
             $this->hierarchies = $axisHierarchies;
             $this->axisDefaults = $axisDefaults;

@@ -10,7 +10,7 @@ use Marko\Routing\Http\Response;
 use Marko\Routing\Middleware\MiddlewareInterface;
 use Markommerce\Layout\Cache\ArtifactWriterInterface;
 use Markommerce\Layout\Compiler\CompilerInterface;
-use Markommerce\Layout\Exception\LayoutException;
+use Markommerce\Layout\Exceptions\LayoutException;
 
 class CompileIfStaleMiddleware implements MiddlewareInterface
 {

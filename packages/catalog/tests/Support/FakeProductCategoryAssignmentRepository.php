@@ -86,7 +86,11 @@ class FakeProductCategoryAssignmentRepository implements ProductCategoryAssignme
     public function save(Entity $entity): void
     {
         if (!$entity instanceof ProductCategoryAssignment) {
-            throw RepositoryException::invalidEntityType(self::class, ProductCategoryAssignment::class, $entity::class);
+            throw RepositoryException::invalidEntityType(
+                self::class,
+                ProductCategoryAssignment::class,
+                $entity::class
+            );
         }
 
         if ($entity->id === null) {
@@ -102,7 +106,11 @@ class FakeProductCategoryAssignmentRepository implements ProductCategoryAssignme
     public function delete(Entity $entity): void
     {
         if (!$entity instanceof ProductCategoryAssignment) {
-            throw RepositoryException::invalidEntityType(self::class, ProductCategoryAssignment::class, $entity::class);
+            throw RepositoryException::invalidEntityType(
+                self::class,
+                ProductCategoryAssignment::class,
+                $entity::class
+            );
         }
 
         if ($entity->id !== null) {
@@ -132,7 +140,10 @@ class FakeProductCategoryAssignmentRepository implements ProductCategoryAssignme
         ));
     }
 
-    public function findByProductAndCategory(int $productId, int $categoryId): ?ProductCategoryAssignment
+    public function findByProductAndCategory(
+        int $productId,
+        int $categoryId,
+    ): ?ProductCategoryAssignment
     {
         return array_find(
             $this->assignments,
@@ -143,7 +154,10 @@ class FakeProductCategoryAssignmentRepository implements ProductCategoryAssignme
     /**
      * @param array<string, mixed> $criteria
      */
-    private function matchesCriteria(ProductCategoryAssignment $assignment, array $criteria): bool
+    private function matchesCriteria(
+        ProductCategoryAssignment $assignment,
+        array $criteria,
+    ): bool
     {
         return array_all(
             array_keys($criteria),

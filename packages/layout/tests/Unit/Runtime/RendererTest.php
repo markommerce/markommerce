@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 use Marko\Core\Container\ContainerInterface;
 use Marko\Routing\Http\Request;
+use Marko\Routing\Http\Response;
 use Marko\View\ViewInterface;
 use Markommerce\Layout\Cache\PreparedPlace;
 use Markommerce\Layout\Cache\PreparedRepeatSlot;
 use Markommerce\Layout\Cache\PreparedTree;
 use Markommerce\Layout\Contracts\ContextProvider;
 use Markommerce\Layout\Contracts\DecoratorInterface;
-use Markommerce\Layout\ExtensionBag;
+use Markommerce\Layout\Contracts\ExtensionAttribute;
 use Markommerce\Layout\ExtensibleData;
+use Markommerce\Layout\ExtensionBag;
 use Markommerce\Layout\Provide;
 use Markommerce\Layout\Runtime\Renderer;
 use Markommerce\Layout\Source\Source;
@@ -26,12 +28,18 @@ use Markommerce\Layout\Source\Source;
  */
 class FakeView implements ViewInterface
 {
-    public function render(string $template, array $data = []): \Marko\Routing\Http\Response
+    public function render(
+        string $template,
+        array $data = [],
+    ): Response
     {
-        return \Marko\Routing\Http\Response::html($this->renderToString($template, $data));
+        return Response::html($this->renderToString($template, $data));
     }
 
-    public function renderToString(string $template, array $data = []): string
+    public function renderToString(
+        string $template,
+        array $data = [],
+    ): string
     {
         // Build output: <div data-template="{template}">{prop values}{slot placeholders}</div>
         $props = '';
@@ -61,7 +69,10 @@ class FakeContainer implements ContainerInterface
     /** @var array<string, object> */
     private array $bindings = [];
 
-    public function bind(string $class, object $instance): void
+    public function bind(
+        string $class,
+        object $instance,
+    ): void
     {
         $this->bindings[$class] = $instance;
     }
@@ -75,7 +86,7 @@ class FakeContainer implements ContainerInterface
         if (class_exists($id)) {
             return new $id();
         }
-        throw new \RuntimeException("No binding for $id");
+        throw new RuntimeException("No binding for $id");
     }
 
     public function has(string $id): bool
@@ -85,12 +96,15 @@ class FakeContainer implements ContainerInterface
 
     public function singleton(string $id): void {}
 
-    public function instance(string $id, object $instance): void
+    public function instance(
+        string $id,
+        object $instance,
+    ): void
     {
         $this->bindings[$id] = $instance;
     }
 
-    public function call(\Closure $callable): mixed
+    public function call(Closure $callable): mixed
     {
         return $callable();
     }
@@ -113,6 +127,7 @@ class RT_StoreContextProvider implements ContextProvider
     {
         $this->callCount++;
         $ctx = new RT_StoreContext();
+
         return $ctx;
     }
 
@@ -125,6 +140,7 @@ class RT_StoreContextProvider implements ContextProvider
 class RT_SimpleComponentData
 {
     public string $title = '';
+
     public function __construct(string $title = '')
     {
         $this->title = $title;
@@ -142,6 +158,7 @@ class RT_SimpleComponent
 class RT_ParentData
 {
     public string $parentTitle = '';
+
     public function __construct(string $parentTitle = '')
     {
         $this->parentTitle = $parentTitle;
@@ -159,6 +176,7 @@ class RT_ParentComponent
 class RT_ChildData
 {
     public string $childTitle = '';
+
     public function __construct(string $childTitle = '')
     {
         $this->childTitle = $childTitle;
@@ -176,6 +194,7 @@ class RT_ChildComponent
 class RT_ItemData
 {
     public string $itemName = '';
+
     public function __construct(string $itemName = '')
     {
         $this->itemName = $itemName;
@@ -197,7 +216,10 @@ class RT_SimpleDecorator implements DecoratorInterface
         return '<wrapper>{slot inner}</wrapper>';
     }
 
-    public function wrap(string $innerHtml, array $data = []): string
+    public function wrap(
+        string $innerHtml,
+        array $data = [],
+    ): string
     {
         return str_replace('{slot inner}', $innerHtml, $this->template());
     }
@@ -210,7 +232,10 @@ class RT_OuterDecorator implements DecoratorInterface
         return '<outer>{slot inner}</outer>';
     }
 
-    public function wrap(string $innerHtml, array $data = []): string
+    public function wrap(
+        string $innerHtml,
+        array $data = [],
+    ): string
     {
         return str_replace('{slot inner}', $innerHtml, $this->template());
     }
@@ -223,14 +248,17 @@ class RT_InnerDecorator implements DecoratorInterface
         return '<inner>{slot inner}</inner>';
     }
 
-    public function wrap(string $innerHtml, array $data = []): string
+    public function wrap(
+        string $innerHtml,
+        array $data = [],
+    ): string
     {
         return str_replace('{slot inner}', $innerHtml, $this->template());
     }
 }
 
 // Extension fixtures for plugin test
-readonly class RT_BadgeExtension implements \Markommerce\Layout\Contracts\ExtensionAttribute
+readonly class RT_BadgeExtension implements ExtensionAttribute
 {
     public function __construct(public string $label) {}
 }
@@ -352,15 +380,21 @@ it('makes parent data available to a child parent-data source', function (): voi
         context: [],
     );
 
-    $view = new class extends FakeView {
+    $view = new class () extends FakeView
+    {
         /** @var array<string, mixed> */
         public array $lastData = [];
+
         public string $lastTemplate = '';
 
-        public function renderToString(string $template, array $data = []): string
+        public function renderToString(
+            string $template,
+            array $data = [],
+        ): string
         {
             $this->lastTemplate = $template;
             $this->lastData = $data;
+
             return parent::renderToString($template, $data);
         }
     };
@@ -408,14 +442,19 @@ it('inlines sub-slot HTML into a parent template slot placeholder', function ():
     $container->bind(RT_SimpleComponent::class, $childComp);
 
     // A view that includes slot placeholders in its output
-    $view = new class extends FakeView {
-        public function renderToString(string $template, array $data = []): string
+    $view = new class () extends FakeView
+    {
+        public function renderToString(
+            string $template,
+            array $data = [],
+        ): string
         {
             $base = parent::renderToString($template, $data);
             // Inject a slot placeholder for the 'child_slot' slot
             if (isset($data['_slots']['child_slot'])) {
                 $base = str_replace('</div>', '{slot child_slot}{/slot}</div>', $base);
             }
+
             return $base;
         }
     };
@@ -462,12 +501,14 @@ it('iterates a repeat slot rendering children once per item', function (): void 
     $container->bind(RT_ParentComponent::class, $parentComp);
 
     // Parent returns a list
-    $parentWithList = new class {
+    $parentWithList = new class ()
+    {
         /** @return array<string, string> */
         public function data(): object
         {
             $d = new stdClass();
             $d->items = ['item1', 'item2', 'item3'];
+
             return $d;
         }
     };
@@ -512,13 +553,18 @@ it('iterates a repeat slot rendering children once per item', function (): void 
 });
 
 it('exposes the iteration item to repeat-slot children', function (): void {
-    $view = new class extends FakeView {
+    $view = new class () extends FakeView
+    {
         /** @var array<array<string, mixed>> */
         public array $calls = [];
 
-        public function renderToString(string $template, array $data = []): string
+        public function renderToString(
+            string $template,
+            array $data = [],
+        ): string
         {
             $this->calls[] = ['template' => $template, 'data' => $data];
+
             return parent::renderToString($template, $data);
         }
     };
@@ -527,11 +573,13 @@ it('exposes the iteration item to repeat-slot children', function (): void {
     $container = new FakeContainer();
     $container->bind(RT_ItemComponent::class, $itemComp);
 
-    $parentWithList = new class {
+    $parentWithList = new class ()
+    {
         public function data(): object
         {
             $d = new stdClass();
             $d->items = ['alpha', 'beta'];
+
             return $d;
         }
     };
@@ -677,11 +725,13 @@ it('renders an extension field added to a component DTO via a Marko plugin', fun
 it('renders an empty repeat slot as no output', function (): void {
     $container = new FakeContainer();
 
-    $parentWithEmpty = new class {
+    $parentWithEmpty = new class ()
+    {
         public function data(): object
         {
             $d = new stdClass();
             $d->items = [];
+
             return $d;
         }
     };

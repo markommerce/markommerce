@@ -7,7 +7,6 @@ use Marko\Core\Command\Output;
 use Marko\Core\Container\PreferenceRegistry;
 use Markommerce\Config\Attributes\Config;
 use Markommerce\Config\Command\GenerateCommand;
-use Markommerce\Config\Exceptions\InvalidConfigClassException;
 use Markommerce\Config\Proxy\PreferenceAwareScanner;
 use Markommerce\Config\Proxy\ProxyGenerator;
 use Markommerce\Config\Proxy\ProxyLocator;
@@ -118,7 +117,11 @@ it('expands the class list via PreferenceAwareScanner so preferenced subclasses 
     $extendedProxyFqn = $locator->proxyClassFor(ExtendedConfig::class);
 
     $basePath = $targetDir . DIRECTORY_SEPARATOR . str_replace('\\', DIRECTORY_SEPARATOR, $baseProxyFqn) . '.php';
-    $extendedPath = $targetDir . DIRECTORY_SEPARATOR . str_replace('\\', DIRECTORY_SEPARATOR, $extendedProxyFqn) . '.php';
+    $extendedPath = $targetDir . DIRECTORY_SEPARATOR . str_replace(
+        '\\',
+        DIRECTORY_SEPARATOR,
+        $extendedProxyFqn
+    ) . '.php';
 
     $result = runGenerateCommand($command);
 

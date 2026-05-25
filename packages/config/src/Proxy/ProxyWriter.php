@@ -18,8 +18,7 @@ class ProxyWriter
         string $generatedFqn,
         string $source,
         string $targetDir,
-    ): string
-    {
+    ): string {
         $relativePath = str_replace('\\', DIRECTORY_SEPARATOR, $generatedFqn) . '.php';
         $absolutePath = rtrim($targetDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $relativePath;
 

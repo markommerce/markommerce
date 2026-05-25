@@ -99,7 +99,10 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
             return $this;
         }
 
-        public function selectRaw(string $expression, array $bindings = []): static
+        public function selectRaw(
+            string $expression,
+            array $bindings = [],
+        ): static
         {
             return $this;
         }
@@ -109,12 +112,19 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
             return $this;
         }
 
-        public function where(string $column, string $operator, mixed $value): static
+        public function where(
+            string $column,
+            string $operator,
+            mixed $value,
+        ): static
         {
             return $this;
         }
 
-        public function whereIn(string $column, array $values): static
+        public function whereIn(
+            string $column,
+            array $values,
+        ): static
         {
             return $this;
         }
@@ -129,7 +139,10 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
             return $this;
         }
 
-        public function whereJsonContains(string $column, mixed $value): static
+        public function whereJsonContains(
+            string $column,
+            mixed $value,
+        ): static
         {
             return $this;
         }
@@ -144,27 +157,49 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
             return $this;
         }
 
-        public function whereRaw(string $expression, array $bindings = []): static
+        public function whereRaw(
+            string $expression,
+            array $bindings = [],
+        ): static
         {
             return $this;
         }
 
-        public function orWhere(string $column, string $operator, mixed $value): static
+        public function orWhere(
+            string $column,
+            string $operator,
+            mixed $value,
+        ): static
         {
             return $this;
         }
 
-        public function join(string $table, string $first, string $operator, string $second): static
+        public function join(
+            string $table,
+            string $first,
+            string $operator,
+            string $second,
+        ): static
         {
             return $this;
         }
 
-        public function leftJoin(string $table, string $first, string $operator, string $second): static
+        public function leftJoin(
+            string $table,
+            string $first,
+            string $operator,
+            string $second,
+        ): static
         {
             return $this;
         }
 
-        public function rightJoin(string $table, string $first, string $operator, string $second): static
+        public function rightJoin(
+            string $table,
+            string $first,
+            string $operator,
+            string $second,
+        ): static
         {
             return $this;
         }
@@ -174,7 +209,10 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
             return $this;
         }
 
-        public function having(string $expression, array $bindings = []): static
+        public function having(
+            string $expression,
+            array $bindings = [],
+        ): static
         {
             return $this;
         }
@@ -259,19 +297,28 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
             return null;
         }
 
-        public function raw(string $sql, array $bindings = []): array
+        public function raw(
+            string $sql,
+            array $bindings = [],
+        ): array
         {
             return [];
         }
 
-        public function orderBy(string $column, string $direction = 'ASC'): static
+        public function orderBy(
+            string $column,
+            string $direction = 'ASC',
+        ): static
         {
             $this->orderByCalls[] = ['column' => $column, 'direction' => $direction];
 
             return $this;
         }
 
-        public function orderByRaw(string $expression, string $direction = 'ASC'): static
+        public function orderByRaw(
+            string $expression,
+            string $direction = 'ASC',
+        ): static
         {
             $this->orderByRawCalls[] = ['expression' => $expression, 'direction' => $direction];
 
@@ -391,21 +438,24 @@ it('rejects setOverride at a default scope through ScopeResolver', function (): 
         ->toThrow(InvalidSignatureForAttributeException::class);
 });
 
-it('resolvedAt with a default-scope signature returns the base column value (the findFirstMatch filter)', function (): void {
-    DefaultScopeGuard::reset();
-
-    $registry = loadShippedRegistry();
-    [, , , , , , $resolver] = buildResolverStack($registry);
-
-    $product = new DefaultScopeProduct();
-    $product->name = 'base-name';
-
-    // ScopeSignature with locale at its default value ('default').
+it(
+    'resolvedAt with a default-scope signature returns the base column value (the findFirstMatch filter)',
+    function (): void {
+        DefaultScopeGuard::reset();
+    
+        $registry = loadShippedRegistry();
+        [, , , , , , $resolver] = buildResolverStack($registry);
+    
+        $product = new DefaultScopeProduct();
+        $product->name = 'base-name';
+    
+        // ScopeSignature with locale at its default value ('default').
     // walkAt → findFirstMatch filters 'default' from walkUp results → empty walk →
     // notFound → resolvedAt falls back to the base column property.
     $defaultSignature = new ScopeSignature(['locale' => 'default']);
-
-    $result = $resolver->resolvedAt($product, 'name', $defaultSignature);
-
-    expect($result)->toBe('base-name');
-});
+    
+        $result = $resolver->resolvedAt($product, 'name', $defaultSignature);
+    
+        expect($result)->toBe('base-name');
+    }
+);

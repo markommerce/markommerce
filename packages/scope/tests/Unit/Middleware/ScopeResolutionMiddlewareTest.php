@@ -32,7 +32,10 @@ function makeMiddlewareRegistry(array $axes = [], array $defaults = []): ScopeRe
          * @param array<string, list<string>> $axes
          * @param array<string, string>       $defaults
          */
-        public function __construct(array $axes, array $defaults = [])
+        public function __construct(
+            array $axes,
+            array $defaults = [],
+        )
         {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
@@ -129,7 +132,10 @@ it('it runs the pipeline with http channel before calling next', function (): vo
         /** @phpstan-ignore property.onlyWritten */
         public function __construct(private mixed &$capturedChannel) {}
 
-        public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $resolutionContext): string
+        public function resolve(
+            ScopeAxis $scopeAxis,
+            ScopeResolutionContext $resolutionContext,
+        ): string
         {
             $this->capturedChannel = $resolutionContext->channel;
 
@@ -198,7 +204,10 @@ it('it clears the scope context after the handler returns successfully', functio
 
     $resolver = new class () implements ScopeAxisResolverInterface
     {
-        public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $resolutionContext): string
+        public function resolve(
+            ScopeAxis $scopeAxis,
+            ScopeResolutionContext $resolutionContext,
+        ): string
         {
             return $scopeAxis->default;
         }
@@ -226,7 +235,10 @@ it('it clears the scope context when the handler throws an Exception', function 
 
     $resolver = new class () implements ScopeAxisResolverInterface
     {
-        public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $resolutionContext): string
+        public function resolve(
+            ScopeAxis $scopeAxis,
+            ScopeResolutionContext $resolutionContext,
+        ): string
         {
             return $scopeAxis->default;
         }
@@ -259,7 +271,10 @@ it('it clears the scope context when the handler throws an Error (not just Excep
 
     $resolver = new class () implements ScopeAxisResolverInterface
     {
-        public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $resolutionContext): string
+        public function resolve(
+            ScopeAxis $scopeAxis,
+            ScopeResolutionContext $resolutionContext,
+        ): string
         {
             return $scopeAxis->default;
         }

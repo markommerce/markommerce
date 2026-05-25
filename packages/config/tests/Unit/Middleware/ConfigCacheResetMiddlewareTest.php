@@ -16,7 +16,10 @@ class FakeConfigCache implements ConfigCacheInterface
     /** @var array<string, mixed> */
     private array $store = [];
 
-    public function get(string $cacheKey, Closure $loader): mixed
+    public function get(
+        string $cacheKey,
+        Closure $loader,
+    ): mixed
     {
         if (array_key_exists($cacheKey, $this->store)) {
             return $this->store[$cacheKey];

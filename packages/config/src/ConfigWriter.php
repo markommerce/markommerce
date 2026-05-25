@@ -26,15 +26,12 @@ class ConfigWriter implements ConfigWriterInterface
     ) {}
 
     /**
-     * @throws ConfigNotFoundException
-     * @throws StaleConfigWriteException
-     * @throws SecretCipherException
+     * @throws ConfigNotFoundException|StaleConfigWriteException|SecretCipherException
      */
     public function setGlobal(
         string $key,
         mixed $value,
-    ): void
-    {
+    ): void {
         $definition = $this->registry->byKey($key);
 
         if ($definition->secret && $value !== null) {
@@ -51,8 +48,7 @@ class ConfigWriter implements ConfigWriterInterface
     }
 
     /**
-     * @throws ConfigNotFoundException
-     * @throws StaleConfigWriteException
+     * @throws ConfigNotFoundException|StaleConfigWriteException
      */
     public function unsetGlobal(string $key): void
     {
@@ -60,17 +56,13 @@ class ConfigWriter implements ConfigWriterInterface
     }
 
     /**
-     * @throws ConfigNotFoundException
-     * @throws AxisNotDeclaredException
-     * @throws StaleConfigWriteException
-     * @throws SecretCipherException
+     * @throws ConfigNotFoundException|AxisNotDeclaredException|StaleConfigWriteException|SecretCipherException
      */
     public function setOverride(
         string $key,
         ScopeSignature $signature,
         mixed $value,
-    ): void
-    {
+    ): void {
         $definition = $this->registry->byKey($key);
 
         foreach ($signature->axes() as $axis) {
@@ -93,15 +85,12 @@ class ConfigWriter implements ConfigWriterInterface
     }
 
     /**
-     * @throws ConfigNotFoundException
-     * @throws AxisNotDeclaredException
-     * @throws StaleConfigWriteException
+     * @throws ConfigNotFoundException|AxisNotDeclaredException|StaleConfigWriteException
      */
     public function unsetOverride(
         string $key,
         ScopeSignature $signature,
-    ): void
-    {
+    ): void {
         $this->setOverride($key, $signature, null);
     }
 
@@ -113,8 +102,7 @@ class ConfigWriter implements ConfigWriterInterface
     private function writeWithRetry(
         string $key,
         callable $mutate,
-    ): void
-    {
+    ): void {
         for ($attempt = 0; $attempt < self::MAX_RETRIES; $attempt++) {
             $existing = $this->storage->load($key);
             $currentVersion = $existing !== null ? $existing->version : 0;

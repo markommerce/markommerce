@@ -16,8 +16,7 @@ class ConfigKeyConflictException extends MarkoException
         string $key,
         string $firstClass,
         string $secondClass,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Config key '$key' is claimed by both '$firstClass' and '$secondClass'",
             context: "Registering config definitions — duplicate key '$key' detected",

@@ -38,8 +38,7 @@ class InMemoryConfigStorage implements ConfigStorageInterface
         string $key,
         ConfigRow $row,
         int $expectedVersion,
-    ): bool
-    {
+    ): bool {
         $isEmpty = $row->value === null && $row->overrides === [];
         $exists = isset($this->store[$key]);
         $storedVersion = $exists ? $this->store[$key]->version : 0;

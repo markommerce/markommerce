@@ -30,12 +30,15 @@ it('enables strict, noUncheckedIndexedAccess, and noImplicitOverride', function 
     expect($config['compilerOptions']['noImplicitOverride'])->toBeTrue();
 });
 
-it('sets useDefineForClassFields to false and experimentalDecorators to true for Lit compatibility', function (): void {
-    $config = readTsConfig(__DIR__ . '/../../../../tsconfig.json');
-
-    expect($config['compilerOptions']['useDefineForClassFields'])->toBeFalse();
-    expect($config['compilerOptions']['experimentalDecorators'])->toBeTrue();
-});
+it(
+    'sets useDefineForClassFields to false and experimentalDecorators to true for Lit compatibility',
+    function (): void {
+        $config = readTsConfig(__DIR__ . '/../../../../tsconfig.json');
+    
+        expect($config['compilerOptions']['useDefineForClassFields'])->toBeFalse();
+        expect($config['compilerOptions']['experimentalDecorators'])->toBeTrue();
+    }
+);
 
 it('sets isolatedModules and skipLibCheck for fast builds', function (): void {
     $config = readTsConfig(__DIR__ . '/../../../../tsconfig.json');
@@ -47,7 +50,9 @@ it('sets isolatedModules and skipLibCheck for fast builds', function (): void {
 it('maps @markommerce/frontend to packages/frontend/resources/js/index.ts', function (): void {
     $config = readTsConfig(__DIR__ . '/../../../../tsconfig.json');
 
-    expect($config['compilerOptions']['paths']['@markommerce/frontend'])->toBe(['packages/frontend/resources/js/index.ts']);
+    expect($config['compilerOptions']['paths']['@markommerce/frontend'])->toBe(
+        ['packages/frontend/resources/js/index.ts']
+    );
 });
 
 it('maps @markommerce/frontend/* to packages/frontend/resources/js/*', function (): void {
@@ -70,12 +75,15 @@ it('excludes node_modules, public/build, and vendor', function (): void {
     expect($config['exclude'])->toContain('vendor');
 });
 
-it('the packages/frontend/tsconfig.json extends the root config and scopes include to its own resources/js', function (): void {
-    $config = readTsConfig(__DIR__ . '/../../tsconfig.json');
-
-    expect($config['extends'])->toBe('../../tsconfig.json');
-    expect($config['include'])->toContain('resources/js/**/*');
-});
+it(
+    'the packages/frontend/tsconfig.json extends the root config and scopes include to its own resources/js',
+    function (): void {
+        $config = readTsConfig(__DIR__ . '/../../tsconfig.json');
+    
+        expect($config['extends'])->toBe('../../tsconfig.json');
+        expect($config['include'])->toContain('resources/js/**/*');
+    }
+);
 
 it('tsc --noEmit run from the repo root reports zero errors on the empty kernel', function (): void {
     $rootConfig = readTsConfig(__DIR__ . '/../../../../tsconfig.json');

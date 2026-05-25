@@ -6,7 +6,7 @@ namespace Markommerce\Layout\Runtime;
 
 use InvalidArgumentException;
 use Markommerce\Layout\Contracts\SourceInterface;
-use Markommerce\Layout\Exception\InvalidSourceTypeException;
+use Markommerce\Layout\Exceptions\InvalidSourceTypeException;
 use Markommerce\Layout\Source\ContextSource;
 use Markommerce\Layout\Source\IteratedSource;
 use Markommerce\Layout\Source\ParentDataSource;
@@ -25,8 +25,7 @@ class SourceResolver
     public function resolve(
         mixed $source,
         ResolutionContext $context,
-    ): mixed
-    {
+    ): mixed {
         return match (true) {
             $source instanceof RouteSource => $this->resolveRoute($source, $context),
             $source instanceof QuerySource => $this->resolveQuery($source, $context),
@@ -45,8 +44,7 @@ class SourceResolver
     private function resolveRoute(
         RouteSource $source,
         ResolutionContext $context,
-    ): mixed
-    {
+    ): mixed {
         $value = $context->routeParams[$source->name] ?? null;
 
         if ($value === null) {
@@ -63,8 +61,7 @@ class SourceResolver
     private function resolveQuery(
         QuerySource $source,
         ResolutionContext $context,
-    ): mixed
-    {
+    ): mixed {
         $value = $context->request->query($source->name, $source->default);
 
         if ($value === null) {
@@ -77,8 +74,7 @@ class SourceResolver
     private function resolveContext(
         ContextSource $source,
         ResolutionContext $context,
-    ): mixed
-    {
+    ): mixed {
         if (!array_key_exists($source->token, $context->contextMap)) {
             throw new RuntimeException(
                 "Unknown context token '$source->token' in placement chain '$context->placementChain'.",
@@ -97,8 +93,7 @@ class SourceResolver
     private function resolveIterated(
         IteratedSource $source,
         ResolutionContext $context,
-    ): mixed
-    {
+    ): mixed {
         $value = $context->iterationItem;
 
         if ($source->path !== null) {
@@ -114,8 +109,7 @@ class SourceResolver
     private function resolveParentData(
         ParentDataSource $source,
         ResolutionContext $context,
-    ): mixed
-    {
+    ): mixed {
         $data = $context->parentData;
         $value = $data->{$source->key};
 
@@ -125,8 +119,7 @@ class SourceResolver
     private function resolveService(
         ServiceSource $source,
         ResolutionContext $context,
-    ): mixed
-    {
+    ): mixed {
         if ($context->container === null) {
             throw new RuntimeException(
                 "Cannot resolve service '$source->class': no container available in placement '$context->placementChain'.",
@@ -143,8 +136,7 @@ class SourceResolver
         mixed $value,
         string $as,
         string $sourceName,
-    ): mixed
-    {
+    ): mixed {
         return match ($as) {
             'int' => is_numeric((string) $value) ? (int) $value : throw InvalidSourceTypeException::forSource(
                 $sourceName,
@@ -161,8 +153,7 @@ class SourceResolver
         mixed $value,
         string $path,
         string $placementChain,
-    ): mixed
-    {
+    ): mixed {
         $segments = explode('.', $path);
 
         foreach ($segments as $segment) {

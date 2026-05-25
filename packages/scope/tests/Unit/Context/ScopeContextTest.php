@@ -21,7 +21,10 @@ function makeScopeRegistry(array $axes = [], array $defaults = []): ScopeRegistr
         private array $builtAxes;
 
         /** @param array<string, list<string>> $axes @param array<string, string> $defaults */
-        public function __construct(private readonly array $axes, array $defaults = [])
+        public function __construct(
+            private readonly array $axes,
+            array $defaults = [],
+        )
         {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
@@ -114,15 +117,18 @@ it('clears a single axis via clear and all axes via clearAll', function (): void
     expect($context->get('locale'))->toBeNull();
 });
 
-it('exposes the full active-state map (axis-name → active-path) via the state() method, not just keys', function (): void {
-    $registry = makeScopeRegistry(['geo' => ['eu', 'eu.de', 'us'], 'locale' => ['en', 'fr']]);
-    $context = new ScopeContext($registry);
-    $context->in('geo', 'eu.de')->in('locale', 'en');
-
-    $state = $context->state();
-
-    expect($state)->toBe(['geo' => 'eu.de', 'locale' => 'en']);
-});
+it(
+    'exposes the full active-state map (axis-name → active-path) via the state() method, not just keys',
+    function (): void {
+        $registry = makeScopeRegistry(['geo' => ['eu', 'eu.de', 'us'], 'locale' => ['en', 'fr']]);
+        $context = new ScopeContext($registry);
+        $context->in('geo', 'eu.de')->in('locale', 'en');
+    
+        $state = $context->state();
+    
+        expect($state)->toBe(['geo' => 'eu.de', 'locale' => 'en']);
+    }
+);
 
 it('returns an empty array when no axes are active', function (): void {
     $registry = makeScopeRegistry(['geo' => ['eu', 'eu.de']]);

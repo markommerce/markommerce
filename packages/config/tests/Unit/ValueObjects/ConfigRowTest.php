@@ -50,24 +50,27 @@ it('returns a new ConfigRow with the global cleared to null via withoutGlobal', 
         ->and($cleared->version)->toBe($row->version);
 });
 
-it('returns a new ConfigRow with an override added or replaced via withOverride keyed by signature string', function (): void {
-    $row = new ConfigRow(
-        key: 'markommerce/catalog.grid_page_size',
-        value: 20,
-        overrides: ['website=1' => 50],
-        version: 1,
-    );
-
-    $withNew = $row->withOverride('store=2', 10);
-    $withReplaced = $row->withOverride('website=1', 99);
-
-    expect($withNew)->not->toBe($row)
-        ->and($withNew->overrides)->toBe(['website=1' => 50, 'store=2' => 10])
-        ->and($withNew->version)->toBe($row->version);
-
-    expect($withReplaced->overrides)->toBe(['website=1' => 99])
-        ->and($withReplaced->version)->toBe($row->version);
-});
+it(
+    'returns a new ConfigRow with an override added or replaced via withOverride keyed by signature string',
+    function (): void {
+        $row = new ConfigRow(
+            key: 'markommerce/catalog.grid_page_size',
+            value: 20,
+            overrides: ['website=1' => 50],
+            version: 1,
+        );
+    
+        $withNew = $row->withOverride('store=2', 10);
+        $withReplaced = $row->withOverride('website=1', 99);
+    
+        expect($withNew)->not->toBe($row)
+            ->and($withNew->overrides)->toBe(['website=1' => 50, 'store=2' => 10])
+            ->and($withNew->version)->toBe($row->version);
+    
+        expect($withReplaced->overrides)->toBe(['website=1' => 99])
+            ->and($withReplaced->version)->toBe($row->version);
+    }
+);
 
 it('returns a new ConfigRow with a specific override removed via withoutOverride', function (): void {
     $row = new ConfigRow(

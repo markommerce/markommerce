@@ -163,30 +163,36 @@ function themeBlankDemoTestBuildRouter(
     return new Router($matcher, $container, $globalMiddleware);
 }
 
-it('it the #[Get] attribute is placed on the ThemeBlankDemoController action method with path /markommerce/_demo/theme-blank', function (): void {
-    $reflection = new ReflectionClass(ThemeBlankDemoController::class);
+it(
+    'it the #[Get] attribute is placed on the ThemeBlankDemoController action method with path /markommerce/_demo/theme-blank',
+    function (): void {
+        $reflection = new ReflectionClass(ThemeBlankDemoController::class);
+    
+        $classGetAttributes = $reflection->getAttributes(Get::class);
+        expect($classGetAttributes)->toBeEmpty();
+    
+        $method = $reflection->getMethod('index');
+        $methodGetAttributes = $method->getAttributes(Get::class);
+        expect($methodGetAttributes)->not->toBeEmpty();
+    
+        $getAttr = $methodGetAttributes[0]->newInstance();
+        expect($getAttr->path)->toBe('/markommerce/_demo/theme-blank');
+    }
+);
 
-    $classGetAttributes = $reflection->getAttributes(Get::class);
-    expect($classGetAttributes)->toBeEmpty();
-
-    $method = $reflection->getMethod('index');
-    $methodGetAttributes = $method->getAttributes(Get::class);
-    expect($methodGetAttributes)->not->toBeEmpty();
-
-    $getAttr = $methodGetAttributes[0]->newInstance();
-    expect($getAttr->path)->toBe('/markommerce/_demo/theme-blank');
-});
-
-it('it the EnsureThemeBlankDemoEnabledMiddleware is registered via #[Middleware([...])] on the controller action method', function (): void {
-    $reflection = new ReflectionClass(ThemeBlankDemoController::class);
-    $method = $reflection->getMethod('index');
-    $middlewareAttributes = $method->getAttributes(Middleware::class);
-
-    expect($middlewareAttributes)->not->toBeEmpty();
-
-    $middlewareAttr = $middlewareAttributes[0]->newInstance();
-    expect($middlewareAttr->middleware)->toContain(EnsureThemeBlankDemoEnabledMiddleware::class);
-});
+it(
+    'it the EnsureThemeBlankDemoEnabledMiddleware is registered via #[Middleware([...])] on the controller action method',
+    function (): void {
+        $reflection = new ReflectionClass(ThemeBlankDemoController::class);
+        $method = $reflection->getMethod('index');
+        $middlewareAttributes = $method->getAttributes(Middleware::class);
+    
+        expect($middlewareAttributes)->not->toBeEmpty();
+    
+        $middlewareAttr = $middlewareAttributes[0]->newInstance();
+        expect($middlewareAttr->middleware)->toContain(EnsureThemeBlankDemoEnabledMiddleware::class);
+    }
+);
 
 it('it uses the ThemeBlankDemoLayout component as the layout for the route', function (): void {
     $reflection = new ReflectionClass(ThemeBlankDemoController::class);
@@ -208,161 +214,189 @@ it('it composes the ThemeBlankShowcaseComponent into the content slot of ThemeBl
     expect($componentAttr->slot)->toBe('content');
 });
 
-it('it the EnsureThemeBlankDemoEnabledMiddleware injects ThemeBlankDemoConfig via constructor and reads the enabled flag from there', function (): void {
-    $reflection = new ReflectionClass(EnsureThemeBlankDemoEnabledMiddleware::class);
-    $constructor = $reflection->getConstructor();
+it(
+    'it the EnsureThemeBlankDemoEnabledMiddleware injects ThemeBlankDemoConfig via constructor and reads the enabled flag from there',
+    function (): void {
+        $reflection = new ReflectionClass(EnsureThemeBlankDemoEnabledMiddleware::class);
+        $constructor = $reflection->getConstructor();
+    
+        expect($constructor)->not->toBeNull();
+    
+        $params = $constructor->getParameters();
+        $paramTypes = array_map(
+            fn ($p) => $p->getType()?->getName(),
+            $params,
+        );
+    
+        expect($paramTypes)->toContain(ThemeBlankDemoConfig::class);
+    }
+);
 
-    expect($constructor)->not->toBeNull();
+it(
+    'it follows project naming conventions: the ThemeBlankDemoConfig constructor parameter on EnsureThemeBlankDemoEnabledMiddleware is named themeBlankDemoConfig',
+    function (): void {
+        $reflection = new ReflectionClass(EnsureThemeBlankDemoEnabledMiddleware::class);
+        $constructor = $reflection->getConstructor();
+    
+        expect($constructor)->not->toBeNull();
+    
+        $paramNames = array_map(
+            fn ($p) => $p->getName(),
+            $constructor->getParameters(),
+        );
+    
+        expect($paramNames)->toContain('themeBlankDemoConfig');
+    }
+);
 
-    $params = $constructor->getParameters();
-    $paramTypes = array_map(
-        fn ($p) => $p->getType()?->getName(),
-        $params,
-    );
+it(
+    'it ThemeBlankDemoConfig.isEnabled() returns false when theme_blank_demo.enabled config key is absent',
+    function (): void {
+        $config = new ConfigRepository([]);
+        $themeBlankDemoConfig = new ThemeBlankDemoConfig($config);
+    
+        expect($themeBlankDemoConfig->isEnabled())->toBeFalse();
+    }
+);
 
-    expect($paramTypes)->toContain(ThemeBlankDemoConfig::class);
-});
+it(
+    'it ThemeBlankDemoConfig.isEnabled() returns the config repository\'s boolean value when the key is present',
+    function (): void {
+        $configEnabled = new ConfigRepository(['theme_blank_demo' => ['enabled' => true]]);
+        $themeBlankDemoConfigEnabled = new ThemeBlankDemoConfig($configEnabled);
+        expect($themeBlankDemoConfigEnabled->isEnabled())->toBeTrue();
+    
+        $configDisabled = new ConfigRepository(['theme_blank_demo' => ['enabled' => false]]);
+        $themeBlankDemoConfigDisabled = new ThemeBlankDemoConfig($configDisabled);
+        expect($themeBlankDemoConfigDisabled->isEnabled())->toBeFalse();
+    }
+);
 
-it('it follows project naming conventions: the ThemeBlankDemoConfig constructor parameter on EnsureThemeBlankDemoEnabledMiddleware is named themeBlankDemoConfig', function (): void {
-    $reflection = new ReflectionClass(EnsureThemeBlankDemoEnabledMiddleware::class);
-    $constructor = $reflection->getConstructor();
+it(
+    'it returns 200 OK when theme_blank_demo.enabled is true and GET /markommerce/_demo/theme-blank is requested',
+    function (): void {
+        $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-200-' . bin2hex(random_bytes(8));
+        mkdir($cacheDir, 0755, true);
+    
+        $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+        $themeBlankDemoPath = dirname(__DIR__, 2);
+        $basePath = $cacheDir . '/base';
+    
+        themeBlankDemoTestEnsureManifest($basePath);
+    
+        $config = new ConfigRepository([
+            'theme_blank_demo' => ['enabled' => true],
+            'vite' => [
+                'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
+                'buildDirectory' => 'build',
+                'manifestFilename' => '.vite/manifest.json',
+                'devServerUrl' => 'http://localhost:5173',
+                'useDevServer' => false,
+                'devServerStylesheets' => [],
+            ],
+            'view' => [
+                'cache_directory' => $cacheDir,
+                'extension' => '.latte',
+                'auto_refresh' => true,
+                'strict_types' => false,
+            ],
+        ]);
+    
+        $router = themeBlankDemoTestBuildRouter($config, $frontendPath, $themeBlankDemoPath, $basePath, $cacheDir);
+        $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
+        $response = $router->handle($request);
+    
+        expect($response->statusCode())->toBe(200);
+    
+        themeBlankDemoTestCleanup($cacheDir);
+    }
+);
 
-    expect($constructor)->not->toBeNull();
+it(
+    'it returns 404 when theme_blank_demo.enabled is false because EnsureThemeBlankDemoEnabledMiddleware short-circuits before LayoutMiddleware runs',
+    function (): void {
+        $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-404-' . bin2hex(random_bytes(8));
+        mkdir($cacheDir, 0755, true);
+    
+        $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+        $themeBlankDemoPath = dirname(__DIR__, 2);
+        $basePath = $cacheDir . '/base';
+    
+        $config = new ConfigRepository([
+            'theme_blank_demo' => ['enabled' => false],
+            'vite' => [
+                'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
+                'buildDirectory' => 'build',
+                'manifestFilename' => '.vite/manifest.json',
+                'devServerUrl' => 'http://localhost:5173',
+                'useDevServer' => false,
+                'devServerStylesheets' => [],
+            ],
+            'view' => [
+                'cache_directory' => $cacheDir,
+                'extension' => '.latte',
+                'auto_refresh' => true,
+                'strict_types' => false,
+            ],
+        ]);
+    
+        $router = themeBlankDemoTestBuildRouter(
+            $config,
+            $frontendPath,
+            $themeBlankDemoPath,
+            $basePath,
+            $cacheDir,
+            withLayoutMiddleware: false
+        );
+        $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
+        $response = $router->handle($request);
+    
+        expect($response->statusCode())->toBe(404);
+    
+        themeBlankDemoTestCleanup($cacheDir);
+    }
+);
 
-    $paramNames = array_map(
-        fn ($p) => $p->getName(),
-        $constructor->getParameters(),
-    );
-
-    expect($paramNames)->toContain('themeBlankDemoConfig');
-});
-
-it('it ThemeBlankDemoConfig.isEnabled() returns false when theme_blank_demo.enabled config key is absent', function (): void {
-    $config = new ConfigRepository([]);
-    $themeBlankDemoConfig = new ThemeBlankDemoConfig($config);
-
-    expect($themeBlankDemoConfig->isEnabled())->toBeFalse();
-});
-
-it('it ThemeBlankDemoConfig.isEnabled() returns the config repository\'s boolean value when the key is present', function (): void {
-    $configEnabled = new ConfigRepository(['theme_blank_demo' => ['enabled' => true]]);
-    $themeBlankDemoConfigEnabled = new ThemeBlankDemoConfig($configEnabled);
-    expect($themeBlankDemoConfigEnabled->isEnabled())->toBeTrue();
-
-    $configDisabled = new ConfigRepository(['theme_blank_demo' => ['enabled' => false]]);
-    $themeBlankDemoConfigDisabled = new ThemeBlankDemoConfig($configDisabled);
-    expect($themeBlankDemoConfigDisabled->isEnabled())->toBeFalse();
-});
-
-it('it returns 200 OK when theme_blank_demo.enabled is true and GET /markommerce/_demo/theme-blank is requested', function (): void {
-    $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-200-' . bin2hex(random_bytes(8));
-    mkdir($cacheDir, 0755, true);
-
-    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
-    $themeBlankDemoPath = dirname(__DIR__, 2);
-    $basePath = $cacheDir . '/base';
-
-    themeBlankDemoTestEnsureManifest($basePath);
-
-    $config = new ConfigRepository([
-        'theme_blank_demo' => ['enabled' => true],
-        'vite' => [
-            'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
-            'buildDirectory' => 'build',
-            'manifestFilename' => '.vite/manifest.json',
-            'devServerUrl' => 'http://localhost:5173',
-            'useDevServer' => false,
-            'devServerStylesheets' => [],
-        ],
-        'view' => [
-            'cache_directory' => $cacheDir,
-            'extension' => '.latte',
-            'auto_refresh' => true,
-            'strict_types' => false,
-        ],
-    ]);
-
-    $router = themeBlankDemoTestBuildRouter($config, $frontendPath, $themeBlankDemoPath, $basePath, $cacheDir);
-    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
-    $response = $router->handle($request);
-
-    expect($response->statusCode())->toBe(200);
-
-    themeBlankDemoTestCleanup($cacheDir);
-});
-
-it('it returns 404 when theme_blank_demo.enabled is false because EnsureThemeBlankDemoEnabledMiddleware short-circuits before LayoutMiddleware runs', function (): void {
-    $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-404-' . bin2hex(random_bytes(8));
-    mkdir($cacheDir, 0755, true);
-
-    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
-    $themeBlankDemoPath = dirname(__DIR__, 2);
-    $basePath = $cacheDir . '/base';
-
-    $config = new ConfigRepository([
-        'theme_blank_demo' => ['enabled' => false],
-        'vite' => [
-            'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
-            'buildDirectory' => 'build',
-            'manifestFilename' => '.vite/manifest.json',
-            'devServerUrl' => 'http://localhost:5173',
-            'useDevServer' => false,
-            'devServerStylesheets' => [],
-        ],
-        'view' => [
-            'cache_directory' => $cacheDir,
-            'extension' => '.latte',
-            'auto_refresh' => true,
-            'strict_types' => false,
-        ],
-    ]);
-
-    $router = themeBlankDemoTestBuildRouter($config, $frontendPath, $themeBlankDemoPath, $basePath, $cacheDir, withLayoutMiddleware: false);
-    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
-    $response = $router->handle($request);
-
-    expect($response->statusCode())->toBe(404);
-
-    themeBlankDemoTestCleanup($cacheDir);
-});
-
-it('it includes the marko/vite generated script tag referencing packages/theme-blank-demo/resources/js/main.ts in the response head', function (): void {
-    $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-vite-' . bin2hex(random_bytes(8));
-    mkdir($cacheDir, 0755, true);
-
-    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
-    $themeBlankDemoPath = dirname(__DIR__, 2);
-    $basePath = $cacheDir . '/base';
-
-    themeBlankDemoTestEnsureManifest($basePath);
-
-    $config = new ConfigRepository([
-        'theme_blank_demo' => ['enabled' => true],
-        'vite' => [
-            'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
-            'buildDirectory' => 'build',
-            'manifestFilename' => '.vite/manifest.json',
-            'devServerUrl' => 'http://localhost:5173',
-            'useDevServer' => false,
-            'devServerStylesheets' => [],
-        ],
-        'view' => [
-            'cache_directory' => $cacheDir,
-            'extension' => '.latte',
-            'auto_refresh' => true,
-            'strict_types' => false,
-        ],
-    ]);
-
-    $router = themeBlankDemoTestBuildRouter($config, $frontendPath, $themeBlankDemoPath, $basePath, $cacheDir);
-    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
-    $response = $router->handle($request);
-
-    $body = $response->body();
-    expect($body)->toMatch('/<(script|link)/');
-
-    themeBlankDemoTestCleanup($cacheDir);
-});
+it(
+    'it includes the marko/vite generated script tag referencing packages/theme-blank-demo/resources/js/main.ts in the response head',
+    function (): void {
+        $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-vite-' . bin2hex(random_bytes(8));
+        mkdir($cacheDir, 0755, true);
+    
+        $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+        $themeBlankDemoPath = dirname(__DIR__, 2);
+        $basePath = $cacheDir . '/base';
+    
+        themeBlankDemoTestEnsureManifest($basePath);
+    
+        $config = new ConfigRepository([
+            'theme_blank_demo' => ['enabled' => true],
+            'vite' => [
+                'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
+                'buildDirectory' => 'build',
+                'manifestFilename' => '.vite/manifest.json',
+                'devServerUrl' => 'http://localhost:5173',
+                'useDevServer' => false,
+                'devServerStylesheets' => [],
+            ],
+            'view' => [
+                'cache_directory' => $cacheDir,
+                'extension' => '.latte',
+                'auto_refresh' => true,
+                'strict_types' => false,
+            ],
+        ]);
+    
+        $router = themeBlankDemoTestBuildRouter($config, $frontendPath, $themeBlankDemoPath, $basePath, $cacheDir);
+        $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
+        $response = $router->handle($request);
+    
+        $body = $response->body();
+        expect($body)->toMatch('/<(script|link)/');
+    
+        themeBlankDemoTestCleanup($cacheDir);
+    }
+);
 
 it('it the rendered page contains a Layout primitives heading', function (): void {
     $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-layout-heading-' . bin2hex(random_bytes(8));
@@ -475,24 +509,30 @@ it('it the rendered page contains a Form Controls heading', function (): void {
     themeBlankDemoTestCleanup($cacheDir);
 });
 
-it('it the layout/base.latte file loads the Vite entry for packages/theme-blank-demo/resources/js/main.ts (file-content assertion)', function (): void {
-    $baseLattePath = dirname(__DIR__, 2) . '/resources/views/layout/base.latte';
+it(
+    'it the layout/base.latte file loads the Vite entry for packages/theme-blank-demo/resources/js/main.ts (file-content assertion)',
+    function (): void {
+        $baseLattePath = dirname(__DIR__, 2) . '/resources/views/layout/base.latte';
+    
+        expect(file_exists($baseLattePath))->toBeTrue();
+    
+        $contents = file_get_contents($baseLattePath);
+        expect($contents)->toContain("'packages/theme-blank-demo/resources/js/main.ts'");
+    }
+);
 
-    expect(file_exists($baseLattePath))->toBeTrue();
-
-    $contents = file_get_contents($baseLattePath);
-    expect($contents)->toContain("'packages/theme-blank-demo/resources/js/main.ts'");
-});
-
-it('it the showcase.latte file contains the {syntax off} guard around the inline mk-form event-listener script (file-content assertion)', function (): void {
-    $showcaseLattePath = dirname(__DIR__, 2) . '/resources/views/showcase.latte';
-
-    expect(file_exists($showcaseLattePath))->toBeTrue();
-
-    $contents = file_get_contents($showcaseLattePath);
-    expect($contents)->toContain('{syntax off}');
-    expect($contents)->toContain('{/syntax}');
-});
+it(
+    'it the showcase.latte file contains the {syntax off} guard around the inline mk-form event-listener script (file-content assertion)',
+    function (): void {
+        $showcaseLattePath = dirname(__DIR__, 2) . '/resources/views/showcase.latte';
+    
+        expect(file_exists($showcaseLattePath))->toBeTrue();
+    
+        $contents = file_get_contents($showcaseLattePath);
+        expect($contents)->toContain('{syntax off}');
+        expect($contents)->toContain('{/syntax}');
+    }
+);
 
 it('it the /markommerce/_demo/theme-blank route renders a Layout Primitives heading', function (): void {
     $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-layout-h-' . bin2hex(random_bytes(8));
@@ -605,87 +645,93 @@ it('it the /markommerce/_demo/theme-blank route renders a Form Controls heading'
     themeBlankDemoTestCleanup($cacheDir);
 });
 
-it('it the rendered page contains every Phase 2 primitive tag (mk-stack, mk-cluster, mk-grid, mk-container, mk-sidebar, mk-switcher, mk-cover, mk-divider, mk-heading, mk-text, mk-link, mk-badge) — single test asserting each tag\'s presence', function (): void {
-    $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-phase2-' . bin2hex(random_bytes(8));
-    mkdir($cacheDir, 0755, true);
-
-    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
-    $themeBlankDemoPath = dirname(__DIR__, 2);
-    $basePath = $cacheDir . '/base';
-
-    themeBlankDemoTestEnsureManifest($basePath);
-
-    $config = new ConfigRepository([
-        'theme_blank_demo' => ['enabled' => true],
-        'vite' => [
-            'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
-            'buildDirectory' => 'build',
-            'manifestFilename' => '.vite/manifest.json',
-            'devServerUrl' => 'http://localhost:5173',
-            'useDevServer' => false,
-            'devServerStylesheets' => [],
-        ],
-        'view' => [
-            'cache_directory' => $cacheDir,
-            'extension' => '.latte',
-            'auto_refresh' => true,
-            'strict_types' => false,
-        ],
-    ]);
-
-    $router = themeBlankDemoTestBuildRouter($config, $frontendPath, $themeBlankDemoPath, $basePath, $cacheDir);
-    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
-    $response = $router->handle($request);
-
-    $body = $response->body();
-    $tags = ['<mk-stack', '<mk-cluster', '<mk-grid', '<mk-container', '<mk-sidebar', '<mk-switcher', '<mk-cover', '<mk-divider', '<mk-heading', '<mk-text', '<mk-link', '<mk-badge'];
-    foreach ($tags as $tag) {
-        expect($body)->toContain($tag);
+it(
+    'it the rendered page contains every Phase 2 primitive tag (mk-stack, mk-cluster, mk-grid, mk-container, mk-sidebar, mk-switcher, mk-cover, mk-divider, mk-heading, mk-text, mk-link, mk-badge) — single test asserting each tag\'s presence',
+    function (): void {
+        $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-phase2-' . bin2hex(random_bytes(8));
+        mkdir($cacheDir, 0755, true);
+    
+        $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+        $themeBlankDemoPath = dirname(__DIR__, 2);
+        $basePath = $cacheDir . '/base';
+    
+        themeBlankDemoTestEnsureManifest($basePath);
+    
+        $config = new ConfigRepository([
+            'theme_blank_demo' => ['enabled' => true],
+            'vite' => [
+                'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
+                'buildDirectory' => 'build',
+                'manifestFilename' => '.vite/manifest.json',
+                'devServerUrl' => 'http://localhost:5173',
+                'useDevServer' => false,
+                'devServerStylesheets' => [],
+            ],
+            'view' => [
+                'cache_directory' => $cacheDir,
+                'extension' => '.latte',
+                'auto_refresh' => true,
+                'strict_types' => false,
+            ],
+        ]);
+    
+        $router = themeBlankDemoTestBuildRouter($config, $frontendPath, $themeBlankDemoPath, $basePath, $cacheDir);
+        $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
+        $response = $router->handle($request);
+    
+        $body = $response->body();
+        $tags = ['<mk-stack', '<mk-cluster', '<mk-grid', '<mk-container', '<mk-sidebar', '<mk-switcher', '<mk-cover', '<mk-divider', '<mk-heading', '<mk-text', '<mk-link', '<mk-badge'];
+        foreach ($tags as $tag) {
+            expect($body)->toContain($tag);
+        }
+    
+        themeBlankDemoTestCleanup($cacheDir);
     }
+);
 
-    themeBlankDemoTestCleanup($cacheDir);
-});
-
-it('it the rendered page contains every Phase 3 form control tag (mk-button, mk-input, mk-textarea, mk-select, mk-checkbox, mk-radio, mk-switch, mk-field, mk-fieldset, mk-form) — single test asserting each tag\'s presence', function (): void {
-    $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-phase3-' . bin2hex(random_bytes(8));
-    mkdir($cacheDir, 0755, true);
-
-    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
-    $themeBlankDemoPath = dirname(__DIR__, 2);
-    $basePath = $cacheDir . '/base';
-
-    themeBlankDemoTestEnsureManifest($basePath);
-
-    $config = new ConfigRepository([
-        'theme_blank_demo' => ['enabled' => true],
-        'vite' => [
-            'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
-            'buildDirectory' => 'build',
-            'manifestFilename' => '.vite/manifest.json',
-            'devServerUrl' => 'http://localhost:5173',
-            'useDevServer' => false,
-            'devServerStylesheets' => [],
-        ],
-        'view' => [
-            'cache_directory' => $cacheDir,
-            'extension' => '.latte',
-            'auto_refresh' => true,
-            'strict_types' => false,
-        ],
-    ]);
-
-    $router = themeBlankDemoTestBuildRouter($config, $frontendPath, $themeBlankDemoPath, $basePath, $cacheDir);
-    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
-    $response = $router->handle($request);
-
-    $body = $response->body();
-    $tags = ['<mk-button', '<mk-input', '<mk-textarea', '<mk-select', '<mk-checkbox', '<mk-radio', '<mk-switch', '<mk-field', '<mk-fieldset', '<mk-form'];
-    foreach ($tags as $tag) {
-        expect($body)->toContain($tag);
+it(
+    'it the rendered page contains every Phase 3 form control tag (mk-button, mk-input, mk-textarea, mk-select, mk-checkbox, mk-radio, mk-switch, mk-field, mk-fieldset, mk-form) — single test asserting each tag\'s presence',
+    function (): void {
+        $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-phase3-' . bin2hex(random_bytes(8));
+        mkdir($cacheDir, 0755, true);
+    
+        $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+        $themeBlankDemoPath = dirname(__DIR__, 2);
+        $basePath = $cacheDir . '/base';
+    
+        themeBlankDemoTestEnsureManifest($basePath);
+    
+        $config = new ConfigRepository([
+            'theme_blank_demo' => ['enabled' => true],
+            'vite' => [
+                'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
+                'buildDirectory' => 'build',
+                'manifestFilename' => '.vite/manifest.json',
+                'devServerUrl' => 'http://localhost:5173',
+                'useDevServer' => false,
+                'devServerStylesheets' => [],
+            ],
+            'view' => [
+                'cache_directory' => $cacheDir,
+                'extension' => '.latte',
+                'auto_refresh' => true,
+                'strict_types' => false,
+            ],
+        ]);
+    
+        $router = themeBlankDemoTestBuildRouter($config, $frontendPath, $themeBlankDemoPath, $basePath, $cacheDir);
+        $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
+        $response = $router->handle($request);
+    
+        $body = $response->body();
+        $tags = ['<mk-button', '<mk-input', '<mk-textarea', '<mk-select', '<mk-checkbox', '<mk-radio', '<mk-switch', '<mk-field', '<mk-fieldset', '<mk-form'];
+        foreach ($tags as $tag) {
+            expect($body)->toContain($tag);
+        }
+    
+        themeBlankDemoTestCleanup($cacheDir);
     }
-
-    themeBlankDemoTestCleanup($cacheDir);
-});
+);
 
 it('it renders a complete mk-form example with at least one mk-field child', function (): void {
     $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-form-field-' . bin2hex(random_bytes(8));
@@ -726,87 +772,93 @@ it('it renders a complete mk-form example with at least one mk-field child', fun
     themeBlankDemoTestCleanup($cacheDir);
 });
 
-it('it the rendered page contains every Phase 4 feedback tag (mk-alert, mk-toast, mk-spinner, mk-skeleton, mk-modal, mk-drawer) — single test asserting each tag\'s presence', function (): void {
-    $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-phase4-' . bin2hex(random_bytes(8));
-    mkdir($cacheDir, 0755, true);
-
-    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
-    $themeBlankDemoPath = dirname(__DIR__, 2);
-    $basePath = $cacheDir . '/base';
-
-    themeBlankDemoTestEnsureManifest($basePath);
-
-    $config = new ConfigRepository([
-        'theme_blank_demo' => ['enabled' => true],
-        'vite' => [
-            'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
-            'buildDirectory' => 'build',
-            'manifestFilename' => '.vite/manifest.json',
-            'devServerUrl' => 'http://localhost:5173',
-            'useDevServer' => false,
-            'devServerStylesheets' => [],
-        ],
-        'view' => [
-            'cache_directory' => $cacheDir,
-            'extension' => '.latte',
-            'auto_refresh' => true,
-            'strict_types' => false,
-        ],
-    ]);
-
-    $router = themeBlankDemoTestBuildRouter($config, $frontendPath, $themeBlankDemoPath, $basePath, $cacheDir);
-    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
-    $response = $router->handle($request);
-
-    $body = $response->body();
-    $tags = ['<mk-alert', '<mk-toast', '<mk-spinner', '<mk-skeleton', '<mk-modal', '<mk-drawer'];
-    foreach ($tags as $tag) {
-        expect($body)->toContain($tag);
+it(
+    'it the rendered page contains every Phase 4 feedback tag (mk-alert, mk-toast, mk-spinner, mk-skeleton, mk-modal, mk-drawer) — single test asserting each tag\'s presence',
+    function (): void {
+        $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-phase4-' . bin2hex(random_bytes(8));
+        mkdir($cacheDir, 0755, true);
+    
+        $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+        $themeBlankDemoPath = dirname(__DIR__, 2);
+        $basePath = $cacheDir . '/base';
+    
+        themeBlankDemoTestEnsureManifest($basePath);
+    
+        $config = new ConfigRepository([
+            'theme_blank_demo' => ['enabled' => true],
+            'vite' => [
+                'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
+                'buildDirectory' => 'build',
+                'manifestFilename' => '.vite/manifest.json',
+                'devServerUrl' => 'http://localhost:5173',
+                'useDevServer' => false,
+                'devServerStylesheets' => [],
+            ],
+            'view' => [
+                'cache_directory' => $cacheDir,
+                'extension' => '.latte',
+                'auto_refresh' => true,
+                'strict_types' => false,
+            ],
+        ]);
+    
+        $router = themeBlankDemoTestBuildRouter($config, $frontendPath, $themeBlankDemoPath, $basePath, $cacheDir);
+        $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
+        $response = $router->handle($request);
+    
+        $body = $response->body();
+        $tags = ['<mk-alert', '<mk-toast', '<mk-spinner', '<mk-skeleton', '<mk-modal', '<mk-drawer'];
+        foreach ($tags as $tag) {
+            expect($body)->toContain($tag);
+        }
+    
+        themeBlankDemoTestCleanup($cacheDir);
     }
+);
 
-    themeBlankDemoTestCleanup($cacheDir);
-});
-
-it('it the rendered page contains a Show toast button, an Open modal button, an Open right drawer button, and an Open left drawer button', function (): void {
-    $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-feedback-buttons-' . bin2hex(random_bytes(8));
-    mkdir($cacheDir, 0755, true);
-
-    $frontendPath = dirname(__DIR__, 2) . '/../frontend';
-    $themeBlankDemoPath = dirname(__DIR__, 2);
-    $basePath = $cacheDir . '/base';
-
-    themeBlankDemoTestEnsureManifest($basePath);
-
-    $config = new ConfigRepository([
-        'theme_blank_demo' => ['enabled' => true],
-        'vite' => [
-            'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
-            'buildDirectory' => 'build',
-            'manifestFilename' => '.vite/manifest.json',
-            'devServerUrl' => 'http://localhost:5173',
-            'useDevServer' => false,
-            'devServerStylesheets' => [],
-        ],
-        'view' => [
-            'cache_directory' => $cacheDir,
-            'extension' => '.latte',
-            'auto_refresh' => true,
-            'strict_types' => false,
-        ],
-    ]);
-
-    $router = themeBlankDemoTestBuildRouter($config, $frontendPath, $themeBlankDemoPath, $basePath, $cacheDir);
-    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
-    $response = $router->handle($request);
-
-    $body = $response->body();
-    expect($body)->toContain('Show toast');
-    expect($body)->toContain('Open modal');
-    expect($body)->toContain('Open right drawer');
-    expect($body)->toContain('Open left drawer');
-
-    themeBlankDemoTestCleanup($cacheDir);
-});
+it(
+    'it the rendered page contains a Show toast button, an Open modal button, an Open right drawer button, and an Open left drawer button',
+    function (): void {
+        $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-feedback-buttons-' . bin2hex(random_bytes(8));
+        mkdir($cacheDir, 0755, true);
+    
+        $frontendPath = dirname(__DIR__, 2) . '/../frontend';
+        $themeBlankDemoPath = dirname(__DIR__, 2);
+        $basePath = $cacheDir . '/base';
+    
+        themeBlankDemoTestEnsureManifest($basePath);
+    
+        $config = new ConfigRepository([
+            'theme_blank_demo' => ['enabled' => true],
+            'vite' => [
+                'entry' => 'packages/theme-blank-demo/resources/js/main.ts',
+                'buildDirectory' => 'build',
+                'manifestFilename' => '.vite/manifest.json',
+                'devServerUrl' => 'http://localhost:5173',
+                'useDevServer' => false,
+                'devServerStylesheets' => [],
+            ],
+            'view' => [
+                'cache_directory' => $cacheDir,
+                'extension' => '.latte',
+                'auto_refresh' => true,
+                'strict_types' => false,
+            ],
+        ]);
+    
+        $router = themeBlankDemoTestBuildRouter($config, $frontendPath, $themeBlankDemoPath, $basePath, $cacheDir);
+        $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/theme-blank']);
+        $response = $router->handle($request);
+    
+        $body = $response->body();
+        expect($body)->toContain('Show toast');
+        expect($body)->toContain('Open modal');
+        expect($body)->toContain('Open right drawer');
+        expect($body)->toContain('Open left drawer');
+    
+        themeBlankDemoTestCleanup($cacheDir);
+    }
+);
 
 it('it the rendered page contains at least one mk-alert with dismissible attribute', function (): void {
     $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-demo-alert-dismissible-' . bin2hex(random_bytes(8));

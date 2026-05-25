@@ -9,8 +9,8 @@ use Marko\Core\Plugin\PluginDefinition;
 use Marko\Core\Plugin\PluginInterceptor;
 use Marko\Core\Plugin\PluginRegistry;
 use Markommerce\Layout\Contracts\ExtensionAttribute;
-use Markommerce\Layout\ExtensionBag;
 use Markommerce\Layout\ExtensibleData;
+use Markommerce\Layout\ExtensionBag;
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -52,7 +52,7 @@ class EPT_ProductCardComponent
 {
     public function data(int $id): EPT_ProductCardData
     {
-        return new EPT_ProductCardData(id: $id, name: "Product #{$id}");
+        return new EPT_ProductCardData(id: $id, name: "Product #$id");
     }
 }
 
@@ -64,7 +64,10 @@ class EPT_ProductCardComponent
  */
 class EPT_ReviewStarsPlugin
 {
-    public function data(mixed $result, int $id): EPT_ProductCardData
+    public function data(
+        mixed $result,
+        int $id,
+    ): EPT_ProductCardData
     {
         /** @var EPT_ProductCardData $result */
         return $result->withExtension(new EPT_ReviewStarsExtension(stars: 4.8));

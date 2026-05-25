@@ -14,8 +14,8 @@ use Marko\View\ViewInterface;
 use Markommerce\Layout\Cache\PreparedPlace;
 use Markommerce\Layout\Cache\PreparedTree;
 use Markommerce\Layout\Contracts\ExtensionAttribute;
-use Markommerce\Layout\ExtensionBag;
 use Markommerce\Layout\ExtensibleData;
+use Markommerce\Layout\ExtensionBag;
 use Markommerce\Layout\Runtime\Renderer;
 
 // ---------------------------------------------------------------------------
@@ -50,7 +50,10 @@ class RPT_CardComponent
 
 class RPT_BadgePlugin
 {
-    public function data(mixed $result, string $title = 'Default'): RPT_CardData
+    public function data(
+        mixed $result,
+        string $title = 'Default',
+    ): RPT_CardData
     {
         /** @var RPT_CardData $result */
         return $result->withExtension(new RPT_BadgeExtension(label: 'NEW'));
@@ -65,14 +68,21 @@ class RPT_RecordingView implements ViewInterface
     /** @var array<array{template: string, data: array<string, mixed>}> */
     public array $calls = [];
 
-    public function render(string $template, array $data = []): Response
+    public function render(
+        string $template,
+        array $data = [],
+    ): Response
     {
         return Response::html($this->renderToString($template, $data));
     }
 
-    public function renderToString(string $template, array $data = []): string
+    public function renderToString(
+        string $template,
+        array $data = [],
+    ): string
     {
         $this->calls[] = ['template' => $template, 'data' => $data];
+
         return "<div data-template=\"$template\"></div>";
     }
 }

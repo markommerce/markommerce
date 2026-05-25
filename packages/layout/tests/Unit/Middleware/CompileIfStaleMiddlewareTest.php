@@ -9,7 +9,7 @@ use Marko\Routing\Http\Response;
 use Markommerce\Layout\Cache\ArtifactWriterInterface;
 use Markommerce\Layout\Cache\PreparedTree;
 use Markommerce\Layout\Compiler\CompilerInterface;
-use Markommerce\Layout\Exception\LayoutException;
+use Markommerce\Layout\Exceptions\LayoutException;
 use Markommerce\Layout\Middleware\CompileIfStaleMiddleware;
 
 // =============================================================================
@@ -19,6 +19,7 @@ use Markommerce\Layout\Middleware\CompileIfStaleMiddleware;
 class MiddlewareFakeCompiler implements CompilerInterface
 {
     public int $compileCallCount = 0;
+
     public ?LayoutException $throwOnCompile = null;
 
     /** @var array<string, PreparedTree> */
@@ -87,6 +88,7 @@ function makeTempDir(): string
 {
     $tmpDir = sys_get_temp_dir() . '/marko-middleware-test-' . bin2hex(random_bytes(8));
     mkdir($tmpDir, 0755, true);
+
     return $tmpDir;
 }
 
@@ -96,6 +98,7 @@ function makeModuleWithLayoutFile(string $baseDir, string $filename = 'home.php'
     mkdir($layoutDir, 0755, true);
     $filePath = $layoutDir . '/' . $filename;
     file_put_contents($filePath, '<?php return null;');
+
     return [$baseDir, $filePath];
 }
 
@@ -103,6 +106,7 @@ function makeArtifactFile(string $dir): string
 {
     $artifactPath = $dir . '/layouts.php';
     file_put_contents($artifactPath, '<?php return [];');
+
     return $artifactPath;
 }
 
@@ -236,6 +240,7 @@ it('lets the request proceed after a successful recompile', function (): void {
     $nextCalled = false;
     $next = static function (Request $request) use (&$nextCalled): Response {
         $nextCalled = true;
+
         return new Response('ok', 200);
     };
 

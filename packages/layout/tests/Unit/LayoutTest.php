@@ -2,18 +2,19 @@
 
 declare(strict_types=1);
 
-use Markommerce\Layout\Contracts\Operation;
 use Markommerce\Layout\Layout;
 use Markommerce\Layout\Operation\Remove;
 
 it('passes PHPStan level 8 with the new fields typed', function (): void {
-    $output = shell_exec('cd /workspace/markommerce && ./vendor/bin/phpstan analyse packages/layout/src/Layout.php --level=8 --no-progress 2>&1');
+    $output = shell_exec(
+        'cd /workspace/markommerce && ./vendor/bin/phpstan analyse packages/layout/src/Layout.php --level=8 --no-progress 2>&1'
+    );
 
     expect($output)->toContain('[OK] No errors');
 });
 
 it('rejects an inherits value that equals the layout\'s own handle key', function (): void {
-    expect(fn() => new Layout(
+    expect(fn () => new Layout(
         handle: 'some-handle',
         extends: null,
         context: [],
@@ -21,7 +22,7 @@ it('rejects an inherits value that equals the layout\'s own handle key', functio
         inherits: 'some-handle',
     ))->toThrow(InvalidArgumentException::class);
 
-    expect(fn() => new Layout(
+    expect(fn () => new Layout(
         handle: ['App\Controller\FooController', 'show'],
         extends: null,
         context: [],

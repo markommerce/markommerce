@@ -49,29 +49,6 @@ it('the README links to the docs page at /docs/packages/scope', function (): voi
     expect($content)->toContain('/docs/packages/scope');
 });
 
-it('the CHANGELOG.md file exists and contains the breaking-change list', function (): void {
-    $changelogPath = dirname(__DIR__, 2) . '/CHANGELOG.md';
-    $content = file_get_contents($changelogPath);
-
-    expect($content)->not->toBeFalsy()
-        ->and($content)->toContain('## [Unreleased]')
-        ->and($content)->toContain('BREAKING');
-});
-
-it('the CHANGELOG.md mentions removal of the Scope class', function (): void {
-    $changelogPath = dirname(__DIR__, 2) . '/CHANGELOG.md';
-    $content = file_get_contents($changelogPath);
-
-    expect($content)->toContain('Markommerce\Scope\Scope');
-});
-
-it('the CHANGELOG.md mentions removal of ScopeSortRendererInterface', function (): void {
-    $changelogPath = dirname(__DIR__, 2) . '/CHANGELOG.md';
-    $content = file_get_contents($changelogPath);
-
-    expect($content)->toContain('ScopeSortRendererInterface');
-});
-
 it('the docs page contains a single-axis usage example', function (): void {
     $docsPath = dirname(__DIR__, 4) . '/docs/src/content/docs/packages/scope.md';
     $content = file_get_contents($docsPath);

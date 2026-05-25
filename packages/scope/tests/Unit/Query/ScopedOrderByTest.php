@@ -47,7 +47,10 @@ function makeScopedOrderByRegistry(array $axes = [], array $defaults = []): Scop
         private array $builtAxes;
 
         /** @param array<string, list<string>> $axes @param array<string, string> $defaults */
-        public function __construct(private readonly array $axes, array $defaults = [])
+        public function __construct(
+            private readonly array $axes,
+            array $defaults = [],
+        )
         {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
@@ -105,7 +108,10 @@ function makeBuilderSpy(): EntityQueryBuilderInterface
             return $this;
         }
 
-        public function selectRaw(string $expression, array $bindings = []): static
+        public function selectRaw(
+            string $expression,
+            array $bindings = [],
+        ): static
         {
             return $this;
         }
@@ -157,7 +163,10 @@ function makeBuilderSpy(): EntityQueryBuilderInterface
             return $this;
         }
 
-        public function whereRaw(string $expression, array $bindings = []): static
+        public function whereRaw(
+            string $expression,
+            array $bindings = [],
+        ): static
         {
             return $this;
         }

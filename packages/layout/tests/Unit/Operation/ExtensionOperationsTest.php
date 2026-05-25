@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Markommerce\Layout\Contracts\Operation;
+use Markommerce\Layout\LayoutExtension;
 use Markommerce\Layout\Operation\Append;
 use Markommerce\Layout\Operation\InsertAfter;
 use Markommerce\Layout\Operation\InsertBefore;
@@ -12,7 +13,6 @@ use Markommerce\Layout\Operation\Remove;
 use Markommerce\Layout\Operation\Replace;
 use Markommerce\Layout\Operation\ReplaceProps;
 use Markommerce\Layout\Operation\WrapWith;
-use Markommerce\Layout\LayoutExtension;
 use Markommerce\Layout\Place;
 
 it('builds an InsertBefore operation with an anchor name and placement', function (): void {

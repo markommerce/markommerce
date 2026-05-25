@@ -23,7 +23,10 @@ function makeFakePipeline(): object
             // skip parent constructor
         }
 
-        public function run(Request $request, string $channel): void
+        public function run(
+            Request $request,
+            string $channel,
+        ): void
         {
             $this->calls[] = 'run:' . $channel;
         }
@@ -65,7 +68,10 @@ it('withScope uses a SyntheticRequest as the request', function (): void {
             // skip parent constructor
         }
 
-        public function run(Request $request, string $channel): void
+        public function run(
+            Request $request,
+            string $channel,
+        ): void
         {
             $this->capturedRequest = $request;
         }

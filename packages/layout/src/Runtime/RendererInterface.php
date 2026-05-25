@@ -6,6 +6,7 @@ namespace Markommerce\Layout\Runtime;
 
 use Marko\Routing\Http\Request;
 use Markommerce\Layout\Cache\PreparedTree;
+use RuntimeException;
 
 interface RendererInterface
 {
@@ -13,7 +14,7 @@ interface RendererInterface
      * Render the prepared tree into an HTML string.
      *
      * @param array<string, string> $routeParams
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     public function render(
         PreparedTree $tree,

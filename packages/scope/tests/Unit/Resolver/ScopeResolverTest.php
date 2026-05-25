@@ -92,7 +92,10 @@ function makeResolverRegistry(array $axes = ['store' => ['global', 'global.us']]
         private array $builtAxes;
 
         /** @param array<string, list<string>> $axes @param array<string, string> $defaults */
-        public function __construct(array $axes, array $defaults = [])
+        public function __construct(
+            array $axes,
+            array $defaults = [],
+        )
         {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {

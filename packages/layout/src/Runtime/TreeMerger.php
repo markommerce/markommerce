@@ -7,9 +7,9 @@ namespace Markommerce\Layout\Runtime;
 use Markommerce\Layout\Cache\PreparedPlace;
 use Markommerce\Layout\Cache\PreparedRepeatSlot;
 use Markommerce\Layout\Cache\PreparedTree;
-use Markommerce\Layout\Exception\ChainedHandleProviderException;
-use Markommerce\Layout\Exception\DanglingAnchorException;
-use Markommerce\Layout\Exception\DynamicHandleConflictException;
+use Markommerce\Layout\Exceptions\ChainedHandleProviderException;
+use Markommerce\Layout\Exceptions\DanglingAnchorException;
+use Markommerce\Layout\Exceptions\DynamicHandleConflictException;
 use Markommerce\Layout\Operation\Append;
 use Markommerce\Layout\Operation\InsertAfter;
 use Markommerce\Layout\Operation\InsertBefore;
@@ -35,11 +35,12 @@ class TreeMerger
     /**
      * @param list<PreparedTree> $additions
      *
-     * @throws DynamicHandleConflictException
-     * @throws ChainedHandleProviderException
-     * @throws DanglingAnchorException
+     * @throws DynamicHandleConflictException|ChainedHandleProviderException|DanglingAnchorException
      */
-    public function merge(PreparedTree $base, array $additions): PreparedTree
+    public function merge(
+        PreparedTree $base,
+        array $additions,
+    ): PreparedTree
     {
         if ($additions === []) {
             return $base;
@@ -114,7 +115,11 @@ class TreeMerger
      *
      * @throws DanglingAnchorException
      */
-    private function applyOperation(array $slots, object $operation, string $handleKey): array
+    private function applyOperation(
+        array $slots,
+        object $operation,
+        string $handleKey,
+    ): array
     {
         return match (true) {
             $operation instanceof Remove => $this->applyRemove($slots, $operation, $handleKey),
@@ -137,7 +142,11 @@ class TreeMerger
      *
      * @throws DanglingAnchorException
      */
-    private function applyRemove(array $slots, Remove $op, string $handleKey): array
+    private function applyRemove(
+        array $slots,
+        Remove $op,
+        string $handleKey,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
@@ -149,6 +158,7 @@ class TreeMerger
                 }
                 $new[] = $place;
             }
+
             return $new;
         });
 
@@ -166,13 +176,18 @@ class TreeMerger
      *
      * @throws DanglingAnchorException
      */
-    private function applyWrapWith(array $slots, WrapWith $op, string $handleKey): array
+    private function applyWrapWith(
+        array $slots,
+        WrapWith $op,
+        string $handleKey,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             return array_map(function (PreparedPlace $place) use ($op, &$found): PreparedPlace {
                 if ($place->name === $op->name) {
                     $found = true;
+
                     return new PreparedPlace(
                         component: $place->component,
                         name: $place->name,
@@ -182,6 +197,7 @@ class TreeMerger
                         template: $place->template,
                     );
                 }
+
                 return $place;
             }, $placements);
         });
@@ -200,13 +216,18 @@ class TreeMerger
      *
      * @throws DanglingAnchorException
      */
-    private function applyMergeProps(array $slots, MergeProps $op, string $handleKey): array
+    private function applyMergeProps(
+        array $slots,
+        MergeProps $op,
+        string $handleKey,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             return array_map(function (PreparedPlace $place) use ($op, &$found): PreparedPlace {
                 if ($place->name === $op->name) {
                     $found = true;
+
                     return new PreparedPlace(
                         component: $place->component,
                         name: $place->name,
@@ -216,6 +237,7 @@ class TreeMerger
                         template: $place->template,
                     );
                 }
+
                 return $place;
             }, $placements);
         });
@@ -234,13 +256,18 @@ class TreeMerger
      *
      * @throws DanglingAnchorException
      */
-    private function applyReplaceProps(array $slots, ReplaceProps $op, string $handleKey): array
+    private function applyReplaceProps(
+        array $slots,
+        ReplaceProps $op,
+        string $handleKey,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             return array_map(function (PreparedPlace $place) use ($op, &$found): PreparedPlace {
                 if ($place->name === $op->name) {
                     $found = true;
+
                     return new PreparedPlace(
                         component: $place->component,
                         name: $place->name,
@@ -250,6 +277,7 @@ class TreeMerger
                         template: $place->template,
                     );
                 }
+
                 return $place;
             }, $placements);
         });
@@ -268,7 +296,11 @@ class TreeMerger
      *
      * @throws DanglingAnchorException
      */
-    private function applyInsertAfter(array $slots, InsertAfter $op, string $handleKey): array
+    private function applyInsertAfter(
+        array $slots,
+        InsertAfter $op,
+        string $handleKey,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
@@ -280,6 +312,7 @@ class TreeMerger
                     $found = true;
                 }
             }
+
             return $new;
         });
 
@@ -297,7 +330,11 @@ class TreeMerger
      *
      * @throws DanglingAnchorException
      */
-    private function applyInsertBefore(array $slots, InsertBefore $op, string $handleKey): array
+    private function applyInsertBefore(
+        array $slots,
+        InsertBefore $op,
+        string $handleKey,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
@@ -309,6 +346,7 @@ class TreeMerger
                 }
                 $new[] = $place;
             }
+
             return $new;
         });
 
@@ -326,7 +364,11 @@ class TreeMerger
      *
      * @throws DanglingAnchorException
      */
-    private function applyAppend(array $slots, Append $op, string $handleKey): array
+    private function applyAppend(
+        array $slots,
+        Append $op,
+        string $handleKey,
+    ): array
     {
         if (!isset($slots[$op->slotPath])) {
             throw DanglingAnchorException::forAnchor($op->slotPath, "dynamic handle '$handleKey'");
@@ -338,6 +380,7 @@ class TreeMerger
         }
 
         $slots[$op->slotPath] = array_merge($slot, [$this->placeToPrep($op->placement)]);
+
         return $slots;
     }
 
@@ -348,7 +391,11 @@ class TreeMerger
      *
      * @throws DanglingAnchorException
      */
-    private function applyPrepend(array $slots, Prepend $op, string $handleKey): array
+    private function applyPrepend(
+        array $slots,
+        Prepend $op,
+        string $handleKey,
+    ): array
     {
         if (!isset($slots[$op->slotPath])) {
             throw DanglingAnchorException::forAnchor($op->slotPath, "dynamic handle '$handleKey'");
@@ -360,6 +407,7 @@ class TreeMerger
         }
 
         $slots[$op->slotPath] = array_merge([$this->placeToPrep($op->placement)], $slot);
+
         return $slots;
     }
 
@@ -370,7 +418,11 @@ class TreeMerger
      *
      * @throws DanglingAnchorException
      */
-    private function applyReplace(array $slots, Replace $op, string $handleKey): array
+    private function applyReplace(
+        array $slots,
+        Replace $op,
+        string $handleKey,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
@@ -383,6 +435,7 @@ class TreeMerger
                     $new[] = $place;
                 }
             }
+
             return $new;
         });
 
@@ -401,7 +454,10 @@ class TreeMerger
      *
      * @return array<string, list<PreparedPlace>|PreparedRepeatSlot>
      */
-    private function mapPlacements(array $slots, callable $callback): array
+    private function mapPlacements(
+        array $slots,
+        callable $callback,
+    ): array
     {
         $result = [];
         foreach ($slots as $slotName => $value) {
@@ -412,22 +468,26 @@ class TreeMerger
                     yields: $value->yields,
                     as: $value->as,
                     children: array_map(
-                        fn(PreparedPlace $child) => $this->mapPlacementsInPlace($child, $callback),
+                        fn (PreparedPlace $child) => $this->mapPlacementsInPlace($child, $callback),
                         $mappedChildren,
                     ),
                 );
             } else {
                 $mapped = $callback($value);
                 $result[$slotName] = array_map(
-                    fn(PreparedPlace $place) => $this->mapPlacementsInPlace($place, $callback),
+                    fn (PreparedPlace $place) => $this->mapPlacementsInPlace($place, $callback),
                     $mapped,
                 );
             }
         }
+
         return $result;
     }
 
-    private function mapPlacementsInPlace(PreparedPlace $place, callable $callback): PreparedPlace
+    private function mapPlacementsInPlace(
+        PreparedPlace $place,
+        callable $callback,
+    ): PreparedPlace
     {
         return new PreparedPlace(
             component: $place->component,
@@ -454,6 +514,7 @@ class TreeMerger
                 $slots[$key] = array_map([$this, 'placeToPrep'], $value);
             }
         }
+
         return new PreparedPlace(
             component: $place->component,
             name: $place->name,
@@ -484,6 +545,7 @@ class TreeMerger
                 }
             }
         }
+
         return $names;
     }
 
@@ -497,6 +559,7 @@ class TreeMerger
             $names[] = $place->name;
         }
         $names = array_merge($names, $this->collectNamedPlacements($place->slots));
+
         return $names;
     }
 }

@@ -15,7 +15,10 @@ use Markommerce\Scope\Resolver\Resolution\ScopeResolverChainFactory;
 
 class FakeResolverA implements ScopeAxisResolverInterface
 {
-    public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $scopeResolutionContext): ?string
+    public function resolve(
+        ScopeAxis $scopeAxis,
+        ScopeResolutionContext $scopeResolutionContext,
+    ): ?string
     {
         return null;
     }
@@ -23,7 +26,10 @@ class FakeResolverA implements ScopeAxisResolverInterface
 
 class FakeResolverB implements ScopeAxisResolverInterface
 {
-    public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $scopeResolutionContext): ?string
+    public function resolve(
+        ScopeAxis $scopeAxis,
+        ScopeResolutionContext $scopeResolutionContext,
+    ): ?string
     {
         return null;
     }
@@ -33,7 +39,10 @@ class FakeResolverWithArgs implements ScopeAxisResolverInterface
 {
     public function __construct(public readonly string $cookieName) {}
 
-    public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $scopeResolutionContext): ?string
+    public function resolve(
+        ScopeAxis $scopeAxis,
+        ScopeResolutionContext $scopeResolutionContext,
+    ): ?string
     {
         return null;
     }
@@ -54,7 +63,10 @@ function makeChainFactoryFakes(array $config = []): array
         /** @var array<string, object> */
         private array $bindings = [];
 
-        public function bind(string $id, object $instance): void
+        public function bind(
+            string $id,
+            object $instance,
+        ): void
         {
             $this->bindings[$id] = $instance;
         }
@@ -79,7 +91,10 @@ function makeChainFactoryFakes(array $config = []): array
 
         public function singleton(string $id): void {}
 
-        public function instance(string $id, object $instance): void
+        public function instance(
+            string $id,
+            object $instance,
+        ): void
         {
             $this->bindings[$id] = $instance;
         }
@@ -95,7 +110,10 @@ function makeChainFactoryFakes(array $config = []): array
         /** @param array<string, mixed> $config */
         public function __construct(private readonly array $config) {}
 
-        public function get(string $key, ?string $scope = null): mixed
+        public function get(
+            string $key,
+            ?string $scope = null,
+        ): mixed
         {
             if (!array_key_exists($key, $this->config)) {
                 throw new ConfigNotFoundException("Key '$key' not found");
@@ -104,32 +122,50 @@ function makeChainFactoryFakes(array $config = []): array
             return $this->config[$key];
         }
 
-        public function has(string $key, ?string $scope = null): bool
+        public function has(
+            string $key,
+            ?string $scope = null,
+        ): bool
         {
             return array_key_exists($key, $this->config);
         }
 
-        public function getString(string $key, ?string $scope = null): string
+        public function getString(
+            string $key,
+            ?string $scope = null,
+        ): string
         {
             return (string) $this->get($key);
         }
 
-        public function getInt(string $key, ?string $scope = null): int
+        public function getInt(
+            string $key,
+            ?string $scope = null,
+        ): int
         {
             return (int) $this->get($key);
         }
 
-        public function getBool(string $key, ?string $scope = null): bool
+        public function getBool(
+            string $key,
+            ?string $scope = null,
+        ): bool
         {
             return (bool) $this->get($key);
         }
 
-        public function getFloat(string $key, ?string $scope = null): float
+        public function getFloat(
+            string $key,
+            ?string $scope = null,
+        ): float
         {
             return (float) $this->get($key);
         }
 
-        public function getArray(string $key, ?string $scope = null): array
+        public function getArray(
+            string $key,
+            ?string $scope = null,
+        ): array
         {
             return (array) $this->get($key);
         }
@@ -235,16 +271,19 @@ it('throws InvalidResolverConfigException missingClassKey when array entry lacks
         ->toThrow(InvalidResolverConfigException::class);
 });
 
-it('throws InvalidResolverConfigException notImplementingInterface when class does not implement ScopeAxisResolverInterface', function (): void {
-    [$container, $configRepository] = makeChainFactoryFakes([
-        'scope.axes.store.resolvers' => [NotAResolver::class],
-    ]);
-
-    $factory = new ScopeResolverChainFactory($container, $configRepository);
-
-    expect(fn () => $factory->for('store'))
-        ->toThrow(InvalidResolverConfigException::class);
-});
+it(
+    'throws InvalidResolverConfigException notImplementingInterface when class does not implement ScopeAxisResolverInterface',
+    function (): void {
+        [$container, $configRepository] = makeChainFactoryFakes([
+            'scope.axes.store.resolvers' => [NotAResolver::class],
+        ]);
+    
+        $factory = new ScopeResolverChainFactory($container, $configRepository);
+    
+        expect(fn () => $factory->for('store'))
+            ->toThrow(InvalidResolverConfigException::class);
+    }
+);
 
 it('preserves resolver order from the config array', function (): void {
     [$container, $configRepository] = makeChainFactoryFakes([

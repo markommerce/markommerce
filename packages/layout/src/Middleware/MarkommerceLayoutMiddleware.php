@@ -13,11 +13,12 @@ use Markommerce\Layout\Cache\ArtifactReaderInterface;
 use Markommerce\Layout\Cache\PreparedTree;
 use Markommerce\Layout\Contracts\ContextProvider;
 use Markommerce\Layout\Contracts\HandleProvider;
-use Markommerce\Layout\Exception\UnknownDynamicHandleException;
-use Markommerce\Layout\Runtime\ResolutionContext;
+use Markommerce\Layout\Exceptions\UnknownDynamicHandleException;
 use Markommerce\Layout\Runtime\RendererInterface;
+use Markommerce\Layout\Runtime\ResolutionContext;
 use Markommerce\Layout\Runtime\SourceResolver;
 use Markommerce\Layout\Runtime\TreeMerger;
+use RuntimeException;
 
 /**
  * Connects routing to the Markommerce layout renderer.
@@ -37,8 +38,7 @@ use Markommerce\Layout\Runtime\TreeMerger;
  * Redirect/short-circuit detection: any response with a status code outside
  * the 200–299 range is treated as a short-circuit and returned as-is.
  *
- * @throws \RuntimeException When the compiled artifact is missing.
- * @throws UnknownDynamicHandleException When a HandleProvider returns an unknown handle key.
+ * @throws RuntimeException|UnknownDynamicHandleException
  */
 class MarkommerceLayoutMiddleware implements MiddlewareInterface
 {
@@ -50,8 +50,7 @@ class MarkommerceLayoutMiddleware implements MiddlewareInterface
     ) {}
 
     /**
-     * @throws \RuntimeException
-     * @throws UnknownDynamicHandleException
+     * @throws RuntimeException|UnknownDynamicHandleException
      */
     public function handle(
         Request $request,
@@ -163,6 +162,7 @@ class MarkommerceLayoutMiddleware implements MiddlewareInterface
         }
 
         $merger = new TreeMerger();
+
         return $merger->merge($base, $dynamicTrees);
     }
 

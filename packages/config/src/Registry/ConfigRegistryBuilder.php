@@ -14,6 +14,8 @@ use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use ReflectionClass;
 use ReflectionIntersectionType;
 use ReflectionNamedType;
+use ReflectionProperty;
+use ReflectionType;
 use ReflectionUnionType;
 
 class ConfigRegistryBuilder
@@ -21,15 +23,12 @@ class ConfigRegistryBuilder
     /**
      * @param list<class-string> $configClasses
      *
-     * @throws ConfigKeyConflictException
-     * @throws AxisNotDeclaredException
-     * @throws InvalidConfigClassException
+     * @throws ConfigKeyConflictException|AxisNotDeclaredException|InvalidConfigClassException
      */
     public function build(
         array $configClasses,
         ScopeRegistryInterface $scopeRegistry,
-    ): ConfigRegistry
-    {
+    ): ConfigRegistry {
         /** @var list<ConfigDefinition> $definitions */
         $definitions = [];
 
@@ -92,8 +91,7 @@ class ConfigRegistryBuilder
     private function validateConstructor(
         ReflectionClass $reflection,
         string $configClass,
-    ): void
-    {
+    ): void {
         $constructor = $reflection->getConstructor();
 
         if ($constructor === null) {
@@ -115,7 +113,7 @@ class ConfigRegistryBuilder
     private function resolveType(
         string $configClass,
         string $field,
-        ?\ReflectionType $type,
+        ?ReflectionType $type,
     ): string {
         if ($type instanceof ReflectionUnionType) {
             throw InvalidConfigClassException::propertyWithUnsupportedType(
@@ -148,7 +146,7 @@ class ConfigRegistryBuilder
     private function validateDefaultOrNullability(
         string $configClass,
         string $field,
-        \ReflectionProperty $property,
+        ReflectionProperty $property,
     ): void {
         $type = $property->getType();
 
@@ -168,7 +166,7 @@ class ConfigRegistryBuilder
     private function resolveAxes(
         string $configClass,
         string $field,
-        \ReflectionProperty $property,
+        ReflectionProperty $property,
         ScopeRegistryInterface $scopeRegistry,
     ): array {
         $scopedAttributes = $property->getAttributes(Scoped::class);

@@ -79,22 +79,25 @@ it('links to the layout API reference', function () use ($guideFile): void {
     expect($content)->toContain('/docs/packages/layout/');
 });
 
-it('adds a Handles section to the guide between Repeat Slots and Extending a Layout', function () use ($guideFile): void {
-    $content = file_get_contents($guideFile);
-    expect($content)->not->toBeFalse();
-    /** @var string $content */
-    expect($content)->toContain('## Handles');
-
-    $handlesPos = strpos($content, '## Handles');
-    $repeatSlotsPos = strpos($content, '## Repeat Slots');
-    $extendingPos = strpos($content, '## Extending a Layout');
-
-    expect($handlesPos)->not->toBeFalse();
-    expect($repeatSlotsPos)->not->toBeFalse();
-    expect($extendingPos)->not->toBeFalse();
-    expect($repeatSlotsPos)->toBeLessThan($handlesPos);
-    expect($handlesPos)->toBeLessThan($extendingPos);
-});
+it(
+    'adds a Handles section to the guide between Repeat Slots and Extending a Layout',
+    function () use ($guideFile): void {
+        $content = file_get_contents($guideFile);
+        expect($content)->not->toBeFalse();
+        /** @var string $content */
+        expect($content)->toContain('## Handles');
+    
+        $handlesPos = strpos($content, '## Handles');
+        $repeatSlotsPos = strpos($content, '## Repeat Slots');
+        $extendingPos = strpos($content, '## Extending a Layout');
+    
+        expect($handlesPos)->not->toBeFalse();
+        expect($repeatSlotsPos)->not->toBeFalse();
+        expect($extendingPos)->not->toBeFalse();
+        expect($repeatSlotsPos)->toBeLessThan($handlesPos);
+        expect($handlesPos)->toBeLessThan($extendingPos);
+    }
+);
 
 it('documents the default handle with the demo default.php example', function () use ($guideFile): void {
     $content = file_get_contents($guideFile);

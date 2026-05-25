@@ -12,7 +12,11 @@ use Throwable;
  */
 class ScopeResolutionException extends MarkoException
 {
-    public static function resolverFailed(string $resolverClass, string $axisName, Throwable $previous): self
+    public static function resolverFailed(
+        string $resolverClass,
+        string $axisName,
+        Throwable $previous,
+    ): self
     {
         return new self(
             message: "Resolver '$resolverClass' for axis '$axisName' threw an unexpected exception",
@@ -22,7 +26,11 @@ class ScopeResolutionException extends MarkoException
         );
     }
 
-    public static function invalidPath(string $resolverClass, string $axisName, string $path): self
+    public static function invalidPath(
+        string $resolverClass,
+        string $axisName,
+        string $path,
+    ): self
     {
         return new self(
             message: "Resolver '$resolverClass' for axis '$axisName' returned an invalid path '$path' not found in the axis hierarchy",

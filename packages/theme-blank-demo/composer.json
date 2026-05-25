@@ -28,6 +28,11 @@
             "Markommerce\\ThemeBlankDemo\\Tests\\": "tests/"
         }
     },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
     "extra": {
         "marko": {
             "module": true

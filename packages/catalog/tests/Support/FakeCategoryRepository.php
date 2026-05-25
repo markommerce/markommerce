@@ -124,7 +124,10 @@ class FakeCategoryRepository implements CategoryRepositoryInterface
     /**
      * @param array<string, mixed> $criteria
      */
-    private function matchesCriteria(Category $category, array $criteria): bool
+    private function matchesCriteria(
+        Category $category,
+        array $criteria,
+    ): bool
     {
         return array_all(
             array_keys($criteria),

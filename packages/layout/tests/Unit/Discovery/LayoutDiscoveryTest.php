@@ -6,7 +6,7 @@ use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepositoryInterface;
 use Markommerce\Layout\Discovery\DiscoveryResult;
 use Markommerce\Layout\Discovery\LayoutDiscovery;
-use Markommerce\Layout\Exception\InvalidLayoutFileException;
+use Markommerce\Layout\Exceptions\InvalidLayoutFileException;
 use Markommerce\Layout\Layout;
 use Markommerce\Layout\LayoutExtension;
 
@@ -14,7 +14,8 @@ use Markommerce\Layout\LayoutExtension;
 
 function makeLayoutModuleRepository(array $modules): ModuleRepositoryInterface
 {
-    return new class ($modules) implements ModuleRepositoryInterface {
+    return new class ($modules) implements ModuleRepositoryInterface
+    {
         public function __construct(private array $modules) {}
 
         public function all(): array
@@ -30,6 +31,7 @@ function makeTempModuleDir(): string
 {
     $tmpDir = sys_get_temp_dir() . '/marko-layout-discovery-' . bin2hex(random_bytes(8));
     mkdir($tmpDir . '/layout/extensions', 0755, true);
+
     return $tmpDir;
 }
 
@@ -40,6 +42,7 @@ function writeLayoutFile(string $dir, string $filename, Layout $layout): string
     $path = $dir . '/layout/' . $filename;
     $serialized = serialize($layout);
     file_put_contents($path, '<?php return unserialize(' . var_export($serialized, true) . ');');
+
     return $path;
 }
 
@@ -50,6 +53,7 @@ function writeExtensionFile(string $dir, string $filename, LayoutExtension $exte
     $path = $dir . '/layout/extensions/' . $filename;
     $serialized = serialize($extension);
     file_put_contents($path, '<?php return unserialize(' . var_export($serialized, true) . ');');
+
     return $path;
 }
 
@@ -59,6 +63,7 @@ function writeWrongTypeFile(string $dir, string $filename, string $subdir = 'lay
 {
     $path = $dir . '/' . $subdir . '/' . $filename;
     file_put_contents($path, '<?php return "this is a string, not a Layout";');
+
     return $path;
 }
 
@@ -210,7 +215,7 @@ it('throws a loud error when a layout file does not return a Layout', function (
     $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $tmpDir);
     $discovery = new LayoutDiscovery(makeLayoutModuleRepository([$module]));
 
-    expect(fn() => $discovery->discover())
+    expect(fn () => $discovery->discover())
         ->toThrow(InvalidLayoutFileException::class);
 
     removeTempDir($tmpDir);
@@ -224,7 +229,7 @@ it('throws a loud error when an extension file does not return a LayoutExtension
     $module = new ModuleManifest(name: 'test/module', version: '1.0.0', path: $tmpDir);
     $discovery = new LayoutDiscovery(makeLayoutModuleRepository([$module]));
 
-    expect(fn() => $discovery->discover())
+    expect(fn () => $discovery->discover())
         ->toThrow(InvalidLayoutFileException::class);
 
     removeTempDir($tmpDir);

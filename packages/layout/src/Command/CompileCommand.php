@@ -10,7 +10,7 @@ use Marko\Core\Command\Input;
 use Marko\Core\Command\Output;
 use Markommerce\Layout\Cache\ArtifactWriterInterface;
 use Markommerce\Layout\Compiler\CompilerInterface;
-use Markommerce\Layout\Exception\LayoutException;
+use Markommerce\Layout\Exceptions\LayoutException;
 
 /** @noinspection PhpUnused */
 #[Command(name: 'layout:compile', description: 'Compile all discovered layouts into the artifact cache file')]
@@ -44,8 +44,8 @@ readonly class CompileCommand implements CommandInterface
         $handleCount = count($trees);
         $artifactPath = $this->artifactWriter->getPath();
 
-        $output->writeLine("Layout compile complete: {$handleCount} handle(s) compiled.");
-        $output->writeLine("Artifact written to: {$artifactPath}");
+        $output->writeLine("Layout compile complete: $handleCount handle(s) compiled.");
+        $output->writeLine("Artifact written to: $artifactPath");
 
         return 0;
     }

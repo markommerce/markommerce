@@ -23,14 +23,12 @@ class CachingConfigResolver
     /**
      * @param class-string $configClass
      *
-     * @throws ConfigNotFoundException
-     * @throws InvalidConfigValueException
+     * @throws ConfigNotFoundException|InvalidConfigValueException
      */
     public function resolved(
         string $configClass,
         string $field,
-    ): mixed
-    {
+    ): mixed {
         $definition = $this->configRegistry->definition($configClass, $field);
         $cacheKey = $this->buildCacheKey($definition->key, $definition->axes, $this->scopeContext);
 
@@ -43,15 +41,13 @@ class CachingConfigResolver
     /**
      * @param class-string $configClass
      *
-     * @throws ConfigNotFoundException
-     * @throws InvalidConfigValueException
+     * @throws ConfigNotFoundException|InvalidConfigValueException
      */
     public function resolvedAt(
         string $configClass,
         string $field,
         ScopeContext $context,
-    ): mixed
-    {
+    ): mixed {
         $definition = $this->configRegistry->definition($configClass, $field);
         $cacheKey = $this->buildCacheKey($definition->key, $definition->axes, $context);
 
@@ -68,8 +64,7 @@ class CachingConfigResolver
         string $configKey,
         array $axes,
         ScopeContext $context,
-    ): string
-    {
+    ): string {
         if (empty($axes)) {
             return $configKey;
         }

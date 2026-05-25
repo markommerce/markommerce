@@ -81,16 +81,19 @@ it('throws InvalidConfigValueException when a backed enum tryFrom returns null',
         ->toThrow(InvalidConfigValueException::class);
 });
 
-it('throws InvalidConfigValueException carrying the key, raw value, and declared type in the message', function (): void {
-    $caster = new ValueCaster();
-
-    try {
-        $caster->cast('not-a-number', makeDefinition('int'));
-        expect(true)->toBeFalse('Expected exception not thrown');
-    } catch (InvalidConfigValueException $e) {
-        expect($e->getMessage())
-            ->toContain('test/module.some_key')
-            ->toContain('not-a-number')
-            ->toContain('int');
+it(
+    'throws InvalidConfigValueException carrying the key, raw value, and declared type in the message',
+    function (): void {
+        $caster = new ValueCaster();
+    
+        try {
+            $caster->cast('not-a-number', makeDefinition('int'));
+            expect(true)->toBeFalse('Expected exception not thrown');
+        } catch (InvalidConfigValueException $e) {
+            expect($e->getMessage())
+                ->toContain('test/module.some_key')
+                ->toContain('not-a-number')
+                ->toContain('int');
+        }
     }
-});
+);

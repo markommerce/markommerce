@@ -31,14 +31,21 @@ readonly class ScopeResolutionCommandPlugin
     ) {}
 
     #[Before(method: 'execute')]
-    public function beforeExecute(Input $input, Output $output): void
+    public function beforeExecute(
+        Input $input,
+        Output $output,
+    ): void
     {
         $this->scopeResolutionPipeline->clear();
         $this->scopeResolutionPipeline->run(SyntheticRequest::create(), ScopeResolutionContext::CHANNEL_CLI);
     }
 
     #[After(method: 'execute')]
-    public function afterExecute(int $result, Input $input, Output $output): int
+    public function afterExecute(
+        int $result,
+        Input $input,
+        Output $output,
+    ): int
     {
         $this->scopeResolutionPipeline->clear();
 

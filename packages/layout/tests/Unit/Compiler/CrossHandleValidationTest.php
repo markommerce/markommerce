@@ -6,14 +6,13 @@ use Markommerce\Layout\Attributes\ProvidesHandles;
 use Markommerce\Layout\Cache\ArtifactWriter;
 use Markommerce\Layout\Cache\PreparedPlace;
 use Markommerce\Layout\Cache\PreparedTree;
-use Markommerce\Layout\Cache\PreparedTreeBuilder;
 use Markommerce\Layout\Compiler\ResolvedLayout;
 use Markommerce\Layout\Compiler\ResolvedPlace;
 use Markommerce\Layout\Compiler\ValidationPhase;
 use Markommerce\Layout\Contracts\HandleProvider;
-use Markommerce\Layout\Exception\ChainedHandleProviderException;
-use Markommerce\Layout\Exception\DuplicateContextTokenException;
-use Markommerce\Layout\Exception\DynamicHandleConflictException;
+use Markommerce\Layout\Exceptions\ChainedHandleProviderException;
+use Markommerce\Layout\Exceptions\DuplicateContextTokenException;
+use Markommerce\Layout\Exceptions\DynamicHandleConflictException;
 use Markommerce\Layout\Provide;
 use Markommerce\Layout\ProvideHandle;
 use Markommerce\Layout\Runtime\TreeMerger;
@@ -102,118 +101,130 @@ function cross_makePreparedPlace(?string $name = null): PreparedPlace
 // Requirement 1: ProvidesHandles attribute
 // =============================================================================
 
-it('defines a #[ProvidesHandles(...)] PHP attribute that providers can use to declare their static return set', function (): void {
-    $reflection = new ReflectionClass(ProvidesHandles::class);
-
-    // Is a PHP Attribute
+it(
+    'defines a #[ProvidesHandles(...)] PHP attribute that providers can use to declare their static return set',
+    function (): void {
+        $reflection = new ReflectionClass(ProvidesHandles::class);
+    
+        // Is a PHP Attribute
     $attrAttributes = $reflection->getAttributes(Attribute::class);
-    expect($attrAttributes)->not->toBeEmpty();
-
-    $attributeInstance = $attrAttributes[0]->newInstance();
-    expect($attributeInstance->flags & Attribute::TARGET_CLASS)->not->toBe(0);
-
-    // Has a public $handles property
+        expect($attrAttributes)->not->toBeEmpty();
+    
+        $attributeInstance = $attrAttributes[0]->newInstance();
+        expect($attributeInstance->flags & Attribute::TARGET_CLASS)->not->toBe(0);
+    
+        // Has a public $handles property
     expect($reflection->hasProperty('handles'))->toBeTrue();
-    $handlesProp = $reflection->getProperty('handles');
-    expect($handlesProp->isPublic())->toBeTrue();
-
-    // Can annotate a class and its values are accessible via reflection
+        $handlesProp = $reflection->getProperty('handles');
+        expect($handlesProp->isPublic())->toBeTrue();
+    
+        // Can annotate a class and its values are accessible via reflection
     $providerReflection = new ReflectionClass(CrossStaticProvider::class);
-    $attrs = $providerReflection->getAttributes(ProvidesHandles::class);
-    expect($attrs)->toHaveCount(1);
-
-    /** @var ProvidesHandles $instance */
-    $instance = $attrs[0]->newInstance();
-    expect($instance->handles)->toBe(['cross.dynamic.a', 'cross.dynamic.b']);
-});
+        $attrs = $providerReflection->getAttributes(ProvidesHandles::class);
+        expect($attrs)->toHaveCount(1);
+    
+        /** @var ProvidesHandles $instance */
+        $instance = $attrs[0]->newInstance();
+        expect($instance->handles)->toBe(['cross.dynamic.a', 'cross.dynamic.b']);
+    }
+);
 
 // =============================================================================
 // Requirement 2: compile-time DynamicHandleConflictException for placement conflict
 // =============================================================================
 
-it('throws DynamicHandleConflictException at compile time when a statically-known dynamic handle declares a placement that conflicts with the base handle', function (): void {
-    $dynamicALayout = cross_makeLayout(
-        handleKey: 'cross.dynamic.a',
-        slots: [
-            'main' => [cross_makePlace('shared.placement')],
+it(
+    'throws DynamicHandleConflictException at compile time when a statically-known dynamic handle declares a placement that conflicts with the base handle',
+    function (): void {
+        $dynamicALayout = cross_makeLayout(
+            handleKey: 'cross.dynamic.a',
+            slots: [
+                'main' => [cross_makePlace('shared.placement')],
+            ],
+        );
+    
+        $baseLayout = cross_makeLayout(
+            handleKey: 'base.handle',
+            slots: [
+                'main' => [cross_makePlace('shared.placement')],  // same name as dynamic
         ],
-    );
-
-    $baseLayout = cross_makeLayout(
-        handleKey: 'base.handle',
-        slots: [
-            'main' => [cross_makePlace('shared.placement')],  // same name as dynamic
-        ],
-        handleProviders: [
-            new ProvideHandle(provider: CrossStaticProvider::class, props: []),
-        ],
-    );
-
-    $resolvedLayouts = [
-        'cross.dynamic.a' => $dynamicALayout,
-        'cross.dynamic.b' => cross_makeLayout(handleKey: 'cross.dynamic.b'),
-        'base.handle' => $baseLayout,
-    ];
-
-    $validator = new ValidationPhase();
-    expect(fn() => $validator->validate($resolvedLayouts))
-        ->toThrow(DynamicHandleConflictException::class);
-});
+            handleProviders: [
+                new ProvideHandle(provider: CrossStaticProvider::class, props: []),
+            ],
+        );
+    
+        $resolvedLayouts = [
+            'cross.dynamic.a' => $dynamicALayout,
+            'cross.dynamic.b' => cross_makeLayout(handleKey: 'cross.dynamic.b'),
+            'base.handle' => $baseLayout,
+        ];
+    
+        $validator = new ValidationPhase();
+        expect(fn () => $validator->validate($resolvedLayouts))
+            ->toThrow(DynamicHandleConflictException::class);
+    }
+);
 
 // =============================================================================
 // Requirement 3: runtime DynamicHandleConflictException for opaque provider
 // =============================================================================
 
-it('throws DynamicHandleConflictException at runtime when an opaque provider returns a handle whose tree conflicts with the base', function (): void {
-    $base = cross_makePreparedTree(
-        handleKey: 'base.handle',
-        slots: [
-            'main' => [cross_makePreparedPlace('shared.placement')],
+it(
+    'throws DynamicHandleConflictException at runtime when an opaque provider returns a handle whose tree conflicts with the base',
+    function (): void {
+        $base = cross_makePreparedTree(
+            handleKey: 'base.handle',
+            slots: [
+                'main' => [cross_makePreparedPlace('shared.placement')],
+            ],
+            placementNames: ['shared.placement'],
+        );
+    
+        $addition = cross_makePreparedTree(
+            handleKey: 'opaque.dynamic',
+            slots: [
+                'main' => [cross_makePreparedPlace('shared.placement')],  // conflict
         ],
-        placementNames: ['shared.placement'],
-    );
-
-    $addition = cross_makePreparedTree(
-        handleKey: 'opaque.dynamic',
-        slots: [
-            'main' => [cross_makePreparedPlace('shared.placement')],  // conflict
-        ],
-    );
-
-    $merger = new TreeMerger();
-    expect(fn() => $merger->merge($base, [$addition]))
-        ->toThrow(DynamicHandleConflictException::class);
-});
+        );
+    
+        $merger = new TreeMerger();
+        expect(fn () => $merger->merge($base, [$addition]))
+            ->toThrow(DynamicHandleConflictException::class);
+    }
+);
 
 // =============================================================================
 // Requirement 4: compile-time DuplicateContextTokenException
 // =============================================================================
 
-it('throws DuplicateContextTokenException at compile time when a statically-known dynamic handle and the base handle share a context token', function (): void {
-    $dynamicALayout = cross_makeLayout(
-        handleKey: 'cross.dynamic.a',
-        context: [new Provide('shared.token', 'SomeProvider', [])],
-    );
-
-    $baseLayout = cross_makeLayout(
-        handleKey: 'base.handle',
-        slots: [],
-        context: [new Provide('shared.token', 'AnotherProvider', [])],  // same token
+it(
+    'throws DuplicateContextTokenException at compile time when a statically-known dynamic handle and the base handle share a context token',
+    function (): void {
+        $dynamicALayout = cross_makeLayout(
+            handleKey: 'cross.dynamic.a',
+            context: [new Provide('shared.token', 'SomeProvider', [])],
+        );
+    
+        $baseLayout = cross_makeLayout(
+            handleKey: 'base.handle',
+            slots: [],
+            context: [new Provide('shared.token', 'AnotherProvider', [])],  // same token
         handleProviders: [
-            new ProvideHandle(provider: CrossStaticProvider::class, props: []),
-        ],
-    );
-
-    $resolvedLayouts = [
-        'cross.dynamic.a' => $dynamicALayout,
-        'cross.dynamic.b' => cross_makeLayout(handleKey: 'cross.dynamic.b'),
-        'base.handle' => $baseLayout,
-    ];
-
-    $validator = new ValidationPhase();
-    expect(fn() => $validator->validate($resolvedLayouts))
-        ->toThrow(DuplicateContextTokenException::class);
-});
+                new ProvideHandle(provider: CrossStaticProvider::class, props: []),
+            ],
+        );
+    
+        $resolvedLayouts = [
+            'cross.dynamic.a' => $dynamicALayout,
+            'cross.dynamic.b' => cross_makeLayout(handleKey: 'cross.dynamic.b'),
+            'base.handle' => $baseLayout,
+        ];
+    
+        $validator = new ValidationPhase();
+        expect(fn () => $validator->validate($resolvedLayouts))
+            ->toThrow(DuplicateContextTokenException::class);
+    }
+);
 
 // =============================================================================
 // Requirement 5: placementNames field in PreparedTree for runtime detection
@@ -268,55 +279,61 @@ it('passes validation when dynamic and base trees declare disjoint placement nam
     ];
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate($resolvedLayouts))->not->toThrow(\Throwable::class);
+    expect(fn () => $validator->validate($resolvedLayouts))->not->toThrow(Throwable::class);
 });
 
 // =============================================================================
 // Requirement 7: compile-time ChainedHandleProviderException
 // =============================================================================
 
-it('throws ChainedHandleProviderException at compile time when a statically-known dynamic handle\'s tree declares its own handleProviders', function (): void {
-    // cross.dynamic.a itself has handleProviders — not allowed
+it(
+    'throws ChainedHandleProviderException at compile time when a statically-known dynamic handle\'s tree declares its own handleProviders',
+    function (): void {
+        // cross.dynamic.a itself has handleProviders — not allowed
     $dynamicALayout = cross_makeLayout(
-        handleKey: 'cross.dynamic.a',
-        handleProviders: [
-            new ProvideHandle(provider: CrossOpaqueProvider::class, props: []),
-        ],
-    );
-
-    $baseLayout = cross_makeLayout(
-        handleKey: 'base.handle',
-        handleProviders: [
-            new ProvideHandle(provider: CrossStaticProvider::class, props: []),
-        ],
-    );
-
-    $resolvedLayouts = [
-        'cross.dynamic.a' => $dynamicALayout,
-        'cross.dynamic.b' => cross_makeLayout(handleKey: 'cross.dynamic.b'),
-        'base.handle' => $baseLayout,
-    ];
-
-    $validator = new ValidationPhase();
-    expect(fn() => $validator->validate($resolvedLayouts))
-        ->toThrow(ChainedHandleProviderException::class);
-});
+            handleKey: 'cross.dynamic.a',
+            handleProviders: [
+                new ProvideHandle(provider: CrossOpaqueProvider::class, props: []),
+            ],
+        );
+    
+        $baseLayout = cross_makeLayout(
+            handleKey: 'base.handle',
+            handleProviders: [
+                new ProvideHandle(provider: CrossStaticProvider::class, props: []),
+            ],
+        );
+    
+        $resolvedLayouts = [
+            'cross.dynamic.a' => $dynamicALayout,
+            'cross.dynamic.b' => cross_makeLayout(handleKey: 'cross.dynamic.b'),
+            'base.handle' => $baseLayout,
+        ];
+    
+        $validator = new ValidationPhase();
+        expect(fn () => $validator->validate($resolvedLayouts))
+            ->toThrow(ChainedHandleProviderException::class);
+    }
+);
 
 // =============================================================================
 // Requirement 8: runtime ChainedHandleProviderException for opaque provider
 // =============================================================================
 
-it('throws ChainedHandleProviderException at runtime when an opaque provider returns a handle whose tree declares handleProviders', function (): void {
-    $base = cross_makePreparedTree(handleKey: 'base.handle');
-
-    $addition = cross_makePreparedTree(
-        handleKey: 'opaque.dynamic',
-        handleProviders: [
-            new ProvideHandle(provider: CrossOpaqueProvider::class, props: []),
-        ],
-    );
-
-    $merger = new TreeMerger();
-    expect(fn() => $merger->merge($base, [$addition]))
-        ->toThrow(ChainedHandleProviderException::class);
-});
+it(
+    'throws ChainedHandleProviderException at runtime when an opaque provider returns a handle whose tree declares handleProviders',
+    function (): void {
+        $base = cross_makePreparedTree(handleKey: 'base.handle');
+    
+        $addition = cross_makePreparedTree(
+            handleKey: 'opaque.dynamic',
+            handleProviders: [
+                new ProvideHandle(provider: CrossOpaqueProvider::class, props: []),
+            ],
+        );
+    
+        $merger = new TreeMerger();
+        expect(fn () => $merger->merge($base, [$addition]))
+            ->toThrow(ChainedHandleProviderException::class);
+    }
+);

@@ -60,6 +60,7 @@ return [
                 $container->get(ProxyLocator::class),
                 $container->get(PreferenceRegistry::class),
             );
+
             return new CachingConfigResolver(
                 $baseResolver,
                 $container->get(ConfigCacheInterface::class),

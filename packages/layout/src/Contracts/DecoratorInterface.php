@@ -33,5 +33,8 @@ interface DecoratorInterface
      *
      * @param array<string, mixed> $data Optional decorator-own resolved data.
      */
-    public function wrap(string $innerHtml, array $data = []): string;
+    public function wrap(
+        string $innerHtml,
+        array $data = [],
+    ): string;
 }

@@ -6,14 +6,15 @@ use Marko\Core\Command\Input;
 use Marko\Core\Command\Output;
 use Markommerce\Config\Attributes\Config;
 use Markommerce\Config\Command\SetCommand;
+use Markommerce\Config\ConfigWriter;
+use Markommerce\Config\Contracts\ConfigStorageInterface;
 use Markommerce\Config\Encryption\NullSecretCipher;
-use Markommerce\Config\Exceptions\AxisNotDeclaredException;
 use Markommerce\Config\Exceptions\StaleConfigWriteException;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
 use Markommerce\Config\Storage\InMemoryConfigStorage;
 use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
-use Markommerce\Config\ConfigWriter;
+use Markommerce\Config\ValueObjects\ConfigRow;
 use Markommerce\Scope\Attributes\Scoped;
 
 // --- Fixture config classes ---
@@ -183,9 +184,10 @@ it('parses the shell <value> argument according to the property\'s declared type
 
 // --- Contention storage for StaleConfigWriteException tests ---
 
-class SetCommandContentiousStorage implements \Markommerce\Config\Contracts\ConfigStorageInterface
+class SetCommandContentiousStorage implements ConfigStorageInterface
 {
     public int $attempts = 0;
+
     private InMemoryConfigStorage $inner;
 
     public function __construct(public int $failCount)
@@ -193,21 +195,25 @@ class SetCommandContentiousStorage implements \Markommerce\Config\Contracts\Conf
         $this->inner = new InMemoryConfigStorage();
     }
 
-    public function load(string $key): ?\Markommerce\Config\ValueObjects\ConfigRow
+    public function load(string $key): ?ConfigRow
     {
         return $this->inner->load($key);
     }
 
     /**
      * @param list<string> $keys
-     * @return array<string, \Markommerce\Config\ValueObjects\ConfigRow>
+     * @return array<string, ConfigRow>
      */
     public function loadMany(array $keys): array
     {
         return $this->inner->loadMany($keys);
     }
 
-    public function compareAndSave(string $key, \Markommerce\Config\ValueObjects\ConfigRow $row, int $expectedVersion): bool
+    public function compareAndSave(
+        string $key,
+        ConfigRow $row,
+        int $expectedVersion,
+    ): bool
     {
         $this->attempts++;
 

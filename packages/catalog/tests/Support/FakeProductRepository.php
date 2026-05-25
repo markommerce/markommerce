@@ -129,7 +129,10 @@ class FakeProductRepository implements ProductRepositoryInterface
     /**
      * @param array<string, mixed> $criteria
      */
-    private function matchesCriteria(Product $product, array $criteria): bool
+    private function matchesCriteria(
+        Product $product,
+        array $criteria,
+    ): bool
     {
         return array_all(
             array_keys($criteria),

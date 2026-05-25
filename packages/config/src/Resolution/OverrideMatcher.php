@@ -21,8 +21,7 @@ class OverrideMatcher
         ConfigRow $row,
         array $axes,
         ScopeContext $context,
-    ): mixed
-    {
+    ): mixed {
         if ($row->overrides === []) {
             return null;
         }

@@ -10,15 +10,21 @@ use Markommerce\Config\ConfigWriter;
 use Markommerce\Config\Encryption\NullSecretCipher;
 use Markommerce\Config\Encryption\SodiumSecretCipher;
 use Markommerce\Config\Proxy\ProxyLocator;
+use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
 use Markommerce\Config\Resolution\OverrideMatcher;
 use Markommerce\Config\Storage\InMemoryConfigStorage;
 use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
 use Markommerce\Config\Tests\Fakes\IdentitySecretCipher;
+use Markommerce\Config\ValueObjects\ConfigRow;
 use Markommerce\Scope\Attributes\Scoped;
+use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
-use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
+use Markommerce\Scope\Exceptions\UnknownAxisException;
+use Markommerce\Scope\Hierarchy\ScopeHierarchy;
+use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use Markommerce\Scope\Signature\ScopeSignature;
+use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 
 // --- Fixture config classes ---
 
@@ -43,7 +49,7 @@ class NonSecretConfig
 
 // --- Helpers ---
 
-function buildSecretRegistry(array $configClasses = []): \Markommerce\Config\Registry\ConfigRegistry
+function buildSecretRegistry(array $configClasses = []): ConfigRegistry
 {
     $builder = new ConfigRegistryBuilder();
 
@@ -115,7 +121,7 @@ it('decrypts the stored ciphertext when resolving a #[Config(secret: true)] glob
     $storage = new InMemoryConfigStorage();
 
     // Pre-seed with the "ciphertext" (which for IdentitySecretCipher is just json_encode of the plaintext)
-    $storage->compareAndSave('secret/test.apiKey', new \Markommerce\Config\ValueObjects\ConfigRow(
+    $storage->compareAndSave('secret/test.apiKey', new ConfigRow(
         key: 'secret/test.apiKey',
         value: json_encode('stored-api-key'),
         overrides: [],
@@ -130,20 +136,21 @@ it('decrypts the stored ciphertext when resolving a #[Config(secret: true)] glob
 });
 
 it('decrypts the stored ciphertext when resolving a #[Config(secret: true)] override', function (): void {
-    $fakeScopeRegistry = new \Markommerce\Config\Tests\Fakes\FakeScopeRegistry(['store']);
+    $fakeScopeRegistry = new FakeScopeRegistry(['store']);
     $registry = buildSecretRegistry([SecretScopedConfig::class]);
     $storage = new InMemoryConfigStorage();
 
     // Pre-seed with an override ciphertext
-    $storage->compareAndSave('secret/scoped.token', new \Markommerce\Config\ValueObjects\ConfigRow(
+    $storage->compareAndSave('secret/scoped.token', new ConfigRow(
         key: 'secret/scoped.token',
         value: null,
         overrides: ['store:eu' => json_encode('override-secret-token')],
         version: 0,
     ), 0);
 
-    $scopeRegistry = new class (['store' => ['default', 'eu']]) implements \Markommerce\Scope\Registry\ScopeRegistryInterface {
-        /** @var array<string, \Markommerce\Scope\Axis\ScopeAxis> */
+    $scopeRegistry = new class (['store' => ['default', 'eu']]) implements ScopeRegistryInterface
+    {
+        /** @var array<string, ScopeAxis> */
         private array $builtAxes;
 
         /** @param array<string, list<string>> $axes */
@@ -153,8 +160,8 @@ it('decrypts the stored ciphertext when resolving a #[Config(secret: true)] over
 
             foreach ($axes as $name => $paths) {
                 $default = $paths[0] ?? 'default';
-                $hierarchy = new \Markommerce\Scope\Hierarchy\ScopeHierarchy($paths);
-                $this->builtAxes[$name] = new \Markommerce\Scope\Axis\ScopeAxis(name: $name, hierarchy: $hierarchy, default: $default);
+                $hierarchy = new ScopeHierarchy($paths);
+                $this->builtAxes[$name] = new ScopeAxis(name: $name, hierarchy: $hierarchy, default: $default);
             }
         }
 
@@ -163,10 +170,10 @@ it('decrypts the stored ciphertext when resolving a #[Config(secret: true)] over
             return isset($this->builtAxes[$name]);
         }
 
-        /** @throws \Markommerce\Scope\Exceptions\UnknownAxisException */
-        public function getAxis(string $name): \Markommerce\Scope\Axis\ScopeAxis
+        /** @throws UnknownAxisException */
+        public function getAxis(string $name): ScopeAxis
         {
-            return $this->builtAxes[$name] ?? throw \Markommerce\Scope\Exceptions\UnknownAxisException::forAxis($name);
+            return $this->builtAxes[$name] ?? throw UnknownAxisException::forAxis($name);
         }
 
         /** @return list<string> */
@@ -175,8 +182,8 @@ it('decrypts the stored ciphertext when resolving a #[Config(secret: true)] over
             return array_keys($this->builtAxes);
         }
 
-        /** @throws \Markommerce\Scope\Exceptions\UnknownAxisException */
-        public function getHierarchy(string $axisName): \Markommerce\Scope\Hierarchy\ScopeHierarchy
+        /** @throws UnknownAxisException */
+        public function getHierarchy(string $axisName): ScopeHierarchy
         {
             return $this->getAxis($axisName)->hierarchy;
         }
@@ -239,34 +246,40 @@ it('does not invoke the cipher when the property is not marked secret', function
     expect($result)->toBe('plain-value');
 });
 
-it('round-trips a secret value through write then read using SodiumSecretCipher with a real 32-byte key', function (): void {
-    $key = random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES);
-    $cipher = new SodiumSecretCipher($key);
-
-    $storage = new InMemoryConfigStorage();
-    $registry = (new ConfigRegistryBuilder())->build([SecretGlobalConfig::class], new FakeScopeRegistry(['store']));
-
-    $writer = new ConfigWriter(
-        registry: $registry,
-        storage: $storage,
-        cipher: $cipher,
-    );
-
-    $originalValue = 'super-secret-api-key-12345';
-    $writer->setGlobal('secret/test.apiKey', $originalValue);
-
-    $resolver = new ConfigResolver(
-        configRegistry: $registry,
-        configStorage: $storage,
-        overrideMatcher: new OverrideMatcher(new SignatureCandidateEnumerator(new FakeScopeRegistry(['store']))),
-        valueCaster: new ValueCaster(),
-        scopeContext: new ScopeContext(new FakeScopeRegistry(['store'])),
-        secretCipher: $cipher,
-        proxyLocator: new ProxyLocator(),
-        preferenceRegistry: new PreferenceRegistry(),
-    );
-
-    $resolved = $resolver->resolved(SecretGlobalConfig::class, 'apiKey');
-
-    expect($resolved)->toBe($originalValue);
-});
+it(
+    'round-trips a secret value through write then read using SodiumSecretCipher with a real 32-byte key',
+    function (): void {
+        $key = random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES);
+        $cipher = new SodiumSecretCipher($key);
+    
+        $storage = new InMemoryConfigStorage();
+        $registry = (new ConfigRegistryBuilder())->build(
+            [SecretGlobalConfig::class],
+            new FakeScopeRegistry(['store'])
+        );
+    
+        $writer = new ConfigWriter(
+            registry: $registry,
+            storage: $storage,
+            cipher: $cipher,
+        );
+    
+        $originalValue = 'super-secret-api-key-12345';
+        $writer->setGlobal('secret/test.apiKey', $originalValue);
+    
+        $resolver = new ConfigResolver(
+            configRegistry: $registry,
+            configStorage: $storage,
+            overrideMatcher: new OverrideMatcher(new SignatureCandidateEnumerator(new FakeScopeRegistry(['store']))),
+            valueCaster: new ValueCaster(),
+            scopeContext: new ScopeContext(new FakeScopeRegistry(['store'])),
+            secretCipher: $cipher,
+            proxyLocator: new ProxyLocator(),
+            preferenceRegistry: new PreferenceRegistry(),
+        );
+    
+        $resolved = $resolver->resolved(SecretGlobalConfig::class, 'apiKey');
+    
+        expect($resolved)->toBe($originalValue);
+    }
+);

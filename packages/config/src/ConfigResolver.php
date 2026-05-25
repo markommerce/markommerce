@@ -36,8 +36,7 @@ class ConfigResolver
      * @param class-string<T> $configClass
      * @return T
      *
-     * @throws ProxyNotGeneratedException
-     * @throws InvalidConfigClassException
+     * @throws ProxyNotGeneratedException|InvalidConfigClassException
      */
     public function get(string $configClass): object
     {
@@ -60,30 +59,25 @@ class ConfigResolver
     /**
      * @param class-string $configClass
      *
-     * @throws ConfigNotFoundException
-     * @throws InvalidConfigValueException
+     * @throws ConfigNotFoundException|InvalidConfigValueException
      */
     public function resolved(
         string $configClass,
         string $field,
-    ): mixed
-    {
+    ): mixed {
         return $this->resolvedAt($configClass, $field, $this->scopeContext);
     }
 
     /**
      * @param class-string $configClass
      *
-     * @throws ConfigNotFoundException
-     * @throws InvalidConfigValueException
-     * @throws SecretCipherException
+     * @throws ConfigNotFoundException|InvalidConfigValueException|SecretCipherException
      */
     public function resolvedAt(
         string $configClass,
         string $field,
         ScopeContext $explicitContext,
-    ): mixed
-    {
+    ): mixed {
         $definition = $this->configRegistry->definition($configClass, $field);
 
         $row = $this->configStorage->load($definition->key);

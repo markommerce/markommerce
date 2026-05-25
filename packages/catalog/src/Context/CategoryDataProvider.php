@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Markommerce\Catalog\Context;
 
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
-use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Exceptions\CategoryNotFoundException;
 use Markommerce\Layout\Contracts\ContextProvider;
 

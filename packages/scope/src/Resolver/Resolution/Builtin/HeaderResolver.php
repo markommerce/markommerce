@@ -12,7 +12,10 @@ readonly class HeaderResolver implements ScopeAxisResolverInterface
 {
     public function __construct(private string $headerName) {}
 
-    public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $scopeResolutionContext): ?string
+    public function resolve(
+        ScopeAxis $scopeAxis,
+        ScopeResolutionContext $scopeResolutionContext,
+    ): ?string
     {
         if ($scopeResolutionContext->channel !== ScopeResolutionContext::CHANNEL_HTTP) {
             return null;

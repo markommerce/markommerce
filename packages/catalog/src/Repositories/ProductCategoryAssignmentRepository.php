@@ -30,7 +30,10 @@ class ProductCategoryAssignmentRepository extends Repository implements ProductC
      *
      * @throws RepositoryException
      */
-    public function findByProductAndCategory(int $productId, int $categoryId): ?ProductCategoryAssignment
+    public function findByProductAndCategory(
+        int $productId,
+        int $categoryId,
+    ): ?ProductCategoryAssignment
     {
         /** @var ProductCategoryAssignment|null */
         return $this->findOneBy(['productId' => $productId, 'categoryId' => $categoryId]);

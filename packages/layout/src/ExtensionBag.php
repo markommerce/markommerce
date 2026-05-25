@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Markommerce\Layout;
 
 use Markommerce\Layout\Contracts\ExtensionAttribute;
-use Markommerce\Layout\Exception\DuplicateExtensionException;
+use Markommerce\Layout\Exceptions\DuplicateExtensionException;
 
 /**
  * Immutable, typed collection of extension attributes keyed by class-string.

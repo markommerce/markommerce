@@ -12,7 +12,10 @@ readonly class StaticResolver implements ScopeAxisResolverInterface
 {
     public function __construct(private string $value) {}
 
-    public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $scopeResolutionContext): ?string
+    public function resolve(
+        ScopeAxis $scopeAxis,
+        ScopeResolutionContext $scopeResolutionContext,
+    ): ?string
     {
         return $this->value;
     }

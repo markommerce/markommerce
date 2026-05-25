@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Marko\Core\Attributes\Command;
 use Marko\Core\Command\Input;
 use Marko\Core\Command\Output;
 use Markommerce\Config\Attributes\Config;

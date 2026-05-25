@@ -19,7 +19,11 @@ class ProductService
     /**
      * @throws DuplicateSkuException
      */
-    public function createProduct(string $sku, string $name, ?string $description = null): Product
+    public function createProduct(
+        string $sku,
+        string $name,
+        ?string $description = null,
+    ): Product
     {
         $existing = $this->productRepository->findBySku($sku);
 
