@@ -36,9 +36,15 @@ return [
         ConfigStorageInterface::class => InMemoryConfigStorage::class,
         ConfigWriterInterface::class => ConfigWriter::class,
         SecretCipherInterface::class => static function (ContainerInterface $container): SecretCipherInterface {
-            $key = getenv('MARKOMMERCE_CONFIG_SECRET_KEY');
+            $encoded = getenv('MARKOMMERCE_CONFIG_SECRET_KEY');
 
-            if ($key === false || $key === '') {
+            if ($encoded === false || $encoded === '') {
+                throw SecretCipherException::notConfigured();
+            }
+
+            $key = base64_decode($encoded, strict: true);
+
+            if ($key === false) {
                 throw SecretCipherException::notConfigured();
             }
 
@@ -70,7 +76,6 @@ return [
         ProxyLocator::class,
         ProxyAutoloader::class,
         RequestConfigCache::class,
-        ConfigCacheInterface::class => RequestConfigCache::class,
     ],
     'boot' => static function (ContainerInterface $container): void {
         // 1. Register PreferenceRegistry instance in the container

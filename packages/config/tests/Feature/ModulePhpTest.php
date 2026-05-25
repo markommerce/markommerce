@@ -341,7 +341,7 @@ it('registers ConfigCacheResetMiddleware in globalMiddleware so RequestConfigCac
 })->group('integration-destructive');
 
 it('binds SecretCipherInterface lazily via a closure that reads the 32-byte key from env on first call', function (): void {
-    $key = str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES);
+    $key = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
     putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $key);
 
     try {
@@ -355,7 +355,7 @@ it('binds SecretCipherInterface lazily via a closure that reads the 32-byte key 
 })->group('integration-destructive');
 
 it('binds ConfigResolver to the CachingConfigResolver decorator so all consumers get caching by default', function (): void {
-    $key = str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES);
+    $key = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
     putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $key);
 
     try {
