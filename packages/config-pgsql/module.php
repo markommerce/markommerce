@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Marko\Core\Container\ContainerInterface;
+use Marko\Database\Connection\ConnectionInterface;
 use Markommerce\Config\Contracts\ConfigStorageInterface;
 use Markommerce\Config\PgSql\PgsqlConfigStorage;
 
@@ -10,6 +12,8 @@ use Markommerce\Config\PgSql\PgsqlConfigStorage;
 
 return [
     'bindings' => [
-        ConfigStorageInterface::class => PgsqlConfigStorage::class,
+        ConfigStorageInterface::class => static function (ContainerInterface $container): PgsqlConfigStorage {
+            return new PgsqlConfigStorage($container->get(ConnectionInterface::class));
+        },
     ],
 ];
