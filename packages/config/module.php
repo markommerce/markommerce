@@ -27,13 +27,11 @@ use Markommerce\Config\Proxy\ProxyWriter;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
 use Markommerce\Config\Resolution\OverrideMatcher;
-use Markommerce\Config\Storage\InMemoryConfigStorage;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 return [
     'bindings' => [
-        ConfigStorageInterface::class => InMemoryConfigStorage::class,
         ConfigWriterInterface::class => ConfigWriter::class,
         SecretCipherInterface::class => static function (ContainerInterface $container): SecretCipherInterface {
             $encoded = getenv('MARKOMMERCE_CONFIG_SECRET_KEY');

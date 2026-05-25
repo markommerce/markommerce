@@ -125,6 +125,11 @@ function bootModuleContainer(
     };
     $container->instance(ConfigRepositoryInterface::class, $fakeConfigRepo);
 
+    // Register InMemoryConfigStorage as a test double — the real app gets this
+    // from the driver package (e.g. markommerce/config-pgsql); the config
+    // module itself no longer provides a default binding.
+    $container->bind(ConfigStorageInterface::class, InMemoryConfigStorage::class);
+
     // Register bindings from module.php
     foreach ($moduleArray['bindings'] ?? [] as $interface => $implementation) {
         $container->bind($interface, $implementation);
@@ -162,12 +167,10 @@ function makeTempProxyDir(): string
 // Requirements
 // ─────────────────────────────────────────────────────────
 
-it('binds ConfigStorageInterface to InMemoryConfigStorage by default', function (): void {
-    $container = bootModuleContainer();
+it('does not bind ConfigStorageInterface — a driver package (e.g. config-pgsql) must provide the implementation', function (): void {
+    $moduleArray = require dirname(__DIR__, 2) . '/module.php';
 
-    $storage = $container->get(ConfigStorageInterface::class);
-
-    expect($storage)->toBeInstanceOf(InMemoryConfigStorage::class);
+    expect($moduleArray['bindings'])->not->toHaveKey(ConfigStorageInterface::class);
 })->group('integration-destructive');
 
 it('registers PreferenceRegistry as an instance in the container during boot', function (): void {
