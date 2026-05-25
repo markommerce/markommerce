@@ -49,7 +49,10 @@ class ScopeConfigurationException extends MarkoException
         );
     }
 
-    public static function defaultNotInScopes(string $axis, string $default): self
+    public static function defaultNotInScopes(
+        string $axis,
+        string $default,
+    ): self
     {
         return new self(
             message: "Default scope '$default' for axis '$axis' is not declared in the axis scopes map",

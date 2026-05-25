@@ -99,12 +99,15 @@ it('deletes the row when compareAndSave persists a row with null value and empty
         ->and($storage->load('markommerce/catalog.grid_page_size'))->toBeNull();
 });
 
-it('returns true from compareAndSave as a no-op when persisting an empty row against an absent key with expectedVersion 0', function (): void {
-    $storage = new InMemoryConfigStorage();
-    $emptyRow = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: null, overrides: [], version: 0);
-
-    $result = $storage->compareAndSave('markommerce/catalog.grid_page_size', $emptyRow, 0);
-
-    expect($result)->toBeTrue()
-        ->and($storage->load('markommerce/catalog.grid_page_size'))->toBeNull();
-});
+it(
+    'returns true from compareAndSave as a no-op when persisting an empty row against an absent key with expectedVersion 0',
+    function (): void {
+        $storage = new InMemoryConfigStorage();
+        $emptyRow = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: null, overrides: [], version: 0);
+    
+        $result = $storage->compareAndSave('markommerce/catalog.grid_page_size', $emptyRow, 0);
+    
+        expect($result)->toBeTrue()
+            ->and($storage->load('markommerce/catalog.grid_page_size'))->toBeNull();
+    }
+);

@@ -22,5 +22,8 @@ interface ProductCategoryAssignmentRepositoryInterface extends RepositoryInterfa
     /**
      * Find the assignment for a specific product and category combination.
      */
-    public function findByProductAndCategory(int $productId, int $categoryId): ?ProductCategoryAssignment;
+    public function findByProductAndCategory(
+        int $productId,
+        int $categoryId,
+    ): ?ProductCategoryAssignment;
 }

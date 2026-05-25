@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Markommerce\Layout;
 
 use Markommerce\Layout\Contracts\ExtensionAttribute;
+use Markommerce\Layout\Exceptions\DuplicateExtensionException;
 use ReflectionClass;
 
 /**
@@ -30,7 +31,7 @@ abstract readonly class ExtensibleData
      * Uses reflection to reconstruct the concrete class with the same constructor
      * arguments, replacing the extensions bag with an augmented copy.
      *
-     * @throws \Markommerce\Layout\Exception\DuplicateExtensionException
+     * @throws DuplicateExtensionException
      */
     public function withExtension(ExtensionAttribute $extension): static
     {

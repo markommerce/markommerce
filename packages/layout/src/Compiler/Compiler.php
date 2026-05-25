@@ -7,8 +7,8 @@ namespace Markommerce\Layout\Compiler;
 use Markommerce\Layout\Cache\PreparedTree;
 use Markommerce\Layout\Cache\PreparedTreeBuilder;
 use Markommerce\Layout\Discovery\LayoutDiscovery;
-use Markommerce\Layout\Exception\InvalidLayoutFileException;
-use Markommerce\Layout\Exception\LayoutException;
+use Markommerce\Layout\Exceptions\InvalidLayoutFileException;
+use Markommerce\Layout\Exceptions\LayoutException;
 
 class Compiler implements CompilerInterface
 {
@@ -24,8 +24,7 @@ class Compiler implements CompilerInterface
      *
      * @return array<string, PreparedTree>
      *
-     * @throws LayoutException
-     * @throws InvalidLayoutFileException
+     * @throws LayoutException|InvalidLayoutFileException
      */
     public function compile(): array
     {

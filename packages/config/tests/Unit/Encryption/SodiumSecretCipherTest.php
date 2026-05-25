@@ -7,30 +7,39 @@ use Markommerce\Config\Exceptions\SecretCipherException;
 
 $validKey = str_repeat('a', SODIUM_CRYPTO_SECRETBOX_KEYBYTES);
 
-it('round-trips a plaintext string through encrypt and decrypt (SodiumSecretCipher)', function () use ($validKey): void {
-    $cipher = new SodiumSecretCipher($validKey);
-    $plaintext = 'my secret value';
+it(
+    'round-trips a plaintext string through encrypt and decrypt (SodiumSecretCipher)',
+    function () use ($validKey): void {
+        $cipher = new SodiumSecretCipher($validKey);
+        $plaintext = 'my secret value';
+    
+        $ciphertext = $cipher->encrypt($plaintext);
+        $decrypted = $cipher->decrypt($ciphertext);
+    
+        expect($decrypted)->toBe($plaintext);
+    }
+);
 
-    $ciphertext = $cipher->encrypt($plaintext);
-    $decrypted = $cipher->decrypt($ciphertext);
+it(
+    'produces a different ciphertext for the same plaintext on each call (nonce randomization)',
+    function () use ($validKey): void {
+        $cipher = new SodiumSecretCipher($validKey);
+        $plaintext = 'my secret value';
+    
+        $ciphertext1 = $cipher->encrypt($plaintext);
+        $ciphertext2 = $cipher->encrypt($plaintext);
+    
+        expect($ciphertext1)->not->toBe($ciphertext2);
+    }
+);
 
-    expect($decrypted)->toBe($plaintext);
-});
-
-it('produces a different ciphertext for the same plaintext on each call (nonce randomization)', function () use ($validKey): void {
-    $cipher = new SodiumSecretCipher($validKey);
-    $plaintext = 'my secret value';
-
-    $ciphertext1 = $cipher->encrypt($plaintext);
-    $ciphertext2 = $cipher->encrypt($plaintext);
-
-    expect($ciphertext1)->not->toBe($ciphertext2);
-});
-
-it('throws a setup exception when constructed if the sodium extension is unavailable', function () use ($validKey): void {
-    expect(fn () => new SodiumSecretCipher($validKey, sodiumAvailable: false))
-        ->toThrow(SecretCipherException::class);
-});
+it(
+    'throws a setup exception when constructed if the sodium extension is unavailable',
+    function () use ($validKey): void {
+        expect(fn () => new SodiumSecretCipher($validKey, sodiumAvailable: false))
+            ->toThrow(SecretCipherException::class);
+    }
+);
 
 it('throws an exception when constructed with a key of the wrong length', function (): void {
     $shortKey = str_repeat('a', 16);

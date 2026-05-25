@@ -12,8 +12,7 @@ use Markommerce\Scope\Signature\ScopeSignature;
 interface ConfigWriterInterface
 {
     /**
-     * @throws ConfigNotFoundException
-     * @throws StaleConfigWriteException
+     * @throws ConfigNotFoundException|StaleConfigWriteException
      */
     public function setGlobal(
         string $key,
@@ -21,15 +20,12 @@ interface ConfigWriterInterface
     ): void;
 
     /**
-     * @throws ConfigNotFoundException
-     * @throws StaleConfigWriteException
+     * @throws ConfigNotFoundException|StaleConfigWriteException
      */
     public function unsetGlobal(string $key): void;
 
     /**
-     * @throws ConfigNotFoundException
-     * @throws AxisNotDeclaredException
-     * @throws StaleConfigWriteException
+     * @throws ConfigNotFoundException|AxisNotDeclaredException|StaleConfigWriteException
      */
     public function setOverride(
         string $key,
@@ -38,9 +34,7 @@ interface ConfigWriterInterface
     ): void;
 
     /**
-     * @throws ConfigNotFoundException
-     * @throws AxisNotDeclaredException
-     * @throws StaleConfigWriteException
+     * @throws ConfigNotFoundException|AxisNotDeclaredException|StaleConfigWriteException
      */
     public function unsetOverride(
         string $key,

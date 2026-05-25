@@ -12,5 +12,8 @@ interface ScopeAxisResolverInterface
      * Resolve the scope path for the given axis.
      * Returns null to defer to the next resolver in the chain.
      */
-    public function resolve(ScopeAxis $scopeAxis, ScopeResolutionContext $scopeResolutionContext): ?string;
+    public function resolve(
+        ScopeAxis $scopeAxis,
+        ScopeResolutionContext $scopeResolutionContext,
+    ): ?string;
 }

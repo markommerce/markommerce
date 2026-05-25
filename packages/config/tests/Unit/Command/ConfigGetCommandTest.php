@@ -9,7 +9,6 @@ use Markommerce\Config\Command\ConfigGetCommand;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
 use Markommerce\Config\Storage\InMemoryConfigStorage;
-use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
 use Markommerce\Config\ValueObjects\ConfigRow;
 use Markommerce\Scope\Attributes\Scoped;
 
@@ -43,7 +42,8 @@ use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 function makeGetScopeRegistry(): ScopeRegistryInterface
 {
-    return new class implements ScopeRegistryInterface {
+    return new class () implements ScopeRegistryInterface
+    {
         /** @var array<string, list<string>> */
         private array $axesPaths = [
             'store'   => ['default', 'de', 'en', 'fr'],
@@ -116,23 +116,26 @@ function runGetCommand(
 
 // --- Tests ---
 
-it('does not print decrypted plaintext when the config is #[Config(secret: true)] — instead shows a redacted marker like ***', function (): void {
-    $registry = makeGetRegistry();
-    $storage = new InMemoryConfigStorage();
-
-    $storage->compareAndSave('payment/stripe.secret_key', new ConfigRow(
-        key: 'payment/stripe.secret_key',
-        value: 'sk_live_supersecretvalue',
-        overrides: [],
-        version: 0,
-    ), 0);
-
-    $result = runGetCommand($registry, $storage, 'payment/stripe.secret_key');
-
-    expect($result['exitCode'])->toBe(0)
-        ->and($result['output'])->toContain('***')
-        ->and($result['output'])->not->toContain('sk_live_supersecretvalue');
-});
+it(
+    'does not print decrypted plaintext when the config is #[Config(secret: true)] — instead shows a redacted marker like ***',
+    function (): void {
+        $registry = makeGetRegistry();
+        $storage = new InMemoryConfigStorage();
+    
+        $storage->compareAndSave('payment/stripe.secret_key', new ConfigRow(
+            key: 'payment/stripe.secret_key',
+            value: 'sk_live_supersecretvalue',
+            overrides: [],
+            version: 0,
+        ), 0);
+    
+        $result = runGetCommand($registry, $storage, 'payment/stripe.secret_key');
+    
+        expect($result['exitCode'])->toBe(0)
+            ->and($result['output'])->toContain('***')
+            ->and($result['output'])->not->toContain('sk_live_supersecretvalue');
+    }
+);
 
 it('exits non-zero with a did-you-mean hint when the key is unknown', function (): void {
     $registry = makeGetRegistry();

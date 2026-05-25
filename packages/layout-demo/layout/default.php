@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Markommerce\Layout\Layout;
-use Markommerce\Layout\Operation\Prepend;
 use Markommerce\Layout\Place;
 use Markommerce\LayoutDemo\Component\SitewideNoticeComponent;
 

@@ -78,7 +78,7 @@ it('serves as an extends target for another layout', function (): void {
 
     expect($childLayout->extends)->toBe(OneColumnLayout::class);
 
-    $parentLayout = ($childLayout->extends)::define();
+    $parentLayout = $childLayout->extends::define();
     expect($parentLayout)->toBeInstanceOf(Layout::class)
         ->and($parentLayout->template)->toBe('theme-blank::layout/1column')
         ->and($parentLayout->slots)->toHaveKey('content');

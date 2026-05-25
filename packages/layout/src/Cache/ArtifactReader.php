@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Markommerce\Layout\Cache;
 
+use RuntimeException;
+
 class ArtifactReader implements ArtifactReaderInterface
 {
     public function __construct(
@@ -12,12 +14,12 @@ class ArtifactReader implements ArtifactReaderInterface
 
     /**
      * @return array<string, PreparedTree>
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     public function read(): array
     {
         if (!file_exists($this->path)) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 sprintf(
                     'Layout artifact not found at "%s". Run "layout:compile" to generate it.',
                     $this->path,
@@ -27,6 +29,7 @@ class ArtifactReader implements ArtifactReaderInterface
 
         /** @var array<string, PreparedTree> $artifact */
         $artifact = require $this->path;
+
         return $artifact;
     }
 }

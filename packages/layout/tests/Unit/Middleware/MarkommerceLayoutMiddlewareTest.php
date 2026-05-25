@@ -26,7 +26,10 @@ class MLM_FakeRouteMatcher implements RouteMatcherInterface
         $this->matched = $matched;
     }
 
-    public function match(string $method, string $path): ?MatchedRoute
+    public function match(
+        string $method,
+        string $path,
+    ): ?MatchedRoute
     {
         return $this->matched;
     }
@@ -40,7 +43,10 @@ class MLM_FakeArtifactReader implements ArtifactReaderInterface
     private bool $shouldThrow;
 
     /** @param array<string, PreparedTree>|null $artifact */
-    public function __construct(?array $artifact = null, bool $shouldThrow = false)
+    public function __construct(
+        ?array $artifact = null,
+        bool $shouldThrow = false,
+    )
     {
         $this->artifact = $artifact;
         $this->shouldThrow = $shouldThrow;
@@ -48,12 +54,12 @@ class MLM_FakeArtifactReader implements ArtifactReaderInterface
 
     /**
      * @return array<string, PreparedTree>
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     public function read(): array
     {
         if ($this->shouldThrow) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 'Layout artifact not found at "/var/cache/layouts.php". Run "layout:compile" to generate it.',
             );
         }
@@ -69,10 +75,15 @@ class MLM_FakeRenderer implements RendererInterface
     /** @var array<string, string>|null */
     public ?array $lastRouteParams = null;
 
-    public function render(PreparedTree $tree, Request $request, array $routeParams): string
+    public function render(
+        PreparedTree $tree,
+        Request $request,
+        array $routeParams,
+    ): string
     {
         $this->renderCalled = true;
         $this->lastRouteParams = $routeParams;
+
         return '<html>rendered layout</html>';
     }
 }
@@ -84,7 +95,7 @@ class MLM_FakeContainer implements ContainerInterface
         if (class_exists($id)) {
             return new $id();
         }
-        throw new \RuntimeException("No binding for $id");
+        throw new RuntimeException("No binding for $id");
     }
 
     public function has(string $id): bool
@@ -94,9 +105,12 @@ class MLM_FakeContainer implements ContainerInterface
 
     public function singleton(string $id): void {}
 
-    public function instance(string $id, object $instance): void {}
+    public function instance(
+        string $id,
+        object $instance,
+    ): void {}
 
-    public function call(\Closure $callable): mixed
+    public function call(Closure $callable): mixed
     {
         return $callable();
     }
@@ -195,6 +209,7 @@ it('falls through to normal dispatch for a route with no layout', function (): v
     $nextCalled = false;
     $next = static function (Request $r) use (&$nextCalled): Response {
         $nextCalled = true;
+
         return new Response('normal dispatch', 200);
     };
 
@@ -232,6 +247,7 @@ it('runs the controller action before rendering the layout', function (): void {
     $nextCalled = false;
     $next = static function (Request $r) use (&$nextCalled): Response {
         $nextCalled = true;
+
         return new Response('controller output', 200);
     };
 
@@ -337,7 +353,7 @@ it('throws a clear error when the compiled artifact is missing', function (): vo
     $next = static fn (Request $r): Response => new Response('ok', 200);
 
     expect(fn () => $middleware->handle($request, $next))
-        ->toThrow(\RuntimeException::class, 'layout:compile');
+        ->toThrow(RuntimeException::class, 'layout:compile');
 });
 
 // =============================================================================
@@ -386,6 +402,7 @@ it('does not double-render when marko/layout\'s LayoutMiddleware is also active'
     $next = static function (Request $r) use (&$markoLayoutHandled): Response {
         // Simulate marko/layout's LayoutMiddleware rendering its own layout
         $markoLayoutHandled = true;
+
         return new Response('<html>marko layout</html>', 200);
     };
 

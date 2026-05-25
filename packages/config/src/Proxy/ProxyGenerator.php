@@ -21,8 +21,7 @@ class ProxyGenerator
     public function generate(
         string $configClass,
         array $definitions,
-    ): string
-    {
+    ): string {
         $this->validateConstructor($configClass);
 
         foreach ($definitions as $definition) {
@@ -42,16 +41,16 @@ class ProxyGenerator
 
         declare(strict_types=1);
 
-        namespace {$generatedNamespace};
+        namespace $generatedNamespace;
 
         use Markommerce\\Config\\ConfigResolver;
 
-        class {$generatedClassName} extends \\{$configClass}
+        class $generatedClassName extends \\$configClass
         {
             public function __construct(
                 private ConfigResolver \$__resolver,
             ) {}
-        {$propertiesSource}
+        $propertiesSource
         }
         PHP;
     }
@@ -113,8 +112,7 @@ class ProxyGenerator
     private function buildProperties(
         string $configClass,
         array $definitions,
-    ): string
-    {
+    ): string {
         $parts = [];
 
         foreach ($definitions as $definition) {
@@ -122,10 +120,10 @@ class ProxyGenerator
             $field = $definition->field;
             $parts[] = <<<PHP
 
-                public {$type} \${$field} {
+                public $type \$$field {
                     get => \$this->__resolver->resolved(
-                        \\{$configClass}::class,
-                        '{$field}',
+                        \\$configClass::class,
+                        '$field',
                     );
                 }
             PHP;

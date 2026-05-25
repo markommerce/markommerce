@@ -19,7 +19,12 @@ readonly class Slot
     /**
      * @param list<Place> $children
      */
-    public static function repeat(string $dataKey, string $yields, string $as, array $children): self
+    public static function repeat(
+        string $dataKey,
+        string $yields,
+        string $as,
+        array $children,
+    ): self
     {
         return new self($dataKey, $yields, $as, $children);
     }

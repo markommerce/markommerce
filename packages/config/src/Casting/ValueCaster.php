@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Markommerce\Config\Casting;
 
+use BackedEnum;
 use Markommerce\Config\Exceptions\InvalidConfigValueException;
 use Markommerce\Config\ValueObjects\ConfigDefinition;
 
@@ -15,8 +16,7 @@ class ValueCaster
     public function cast(
         mixed $rawValue,
         ConfigDefinition $definition,
-    ): mixed
-    {
+    ): mixed {
         $type = $definition->type;
 
         if ($type === 'string') {
@@ -63,7 +63,7 @@ class ValueCaster
             return $rawValue;
         }
 
-        if (is_subclass_of($type, \BackedEnum::class)) {
+        if (is_subclass_of($type, BackedEnum::class)) {
             $result = $type::tryFrom($rawValue);
 
             if ($result === null) {

@@ -12,8 +12,7 @@ class InvalidConfigValueException extends MarkoException
         string $key,
         string $rawValue,
         string $targetType,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Cannot cast stored value '$rawValue' for config key '$key' to type '$targetType'",
             context: "Reading config key '$key' — the stored value '$rawValue' cannot be coerced into '$targetType'",

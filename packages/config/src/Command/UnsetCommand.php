@@ -25,15 +25,12 @@ readonly class UnsetCommand implements CommandInterface
     ) {}
 
     /**
-     * @throws ConfigNotFoundException
-     * @throws StaleConfigWriteException
-     * @throws AxisNotDeclaredException
+     * @throws ConfigNotFoundException|StaleConfigWriteException|AxisNotDeclaredException
      */
     public function execute(
         Input $input,
         Output $output,
-    ): int
-    {
+    ): int {
         $key = $input->getArgument(0);
 
         if ($key === null) {

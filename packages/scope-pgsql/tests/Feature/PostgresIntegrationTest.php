@@ -145,7 +145,10 @@ function buildPgIntRegistry(array $axes = [], array $defaults = []): ScopeRegist
          * @param array<string, list<string>> $axes
          * @param array<string, string> $defaults
          */
-        public function __construct(array $axes, array $defaults)
+        public function __construct(
+            array $axes,
+            array $defaults,
+        )
         {
             $this->builtAxes = [];
 

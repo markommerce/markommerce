@@ -23,7 +23,7 @@ it('accepts secret: true for properties needing encryption-at-rest', function ()
 });
 
 it('rejects an empty key string with a clear exception at construction time', function (): void {
-    expect(fn () => new Config(key: ''))->toThrow(\InvalidArgumentException::class);
+    expect(fn () => new Config(key: ''))->toThrow(InvalidArgumentException::class);
 });
 
 it('is targetable to properties only (TARGET_PROPERTY)', function (): void {

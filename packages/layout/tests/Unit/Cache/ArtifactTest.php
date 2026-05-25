@@ -12,11 +12,11 @@ use Markommerce\Layout\Compiler\ResolvedLayout;
 use Markommerce\Layout\Compiler\ResolvedPlace;
 use Markommerce\Layout\Compiler\ResolvedRepeatSlot;
 use Markommerce\Layout\Provide;
-use Markommerce\Layout\Source\RouteSource;
-use Markommerce\Layout\Source\QuerySource;
 use Markommerce\Layout\Source\ContextSource;
 use Markommerce\Layout\Source\IteratedSource;
 use Markommerce\Layout\Source\ParentDataSource;
+use Markommerce\Layout\Source\QuerySource;
+use Markommerce\Layout\Source\RouteSource;
 use Markommerce\Layout\Source\ServiceSource;
 
 // =============================================================================
@@ -162,7 +162,9 @@ it('writes an artifact file that returns an array of PreparedTrees', function ()
         ->and($loaded['App\Controller\FooController::show'])->toBeInstanceOf(PreparedTree::class)
         ->and($loaded['App\Controller\FooController::show']->handleKey)->toBe('App\Controller\FooController::show')
         ->and($loaded['App\Controller\FooController::show']->template)->toBe('theme-blank::layout/1column')
-        ->and($loaded['App\Controller\FooController::show']->slots['content'][0])->toBeInstanceOf(PreparedPlace::class);
+        ->and($loaded['App\Controller\FooController::show']->slots['content'][0])->toBeInstanceOf(
+            PreparedPlace::class
+        );
 
     @unlink($path);
 });
@@ -296,5 +298,5 @@ it('reads a written artifact back into PreparedTrees', function (): void {
 it('throws a clear error when reading a missing artifact', function (): void {
     $path = tempArtifactPath() . '_nonexistent.php';
     $reader = new ArtifactReader($path);
-    expect(fn() => $reader->read())->toThrow(\RuntimeException::class);
+    expect(fn () => $reader->read())->toThrow(RuntimeException::class);
 });

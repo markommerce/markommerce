@@ -9,9 +9,7 @@ use Markommerce\Config\Tests\Unit\Resolver\Fixtures\ExtendedSampleConfig;
 
 class ExtendedSampleConfig_Resolved extends ExtendedSampleConfig
 {
-    public function __construct(private ConfigResolver $__resolver)
-    {
-    }
+    public function __construct(private ConfigResolver $__resolver) {}
 
     public string $greeting {
         get => $this->__resolver->resolved(ExtendedSampleConfig::class, 'greeting');

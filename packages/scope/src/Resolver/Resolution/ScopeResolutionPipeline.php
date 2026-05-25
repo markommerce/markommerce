@@ -28,7 +28,10 @@ class ScopeResolutionPipeline
      *
      * @param string $channel One of the ScopeResolutionContext::CHANNEL_* constants.
      */
-    public function run(Request $request, string $channel): void
+    public function run(
+        Request $request,
+        string $channel,
+    ): void
     {
         /** @var array<string, string> $resolved */
         $resolved = [];

@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Markommerce\Config\Discovery;
 
+use FilesystemIterator;
 use Marko\Core\Module\ModuleRepositoryInterface;
 use Markommerce\Config\Attributes\Config;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use ReflectionClass;
+use SplFileInfo;
 
 class ConfigClassDiscovery
 {
@@ -81,11 +85,11 @@ class ConfigClassDiscovery
     private function findPhpFiles(string $dir): array
     {
         $files = [];
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
         );
 
-        /** @var \SplFileInfo $file */
+        /** @var SplFileInfo $file */
         foreach ($iterator as $file) {
             if ($file->getExtension() === 'php') {
                 $files[] = $file->getPathname();

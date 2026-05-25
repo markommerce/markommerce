@@ -38,7 +38,10 @@ class FakeScopeResolutionPipeline extends ScopeResolutionPipeline
         $this->calls[] = 'clear';
     }
 
-    public function run(Request $request, string $channel): void
+    public function run(
+        Request $request,
+        string $channel,
+    ): void
     {
         $this->calls[] = "run:$channel";
         $this->runRequests[] = $request;

@@ -7,5 +7,9 @@ namespace Markommerce\ThemeBlankDemo\Component;
 use Marko\Layout\Attributes\Component;
 use Markommerce\ThemeBlankDemo\Controller\ThemeBlankDemoController;
 
-#[Component(template: 'theme-blank-demo::showcase', handle: [ThemeBlankDemoController::class, 'index'], slot: 'content')]
+#[Component(
+    template: 'theme-blank-demo::showcase',
+    handle: [ThemeBlankDemoController::class, 'index'],
+    slot: 'content'
+)]
 class ThemeBlankShowcaseComponent {}

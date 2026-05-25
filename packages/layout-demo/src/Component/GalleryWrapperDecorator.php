@@ -16,7 +16,10 @@ class GalleryWrapperDecorator implements DecoratorInterface
     /**
      * @param array<string, mixed> $data
      */
-    public function wrap(string $innerHtml, array $data = []): string
+    public function wrap(
+        string $innerHtml,
+        array $data = [],
+    ): string
     {
         return str_replace('{slot inner}', $innerHtml, $this->template());
     }

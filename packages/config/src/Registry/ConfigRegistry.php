@@ -38,8 +38,7 @@ class ConfigRegistry
     public function definition(
         string $configClass,
         string $field,
-    ): ConfigDefinition
-    {
+    ): ConfigDefinition {
         if (!isset($this->byClassAndField[$configClass][$field])) {
             throw ConfigNotFoundException::forKey("$configClass::$$field");
         }

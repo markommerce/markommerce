@@ -29,8 +29,7 @@ class SecretCipherException extends MarkoException
     public static function invalidKeyLength(
         int $actualLength,
         int $expectedLength,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Secret cipher key has invalid length: got $actualLength bytes, expected $expectedLength bytes",
             context: 'Initialising secret cipher — the provided key does not meet the required length',

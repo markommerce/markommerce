@@ -6,14 +6,12 @@ use Marko\Core\Command\Input;
 use Marko\Core\Command\Output;
 use Markommerce\Config\Attributes\Config;
 use Markommerce\Config\Command\UnsetCommand;
+use Markommerce\Config\ConfigWriter;
 use Markommerce\Config\Encryption\NullSecretCipher;
-use Markommerce\Config\Exceptions\AxisNotDeclaredException;
-use Markommerce\Config\Exceptions\StaleConfigWriteException;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
 use Markommerce\Config\Storage\InMemoryConfigStorage;
 use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
-use Markommerce\Config\ConfigWriter;
 use Markommerce\Scope\Attributes\Scoped;
 use Markommerce\Scope\Signature\ScopeSignature;
 

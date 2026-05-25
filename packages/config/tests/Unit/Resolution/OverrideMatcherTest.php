@@ -19,12 +19,16 @@ use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
  */
 function makeConfigRegistry(array $axes = [], array $defaults = []): ScopeRegistryInterface
 {
-    return new class ($axes, $defaults) implements ScopeRegistryInterface {
+    return new class ($axes, $defaults) implements ScopeRegistryInterface
+    {
         /** @var array<string, ScopeAxis> */
         private array $builtAxes;
 
         /** @param array<string, list<string>> $axes @param array<string, string> $defaults */
-        public function __construct(array $axes, array $defaults = [])
+        public function __construct(
+            array $axes,
+            array $defaults = [],
+        )
         {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
@@ -111,40 +115,46 @@ it('returns the override value for an exact context match on a single-axis prope
     expect($matcher->match($row, ['store'], $context))->toBe(42);
 });
 
-it('returns the most-specific composite override when both composite and single-axis overrides exist', function (): void {
-    $registry = makeConfigRegistry([
-        'channel' => ['b2b', 'b2c'],
-        'locale'  => ['en', 'en.gb'],
-    ]);
-    $context = new ScopeContext($registry);
-    $context->in('channel', 'b2b')->in('locale', 'en');
+it(
+    'returns the most-specific composite override when both composite and single-axis overrides exist',
+    function (): void {
+        $registry = makeConfigRegistry([
+            'channel' => ['b2b', 'b2c'],
+            'locale'  => ['en', 'en.gb'],
+        ]);
+        $context = new ScopeContext($registry);
+        $context->in('channel', 'b2b')->in('locale', 'en');
+    
+        $enumerator = new SignatureCandidateEnumerator($registry);
+        $matcher = new OverrideMatcher($enumerator);
+    
+        $row = makeRow(overrides: [
+            'channel:b2b'           => 'b2b-value',
+            'locale:en'             => 'en-value',
+            'channel:b2b|locale:en' => 'composite-value',
+        ]);
+    
+        expect($matcher->match($row, ['channel', 'locale'], $context))->toBe('composite-value');
+    }
+);
 
-    $enumerator = new SignatureCandidateEnumerator($registry);
-    $matcher = new OverrideMatcher($enumerator);
-
-    $row = makeRow(overrides: [
-        'channel:b2b'           => 'b2b-value',
-        'locale:en'             => 'en-value',
-        'channel:b2b|locale:en' => 'composite-value',
-    ]);
-
-    expect($matcher->match($row, ['channel', 'locale'], $context))->toBe('composite-value');
-});
-
-it('walks axis hierarchy via the candidate enumerator so a parent-scope override matches when no exact-leaf override exists', function (): void {
-    $registry = makeConfigRegistry(['store' => ['eu', 'eu.de']]);
-    $context = new ScopeContext($registry);
-    // Context is at the leaf scope eu.de
+it(
+    'walks axis hierarchy via the candidate enumerator so a parent-scope override matches when no exact-leaf override exists',
+    function (): void {
+        $registry = makeConfigRegistry(['store' => ['eu', 'eu.de']]);
+        $context = new ScopeContext($registry);
+        // Context is at the leaf scope eu.de
     $context->in('store', 'eu.de');
-
-    $enumerator = new SignatureCandidateEnumerator($registry);
-    $matcher = new OverrideMatcher($enumerator);
-
-    // Only the parent scope override exists, not the leaf
+    
+        $enumerator = new SignatureCandidateEnumerator($registry);
+        $matcher = new OverrideMatcher($enumerator);
+    
+        // Only the parent scope override exists, not the leaf
     $row = makeRow(overrides: ['store:eu' => 'eu-value']);
-
-    expect($matcher->match($row, ['store'], $context))->toBe('eu-value');
-});
+    
+        expect($matcher->match($row, ['store'], $context))->toBe('eu-value');
+    }
+);
 
 it('ignores overrides whose signature references axes not declared on the property', function (): void {
     $registry = makeConfigRegistry([

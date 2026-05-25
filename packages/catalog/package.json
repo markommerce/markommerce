@@ -3,6 +3,11 @@
   "type": "module",
   "version": "0.0.1",
   "private": true,
+  "main": "./resources/js/index.ts",
+  "exports": {
+    ".": "./resources/js/index.ts",
+    "./css/components/*.css": "./resources/css/components/*.css"
+  },
   "markommerce": {
     "extension": "./resources/js/index.ts",
     "priority": 200

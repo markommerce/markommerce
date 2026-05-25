@@ -7,14 +7,14 @@ use Markommerce\Layout\Compiler\ResolvedLayout;
 use Markommerce\Layout\Compiler\ResolvedPlace;
 use Markommerce\Layout\Compiler\ResolvedRepeatSlot;
 use Markommerce\Layout\Compiler\ValidationPhase;
-use Markommerce\Layout\Exception\DanglingAnchorException;
-use Markommerce\Layout\Exception\DuplicateNameException;
-use Markommerce\Layout\Exception\MissingDataKeyException;
-use Markommerce\Layout\Exception\MissingPropException;
-use Markommerce\Layout\Exception\RepeatTypeMismatchException;
-use Markommerce\Layout\Exception\TypeMismatchException;
-use Markommerce\Layout\Exception\UnknownContextException;
-use Markommerce\Layout\Exception\UnknownIterationException;
+use Markommerce\Layout\Exceptions\DanglingAnchorException;
+use Markommerce\Layout\Exceptions\DuplicateNameException;
+use Markommerce\Layout\Exceptions\MissingDataKeyException;
+use Markommerce\Layout\Exceptions\MissingPropException;
+use Markommerce\Layout\Exceptions\RepeatTypeMismatchException;
+use Markommerce\Layout\Exceptions\TypeMismatchException;
+use Markommerce\Layout\Exceptions\UnknownContextException;
+use Markommerce\Layout\Exceptions\UnknownIterationException;
 use Markommerce\Layout\Provide;
 use Markommerce\Layout\Source\ContextSource;
 use Markommerce\Layout\Source\IteratedSource;
@@ -35,7 +35,10 @@ class SimpleDto
 
 class SimpleComponent
 {
-    public function data(string $title, string $subtitle = ''): SimpleDto
+    public function data(
+        string $title,
+        string $subtitle = '',
+    ): SimpleDto
     {
         return new SimpleDto($title, $subtitle);
     }
@@ -154,7 +157,7 @@ it('passes a fully valid resolved tree without error', function (): void {
     );
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate(['test_handle' => $layout]))->not->toThrow(\Throwable::class);
+    expect(fn () => $validator->validate(['test_handle' => $layout]))->not->toThrow(Throwable::class);
 });
 
 it('throws DuplicateNameException when two placements share a name', function (): void {
@@ -168,7 +171,7 @@ it('throws DuplicateNameException when two placements share a name', function ()
     );
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate(['test_handle' => $layout]))
+    expect(fn () => $validator->validate(['test_handle' => $layout]))
         ->toThrow(DuplicateNameException::class);
 });
 
@@ -182,8 +185,8 @@ it('throws an error when a placement name violates the name format', function ()
     );
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate(['test_handle' => $layout]))
-        ->toThrow(\InvalidArgumentException::class);
+    expect(fn () => $validator->validate(['test_handle' => $layout]))
+        ->toThrow(InvalidArgumentException::class);
 });
 
 it('throws UnknownContextException when a context source has no matching Provide', function (): void {
@@ -199,7 +202,7 @@ it('throws UnknownContextException when a context source has no matching Provide
     );
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate(['test_handle' => $layout]))
+    expect(fn () => $validator->validate(['test_handle' => $layout]))
         ->toThrow(UnknownContextException::class);
 });
 
@@ -216,7 +219,7 @@ it('throws UnknownIterationException when an iterated source has no enclosing re
     );
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate(['test_handle' => $layout]))
+    expect(fn () => $validator->validate(['test_handle' => $layout]))
         ->toThrow(UnknownIterationException::class);
 });
 
@@ -225,20 +228,25 @@ it('throws MissingDataKeyException when a repeat slot key is absent from the par
     $layout = makeLayout(
         slots: [
             'main' => [
-                makePlacement(ProductListComponent::class, 'product.list', ['title' => new RouteSource('id', 'string')], [
-                    'items' => new ResolvedRepeatSlot(
-                        dataKey: 'nonexistent', // Not a property on ProductListDto
+                makePlacement(
+                    ProductListComponent::class,
+                    'product.list',
+                    ['title' => new RouteSource('id', 'string')],
+                    [
+                        'items' => new ResolvedRepeatSlot(
+                            dataKey: 'nonexistent', // Not a property on ProductListDto
                         yields: ProductItemDto::class,
-                        as: 'product',
-                        children: [],
-                    ),
-                ]),
+                            as: 'product',
+                            children: [],
+                        ),
+                    ]
+                ),
             ],
         ],
     );
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate(['test_handle' => $layout]))
+    expect(fn () => $validator->validate(['test_handle' => $layout]))
         ->toThrow(MissingDataKeyException::class);
 });
 
@@ -260,7 +268,7 @@ it('throws RepeatTypeMismatchException when the repeat item type does not match 
     );
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate(['test_handle' => $layout]))
+    expect(fn () => $validator->validate(['test_handle' => $layout]))
         ->toThrow(RepeatTypeMismatchException::class);
 });
 
@@ -279,7 +287,7 @@ it('throws TypeMismatchException when a source type is not assignable to the com
     );
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate(['test_handle' => $layout]))
+    expect(fn () => $validator->validate(['test_handle' => $layout]))
         ->toThrow(TypeMismatchException::class);
 });
 
@@ -296,7 +304,7 @@ it('throws MissingPropException when a required component prop has no source', f
     );
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate(['test_handle' => $layout]))
+    expect(fn () => $validator->validate(['test_handle' => $layout]))
         ->toThrow(MissingPropException::class);
 });
 
@@ -317,7 +325,7 @@ it('throws DanglingAnchorException when a wrap marker references a missing place
     );
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate(['test_handle' => $layout]))
+    expect(fn () => $validator->validate(['test_handle' => $layout]))
         ->toThrow(DanglingAnchorException::class);
 });
 
@@ -334,7 +342,7 @@ it('rejects a parentData source on a top-level placement with no parent', functi
     );
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate(['test_handle' => $layout]))
+    expect(fn () => $validator->validate(['test_handle' => $layout]))
         ->toThrow(UnknownContextException::class);
 });
 
@@ -344,19 +352,24 @@ it('throws MissingDataKeyException when a parentData key is absent from the pare
     $layout = makeLayout(
         slots: [
             'main' => [
-                makePlacement(ProductCardComponent::class, 'product.card', ['name' => new RouteSource('id', 'string')], [
-                    'detail' => [
-                        makePlacement(SimpleComponent::class, 'product.detail', [
-                            'title' => new ParentDataSource('nonexistentKey', 'string'),
-                        ]),
-                    ],
-                ]),
+                makePlacement(
+                    ProductCardComponent::class,
+                    'product.card',
+                    ['name' => new RouteSource('id', 'string')],
+                    [
+                        'detail' => [
+                            makePlacement(SimpleComponent::class, 'product.detail', [
+                                'title' => new ParentDataSource('nonexistentKey', 'string'),
+                            ]),
+                        ],
+                    ]
+                ),
             ],
         ],
     );
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate(['test_handle' => $layout]))
+    expect(fn () => $validator->validate(['test_handle' => $layout]))
         ->toThrow(MissingDataKeyException::class);
 });
 
@@ -372,7 +385,7 @@ it('rejects a component whose data method does not return a concrete DTO class',
     );
 
     $validator = new ValidationPhase();
-    expect(fn() => $validator->validate(['test_handle' => $layout]))
+    expect(fn () => $validator->validate(['test_handle' => $layout]))
         ->toThrow(TypeMismatchException::class);
 });
 

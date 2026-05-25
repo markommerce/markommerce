@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Markommerce\Config\Command;
 
+use BackedEnum;
 use Marko\Core\Attributes\Command;
 use Marko\Core\Command\CommandInterface;
 use Marko\Core\Command\Input;
@@ -25,15 +26,12 @@ readonly class SetCommand implements CommandInterface
     ) {}
 
     /**
-     * @throws ConfigNotFoundException
-     * @throws StaleConfigWriteException
-     * @throws AxisNotDeclaredException
+     * @throws ConfigNotFoundException|StaleConfigWriteException|AxisNotDeclaredException
      */
     public function execute(
         Input $input,
         Output $output,
-    ): int
-    {
+    ): int {
         $key = $input->getArgument(0);
         $rawValue = $input->getArgument(1);
 
@@ -55,7 +53,7 @@ readonly class SetCommand implements CommandInterface
 
         if ($parsed === null && $rawValue !== 'null') {
             $output->writeLine(
-                "Cannot parse value '$rawValue' as type '{$definition->type}'.",
+                "Cannot parse value '$rawValue' as type '$definition->type'.",
             );
 
             return 1;
@@ -101,15 +99,14 @@ readonly class SetCommand implements CommandInterface
     private function parseValue(
         string $raw,
         string $type,
-    ): mixed
-    {
+    ): mixed {
         return match (true) {
             $type === 'string' => $raw,
             $type === 'int' => $this->parseInt($raw),
             $type === 'float' => $this->parseFloat($raw),
             $type === 'bool' => $this->parseBool($raw),
             $type === 'array' => $this->parseArray($raw),
-            is_subclass_of($type, \BackedEnum::class) => $type::tryFrom($raw),
+            is_subclass_of($type, BackedEnum::class) => $type::tryFrom($raw),
             default => $raw,
         };
     }

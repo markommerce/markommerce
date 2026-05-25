@@ -3,8 +3,9 @@
 declare(strict_types=1);
 
 use Markommerce\Layout\Contracts\ExtensionAttribute;
-use Markommerce\Layout\ExtensionBag;
+use Markommerce\Layout\Exceptions\DuplicateExtensionException;
 use Markommerce\Layout\ExtensibleData;
+use Markommerce\Layout\ExtensionBag;
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -72,7 +73,7 @@ it('rejects two extensions of the same class in one bag', function (): void {
     $bag = (new ExtensionBag())->with($first);
 
     expect(fn () => $bag->with($second))
-        ->toThrow(\Markommerce\Layout\Exception\DuplicateExtensionException::class);
+        ->toThrow(DuplicateExtensionException::class);
 });
 
 it('exposes an empty extension bag by default on ExtensibleData', function (): void {
@@ -90,7 +91,9 @@ it('returns a new data object with the extension when withExtension is called', 
 
     expect($augmented)->toBeInstanceOf(EDT_ConcreteProductCardData::class)
         ->and($augmented)->not->toBe($data)
-        ->and($augmented->extensions->get(EDT_ReviewStarsExtension::class))->toBeInstanceOf(EDT_ReviewStarsExtension::class)
+        ->and($augmented->extensions->get(EDT_ReviewStarsExtension::class))->toBeInstanceOf(
+            EDT_ReviewStarsExtension::class
+        )
         ->and($augmented->extensions->get(EDT_ReviewStarsExtension::class)->stars)->toBe(4.5);
 });
 

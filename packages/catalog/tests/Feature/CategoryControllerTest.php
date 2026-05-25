@@ -3,11 +3,9 @@
 declare(strict_types=1);
 
 use Marko\Config\ConfigRepository;
-use Marko\Config\ConfigRepositoryInterface;
+use Marko\Core\Container\ContainerInterface;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
-use Marko\Core\Module\ModuleRepositoryInterface;
-use Marko\Core\Path\ProjectPaths;
 use Marko\Routing\Attributes\Get;
 use Marko\Routing\Http\Request;
 use Marko\Routing\Http\Response;
@@ -21,7 +19,6 @@ use Markommerce\Catalog\Component\ProductCard;
 use Markommerce\Catalog\Component\ProductGridComponent;
 use Markommerce\Catalog\Component\StockBadge;
 use Markommerce\Catalog\Context\CategoryDataProvider;
-use Markommerce\Catalog\Context\CategoryToken;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Controller\CategoryController;
 use Markommerce\Catalog\Entity\Category;
@@ -121,12 +118,18 @@ function catalogControllerBuildArtifact(): array
  */
 class CatalogControllerFakeView implements ViewInterface
 {
-    public function render(string $template, array $data = []): Response
+    public function render(
+        string $template,
+        array $data = [],
+    ): Response
     {
         return Response::html($this->renderToString($template, $data));
     }
 
-    public function renderToString(string $template, array $data = []): string
+    public function renderToString(
+        string $template,
+        array $data = [],
+    ): string
     {
         $output = '<div data-template="' . htmlspecialchars($template) . '"';
 
@@ -147,6 +150,7 @@ class CatalogControllerFakeView implements ViewInterface
                         }
                     }
                     $output .= '</div>';
+
                     return $output;
                 }
             } elseif (is_array($value)) {
@@ -168,6 +172,7 @@ class CatalogControllerFakeView implements ViewInterface
         }
 
         $output .= ">$slots</div>";
+
         return $output;
     }
 }
@@ -175,12 +180,15 @@ class CatalogControllerFakeView implements ViewInterface
 /**
  * Simple fake container for tests.
  */
-class CatalogControllerFakeContainer implements \Marko\Core\Container\ContainerInterface
+class CatalogControllerFakeContainer implements ContainerInterface
 {
     /** @var array<string, object> */
     private array $bindings = [];
 
-    public function bind(string $class, object $instance): void
+    public function bind(
+        string $class,
+        object $instance,
+    ): void
     {
         $this->bindings[$class] = $instance;
     }
@@ -193,7 +201,7 @@ class CatalogControllerFakeContainer implements \Marko\Core\Container\ContainerI
         if (class_exists($id)) {
             return new $id();
         }
-        throw new \RuntimeException("No binding for $id");
+        throw new RuntimeException("No binding for $id");
     }
 
     public function has(string $id): bool
@@ -203,12 +211,15 @@ class CatalogControllerFakeContainer implements \Marko\Core\Container\ContainerI
 
     public function singleton(string $id): void {}
 
-    public function instance(string $id, object $instance): void
+    public function instance(
+        string $id,
+        object $instance,
+    ): void
     {
         $this->bindings[$id] = $instance;
     }
 
-    public function call(\Closure $callable): mixed
+    public function call(Closure $callable): mixed
     {
         return $callable();
     }
@@ -251,7 +262,8 @@ function catalogControllerTestBuildRouter(
     $trees = catalogControllerBuildArtifact();
     $view = new CatalogControllerFakeView();
 
-    $artifactReader = new class($trees) implements ArtifactReaderInterface {
+    $artifactReader = new class ($trees) implements ArtifactReaderInterface
+    {
         /** @param array<string, PreparedTree> $trees */
         public function __construct(private array $trees) {}
 
@@ -284,18 +296,21 @@ it('places a Get route at /catalog/category/{id} on the controller action', func
     expect($getAttr->path)->toBe('/catalog/category/{id}');
 });
 
-it('defines the layout for CategoryController show via a layout file instead of a controller attribute', function (): void {
-    $reflection = new ReflectionClass(CategoryController::class);
-
-    // Controller should NOT have marko/layout's Layout attribute
+it(
+    'defines the layout for CategoryController show via a layout file instead of a controller attribute',
+    function (): void {
+        $reflection = new ReflectionClass(CategoryController::class);
+    
+        // Controller should NOT have marko/layout's Layout attribute
     $markoLayoutClass = 'Marko\Layout\Attributes\Layout';
-    $attributes = $reflection->getAttributes($markoLayoutClass);
-    expect($attributes)->toBeEmpty();
-
-    // The layout file should exist
+        $attributes = $reflection->getAttributes($markoLayoutClass);
+        expect($attributes)->toBeEmpty();
+    
+        // The layout file should exist
     $layoutPath = dirname(__DIR__, 2) . '/layout/category_show.php';
-    expect(file_exists($layoutPath))->toBeTrue();
-});
+        expect(file_exists($layoutPath))->toBeTrue();
+    }
+);
 
 it('returns a 200 response with the assembled layout HTML when the category exists', function (): void {
     $categoryRepository = new FakeCategoryRepository();

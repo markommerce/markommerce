@@ -14,7 +14,11 @@ class ItemComponent
         private LabelFormatterInterface $labelFormatter,
     ) {}
 
-    public function data(Item $item, string $galleryTitle, LabelFormatterInterface $labelFormatter): ItemData
+    public function data(
+        Item $item,
+        string $galleryTitle,
+        LabelFormatterInterface $labelFormatter,
+    ): ItemData
     {
         return new ItemData(
             id: $item->id,

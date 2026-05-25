@@ -46,6 +46,7 @@ it('it has a Layout with a repeat slot', function (): void {
         foreach ($slots as $value) {
             if ($value instanceof Slot) {
                 $hasRepeatSlot = true;
+
                 return;
             }
             if ($value instanceof Place) {

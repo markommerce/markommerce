@@ -22,16 +22,19 @@ it('ScopeResolutionException resolverFailed message names the resolver class and
         ->toContain('store');
 });
 
-it('ScopeResolutionException invalidPath message names the offending path the resolver and the axis', function (): void {
-    $exception = ScopeResolutionException::invalidPath('App\\Resolver\\StoreResolver', 'store', 'unknown/path');
-
-    expect($exception->getMessage())
-        ->toContain('App\\Resolver\\StoreResolver')
-        ->and($exception->getMessage())
-        ->toContain('store')
-        ->and($exception->getMessage())
-        ->toContain('unknown/path');
-});
+it(
+    'ScopeResolutionException invalidPath message names the offending path the resolver and the axis',
+    function (): void {
+        $exception = ScopeResolutionException::invalidPath('App\\Resolver\\StoreResolver', 'store', 'unknown/path');
+    
+        expect($exception->getMessage())
+            ->toContain('App\\Resolver\\StoreResolver')
+            ->and($exception->getMessage())
+            ->toContain('store')
+            ->and($exception->getMessage())
+            ->toContain('unknown/path');
+    }
+);
 
 it('both exception classes extend MarkoException', function (): void {
     $original = new RuntimeException('err');

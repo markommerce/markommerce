@@ -22,7 +22,10 @@ class ScopeStorageException extends MarkoException
         );
     }
 
-    public static function defaultScopeWrite(string $axis, string $defaultScope): self
+    public static function defaultScopeWrite(
+        string $axis,
+        string $defaultScope,
+    ): self
     {
         return new self(
             message: "Cannot write a scope override at the default scope '$axis:$defaultScope' — default-scope values must be stored as base entity properties",

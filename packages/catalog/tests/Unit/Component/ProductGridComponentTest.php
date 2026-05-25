@@ -12,6 +12,7 @@ use Marko\View\ModuleTemplateResolver;
 use Marko\View\ViewConfig;
 use Markommerce\Catalog\Component\ProductGridComponent;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
+use Markommerce\Catalog\Data\ProductCardData;
 use Markommerce\Catalog\Data\ProductGridData;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
@@ -19,6 +20,7 @@ use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
+use Markommerce\Layout\ExtensionBag;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Registry\PhpScopeRegistry;
@@ -261,12 +263,12 @@ it('renders the product card template with a placeholder image for the product S
     $product->sku = 'BOOT-001';
     $product->name = 'Hiking Boot';
 
-    $data = new \Markommerce\Catalog\Data\ProductCardData(
+    $data = new ProductCardData(
         product: $product,
         resolvedName: 'Hiking Boot',
         resolvedDesc: '',
         inStock: true,
-        extensions: new \Markommerce\Layout\ExtensionBag(),
+        extensions: new ExtensionBag(),
     );
 
     $engine = productGridBuildLatte();

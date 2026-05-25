@@ -8,8 +8,8 @@ use Markommerce\Layout\Cache\PreparedTree;
 use Markommerce\Layout\Cache\PreparedTreeBuilder;
 use Markommerce\Layout\Compiler\ResolvedLayout;
 use Markommerce\Layout\Contracts\HandleProvider;
-use Markommerce\Layout\Exception\InvalidLayoutFileException;
-use Markommerce\Layout\Exception\InvalidSourceTypeException;
+use Markommerce\Layout\Exceptions\InvalidLayoutFileException;
+use Markommerce\Layout\Exceptions\InvalidSourceTypeException;
 use Markommerce\Layout\Layout;
 use Markommerce\Layout\ProvideHandle;
 use Markommerce\Layout\Source\ContextSource;
@@ -71,16 +71,19 @@ it('accepts a handleProviders list on Layout defaulting to empty', function (): 
 // Requirement 3: it stores ProvideHandle value object at Markommerce\Layout\ProvideHandle with provider class-string and props map
 // =============================================================================
 
-it('stores ProvideHandle value object at Markommerce\\Layout\\ProvideHandle with provider class-string and props map', function (): void {
-    $provideHandle = new ProvideHandle(
-        provider: HandleProvider::class,
-        props: ['product' => new ContextSource('ProductToken', null)],
-    );
-
-    expect($provideHandle->provider)->toBe(HandleProvider::class);
-    expect($provideHandle->props)->toHaveKey('product');
-    expect($provideHandle->props['product'])->toBeInstanceOf(ContextSource::class);
-});
+it(
+    'stores ProvideHandle value object at Markommerce\\Layout\\ProvideHandle with provider class-string and props map',
+    function (): void {
+        $provideHandle = new ProvideHandle(
+            provider: HandleProvider::class,
+            props: ['product' => new ContextSource('ProductToken', null)],
+        );
+    
+        expect($provideHandle->provider)->toBe(HandleProvider::class);
+        expect($provideHandle->props)->toHaveKey('product');
+        expect($provideHandle->props['product'])->toBeInstanceOf(ContextSource::class);
+    }
+);
 
 // =============================================================================
 // Requirement 4: it adds handleProviders to PreparedTree defaulting to empty
@@ -192,14 +195,14 @@ it('throws InvalidLayoutFileException when a provider class does not implement H
         context: [],
         handleProviders: [
             new ProvideHandle(
-                provider: \stdClass::class,
+                provider: stdClass::class,
                 props: [],
             ),
         ],
     );
 
     $builder = new PreparedTreeBuilder();
-    expect(fn() => $builder->build($resolvedLayout))
+    expect(fn () => $builder->build($resolvedLayout))
         ->toThrow(InvalidLayoutFileException::class);
 });
 
@@ -223,7 +226,7 @@ it('throws InvalidSourceTypeException when ProvideHandle::props contains a Paren
     );
 
     $builder = new PreparedTreeBuilder();
-    expect(fn() => $builder->build($resolvedLayout))
+    expect(fn () => $builder->build($resolvedLayout))
         ->toThrow(InvalidSourceTypeException::class);
 });
 
@@ -247,6 +250,6 @@ it('throws InvalidSourceTypeException when ProvideHandle::props contains an Iter
     );
 
     $builder = new PreparedTreeBuilder();
-    expect(fn() => $builder->build($resolvedLayout))
+    expect(fn () => $builder->build($resolvedLayout))
         ->toThrow(InvalidSourceTypeException::class);
 });

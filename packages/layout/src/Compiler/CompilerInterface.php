@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Markommerce\Layout\Compiler;
 
 use Markommerce\Layout\Cache\PreparedTree;
-use Markommerce\Layout\Exception\LayoutException;
+use Markommerce\Layout\Exceptions\LayoutException;
 
 interface CompilerInterface
 {

@@ -8,14 +8,13 @@ use Markommerce\Layout\Contracts\LayoutDefinition;
 use Markommerce\Layout\Discovery\DiscoveredExtension;
 use Markommerce\Layout\Discovery\DiscoveredLayout;
 use Markommerce\Layout\Discovery\DiscoveryResult;
-use Markommerce\Layout\Exception\CircularInheritanceException;
-use Markommerce\Layout\Exception\DanglingAnchorException;
-use Markommerce\Layout\Exception\DefaultHandleConflictException;
-use Markommerce\Layout\Exception\DuplicateContextTokenException;
-use Markommerce\Layout\Exception\ExtensionConflictException;
-use Markommerce\Layout\Exception\UnknownParentHandleException;
+use Markommerce\Layout\Exceptions\CircularInheritanceException;
+use Markommerce\Layout\Exceptions\DanglingAnchorException;
+use Markommerce\Layout\Exceptions\DefaultHandleConflictException;
+use Markommerce\Layout\Exceptions\DuplicateContextTokenException;
+use Markommerce\Layout\Exceptions\ExtensionConflictException;
+use Markommerce\Layout\Exceptions\UnknownParentHandleException;
 use Markommerce\Layout\Layout;
-use Markommerce\Layout\LayoutExtension;
 use Markommerce\Layout\Operation\Append;
 use Markommerce\Layout\Operation\InsertAfter;
 use Markommerce\Layout\Operation\InsertBefore;
@@ -26,6 +25,7 @@ use Markommerce\Layout\Operation\Replace;
 use Markommerce\Layout\Operation\ReplaceProps;
 use Markommerce\Layout\Operation\WrapWith;
 use Markommerce\Layout\Place;
+use Markommerce\Layout\Provide;
 use Markommerce\Layout\Slot;
 
 class ResolutionPhase
@@ -37,12 +37,7 @@ class ResolutionPhase
      *
      * @return array<string, ResolvedLayout>
      *
-     * @throws CircularInheritanceException
-     * @throws DanglingAnchorException
-     * @throws DefaultHandleConflictException
-     * @throws DuplicateContextTokenException
-     * @throws ExtensionConflictException
-     * @throws UnknownParentHandleException
+     * @throws CircularInheritanceException|DanglingAnchorException|DefaultHandleConflictException|DuplicateContextTokenException|ExtensionConflictException|UnknownParentHandleException
      */
     public function resolve(DiscoveryResult $discoveryResult): array
     {
@@ -68,7 +63,7 @@ class ResolutionPhase
         // Collect default layout's resolved slots/context for Half A merge.
         /** @var array<string, list<ResolvedPlace>|ResolvedRepeatSlot> $defaultSlots */
         $defaultSlots = [];
-        /** @var list<\Markommerce\Layout\Provide> $defaultContext */
+        /** @var list<Provide> $defaultContext */
         $defaultContext = [];
         /** @var Layout|null $defaultLayout */
         $defaultLayout = null;
@@ -227,7 +222,10 @@ class ResolutionPhase
      *
      * @return array<string, list<ResolvedPlace>|ResolvedRepeatSlot>
      */
-    private function prependDefaultSlots(array $defaultSlots, array $siblingSlots): array
+    private function prependDefaultSlots(
+        array $defaultSlots,
+        array $siblingSlots,
+    ): array
     {
         $merged = $siblingSlots;
         foreach ($defaultSlots as $slotName => $defaultEntries) {
@@ -238,6 +236,7 @@ class ResolutionPhase
                 $merged = [$slotName => $defaultEntries] + $merged;
             }
         }
+
         return $merged;
     }
 
@@ -245,21 +244,30 @@ class ResolutionPhase
      * Merge default context providers ahead of sibling context providers.
      * Throws DuplicateContextTokenException if any tokens overlap.
      *
-     * @param list<\Markommerce\Layout\Provide> $defaultContext
-     * @param list<\Markommerce\Layout\Provide> $siblingContext
+     * @param list<Provide> $defaultContext
+     * @param list<Provide> $siblingContext
      *
-     * @return list<\Markommerce\Layout\Provide>
+     * @return list<Provide>
      *
      * @throws DuplicateContextTokenException
      */
-    private function mergeDefaultContext(array $defaultContext, array $siblingContext, string $siblingHandleKey): array
+    private function mergeDefaultContext(
+        array $defaultContext,
+        array $siblingContext,
+        string $siblingHandleKey,
+    ): array
     {
-        $defaultTokens = array_map(fn(\Markommerce\Layout\Provide $p) => $p->token, $defaultContext);
+        $defaultTokens = array_map(fn (Provide $p) => $p->token, $defaultContext);
         foreach ($siblingContext as $provide) {
             if (in_array($provide->token, $defaultTokens, true)) {
-                throw DuplicateContextTokenException::forToken($provide->token, self::HANDLE_DEFAULT, $siblingHandleKey);
+                throw DuplicateContextTokenException::forToken(
+                    $provide->token,
+                    self::HANDLE_DEFAULT,
+                    $siblingHandleKey
+                );
             }
         }
+
         return array_merge($defaultContext, $siblingContext);
     }
 
@@ -335,11 +343,11 @@ class ResolutionPhase
      *
      * @param array<string, list<ResolvedPlace>|ResolvedRepeatSlot> $shellResolvedSlots
      * @param array<string, list<ResolvedPlace>|ResolvedRepeatSlot> $ownResolvedSlots
-     * @param list<\Markommerce\Layout\Provide> $shellContext
-     * @param list<\Markommerce\Layout\Provide> $ownContext
+     * @param list<Provide> $shellContext
+     * @param list<Provide> $ownContext
      * @param array<string, ResolvedLayout> $resolvedSoFar
      *
-     * @return array{0: array<string, list<ResolvedPlace>|ResolvedRepeatSlot>, 1: list<\Markommerce\Layout\Provide>, 2: ?string}
+     * @return array{0: array<string, list<ResolvedPlace>|ResolvedRepeatSlot>, 1: list<Provide>, 2: ?string}
      *
      * @throws DuplicateContextTokenException
      */
@@ -379,8 +387,8 @@ class ResolutionPhase
         }
 
         // Check for duplicate context tokens between parent and child (shell + own).
-        $parentTokens = array_map(fn(\Markommerce\Layout\Provide $p) => $p->token, $parentResolved->context);
-        $shellTokens = array_map(fn(\Markommerce\Layout\Provide $p) => $p->token, $shellContext);
+        $parentTokens = array_map(fn (Provide $p) => $p->token, $parentResolved->context);
+        $shellTokens = array_map(fn (Provide $p) => $p->token, $shellContext);
         $allIncomingTokens = array_merge($shellTokens, $parentTokens);
 
         foreach ($ownContext as $provide) {
@@ -407,7 +415,7 @@ class ResolutionPhase
      * Resolve only the extends chain's shell slots (no own slots from this layout merged in).
      * Used when inherits is also set, to keep the ordering correct.
      *
-     * @return array{slots: array<string, list<Place>|Slot>, template: ?string, context: list<\Markommerce\Layout\Provide>}
+     * @return array{slots: array<string, list<Place>|Slot>, template: ?string, context: list<Provide>}
      */
     private function resolveExtendsChainShellOnly(Layout $layout): array
     {
@@ -444,7 +452,7 @@ class ResolutionPhase
     /**
      * Resolve the extends chain, returning merged slots, template, and context.
      *
-     * @return array{slots: array<string, list<Place>|Slot>, template: ?string, context: list<\Markommerce\Layout\Provide>}
+     * @return array{slots: array<string, list<Place>|Slot>, template: ?string, context: list<Provide>}
      */
     private function resolveExtendsChain(Layout $layout): array
     {
@@ -508,17 +516,18 @@ class ResolutionPhase
                     yields: $value->yields,
                     as: $value->as,
                     children: array_map(
-                        fn(Place $p) => $this->convertPlace($p),
+                        fn (Place $p) => $this->convertPlace($p),
                         $value->children,
                     ),
                 );
             } else {
                 $resolved[$slotName] = array_map(
-                    fn(Place $p) => $this->convertPlace($p),
+                    fn (Place $p) => $this->convertPlace($p),
                     $value,
                 );
             }
         }
+
         return $resolved;
     }
 
@@ -549,7 +558,7 @@ class ResolutionPhase
     ): array {
         return array_values(array_filter(
             $extensions,
-            fn(DiscoveredExtension $de) => $this->computeHandleKey($de->extension->handle) === $handleKey,
+            fn (DiscoveredExtension $de) => $this->computeHandleKey($de->extension->handle) === $handleKey,
         ));
     }
 
@@ -561,10 +570,12 @@ class ResolutionPhase
      *
      * @return array<string, list<ResolvedPlace>|ResolvedRepeatSlot>
      *
-     * @throws DanglingAnchorException
-     * @throws ExtensionConflictException
+     * @throws DanglingAnchorException|ExtensionConflictException
      */
-    private function applyExtensions(array $slots, array $extensions): array
+    private function applyExtensions(
+        array $slots,
+        array $extensions,
+    ): array
     {
         if (empty($extensions)) {
             return $slots;
@@ -581,7 +592,7 @@ class ResolutionPhase
             // Sort within same priority by source file path for determinism.
             usort(
                 $priorityGroup,
-                fn(DiscoveredExtension $a, DiscoveredExtension $b) => strcmp($a->sourceFile, $b->sourceFile),
+                fn (DiscoveredExtension $a, DiscoveredExtension $b) => strcmp($a->sourceFile, $b->sourceFile),
             );
 
             // Check for conflicts at this priority level.
@@ -605,7 +616,10 @@ class ResolutionPhase
      *
      * @throws ExtensionConflictException
      */
-    private function checkConflicts(array $group, int $priority): void
+    private function checkConflicts(
+        array $group,
+        int $priority,
+    ): void
     {
         // Collect all anchor-targeting operations across this priority group.
         // Conflict = two operations targeting the same anchor name with incompatible operations.
@@ -660,7 +674,11 @@ class ResolutionPhase
      *
      * @throws DanglingAnchorException
      */
-    private function applyOperation(array $slots, object $operation, string $sourceFile): array
+    private function applyOperation(
+        array $slots,
+        object $operation,
+        string $sourceFile,
+    ): array
     {
         return match (true) {
             $operation instanceof InsertAfter => $this->applyInsertAfter($slots, $operation, $sourceFile),
@@ -683,7 +701,11 @@ class ResolutionPhase
      *
      * @throws DanglingAnchorException
      */
-    private function applyInsertAfter(array $slots, InsertAfter $op, string $sourceFile): array
+    private function applyInsertAfter(
+        array $slots,
+        InsertAfter $op,
+        string $sourceFile,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
@@ -695,6 +717,7 @@ class ResolutionPhase
                     $found = true;
                 }
             }
+
             return $new;
         });
 
@@ -712,7 +735,11 @@ class ResolutionPhase
      *
      * @throws DanglingAnchorException
      */
-    private function applyInsertBefore(array $slots, InsertBefore $op, string $sourceFile): array
+    private function applyInsertBefore(
+        array $slots,
+        InsertBefore $op,
+        string $sourceFile,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
@@ -724,6 +751,7 @@ class ResolutionPhase
                 }
                 $new[] = $place;
             }
+
             return $new;
         });
 
@@ -741,7 +769,11 @@ class ResolutionPhase
      *
      * @throws DanglingAnchorException
      */
-    private function applyAppend(array $slots, Append $op, string $sourceFile): array
+    private function applyAppend(
+        array $slots,
+        Append $op,
+        string $sourceFile,
+    ): array
     {
         if (!isset($slots[$op->slotPath])) {
             throw DanglingAnchorException::forAnchor($op->slotPath, $sourceFile);
@@ -754,6 +786,7 @@ class ResolutionPhase
         }
 
         $slots[$op->slotPath] = array_merge($slot, [$this->convertPlace($op->placement)]);
+
         return $slots;
     }
 
@@ -764,7 +797,11 @@ class ResolutionPhase
      *
      * @throws DanglingAnchorException
      */
-    private function applyPrepend(array $slots, Prepend $op, string $sourceFile): array
+    private function applyPrepend(
+        array $slots,
+        Prepend $op,
+        string $sourceFile,
+    ): array
     {
         if (!isset($slots[$op->slotPath])) {
             throw DanglingAnchorException::forAnchor($op->slotPath, $sourceFile);
@@ -776,6 +813,7 @@ class ResolutionPhase
         }
 
         $slots[$op->slotPath] = array_merge([$this->convertPlace($op->placement)], $slot);
+
         return $slots;
     }
 
@@ -786,7 +824,11 @@ class ResolutionPhase
      *
      * @throws DanglingAnchorException
      */
-    private function applyRemove(array $slots, Remove $op, string $sourceFile): array
+    private function applyRemove(
+        array $slots,
+        Remove $op,
+        string $sourceFile,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
@@ -798,6 +840,7 @@ class ResolutionPhase
                 }
                 $new[] = $place;
             }
+
             return $new;
         });
 
@@ -815,7 +858,11 @@ class ResolutionPhase
      *
      * @throws DanglingAnchorException
      */
-    private function applyReplace(array $slots, Replace $op, string $sourceFile): array
+    private function applyReplace(
+        array $slots,
+        Replace $op,
+        string $sourceFile,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
@@ -828,6 +875,7 @@ class ResolutionPhase
                     $new[] = $place;
                 }
             }
+
             return $new;
         });
 
@@ -845,13 +893,18 @@ class ResolutionPhase
      *
      * @throws DanglingAnchorException
      */
-    private function applyMergeProps(array $slots, MergeProps $op, string $sourceFile): array
+    private function applyMergeProps(
+        array $slots,
+        MergeProps $op,
+        string $sourceFile,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             return array_map(function (ResolvedPlace $place) use ($op, &$found): ResolvedPlace {
                 if ($place->name === $op->name) {
                     $found = true;
+
                     return new ResolvedPlace(
                         component: $place->component,
                         name: $place->name,
@@ -861,6 +914,7 @@ class ResolutionPhase
                         template: $place->template,
                     );
                 }
+
                 return $place;
             }, $placements);
         });
@@ -879,13 +933,18 @@ class ResolutionPhase
      *
      * @throws DanglingAnchorException
      */
-    private function applyReplaceProps(array $slots, ReplaceProps $op, string $sourceFile): array
+    private function applyReplaceProps(
+        array $slots,
+        ReplaceProps $op,
+        string $sourceFile,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             return array_map(function (ResolvedPlace $place) use ($op, &$found): ResolvedPlace {
                 if ($place->name === $op->name) {
                     $found = true;
+
                     return new ResolvedPlace(
                         component: $place->component,
                         name: $place->name,
@@ -895,6 +954,7 @@ class ResolutionPhase
                         template: $place->template,
                     );
                 }
+
                 return $place;
             }, $placements);
         });
@@ -913,13 +973,18 @@ class ResolutionPhase
      *
      * @throws DanglingAnchorException
      */
-    private function applyWrapWith(array $slots, WrapWith $op, string $sourceFile): array
+    private function applyWrapWith(
+        array $slots,
+        WrapWith $op,
+        string $sourceFile,
+    ): array
     {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             return array_map(function (ResolvedPlace $place) use ($op, &$found): ResolvedPlace {
                 if ($place->name === $op->name) {
                     $found = true;
+
                     return new ResolvedPlace(
                         component: $place->component,
                         name: $place->name,
@@ -929,6 +994,7 @@ class ResolutionPhase
                         template: $place->template,
                     );
                 }
+
                 return $place;
             }, $placements);
         });
@@ -948,7 +1014,10 @@ class ResolutionPhase
      *
      * @return array<string, list<ResolvedPlace>|ResolvedRepeatSlot>
      */
-    private function mapPlacements(array $slots, callable $callback): array
+    private function mapPlacements(
+        array $slots,
+        callable $callback,
+    ): array
     {
         $result = [];
         foreach ($slots as $slotName => $value) {
@@ -959,22 +1028,26 @@ class ResolutionPhase
                     yields: $value->yields,
                     as: $value->as,
                     children: array_map(
-                        fn(ResolvedPlace $child) => $this->mapPlacementsInPlace($child, $callback),
+                        fn (ResolvedPlace $child) => $this->mapPlacementsInPlace($child, $callback),
                         $mappedChildren,
                     ),
                 );
             } else {
                 $mapped = $callback($value);
                 $result[$slotName] = array_map(
-                    fn(ResolvedPlace $place) => $this->mapPlacementsInPlace($place, $callback),
+                    fn (ResolvedPlace $place) => $this->mapPlacementsInPlace($place, $callback),
                     $mapped,
                 );
             }
         }
+
         return $result;
     }
 
-    private function mapPlacementsInPlace(ResolvedPlace $place, callable $callback): ResolvedPlace
+    private function mapPlacementsInPlace(
+        ResolvedPlace $place,
+        callable $callback,
+    ): ResolvedPlace
     {
         return new ResolvedPlace(
             component: $place->component,

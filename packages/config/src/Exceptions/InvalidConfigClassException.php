@@ -26,8 +26,7 @@ class InvalidConfigClassException extends MarkoException
     public static function propertyMissingDefaultOrNullability(
         string $configClass,
         string $property,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Property '$property' in config class '$configClass' is non-nullable and has no default value",
             context: "Validating #[Config] property '$property' in '$configClass'",
@@ -42,8 +41,7 @@ class InvalidConfigClassException extends MarkoException
     public static function nonSubclassPreference(
         string $configClass,
         string $preferenceClass,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Preferred class '$preferenceClass' is not a subclass of '$configClass'",
             context: "Validating config class preference: '$preferenceClass' was registered as a replacement for '$configClass'",
@@ -57,8 +55,7 @@ class InvalidConfigClassException extends MarkoException
     public static function propertyWithoutConfigAttribute(
         string $configClass,
         string $property,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Property '$property' in config class '$configClass' has no #[Config] attribute",
             context: "Validating config class '$configClass' — all public properties must carry a #[Config] attribute",
@@ -73,8 +70,7 @@ class InvalidConfigClassException extends MarkoException
         string $configClass,
         string $property,
         string $reason,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Property '$property' in config class '$configClass' has an unsupported type: $reason",
             context: "Validating #[Config] property '$property' in '$configClass'",

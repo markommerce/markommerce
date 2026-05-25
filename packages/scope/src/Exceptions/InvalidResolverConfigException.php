@@ -11,7 +11,10 @@ use Marko\Core\Exceptions\MarkoException;
  */
 class InvalidResolverConfigException extends MarkoException
 {
-    public static function unknownClass(string $className, string $axisName): self
+    public static function unknownClass(
+        string $className,
+        string $axisName,
+    ): self
     {
         return new self(
             message: "Resolver class '$className' for axis '$axisName' does not exist",
@@ -20,7 +23,10 @@ class InvalidResolverConfigException extends MarkoException
         );
     }
 
-    public static function missingClassKey(int $index, string $axisName): self
+    public static function missingClassKey(
+        int $index,
+        string $axisName,
+    ): self
     {
         return new self(
             message: "Resolver entry at index $index for axis '$axisName' is missing the required 'class' key",
@@ -29,7 +35,10 @@ class InvalidResolverConfigException extends MarkoException
         );
     }
 
-    public static function notImplementingInterface(string $className, string $axisName): self
+    public static function notImplementingInterface(
+        string $className,
+        string $axisName,
+    ): self
     {
         return new self(
             message: "Resolver class '$className' for axis '$axisName' does not implement the required interface",

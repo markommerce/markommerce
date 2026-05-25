@@ -2,27 +2,26 @@
 
 declare(strict_types=1);
 
+use Marko\Config\ConfigRepository;
 use Marko\Core\Container\ContainerInterface;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
-use Marko\Core\Module\ModuleRepositoryInterface;
 use Marko\Routing\Http\Request;
 use Marko\Routing\Http\Response;
-use Marko\Routing\Middleware\MiddlewareInterface;
+use Marko\Routing\RouteCollection;
+use Marko\Routing\RouteDiscovery;
+use Marko\Routing\RouteMatcher;
+use Marko\Routing\RouteMatcherInterface;
 use Marko\View\ViewInterface;
 use Markommerce\Catalog\Component\ProductCard;
 use Markommerce\Catalog\Component\ProductGridComponent;
 use Markommerce\Catalog\Component\StockBadge;
 use Markommerce\Catalog\Context\CategoryDataProvider;
-use Markommerce\Catalog\Context\CategoryToken;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Controller\CategoryController;
-use Markommerce\Catalog\Data\ProductCardData;
 use Markommerce\Catalog\Data\ProductGridData;
-use Markommerce\Catalog\Data\StockBadgeData;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
-use Markommerce\Catalog\Iteration\ProductIteration;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
@@ -37,15 +36,10 @@ use Markommerce\Layout\Compiler\ResolutionPhase;
 use Markommerce\Layout\Compiler\ValidationPhase;
 use Markommerce\Layout\Contracts\ContextProvider;
 use Markommerce\Layout\Discovery\LayoutDiscovery;
-use Markommerce\Layout\ExtensionBag;
 use Markommerce\Layout\Layout;
 use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
-use Markommerce\Layout\Place;
-use Markommerce\Layout\Provide;
 use Markommerce\Layout\Runtime\Renderer;
-use Markommerce\Layout\Runtime\RendererInterface;
 use Markommerce\Layout\Slot;
-use Markommerce\Layout\Source\Source;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Registry\PhpScopeRegistry;
@@ -54,14 +48,13 @@ use Markommerce\Scope\Resolver\ScopeResolver;
 use Markommerce\Scope\Signature\ScopeSignatureValidator;
 use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 use Markommerce\Scope\Storage\DefaultScopeGuard;
-use Markommerce\ThemeBlank\Layout\OneColumnLayout;
-use Marko\Config\ConfigRepository;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function catalogLayoutLoadLayoutFile(): Layout
 {
     $path = dirname(__DIR__, 2) . '/layout/category_show.php';
+
     return require $path;
 }
 
@@ -111,7 +104,8 @@ function catalogLayoutBuildMiddleware(
     ContainerInterface $container,
     ViewInterface $view,
 ): MarkommerceLayoutMiddleware {
-    $artifactReader = new class($trees) implements ArtifactReaderInterface {
+    $artifactReader = new class ($trees) implements ArtifactReaderInterface
+    {
         /** @param array<string, PreparedTree> $trees */
         public function __construct(private array $trees) {}
 
@@ -121,7 +115,7 @@ function catalogLayoutBuildMiddleware(
         }
     };
 
-    $routeMatcher = $container->get(\Marko\Routing\RouteMatcherInterface::class);
+    $routeMatcher = $container->get(RouteMatcherInterface::class);
     $renderer = new Renderer($view, $container);
 
     return new MarkommerceLayoutMiddleware($routeMatcher, $artifactReader, $renderer, $container);
@@ -132,12 +126,18 @@ function catalogLayoutBuildMiddleware(
  */
 class CatalogLayoutFakeView implements ViewInterface
 {
-    public function render(string $template, array $data = []): Response
+    public function render(
+        string $template,
+        array $data = [],
+    ): Response
     {
         return Response::html($this->renderToString($template, $data));
     }
 
-    public function renderToString(string $template, array $data = []): string
+    public function renderToString(
+        string $template,
+        array $data = [],
+    ): string
     {
         $slots = '';
         if (isset($data['_slots']) && is_array($data['_slots'])) {
@@ -158,7 +158,10 @@ class CatalogLayoutFakeContainer implements ContainerInterface
     /** @var array<string, object> */
     private array $bindings = [];
 
-    public function bind(string $class, object $instance): void
+    public function bind(
+        string $class,
+        object $instance,
+    ): void
     {
         $this->bindings[$class] = $instance;
     }
@@ -171,7 +174,7 @@ class CatalogLayoutFakeContainer implements ContainerInterface
         if (class_exists($id)) {
             return new $id();
         }
-        throw new \RuntimeException("No binding for $id");
+        throw new RuntimeException("No binding for $id");
     }
 
     public function has(string $id): bool
@@ -181,12 +184,15 @@ class CatalogLayoutFakeContainer implements ContainerInterface
 
     public function singleton(string $id): void {}
 
-    public function instance(string $id, object $instance): void
+    public function instance(
+        string $id,
+        object $instance,
+    ): void
     {
         $this->bindings[$id] = $instance;
     }
 
-    public function call(\Closure $callable): mixed
+    public function call(Closure $callable): mixed
     {
         return $callable();
     }
@@ -227,7 +233,7 @@ it('exposes the product grid component without a hardcoded handle or slot', func
 
     // The component should NOT reference CategoryController in its attributes
     $source = file_get_contents(
-        dirname(__DIR__, 2) . '/src/Component/ProductGridComponent.php'
+        dirname(__DIR__, 2) . '/src/Component/ProductGridComponent.php',
     );
     expect($source)->not->toContain("handle: [CategoryController::class, 'show']");
     expect($source)->not->toContain("slot: 'content'");
@@ -340,14 +346,14 @@ it('renders the category page with a grid of product cards', function (): void {
     $container = new CatalogLayoutFakeContainer();
     $view = new CatalogLayoutFakeView();
 
-    $routes = new \Marko\Routing\RouteCollection();
-    $discovery = new \Marko\Routing\RouteDiscovery();
+    $routes = new RouteCollection();
+    $discovery = new RouteDiscovery();
     foreach ($discovery->discoverFromClass(CategoryController::class) as $route) {
         $routes->add($route);
     }
-    $matcher = new \Marko\Routing\RouteMatcher($routes);
+    $matcher = new RouteMatcher($routes);
 
-    $container->instance(\Marko\Routing\RouteMatcherInterface::class, $matcher);
+    $container->instance(RouteMatcherInterface::class, $matcher);
     $container->instance(CategoryRepositoryInterface::class, $categoryRepository);
     $container->instance(CategoryController::class, new CategoryController($categoryRepository));
     $container->instance(CategoryAssignmentService::class, $assignmentService);
@@ -364,6 +370,7 @@ it('renders the category page with a grid of product cards', function (): void {
 
     $controllerCallable = function (Request $request) use ($container): Response {
         $controller = $container->get(CategoryController::class);
+
         return $controller->show((int) explode('/', $request->path())[3]);
     };
 

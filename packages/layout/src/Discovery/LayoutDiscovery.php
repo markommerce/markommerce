@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Markommerce\Layout\Discovery;
 
 use Marko\Core\Module\ModuleRepositoryInterface;
-use Markommerce\Layout\Exception\InvalidLayoutFileException;
+use Markommerce\Layout\Exceptions\InvalidLayoutFileException;
 use Markommerce\Layout\Layout;
 use Markommerce\Layout\LayoutExtension;
 

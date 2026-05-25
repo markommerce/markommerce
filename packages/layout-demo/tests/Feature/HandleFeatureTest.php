@@ -7,6 +7,7 @@ use Marko\Config\ConfigRepositoryInterface;
 use Marko\Core\Container\Container;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
+use Marko\Core\Path\ProjectPaths;
 use Marko\Routing\Http\Request;
 use Marko\Routing\RouteCollection;
 use Marko\Routing\RouteDiscovery;
@@ -19,7 +20,6 @@ use Marko\View\TemplateResolverInterface;
 use Marko\View\ViewConfig;
 use Marko\View\ViewInterface;
 use Marko\Vite\Vite;
-use Marko\Core\Path\ProjectPaths;
 use Markommerce\Frontend\View\Latte\MarkommerceLatteEngineFactory;
 use Markommerce\Frontend\View\Latte\ViteExtension;
 use Markommerce\Layout\Cache\ArtifactReaderInterface;
@@ -114,6 +114,7 @@ function handleFeatureTestEnsureManifest(string $basePath): bool
                     'isEntry' => true,
                 ];
                 file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT));
+
                 return true;
             }
         }
@@ -219,7 +220,8 @@ function handleFeatureTestBuildRouter(
 
     $trees = handleFeatureTestBuildArtifact($layoutDemoPath);
 
-    $artifactReader = new class($trees) implements ArtifactReaderInterface {
+    $artifactReader = new class ($trees) implements ArtifactReaderInterface
+    {
         /** @param array<string, PreparedTree> $trees */
         public function __construct(private array $trees) {}
 

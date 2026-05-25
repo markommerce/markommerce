@@ -15,8 +15,7 @@ class SodiumSecretCipher implements SecretCipherInterface
     public function __construct(
         private readonly string $key,
         ?bool $sodiumAvailable = null,
-    )
-    {
+    ) {
         if (!($sodiumAvailable ?? extension_loaded('sodium'))) {
             throw SecretCipherException::sodiumUnavailable();
         }

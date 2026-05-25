@@ -10,7 +10,7 @@ use Markommerce\Layout\Cache\ArtifactWriterInterface;
 use Markommerce\Layout\Cache\PreparedTree;
 use Markommerce\Layout\Command\CompileCommand;
 use Markommerce\Layout\Compiler\CompilerInterface;
-use Markommerce\Layout\Exception\LayoutException;
+use Markommerce\Layout\Exceptions\LayoutException;
 
 // =============================================================================
 // Fakes
@@ -19,6 +19,7 @@ use Markommerce\Layout\Exception\LayoutException;
 class FakeCompiler implements CompilerInterface
 {
     public bool $compiled = false;
+
     public ?LayoutException $throwOnCompile = null;
 
     /** @var array<string, PreparedTree> */
@@ -78,6 +79,7 @@ function captureOutput(callable $callback): string
     rewind($stream);
     $content = stream_get_contents($stream);
     fclose($stream);
+
     return $content !== false ? $content : '';
 }
 
@@ -141,8 +143,18 @@ it('prints a summary of compiled handles on success', function (): void {
     $fakeWriter = new FakeArtifactWriter();
     $fakeWriter->path = '/var/cache/markommerce/layouts.php';
 
-    $tree1 = new PreparedTree(handleKey: 'App\Controller\HomeController::index', template: 'theme::layout', slots: [], context: []);
-    $tree2 = new PreparedTree(handleKey: 'App\Controller\ProductController::show', template: 'theme::layout', slots: [], context: []);
+    $tree1 = new PreparedTree(
+        handleKey: 'App\Controller\HomeController::index',
+        template: 'theme::layout',
+        slots: [],
+        context: []
+    );
+    $tree2 = new PreparedTree(
+        handleKey: 'App\Controller\ProductController::show',
+        template: 'theme::layout',
+        slots: [],
+        context: []
+    );
     $fakeCompiler->result = ['App\Controller\HomeController::index' => $tree1, 'App\Controller\ProductController::show' => $tree2];
 
     $command = new CompileCommand($fakeCompiler, $fakeWriter);

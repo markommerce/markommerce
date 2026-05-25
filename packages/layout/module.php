@@ -24,10 +24,12 @@ return [
     'bindings' => [
         ArtifactReaderInterface::class => function (ContainerInterface $container): ArtifactReader {
             $path = $container->get(ProjectPaths::class)->base . '/var/cache/markommerce/layouts.php';
+
             return new ArtifactReader($path);
         },
         ArtifactWriterInterface::class => function (ContainerInterface $container): ArtifactWriter {
             $path = $container->get(ProjectPaths::class)->base . '/var/cache/markommerce/layouts.php';
+
             return new ArtifactWriter($path);
         },
         CompilerInterface::class => function (ContainerInterface $container): Compiler {

@@ -14,19 +14,22 @@ function readJsonFile(string $path): array
     return json_decode($contents, true);
 }
 
-it('provides a flat-config eslint.config.js that lints TypeScript with @typescript-eslint and eslint-plugin-lit', function (): void {
-    $path = __DIR__ . '/../../../../eslint.config.js';
-
-    expect(file_exists($path))->toBeTrue('eslint.config.js must exist at the repo root');
-
-    $contents = file_get_contents($path);
-    expect($contents)->not->toBeFalse();
-    /** @var string $contents */
-
-    // Must be flat config format (ESLint 9) — exports an array
+it(
+    'provides a flat-config eslint.config.js that lints TypeScript with @typescript-eslint and eslint-plugin-lit',
+    function (): void {
+        $path = __DIR__ . '/../../../../eslint.config.js';
+    
+        expect(file_exists($path))->toBeTrue('eslint.config.js must exist at the repo root');
+    
+        $contents = file_get_contents($path);
+        expect($contents)->not->toBeFalse();
+        /** @var string $contents */
+    
+        // Must be flat config format (ESLint 9) — exports an array
     expect($contents)->toContain('typescript-eslint');
-    expect($contents)->toContain('eslint-plugin-lit');
-});
+        expect($contents)->toContain('eslint-plugin-lit');
+    }
+);
 
 it('bans the use of any and disables no-unused-vars in favor of typescript-eslint\'s variant', function (): void {
     $path = __DIR__ . '/../../../../eslint.config.js';
@@ -44,20 +47,23 @@ it('bans the use of any and disables no-unused-vars in favor of typescript-eslin
     expect($contents)->toContain('@typescript-eslint/no-unused-vars');
 });
 
-it('provides prettier.config.js with project-consistent settings (single quotes, semis, 100-char width)', function (): void {
-    $path = __DIR__ . '/../../../../prettier.config.js';
-
-    expect(file_exists($path))->toBeTrue('prettier.config.js must exist at the repo root');
-
-    $contents = file_get_contents($path);
-    expect($contents)->not->toBeFalse();
-    /** @var string $contents */
-
-    expect($contents)->toContain('singleQuote');
-    expect($contents)->toContain('semi');
-    expect($contents)->toContain('100');
-    expect($contents)->toContain('printWidth');
-});
+it(
+    'provides prettier.config.js with project-consistent settings (single quotes, semis, 100-char width)',
+    function (): void {
+        $path = __DIR__ . '/../../../../prettier.config.js';
+    
+        expect(file_exists($path))->toBeTrue('prettier.config.js must exist at the repo root');
+    
+        $contents = file_get_contents($path);
+        expect($contents)->not->toBeFalse();
+        /** @var string $contents */
+    
+        expect($contents)->toContain('singleQuote');
+        expect($contents)->toContain('semi');
+        expect($contents)->toContain('100');
+        expect($contents)->toContain('printWidth');
+    }
+);
 
 it('provides stylelint.config.js that allows @layer and CSS custom properties', function (): void {
     $path = __DIR__ . '/../../../../stylelint.config.js';
@@ -76,23 +82,26 @@ it('provides stylelint.config.js that allows @layer and CSS custom properties', 
     expect($contents)->toContain('custom-property');
 });
 
-it('provides a postcss.config.js with postcss-import, postcss-nesting, postcss-custom-media, autoprefixer, and conditional cssnano', function (): void {
-    $path = __DIR__ . '/../../../../postcss.config.js';
-
-    expect(file_exists($path))->toBeTrue('postcss.config.js must exist at the repo root');
-
-    $contents = file_get_contents($path);
-    expect($contents)->not->toBeFalse();
-    /** @var string $contents */
-
-    expect($contents)->toContain('postcss-import');
-    expect($contents)->toContain('postcss-nesting');
-    expect($contents)->toContain('postcss-custom-media');
-    expect($contents)->toContain('autoprefixer');
-    expect($contents)->toContain('cssnano');
-    // Must be conditional on production
+it(
+    'provides a postcss.config.js with postcss-import, postcss-nesting, postcss-custom-media, autoprefixer, and conditional cssnano',
+    function (): void {
+        $path = __DIR__ . '/../../../../postcss.config.js';
+    
+        expect(file_exists($path))->toBeTrue('postcss.config.js must exist at the repo root');
+    
+        $contents = file_get_contents($path);
+        expect($contents)->not->toBeFalse();
+        /** @var string $contents */
+    
+        expect($contents)->toContain('postcss-import');
+        expect($contents)->toContain('postcss-nesting');
+        expect($contents)->toContain('postcss-custom-media');
+        expect($contents)->toContain('autoprefixer');
+        expect($contents)->toContain('cssnano');
+        // Must be conditional on production
     expect($contents)->toContain('production');
-});
+    }
+);
 
 it('adds lint:js, lint:css, format, and format:check scripts to the root package.json', function (): void {
     $manifest = readJsonFile(__DIR__ . '/../../../../package.json');
@@ -103,23 +112,34 @@ it('adds lint:js, lint:css, format, and format:check scripts to the root package
     expect(isset($manifest['scripts']['format:check']))->toBeTrue('format:check script must exist');
 });
 
-it('adds the required devDependencies (eslint, @typescript-eslint/*, eslint-plugin-lit, prettier, stylelint, stylelint-config-standard, postcss, postcss-import, postcss-nesting, postcss-custom-media, autoprefixer, cssnano) to the root package.json', function (): void {
-    $manifest = readJsonFile(__DIR__ . '/../../../../package.json');
-    $devDeps = $manifest['devDependencies'] ?? [];
-
-    expect(array_key_exists('eslint', $devDeps))->toBeTrue('eslint must be in devDependencies');
-    expect(array_key_exists('typescript-eslint', $devDeps))->toBeTrue('typescript-eslint must be in devDependencies');
-    expect(array_key_exists('eslint-plugin-lit', $devDeps))->toBeTrue('eslint-plugin-lit must be in devDependencies');
-    expect(array_key_exists('prettier', $devDeps))->toBeTrue('prettier must be in devDependencies');
-    expect(array_key_exists('stylelint', $devDeps))->toBeTrue('stylelint must be in devDependencies');
-    expect(array_key_exists('stylelint-config-standard', $devDeps))->toBeTrue('stylelint-config-standard must be in devDependencies');
-    expect(array_key_exists('postcss', $devDeps))->toBeTrue('postcss must be in devDependencies');
-    expect(array_key_exists('postcss-import', $devDeps))->toBeTrue('postcss-import must be in devDependencies');
-    expect(array_key_exists('postcss-nesting', $devDeps))->toBeTrue('postcss-nesting must be in devDependencies');
-    expect(array_key_exists('postcss-custom-media', $devDeps))->toBeTrue('postcss-custom-media must be in devDependencies');
-    expect(array_key_exists('autoprefixer', $devDeps))->toBeTrue('autoprefixer must be in devDependencies');
-    expect(array_key_exists('cssnano', $devDeps))->toBeTrue('cssnano must be in devDependencies');
-});
+it(
+    'adds the required devDependencies (eslint, @typescript-eslint/*, eslint-plugin-lit, prettier, stylelint, stylelint-config-standard, postcss, postcss-import, postcss-nesting, postcss-custom-media, autoprefixer, cssnano) to the root package.json',
+    function (): void {
+        $manifest = readJsonFile(__DIR__ . '/../../../../package.json');
+        $devDeps = $manifest['devDependencies'] ?? [];
+    
+        expect(array_key_exists('eslint', $devDeps))->toBeTrue('eslint must be in devDependencies');
+        expect(array_key_exists('typescript-eslint', $devDeps))->toBeTrue(
+            'typescript-eslint must be in devDependencies'
+        );
+        expect(array_key_exists('eslint-plugin-lit', $devDeps))->toBeTrue(
+            'eslint-plugin-lit must be in devDependencies'
+        );
+        expect(array_key_exists('prettier', $devDeps))->toBeTrue('prettier must be in devDependencies');
+        expect(array_key_exists('stylelint', $devDeps))->toBeTrue('stylelint must be in devDependencies');
+        expect(array_key_exists('stylelint-config-standard', $devDeps))->toBeTrue(
+            'stylelint-config-standard must be in devDependencies'
+        );
+        expect(array_key_exists('postcss', $devDeps))->toBeTrue('postcss must be in devDependencies');
+        expect(array_key_exists('postcss-import', $devDeps))->toBeTrue('postcss-import must be in devDependencies');
+        expect(array_key_exists('postcss-nesting', $devDeps))->toBeTrue('postcss-nesting must be in devDependencies');
+        expect(array_key_exists('postcss-custom-media', $devDeps))->toBeTrue(
+            'postcss-custom-media must be in devDependencies'
+        );
+        expect(array_key_exists('autoprefixer', $devDeps))->toBeTrue('autoprefixer must be in devDependencies');
+        expect(array_key_exists('cssnano', $devDeps))->toBeTrue('cssnano must be in devDependencies');
+    }
+);
 
 it('npm run lint:js exits 0 on the empty kernel scaffold', function (): void {
     $lockPath = __DIR__ . '/../../../../package-lock.json';

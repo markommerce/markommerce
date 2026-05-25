@@ -85,6 +85,7 @@ class Renderer implements RendererInterface
             $rootData = ['_slots' => array_map(fn () => true, $slotHtml)];
             $html = $this->view->renderToString($tree->template, $rootData);
             $html = $this->inlineSlots($html, $slotHtml);
+
             return $html;
         }
 
@@ -228,6 +229,7 @@ class Renderer implements RendererInterface
         foreach ($slotContent as $place) {
             $html .= $this->renderPlace($place, $context, $memoized);
         }
+
         return $html;
     }
 
@@ -363,6 +365,7 @@ class Renderer implements RendererInterface
             foreach ($place->props as $key => $source) {
                 $data[$key] = $resolver->resolve($source, $context);
             }
+
             return $data;
         }
 
@@ -380,7 +383,10 @@ class Renderer implements RendererInterface
      *
      * @param array<string, string> $slotHtml
      */
-    private function inlineSlots(string $html, array $slotHtml): string
+    private function inlineSlots(
+        string $html,
+        array $slotHtml,
+    ): string
     {
         foreach ($slotHtml as $slotName => $content) {
             $html = preg_replace(

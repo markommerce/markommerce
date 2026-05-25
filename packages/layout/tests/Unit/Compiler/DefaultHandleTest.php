@@ -2,19 +2,17 @@
 
 declare(strict_types=1);
 
-use Markommerce\Layout\Compiler\ResolvedLayout;
-use Markommerce\Layout\Compiler\ResolvedPlace;
 use Markommerce\Layout\Compiler\ResolutionPhase;
+use Markommerce\Layout\Contracts\LayoutDefinition;
 use Markommerce\Layout\Discovery\DiscoveredExtension;
 use Markommerce\Layout\Discovery\DiscoveredLayout;
 use Markommerce\Layout\Discovery\DiscoveryResult;
-use Markommerce\Layout\Exception\DefaultHandleConflictException;
-use Markommerce\Layout\Exception\DuplicateContextTokenException;
+use Markommerce\Layout\Exceptions\DefaultHandleConflictException;
+use Markommerce\Layout\Exceptions\DuplicateContextTokenException;
 use Markommerce\Layout\Layout;
 use Markommerce\Layout\LayoutExtension;
 use Markommerce\Layout\Operation\Append;
 use Markommerce\Layout\Operation\Remove;
-use Markommerce\Layout\Operation\Replace;
 use Markommerce\Layout\Place;
 use Markommerce\Layout\Provide;
 use Markommerce\Layout\ProvideHandle;
@@ -26,13 +24,14 @@ use Markommerce\Layout\ProvideHandle;
 function makeDefaultDiscoveryResult(array $layouts, array $extensions = []): DiscoveryResult
 {
     $discoveredLayouts = array_map(
-        fn(Layout $layout) => new DiscoveredLayout($layout, 'fake://file.php'),
+        fn (Layout $layout) => new DiscoveredLayout($layout, 'fake://file.php'),
         $layouts,
     );
     $discoveredExtensions = array_map(
-        fn(LayoutExtension $ext) => new DiscoveredExtension($ext, 'fake://ext.php'),
+        fn (LayoutExtension $ext) => new DiscoveredExtension($ext, 'fake://ext.php'),
         $extensions,
     );
+
     return new DiscoveryResult(
         layouts: array_values($discoveredLayouts),
         extensions: array_values($discoveredExtensions),
@@ -121,62 +120,68 @@ it('applies default operations across every other handle in the final pass', fun
         ->and($result['page.list']->slots['main'][2]->component)->toBe('DefaultFooter');
 });
 
-it('allows a sibling\'s own operations to Remove a placement contributed by default (Half A merges placements first)', function (): void {
-    $defaultLayout = new Layout(
-        handle: 'default',
-        extends: null,
-        context: [],
-        slots: ['main' => [new Place('DefaultHeader', 'default-header', [], [])]],
-    );
-    $pageLayout = new Layout(
-        handle: 'page.override',
-        extends: null,
-        context: [],
-        slots: ['main' => [new Place('OwnContent', 'own-content', [], [])]],
-        operations: [new Remove('default-header')],
-    );
-
-    $result = (new ResolutionPhase())->resolve(
-        makeDefaultDiscoveryResult([$defaultLayout, $pageLayout]),
-    );
-
-    // The sibling removes the default-provided 'default-header'
+it(
+    'allows a sibling\'s own operations to Remove a placement contributed by default (Half A merges placements first)',
+    function (): void {
+        $defaultLayout = new Layout(
+            handle: 'default',
+            extends: null,
+            context: [],
+            slots: ['main' => [new Place('DefaultHeader', 'default-header', [], [])]],
+        );
+        $pageLayout = new Layout(
+            handle: 'page.override',
+            extends: null,
+            context: [],
+            slots: ['main' => [new Place('OwnContent', 'own-content', [], [])]],
+            operations: [new Remove('default-header')],
+        );
+    
+        $result = (new ResolutionPhase())->resolve(
+            makeDefaultDiscoveryResult([$defaultLayout, $pageLayout]),
+        );
+    
+        // The sibling removes the default-provided 'default-header'
     expect($result['page.override']->slots['main'])->toHaveCount(1)
-        ->and($result['page.override']->slots['main'][0]->component)->toBe('OwnContent');
-});
+            ->and($result['page.override']->slots['main'][0]->component)->toBe('OwnContent');
+    }
+);
 
-it('applies default operations only once even when a handle inherits from another handle (no double-merge via inherits)', function (): void {
-    $defaultLayout = new Layout(
-        handle: 'default',
-        extends: null,
-        context: [],
-        slots: ['main' => [new Place('DefaultHeader', 'default-header', [], [])]],
-    );
-    $parentLayout = new Layout(
-        handle: 'parent.handle',
-        extends: null,
-        context: [],
-        slots: ['main' => [new Place('ParentContent', 'parent-content', [], [])]],
-    );
-    $childLayout = new Layout(
-        handle: 'child.handle',
-        extends: null,
-        inherits: 'parent.handle',
-        context: [],
-        slots: ['main' => [new Place('ChildContent', 'child-content', [], [])]],
-    );
-
-    $result = (new ResolutionPhase())->resolve(
-        makeDefaultDiscoveryResult([$defaultLayout, $parentLayout, $childLayout]),
-    );
-
-    // child.handle should have: [default-header, parent-content, child-content]
+it(
+    'applies default operations only once even when a handle inherits from another handle (no double-merge via inherits)',
+    function (): void {
+        $defaultLayout = new Layout(
+            handle: 'default',
+            extends: null,
+            context: [],
+            slots: ['main' => [new Place('DefaultHeader', 'default-header', [], [])]],
+        );
+        $parentLayout = new Layout(
+            handle: 'parent.handle',
+            extends: null,
+            context: [],
+            slots: ['main' => [new Place('ParentContent', 'parent-content', [], [])]],
+        );
+        $childLayout = new Layout(
+            handle: 'child.handle',
+            extends: null,
+            inherits: 'parent.handle',
+            context: [],
+            slots: ['main' => [new Place('ChildContent', 'child-content', [], [])]],
+        );
+    
+        $result = (new ResolutionPhase())->resolve(
+            makeDefaultDiscoveryResult([$defaultLayout, $parentLayout, $childLayout]),
+        );
+    
+        // child.handle should have: [default-header, parent-content, child-content]
     // NOT: [default-header, default-header, parent-content, child-content] (double-merge)
     expect($result['child.handle']->slots['main'])->toHaveCount(3)
-        ->and($result['child.handle']->slots['main'][0]->component)->toBe('DefaultHeader')
-        ->and($result['child.handle']->slots['main'][1]->component)->toBe('ParentContent')
-        ->and($result['child.handle']->slots['main'][2]->component)->toBe('ChildContent');
-});
+            ->and($result['child.handle']->slots['main'][0]->component)->toBe('DefaultHeader')
+            ->and($result['child.handle']->slots['main'][1]->component)->toBe('ParentContent')
+            ->and($result['child.handle']->slots['main'][2]->component)->toBe('ChildContent');
+    }
+);
 
 it('omits the default key from the final runtime artifact', function (): void {
     $defaultLayout = new Layout(
@@ -205,12 +210,12 @@ it('throws DefaultHandleConflictException when default declares extends', functi
     // or define our own here.
     $defaultLayout = new Layout(
         handle: 'default',
-        extends: \Markommerce\Layout\Contracts\LayoutDefinition::class,
+        extends: LayoutDefinition::class,
         context: [],
         slots: [],
     );
 
-    expect(fn() => (new ResolutionPhase())->resolve(
+    expect(fn () => (new ResolutionPhase())->resolve(
         makeDefaultDiscoveryResult([$defaultLayout]),
     ))->toThrow(DefaultHandleConflictException::class);
 });
@@ -230,7 +235,7 @@ it('throws DefaultHandleConflictException when default declares inherits', funct
         slots: [],
     );
 
-    expect(fn() => (new ResolutionPhase())->resolve(
+    expect(fn () => (new ResolutionPhase())->resolve(
         makeDefaultDiscoveryResult([$parentLayout, $defaultLayout]),
     ))->toThrow(DefaultHandleConflictException::class);
 });
@@ -244,28 +249,31 @@ it('throws DefaultHandleConflictException when default declares handleProviders'
         handleProviders: [new ProvideHandle('SomeProvider', [])],
     );
 
-    expect(fn() => (new ResolutionPhase())->resolve(
+    expect(fn () => (new ResolutionPhase())->resolve(
         makeDefaultDiscoveryResult([$defaultLayout]),
     ))->toThrow(DefaultHandleConflictException::class);
 });
 
-it('throws DuplicateContextTokenException when default and a sibling declare the same context token', function (): void {
-    $sharedProvide = new Provide('SharedToken', 'SomeProvider', []);
-
-    $defaultLayout = new Layout(
-        handle: 'default',
-        extends: null,
-        context: [$sharedProvide],
-        slots: [],
-    );
-    $pageLayout = new Layout(
-        handle: 'page.conflict',
-        extends: null,
-        context: [$sharedProvide],
-        slots: [],
-    );
-
-    expect(fn() => (new ResolutionPhase())->resolve(
-        makeDefaultDiscoveryResult([$defaultLayout, $pageLayout]),
-    ))->toThrow(DuplicateContextTokenException::class);
-});
+it(
+    'throws DuplicateContextTokenException when default and a sibling declare the same context token',
+    function (): void {
+        $sharedProvide = new Provide('SharedToken', 'SomeProvider', []);
+    
+        $defaultLayout = new Layout(
+            handle: 'default',
+            extends: null,
+            context: [$sharedProvide],
+            slots: [],
+        );
+        $pageLayout = new Layout(
+            handle: 'page.conflict',
+            extends: null,
+            context: [$sharedProvide],
+            slots: [],
+        );
+    
+        expect(fn () => (new ResolutionPhase())->resolve(
+            makeDefaultDiscoveryResult([$defaultLayout, $pageLayout]),
+        ))->toThrow(DuplicateContextTokenException::class);
+    }
+);

@@ -18,8 +18,7 @@ class RequestConfigCache implements ConfigCacheInterface
     public function get(
         string $cacheKey,
         Closure $loader,
-    ): mixed
-    {
+    ): mixed {
         if (array_key_exists($cacheKey, $this->store)) {
             return $this->store[$cacheKey];
         }

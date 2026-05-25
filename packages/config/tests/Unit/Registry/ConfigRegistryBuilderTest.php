@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use Markommerce\Config\Registry\ConfigRegistry;
-use Markommerce\Config\Registry\ConfigRegistryBuilder;
-use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
 use Markommerce\Config\Attributes\Config;
 use Markommerce\Config\Exceptions\AxisNotDeclaredException;
 use Markommerce\Config\Exceptions\ConfigKeyConflictException;
 use Markommerce\Config\Exceptions\ConfigNotFoundException;
 use Markommerce\Config\Exceptions\InvalidConfigClassException;
+use Markommerce\Config\Registry\ConfigRegistry;
+use Markommerce\Config\Registry\ConfigRegistryBuilder;
+use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
 use Markommerce\Config\ValueObjects\ConfigDefinition;
 use Markommerce\Scope\Attributes\Scoped;
 
@@ -194,19 +194,25 @@ it('throws InvalidConfigClassException when a #[Config] property has a union or 
         ->toThrow(InvalidConfigClassException::class);
 });
 
-it('throws InvalidConfigClassException when a #[Config] property is non-nullable and has no default value', function (): void {
-    $builder = new ConfigRegistryBuilder();
+it(
+    'throws InvalidConfigClassException when a #[Config] property is non-nullable and has no default value',
+    function (): void {
+        $builder = new ConfigRegistryBuilder();
+    
+        expect(fn () => $builder->build([NonNullableNoDefaultConfig::class], new FakeScopeRegistry()))
+            ->toThrow(InvalidConfigClassException::class);
+    }
+);
 
-    expect(fn () => $builder->build([NonNullableNoDefaultConfig::class], new FakeScopeRegistry()))
-        ->toThrow(InvalidConfigClassException::class);
-});
-
-it('throws InvalidConfigClassException when the config class declares a constructor with at least one required parameter', function (): void {
-    $builder = new ConfigRegistryBuilder();
-
-    expect(fn () => $builder->build([RequiredConstructorConfig::class], new FakeScopeRegistry()))
-        ->toThrow(InvalidConfigClassException::class);
-});
+it(
+    'throws InvalidConfigClassException when the config class declares a constructor with at least one required parameter',
+    function (): void {
+        $builder = new ConfigRegistryBuilder();
+    
+        expect(fn () => $builder->build([RequiredConstructorConfig::class], new FakeScopeRegistry()))
+            ->toThrow(InvalidConfigClassException::class);
+    }
+);
 
 it('accepts a config class whose constructor has only optional/defaulted parameters', function (): void {
     $builder = new ConfigRegistryBuilder();
@@ -215,13 +221,16 @@ it('accepts a config class whose constructor has only optional/defaulted paramet
     expect($registry)->toBeInstanceOf(ConfigRegistry::class);
 });
 
-it('throws ConfigNotFoundException when registry.definition(class, field) is called for unknown fields', function (): void {
-    $builder = new ConfigRegistryBuilder();
-    $registry = $builder->build([SinglePropConfig::class], new FakeScopeRegistry());
-
-    expect(fn () => $registry->definition(SinglePropConfig::class, 'nonexistent'))
-        ->toThrow(ConfigNotFoundException::class);
-});
+it(
+    'throws ConfigNotFoundException when registry.definition(class, field) is called for unknown fields',
+    function (): void {
+        $builder = new ConfigRegistryBuilder();
+        $registry = $builder->build([SinglePropConfig::class], new FakeScopeRegistry());
+    
+        expect(fn () => $registry->definition(SinglePropConfig::class, 'nonexistent'))
+            ->toThrow(ConfigNotFoundException::class);
+    }
+);
 
 it('returns a definition by string key via registry.byKey(key)', function (): void {
     $builder = new ConfigRegistryBuilder();

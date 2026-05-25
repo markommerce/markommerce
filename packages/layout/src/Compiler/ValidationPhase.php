@@ -4,26 +4,26 @@ declare(strict_types=1);
 
 namespace Markommerce\Layout\Compiler;
 
+use InvalidArgumentException;
 use Markommerce\Layout\Attributes\ProvidesHandles;
-use Markommerce\Layout\Exception\ChainedHandleProviderException;
-use Markommerce\Layout\Exception\DanglingAnchorException;
-use Markommerce\Layout\Exception\DuplicateContextTokenException;
-use Markommerce\Layout\Exception\DuplicateNameException;
-use Markommerce\Layout\Exception\DynamicHandleConflictException;
-use Markommerce\Layout\Exception\LayoutException;
-use Markommerce\Layout\Exception\MissingDataKeyException;
-use Markommerce\Layout\Exception\MissingPropException;
-use Markommerce\Layout\Exception\RepeatTypeMismatchException;
-use Markommerce\Layout\Exception\TypeMismatchException;
-use Markommerce\Layout\Exception\UnknownContextException;
-use Markommerce\Layout\Exception\UnknownIterationException;
+use Markommerce\Layout\Exceptions\ChainedHandleProviderException;
+use Markommerce\Layout\Exceptions\DanglingAnchorException;
+use Markommerce\Layout\Exceptions\DuplicateContextTokenException;
+use Markommerce\Layout\Exceptions\DuplicateNameException;
+use Markommerce\Layout\Exceptions\DynamicHandleConflictException;
+use Markommerce\Layout\Exceptions\LayoutException;
+use Markommerce\Layout\Exceptions\MissingDataKeyException;
+use Markommerce\Layout\Exceptions\MissingPropException;
+use Markommerce\Layout\Exceptions\RepeatTypeMismatchException;
+use Markommerce\Layout\Exceptions\TypeMismatchException;
+use Markommerce\Layout\Exceptions\UnknownContextException;
+use Markommerce\Layout\Exceptions\UnknownIterationException;
 use Markommerce\Layout\Source\ContextSource;
 use Markommerce\Layout\Source\IteratedSource;
 use Markommerce\Layout\Source\ParentDataSource;
-use Markommerce\Layout\Source\RouteSource;
 use Markommerce\Layout\Source\QuerySource;
+use Markommerce\Layout\Source\RouteSource;
 use ReflectionClass;
-use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
@@ -37,18 +37,7 @@ class ValidationPhase
      *
      * @param array<string, ResolvedLayout> $resolvedLayouts
      *
-     * @throws DuplicateNameException
-     * @throws DanglingAnchorException
-     * @throws UnknownContextException
-     * @throws UnknownIterationException
-     * @throws MissingDataKeyException
-     * @throws RepeatTypeMismatchException
-     * @throws TypeMismatchException
-     * @throws MissingPropException
-     * @throws DynamicHandleConflictException
-     * @throws DuplicateContextTokenException
-     * @throws ChainedHandleProviderException
-     * @throws LayoutException
+     * @throws DuplicateNameException|DanglingAnchorException|UnknownContextException|UnknownIterationException|MissingDataKeyException|RepeatTypeMismatchException|TypeMismatchException|MissingPropException|DynamicHandleConflictException|DuplicateContextTokenException|ChainedHandleProviderException|LayoutException
      */
     public function validate(array $resolvedLayouts): void
     {
@@ -60,20 +49,15 @@ class ValidationPhase
     }
 
     /**
-     * @throws DuplicateNameException
-     * @throws DanglingAnchorException
-     * @throws UnknownContextException
-     * @throws UnknownIterationException
-     * @throws MissingDataKeyException
-     * @throws RepeatTypeMismatchException
-     * @throws TypeMismatchException
-     * @throws MissingPropException
-     * @throws LayoutException
+     * @throws DuplicateNameException|DanglingAnchorException|UnknownContextException|UnknownIterationException|MissingDataKeyException|RepeatTypeMismatchException|TypeMismatchException|MissingPropException|LayoutException
      */
-    private function validateLayout(string $handleKey, ResolvedLayout $layout): void
+    private function validateLayout(
+        string $handleKey,
+        ResolvedLayout $layout,
+    ): void
     {
         $seenNames = [];
-        $contextTokens = array_map(fn($p) => $p->token, $layout->context);
+        $contextTokens = array_map(fn ($p) => $p->token, $layout->context);
 
         $this->validateSlots(
             slots: $layout->slots,
@@ -97,14 +81,7 @@ class ValidationPhase
      * @param list<string> $activeIterationTokens
      * @param list<string> $parentChain
      *
-     * @throws DuplicateNameException
-     * @throws UnknownContextException
-     * @throws UnknownIterationException
-     * @throws MissingDataKeyException
-     * @throws RepeatTypeMismatchException
-     * @throws TypeMismatchException
-     * @throws MissingPropException
-     * @throws LayoutException
+     * @throws DuplicateNameException|UnknownContextException|UnknownIterationException|MissingDataKeyException|RepeatTypeMismatchException|TypeMismatchException|MissingPropException|LayoutException
      */
     private function validateSlots(
         array $slots,
@@ -149,14 +126,7 @@ class ValidationPhase
      * @param list<string> $activeIterationTokens
      * @param list<string> $parentChain
      *
-     * @throws DuplicateNameException
-     * @throws UnknownContextException
-     * @throws UnknownIterationException
-     * @throws MissingDataKeyException
-     * @throws RepeatTypeMismatchException
-     * @throws TypeMismatchException
-     * @throws MissingPropException
-     * @throws LayoutException
+     * @throws DuplicateNameException|UnknownContextException|UnknownIterationException|MissingDataKeyException|RepeatTypeMismatchException|TypeMismatchException|MissingPropException|LayoutException
      */
     private function validateRepeatSlot(
         ResolvedRepeatSlot $slot,
@@ -171,7 +141,13 @@ class ValidationPhase
         // Check that parent placement's data DTO has the dataKey property
         if ($parentPlace !== null) {
             $dtoClass = $this->resolveDtoClass($parentPlace->component, $parentChain, $handleKey);
-            $this->checkDtoPropertyExists($dtoClass, $slot->dataKey, $parentPlace->component, $parentChain, $handleKey);
+            $this->checkDtoPropertyExists(
+                $dtoClass,
+                $slot->dataKey,
+                $parentPlace->component,
+                $parentChain,
+                $handleKey
+            );
 
             // Check that the property is typed as a collection of slot->yields
             $this->checkRepeatItemType($dtoClass, $slot->dataKey, $slot->yields, $parentChain, $handleKey);
@@ -199,14 +175,7 @@ class ValidationPhase
      * @param list<string> $activeIterationTokens
      * @param list<string> $parentChain
      *
-     * @throws DuplicateNameException
-     * @throws UnknownContextException
-     * @throws UnknownIterationException
-     * @throws MissingDataKeyException
-     * @throws RepeatTypeMismatchException
-     * @throws TypeMismatchException
-     * @throws MissingPropException
-     * @throws LayoutException
+     * @throws DuplicateNameException|UnknownContextException|UnknownIterationException|MissingDataKeyException|RepeatTypeMismatchException|TypeMismatchException|MissingPropException|LayoutException
      */
     private function validatePlace(
         ResolvedPlace $place,
@@ -222,8 +191,8 @@ class ValidationPhase
         // 1. Validate name format
         if ($place->name !== null) {
             if (!preg_match(self::NAME_PATTERN, $place->name)) {
-                throw new \InvalidArgumentException(
-                    message: "Invalid placement name '{$place->name}'.",
+                throw new InvalidArgumentException(
+                    message: "Invalid placement name '$place->name'.",
                 );
             }
 
@@ -264,12 +233,7 @@ class ValidationPhase
      * @param list<string> $activeIterationTokens
      * @param list<string> $parentChain
      *
-     * @throws UnknownContextException
-     * @throws UnknownIterationException
-     * @throws MissingDataKeyException
-     * @throws TypeMismatchException
-     * @throws MissingPropException
-     * @throws LayoutException
+     * @throws UnknownContextException|UnknownIterationException|MissingDataKeyException|TypeMismatchException|MissingPropException|LayoutException
      */
     private function validateProps(
         ResolvedPlace $place,
@@ -322,7 +286,7 @@ class ValidationPhase
             }
 
             // Type check: source resolved type vs component param type
-            $param = array_find($params, fn($p) => $p->getName() === $propName);
+            $param = array_find($params, fn ($p) => $p->getName() === $propName);
             if ($param !== null) {
                 $this->checkSourceTypeCompatibility($source, $param, $component, $propName, $chain);
             }
@@ -338,13 +302,17 @@ class ValidationPhase
      *
      * @throws TypeMismatchException
      */
-    private function resolveDtoClass(string $component, array $parentChain, string $handleKey): string
+    private function resolveDtoClass(
+        string $component,
+        array $parentChain,
+        string $handleKey,
+    ): string
     {
         if (!class_exists($component)) {
             throw new TypeMismatchException(
                 message: "Component class '$component' not found.",
                 context: $this->chainToString($parentChain, $handleKey),
-                suggestion: "Ensure the component class exists and is autoloaded.",
+                suggestion: 'Ensure the component class exists and is autoloaded.',
             );
         }
 
@@ -353,7 +321,7 @@ class ValidationPhase
             throw new TypeMismatchException(
                 message: "Component '$component' does not have a data() method.",
                 context: $this->chainToString($parentChain, $handleKey),
-                suggestion: "Add a data() method to the component that returns a typed DTO.",
+                suggestion: 'Add a data() method to the component that returns a typed DTO.',
             );
         }
 
@@ -364,12 +332,13 @@ class ValidationPhase
             throw new TypeMismatchException(
                 message: "Component '$component' data() method must return a concrete DTO class, not a built-in or union type.",
                 context: $this->chainToString($parentChain, $handleKey),
-                suggestion: "Change the data() return type to a concrete DTO class.",
+                suggestion: 'Change the data() return type to a concrete DTO class.',
             );
         }
 
         /** @var class-string $dtoClass */
         $dtoClass = $returnType->getName();
+
         return $dtoClass;
     }
 
@@ -387,7 +356,7 @@ class ValidationPhase
     ): void {
         $reflection = new ReflectionClass($dtoClass);
         $properties = $reflection->getProperties(ReflectionProperty::IS_PUBLIC);
-        $hasProperty = array_any($properties, fn($p) => $p->getName() === $key);
+        $hasProperty = array_any($properties, fn ($p) => $p->getName() === $key);
 
         if (!$hasProperty) {
             throw MissingDataKeyException::forKeyWithChain(
@@ -401,8 +370,7 @@ class ValidationPhase
     /**
      * @param list<string> $parentChain
      *
-     * @throws RepeatTypeMismatchException
-     * @throws LayoutException
+     * @throws RepeatTypeMismatchException|LayoutException
      */
     private function checkRepeatItemType(
         string $dtoClass,
@@ -466,7 +434,10 @@ class ValidationPhase
      *
      * @param ReflectionClass<object> $declaringClass
      */
-    private function resolveTypeName(string $typeName, ReflectionClass $declaringClass): string
+    private function resolveTypeName(
+        string $typeName,
+        ReflectionClass $declaringClass,
+    ): string
     {
         // Already fully qualified
         if (str_starts_with($typeName, '\\')) {
@@ -500,6 +471,7 @@ class ValidationPhase
 
         // Fall back to the same namespace
         $ns = $declaringClass->getNamespaceName();
+
         return ($ns !== '' ? $ns . '\\' : '') . $typeName;
     }
 
@@ -580,7 +552,10 @@ class ValidationPhase
     /**
      * Check if $sourceType is assignable to $expectedType.
      */
-    private function isTypeAssignable(string $sourceType, string $expectedType): bool
+    private function isTypeAssignable(
+        string $sourceType,
+        string $expectedType,
+    ): bool
     {
         if ($sourceType === $expectedType) {
             return true;
@@ -603,7 +578,11 @@ class ValidationPhase
      *
      * @throws TypeMismatchException
      */
-    private function getDataParameters(string $component, array $parentChain, string $handleKey): array
+    private function getDataParameters(
+        string $component,
+        array $parentChain,
+        string $handleKey,
+    ): array
     {
         if (!class_exists($component)) {
             return [];
@@ -622,7 +601,7 @@ class ValidationPhase
             throw new TypeMismatchException(
                 message: "Component '$component' data() method must return a concrete DTO class.",
                 context: $this->chainToString($parentChain, $handleKey),
-                suggestion: "Change the data() return type to a concrete DTO class.",
+                suggestion: 'Change the data() return type to a concrete DTO class.',
             );
         }
 
@@ -681,11 +660,15 @@ class ValidationPhase
     /**
      * @param list<string> $chain
      */
-    private function chainToString(array $chain, string $handleKey): string
+    private function chainToString(
+        array $chain,
+        string $handleKey,
+    ): string
     {
         if (empty($chain)) {
             return $handleKey;
         }
+
         return $handleKey . ' → ' . implode(' > ', $chain);
     }
 
@@ -694,9 +677,7 @@ class ValidationPhase
      *
      * @param array<string, ResolvedLayout> $resolvedLayouts
      *
-     * @throws DynamicHandleConflictException
-     * @throws DuplicateContextTokenException
-     * @throws ChainedHandleProviderException
+     * @throws DynamicHandleConflictException|DuplicateContextTokenException|ChainedHandleProviderException
      */
     private function validateCrossHandleConflicts(array $resolvedLayouts): void
     {
@@ -706,7 +687,7 @@ class ValidationPhase
             }
 
             $basePlacementNames = $this->collectResolvedPlacementNames($baseLayout->slots);
-            $baseContextTokens = array_map(fn($p) => $p->token, $baseLayout->context);
+            $baseContextTokens = array_map(fn ($p) => $p->token, $baseLayout->context);
 
             foreach ($baseLayout->handleProviders as $provideHandle) {
                 $providerClass = $provideHandle->provider;
@@ -785,6 +766,7 @@ class ValidationPhase
                 }
             }
         }
+
         return $names;
     }
 
@@ -798,6 +780,7 @@ class ValidationPhase
             $names[] = $place->name;
         }
         $names = array_merge($names, $this->collectResolvedPlacementNames($place->slots));
+
         return $names;
     }
 }

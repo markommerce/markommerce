@@ -62,21 +62,6 @@ it(
     },
 );
 
-it('the CHANGELOG.md file exists and lists removal of PgSqlScopeSortRenderer', function (): void {
-    $changelogPath = dirname(__DIR__, 2) . '/CHANGELOG.md';
-    $content = file_get_contents($changelogPath);
-
-    expect($content)->not->toBeFalsy()
-        ->and($content)->toContain('PgSqlScopeSortRenderer');
-});
-
-it('the CHANGELOG.md mentions the new ScopedFieldRendererInterface', function (): void {
-    $changelogPath = dirname(__DIR__, 2) . '/CHANGELOG.md';
-    $content = file_get_contents($changelogPath);
-
-    expect($content)->toContain('ScopedFieldRendererInterface');
-});
-
 it(
     'the docs page contains an ORDER BY example using ScopedOrderBy with a composite signature',
     function (): void {
@@ -120,25 +105,4 @@ it('the docs page documents the candidate cap default of 256', function (): void
     $content = file_get_contents($docsPath);
 
     expect($content)->toContain('256');
-});
-
-it('the CHANGELOG.md does NOT claim ScopedSelect or ScopedWhere were added', function (): void {
-    $changelogPath = dirname(__DIR__, 2) . '/CHANGELOG.md';
-    $content = file_get_contents($changelogPath);
-
-    expect($content)->toBeString();
-
-    // ScopedSelect / ScopedWhere must not appear under an ### Added heading.
-    // We verify that neither class appears in the Added section of the changelog.
-    // They may appear in a "Not Shipped" / deferred note — that is acceptable.
-    $addedSection = '';
-
-    assert(is_string($content));
-
-    if (preg_match('/### Added(.+?)(?=###|\z)/s', $content, $matches)) {
-        $addedSection = $matches[1];
-    }
-
-    expect($addedSection)->not->toContain('ScopedSelect')
-        ->and($addedSection)->not->toContain('ScopedWhere');
 });

@@ -20,6 +20,7 @@ function buildProxyDefinitions(string $configClass): array
 {
     $builder = new ConfigRegistryBuilder();
     $registry = $builder->build([$configClass], new FakeScopeRegistry());
+
     return $registry->all();
 }
 
@@ -132,22 +133,25 @@ it('throws InvalidConfigClassException when a property has a union type', functi
         ->toThrow(InvalidConfigClassException::class);
 });
 
-it('throws InvalidConfigClassException when the config class declares a constructor with required parameters', function (): void {
-    $generator = new ProxyGenerator();
-
-    $definition = new ConfigDefinition(
-        key: 'proxy/ctor.value',
-        configClass: RequiredConstructorProxyConfig::class,
-        field: 'value',
-        axes: [],
-        type: 'int',
-        defaultValue: 1,
-        secret: false,
-    );
-
-    expect(fn () => $generator->generate(RequiredConstructorProxyConfig::class, [$definition]))
-        ->toThrow(InvalidConfigClassException::class);
-});
+it(
+    'throws InvalidConfigClassException when the config class declares a constructor with required parameters',
+    function (): void {
+        $generator = new ProxyGenerator();
+    
+        $definition = new ConfigDefinition(
+            key: 'proxy/ctor.value',
+            configClass: RequiredConstructorProxyConfig::class,
+            field: 'value',
+            axes: [],
+            type: 'int',
+            defaultValue: 1,
+            secret: false,
+        );
+    
+        expect(fn () => $generator->generate(RequiredConstructorProxyConfig::class, [$definition]))
+            ->toThrow(InvalidConfigClassException::class);
+    }
+);
 
 it('emits enum-typed property hooks using a leading-backslash FQN for the enum type', function (): void {
     $generator = new ProxyGenerator();
@@ -158,24 +162,27 @@ it('emits enum-typed property hooks using a leading-backslash FQN for the enum t
     expect($source)->toContain('\\' . Color::class);
 });
 
-it('produces source that PHP can parse and require (require + class_exists assertion in a unique-class-per-test fixture)', function (): void {
-    $generator = new ProxyGenerator();
-    $writer = new ProxyWriter();
-    $definitions = buildProxyDefinitions(SinglePropConfig::class);
-
-    $source = $generator->generate(SinglePropConfig::class, $definitions);
-
-    // Verify the source is valid PHP using token_get_all which raises ParseError on invalid syntax
+it(
+    'produces source that PHP can parse and require (require + class_exists assertion in a unique-class-per-test fixture)',
+    function (): void {
+        $generator = new ProxyGenerator();
+        $writer = new ProxyWriter();
+        $definitions = buildProxyDefinitions(SinglePropConfig::class);
+    
+        $source = $generator->generate(SinglePropConfig::class, $definitions);
+    
+        // Verify the source is valid PHP using token_get_all which raises ParseError on invalid syntax
     $tokens = token_get_all($source, TOKEN_PARSE);
-    expect($tokens)->not->toBeEmpty();
-
-    // Write and include to confirm class can be loaded
+        expect($tokens)->not->toBeEmpty();
+    
+        // Write and include to confirm class can be loaded
     $generatedFqn = 'Markommerce\\Config\\Generated\\Markommerce\\Config\\Tests\\Fixtures\\Proxy\\SinglePropConfig_Resolved_Parse';
-    $source2 = str_replace('SinglePropConfig_Resolved', 'SinglePropConfig_Resolved_Parse', $source);
-    $targetDir = sys_get_temp_dir() . '/proxy-parse-' . uniqid();
-    $path = $writer->write($generatedFqn, $source2, $targetDir);
-
-    require $path;
-
-    expect(class_exists($generatedFqn))->toBeTrue();
-});
+        $source2 = str_replace('SinglePropConfig_Resolved', 'SinglePropConfig_Resolved_Parse', $source);
+        $targetDir = sys_get_temp_dir() . '/proxy-parse-' . uniqid();
+        $path = $writer->write($generatedFqn, $source2, $targetDir);
+    
+        require $path;
+    
+        expect(class_exists($generatedFqn))->toBeTrue();
+    }
+);

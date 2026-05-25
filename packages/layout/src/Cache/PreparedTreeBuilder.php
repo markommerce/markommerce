@@ -8,8 +8,8 @@ use Markommerce\Layout\Compiler\ResolvedLayout;
 use Markommerce\Layout\Compiler\ResolvedPlace;
 use Markommerce\Layout\Compiler\ResolvedRepeatSlot;
 use Markommerce\Layout\Contracts\HandleProvider;
-use Markommerce\Layout\Exception\InvalidLayoutFileException;
-use Markommerce\Layout\Exception\InvalidSourceTypeException;
+use Markommerce\Layout\Exceptions\InvalidLayoutFileException;
+use Markommerce\Layout\Exceptions\InvalidSourceTypeException;
 use Markommerce\Layout\ProvideHandle;
 use Markommerce\Layout\Source\IteratedSource;
 use Markommerce\Layout\Source\ParentDataSource;
@@ -17,8 +17,7 @@ use Markommerce\Layout\Source\ParentDataSource;
 class PreparedTreeBuilder
 {
     /**
-     * @throws InvalidLayoutFileException
-     * @throws InvalidSourceTypeException
+     * @throws InvalidLayoutFileException|InvalidSourceTypeException
      */
     public function build(ResolvedLayout $resolvedLayout): PreparedTree
     {
@@ -38,8 +37,7 @@ class PreparedTreeBuilder
     }
 
     /**
-     * @throws InvalidLayoutFileException
-     * @throws InvalidSourceTypeException
+     * @throws InvalidLayoutFileException|InvalidSourceTypeException
      */
     private function validateHandleProviders(ResolvedLayout $resolvedLayout): void
     {
@@ -52,7 +50,10 @@ class PreparedTreeBuilder
     /**
      * @throws InvalidLayoutFileException
      */
-    private function validateProviderClass(string $handleKey, ProvideHandle $provideHandle): void
+    private function validateProviderClass(
+        string $handleKey,
+        ProvideHandle $provideHandle,
+    ): void
     {
         $exists = class_exists($provideHandle->provider) || interface_exists($provideHandle->provider);
 
@@ -64,7 +65,10 @@ class PreparedTreeBuilder
     /**
      * @throws InvalidSourceTypeException
      */
-    private function validateProviderProps(string $handleKey, ProvideHandle $provideHandle): void
+    private function validateProviderProps(
+        string $handleKey,
+        ProvideHandle $provideHandle,
+    ): void
     {
         foreach ($provideHandle->props as $propKey => $source) {
             if ($source instanceof ParentDataSource || $source instanceof IteratedSource) {
@@ -98,6 +102,7 @@ class PreparedTreeBuilder
                 }
             }
         }
+
         return $names;
     }
 
@@ -111,6 +116,7 @@ class PreparedTreeBuilder
             $names[] = $place->name;
         }
         $names = array_merge($names, $this->collectPlacementNames($place->slots));
+
         return $names;
     }
 
@@ -133,6 +139,7 @@ class PreparedTreeBuilder
                 $prepared[$key] = array_map([$this, 'buildPlace'], $value);
             }
         }
+
         return $prepared;
     }
 

@@ -24,6 +24,7 @@ use Markommerce\Layout\Source\ParentDataSource;
 use Markommerce\Layout\Source\QuerySource;
 use Markommerce\Layout\Source\RouteSource;
 use Markommerce\Layout\Source\ServiceSource;
+use RuntimeException;
 
 /**
  * Custom code emitter that walks a PreparedTree and emits literal
@@ -46,19 +47,21 @@ class PhpCodeEmitter
             $lines[] = '    ' . $this->emitString($key) . ' => ' . $this->emitPreparedTree($tree) . ',';
         }
         $lines[] = '];';
+
         return implode("\n", $lines) . "\n";
     }
 
     private function emitPreparedTree(PreparedTree $tree): string
     {
         $slotsCode = $this->emitSlots($tree->slots);
-        $contextCode = $this->emitList($tree->context, fn($item) => $this->emitProvide($item));
+        $contextCode = $this->emitList($tree->context, fn ($item) => $this->emitProvide($item));
         $handleProvidersCode = $this->emitList(
             $tree->handleProviders,
-            fn($item) => $this->emitProvideHandle($item),
+            fn ($item) => $this->emitProvideHandle($item),
         );
         $placementNamesCode = $this->emitStringList($tree->placementNames);
-        $operationsCode = $this->emitList($tree->operations, fn($op) => $this->emitOperation($op));
+        $operationsCode = $this->emitList($tree->operations, fn ($op) => $this->emitOperation($op));
+
         return sprintf(
             'new \%s(' . "\n" .
             '        handleKey: %s,' . "\n" .
@@ -136,8 +139,11 @@ class PhpCodeEmitter
                 $this->emitString($op->name),
                 $this->emitPlace($op->placement),
             ),
-            default => throw new \RuntimeException(
-                sprintf('PhpCodeEmitter: unsupported operation type "%s". Register it in emitOperation().', $op::class),
+            default => throw new RuntimeException(
+                sprintf(
+                    'PhpCodeEmitter: unsupported operation type "%s". Register it in emitOperation().',
+                    $op::class
+                ),
             ),
         };
     }
@@ -172,7 +178,7 @@ class PhpCodeEmitter
         $parts = [];
         foreach ($slots as $key => $value) {
             if ($value instanceof Slot) {
-                $childrenCode = $this->emitList($value->children, fn($c) => $this->emitPlace($c));
+                $childrenCode = $this->emitList($value->children, fn ($c) => $this->emitPlace($c));
                 $slotCode = sprintf(
                     '\%s::repeat(%s, %s, %s, %s)',
                     Slot::class,
@@ -187,6 +193,7 @@ class PhpCodeEmitter
                 $parts[] = $this->emitString($key) . ' => [' . implode(', ', $children) . ']';
             }
         }
+
         return '[' . implode(', ', $parts) . ']';
     }
 
@@ -208,6 +215,7 @@ class PhpCodeEmitter
         $slotsCode = $this->emitSlots($place->slots);
         $propsCode = $this->emitProps($place->props);
         $decoratorsCode = $this->emitStringList($place->decorators);
+
         return sprintf(
             'new \%s(' . "\n" .
             '            component: %s,' . "\n" .
@@ -231,8 +239,9 @@ class PhpCodeEmitter
     {
         $childrenCode = $this->emitList(
             $slot->children,
-            fn($child) => $this->emitPreparedPlace($child),
+            fn ($child) => $this->emitPreparedPlace($child),
         );
+
         return sprintf(
             'new \%s(' . "\n" .
             '            dataKey: %s,' . "\n" .
@@ -302,7 +311,7 @@ class PhpCodeEmitter
                 ServiceSource::class,
                 $this->emitString($source->class),
             ),
-            default => throw new \RuntimeException(
+            default => throw new RuntimeException(
                 sprintf(
                     'PhpCodeEmitter: unsupported source type "%s". Register it in the emitter.',
                     $source::class,
@@ -328,6 +337,7 @@ class PhpCodeEmitter
                 $parts[] = $this->emitString($key) . ' => [' . implode(', ', $children) . ']';
             }
         }
+
         return '[' . implode(', ', $parts) . ']';
     }
 
@@ -343,6 +353,7 @@ class PhpCodeEmitter
         foreach ($props as $key => $value) {
             $parts[] = $this->emitString($key) . ' => ' . $this->emitValue($value);
         }
+
         return '[' . implode(', ', $parts) . ']';
     }
 
@@ -354,6 +365,7 @@ class PhpCodeEmitter
         if ($list === []) {
             return '[]';
         }
+
         return '[' . implode(', ', array_map([$this, 'emitString'], $list)) . ']';
     }
 
@@ -362,11 +374,15 @@ class PhpCodeEmitter
      * @param list<T> $list
      * @param callable(T): string $emitter
      */
-    private function emitList(array $list, callable $emitter): string
+    private function emitList(
+        array $list,
+        callable $emitter,
+    ): string
     {
         if ($list === []) {
             return '[]';
         }
+
         return '[' . implode(', ', array_map($emitter, $list)) . ']';
     }
 
@@ -375,6 +391,7 @@ class PhpCodeEmitter
         if (is_object($value)) {
             return $this->emitSource($value);
         }
+
         return $this->emitScalar($value);
     }
 
@@ -395,7 +412,7 @@ class PhpCodeEmitter
         if (is_array($value)) {
             return $this->emitProps($value);
         }
-        throw new \RuntimeException(
+        throw new RuntimeException(
             sprintf('PhpCodeEmitter: unsupported scalar type "%s".', gettype($value)),
         );
     }
@@ -410,6 +427,7 @@ class PhpCodeEmitter
         if ($value === null) {
             return 'null';
         }
+
         return $this->emitString($value);
     }
 }

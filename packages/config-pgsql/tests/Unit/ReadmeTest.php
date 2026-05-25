@@ -19,11 +19,14 @@ it('shows the installation steps including running the table migration', functio
         ->and($content)->toContain('db:migrate');
 });
 
-it('documents required environment variables (DB connection + MARKOMMERCE_CONFIG_SECRET_KEY if secrets used)', function (): void {
-    $content = file_get_contents(__DIR__ . '/../../README.md');
-    expect($content)->toContain('DB_')
-        ->and($content)->toContain('MARKOMMERCE_CONFIG_SECRET_KEY');
-});
+it(
+    'documents required environment variables (DB connection + MARKOMMERCE_CONFIG_SECRET_KEY if secrets used)',
+    function (): void {
+        $content = file_get_contents(__DIR__ . '/../../README.md');
+        expect($content)->toContain('DB_')
+            ->and($content)->toContain('MARKOMMERCE_CONFIG_SECRET_KEY');
+    }
+);
 
 it('links to the interface package README and the docs site for usage', function (): void {
     $content = file_get_contents(__DIR__ . '/../../README.md');

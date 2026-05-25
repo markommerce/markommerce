@@ -20,8 +20,7 @@ class PreferenceAwareScanner
      * @param list<class-string> $configClasses
      * @return list<class-string>
      *
-     * @throws InvalidConfigClassException When a preferred class is not a subclass of the original
-     * @throws PreferenceConflictException When a circular preference chain is detected
+     * @throws InvalidConfigClassException|PreferenceConflictException
      */
     public function expand(array $configClasses): array
     {
