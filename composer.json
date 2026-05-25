@@ -16,6 +16,8 @@
     "require": {
         "php": "^8.5",
         "markommerce/catalog": "self.version",
+        "markommerce/config": "self.version",
+        "markommerce/config-pgsql": "self.version",
         "markommerce/core": "self.version",
         "markommerce/frontend": "self.version",
         "markommerce/layout": "self.version",
@@ -26,6 +28,7 @@
     "autoload-dev": {
         "psr-4": {
             "Markommerce\\Catalog\\Tests\\": "packages/catalog/tests/",
+            "Markommerce\\Config\\Tests\\": "packages/config/tests/",
             "Markommerce\\Layout\\Tests\\": "packages/layout/tests/"
         }
     },
