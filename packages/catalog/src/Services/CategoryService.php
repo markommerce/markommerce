@@ -17,8 +17,7 @@ class CategoryService
     ) {}
 
     /**
-     * @throws CategoryNotFoundException
-     * @throws CategoryHasPlacementsException
+     * @throws CategoryNotFoundException|CategoryHasPlacementsException
      */
     public function delete(int $categoryId): void
     {

@@ -92,7 +92,7 @@ it('returns a new data object with the extension when withExtension is called', 
     expect($augmented)->toBeInstanceOf(EDT_ConcreteProductCardData::class)
         ->and($augmented)->not->toBe($data)
         ->and($augmented->extensions->get(EDT_ReviewStarsExtension::class))->toBeInstanceOf(
-            EDT_ReviewStarsExtension::class
+            EDT_ReviewStarsExtension::class,
         )
         ->and($augmented->extensions->get(EDT_ReviewStarsExtension::class)->stars)->toBe(4.5);
 });

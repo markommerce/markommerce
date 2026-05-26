@@ -225,8 +225,7 @@ class ResolutionPhase
     private function prependDefaultSlots(
         array $defaultSlots,
         array $siblingSlots,
-    ): array
-    {
+    ): array {
         $merged = $siblingSlots;
         foreach ($defaultSlots as $slotName => $defaultEntries) {
             if (isset($merged[$slotName]) && is_array($defaultEntries) && is_array($merged[$slotName])) {
@@ -255,15 +254,14 @@ class ResolutionPhase
         array $defaultContext,
         array $siblingContext,
         string $siblingHandleKey,
-    ): array
-    {
+    ): array {
         $defaultTokens = array_map(fn (Provide $p) => $p->token, $defaultContext);
         foreach ($siblingContext as $provide) {
             if (in_array($provide->token, $defaultTokens, true)) {
                 throw DuplicateContextTokenException::forToken(
                     $provide->token,
                     self::HANDLE_DEFAULT,
-                    $siblingHandleKey
+                    $siblingHandleKey,
                 );
             }
         }
@@ -575,8 +573,7 @@ class ResolutionPhase
     private function applyExtensions(
         array $slots,
         array $extensions,
-    ): array
-    {
+    ): array {
         if (empty($extensions)) {
             return $slots;
         }
@@ -619,8 +616,7 @@ class ResolutionPhase
     private function checkConflicts(
         array $group,
         int $priority,
-    ): void
-    {
+    ): void {
         // Collect all anchor-targeting operations across this priority group.
         // Conflict = two operations targeting the same anchor name with incompatible operations.
         $anchorOps = [];
@@ -678,8 +674,7 @@ class ResolutionPhase
         array $slots,
         object $operation,
         string $sourceFile,
-    ): array
-    {
+    ): array {
         return match (true) {
             $operation instanceof InsertAfter => $this->applyInsertAfter($slots, $operation, $sourceFile),
             $operation instanceof InsertBefore => $this->applyInsertBefore($slots, $operation, $sourceFile),
@@ -705,8 +700,7 @@ class ResolutionPhase
         array $slots,
         InsertAfter $op,
         string $sourceFile,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             $new = [];
@@ -739,8 +733,7 @@ class ResolutionPhase
         array $slots,
         InsertBefore $op,
         string $sourceFile,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             $new = [];
@@ -773,8 +766,7 @@ class ResolutionPhase
         array $slots,
         Append $op,
         string $sourceFile,
-    ): array
-    {
+    ): array {
         if (!isset($slots[$op->slotPath])) {
             throw DanglingAnchorException::forAnchor($op->slotPath, $sourceFile);
         }
@@ -801,8 +793,7 @@ class ResolutionPhase
         array $slots,
         Prepend $op,
         string $sourceFile,
-    ): array
-    {
+    ): array {
         if (!isset($slots[$op->slotPath])) {
             throw DanglingAnchorException::forAnchor($op->slotPath, $sourceFile);
         }
@@ -828,8 +819,7 @@ class ResolutionPhase
         array $slots,
         Remove $op,
         string $sourceFile,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             $new = [];
@@ -862,8 +852,7 @@ class ResolutionPhase
         array $slots,
         Replace $op,
         string $sourceFile,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             $new = [];
@@ -897,8 +886,7 @@ class ResolutionPhase
         array $slots,
         MergeProps $op,
         string $sourceFile,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             return array_map(function (ResolvedPlace $place) use ($op, &$found): ResolvedPlace {
@@ -937,8 +925,7 @@ class ResolutionPhase
         array $slots,
         ReplaceProps $op,
         string $sourceFile,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             return array_map(function (ResolvedPlace $place) use ($op, &$found): ResolvedPlace {
@@ -977,8 +964,7 @@ class ResolutionPhase
         array $slots,
         WrapWith $op,
         string $sourceFile,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             return array_map(function (ResolvedPlace $place) use ($op, &$found): ResolvedPlace {
@@ -1017,8 +1003,7 @@ class ResolutionPhase
     private function mapPlacements(
         array $slots,
         callable $callback,
-    ): array
-    {
+    ): array {
         $result = [];
         foreach ($slots as $slotName => $value) {
             if ($value instanceof ResolvedRepeatSlot) {
@@ -1047,8 +1032,7 @@ class ResolutionPhase
     private function mapPlacementsInPlace(
         ResolvedPlace $place,
         callable $callback,
-    ): ResolvedPlace
-    {
+    ): ResolvedPlace {
         return new ResolvedPlace(
             component: $place->component,
             name: $place->name,

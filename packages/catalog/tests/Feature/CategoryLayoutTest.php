@@ -41,6 +41,7 @@ use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
 use Markommerce\Layout\Runtime\Renderer;
 use Markommerce\Layout\Slot;
 use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Registry\PhpScopeRegistry;
 use Markommerce\Scope\Resolution\ScopeWalker;
@@ -67,7 +68,7 @@ function catalogLayoutBuildScopeResolver(): ScopeResolver
     $registry = new PhpScopeRegistry($config);
 
     $context = new ScopeContext($registry);
-    $metadataFactory = new ScopeMetadataFactory($registry);
+    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $enumerator = new SignatureCandidateEnumerator($registry);
     $walker = new ScopeWalker($enumerator);
     $validator = new ScopeSignatureValidator($registry);
@@ -129,16 +130,14 @@ class CatalogLayoutFakeView implements ViewInterface
     public function render(
         string $template,
         array $data = [],
-    ): Response
-    {
+    ): Response {
         return Response::html($this->renderToString($template, $data));
     }
 
     public function renderToString(
         string $template,
         array $data = [],
-    ): string
-    {
+    ): string {
         $slots = '';
         if (isset($data['_slots']) && is_array($data['_slots'])) {
             foreach (array_keys($data['_slots']) as $slotName) {
@@ -161,8 +160,7 @@ class CatalogLayoutFakeContainer implements ContainerInterface
     public function bind(
         string $class,
         object $instance,
-    ): void
-    {
+    ): void {
         $this->bindings[$class] = $instance;
     }
 
@@ -187,8 +185,7 @@ class CatalogLayoutFakeContainer implements ContainerInterface
     public function instance(
         string $id,
         object $instance,
-    ): void
-    {
+    ): void {
         $this->bindings[$id] = $instance;
     }
 
@@ -259,7 +256,7 @@ it('returns a typed ProductGridData DTO from the grid component data method', fu
     $config = new ConfigRepository(['scope' => $rawConfig]);
     $registry = new PhpScopeRegistry($config);
     $context = new ScopeContext($registry);
-    $metadataFactory = new ScopeMetadataFactory($registry);
+    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $enumerator = new SignatureCandidateEnumerator($registry);
     $walker = new ScopeWalker($enumerator);
     $validator = new ScopeSignatureValidator($registry);

@@ -163,7 +163,7 @@ it('writes an artifact file that returns an array of PreparedTrees', function ()
         ->and($loaded['App\Controller\FooController::show']->handleKey)->toBe('App\Controller\FooController::show')
         ->and($loaded['App\Controller\FooController::show']->template)->toBe('theme-blank::layout/1column')
         ->and($loaded['App\Controller\FooController::show']->slots['content'][0])->toBeInstanceOf(
-            PreparedPlace::class
+            PreparedPlace::class,
         );
 
     @unlink($path);

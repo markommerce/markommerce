@@ -10,8 +10,7 @@ class DynamicHandleConflictException extends LayoutException
         string $placementName,
         string $baseHandle,
         string $dynamicHandle,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Placement name '$placementName' is declared in both '$baseHandle' and dynamic handle '$dynamicHandle'.",
             context: "Merging dynamic handle '$dynamicHandle' into '$baseHandle' — placement name '$placementName' already exists in the base tree.",

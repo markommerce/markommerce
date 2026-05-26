@@ -161,43 +161,43 @@ it(
         $registry = $builder->build([ResolverIntConfig::class], $fakeScopeRegistry);
         $storage = new InMemoryConfigStorage();
         $context = makeScopeContext();
-    
+
         // Seed storage with a global value and no overrides
-    $storage->compareAndSave('resolver/test.intValue', new ConfigRow(
+        $storage->compareAndSave('resolver/test.intValue', new ConfigRow(
             key: 'resolver/test.intValue',
             value: 42,
             overrides: [],
             version: 0,
         ), 0);
-    
+
         $resolver = makeConfigResolver($registry, $storage, $context);
-    
+
         $result = $resolver->resolved(ResolverIntConfig::class, 'intValue');
-    
+
         expect($result)->toBe(42);
-    }
+    },
 );
 
 it(
     'returns the override value when a matching signature exists in the row for the current ScopeContext',
     function (): void {
         // Use a scope registry with a non-default path so the override is not filtered out
-    $scopeRegistry = makeScopeRegistryWithPaths(['store' => ['default', 'eu', 'eu.de']]);
+        $scopeRegistry = makeScopeRegistryWithPaths(['store' => ['default', 'eu', 'eu.de']]);
         $builder = new ConfigRegistryBuilder();
         $registry = $builder->build([ResolverScopedConfig::class], $scopeRegistry);
         $storage = new InMemoryConfigStorage();
-    
+
         $context = new ScopeContext($scopeRegistry);
         $context->in('store', 'eu');
-    
+
         // Seed row with a global value and a store:eu override
-    $storage->compareAndSave('resolver/scoped.value', new ConfigRow(
+        $storage->compareAndSave('resolver/scoped.value', new ConfigRow(
             key: 'resolver/scoped.value',
             value: 'global-value',
             overrides: ['store:eu' => 'override-for-eu'],
             version: 0,
         ), 0);
-    
+
         $enumerator = new SignatureCandidateEnumerator($scopeRegistry);
         $overrideMatcher = new OverrideMatcher($enumerator);
         $resolver = new ConfigResolver(
@@ -210,11 +210,11 @@ it(
             proxyLocator: new ProxyLocator(),
             preferenceRegistry: new PreferenceRegistry(),
         );
-    
+
         $result = $resolver->resolved(ResolverScopedConfig::class, 'value');
-    
+
         expect($result)->toBe('override-for-eu');
-    }
+    },
 );
 
 it('falls back from override to global when no override matches the current ScopeContext', function (): void {
@@ -279,20 +279,20 @@ it(
     'preserves the most-specific override priority via OverrideMatcher when both single-axis and composite overrides are present',
     function (): void {
         // 'default' is the default for channel, 'en' is the default for locale
-    // so 'b2b' and 'fr' are non-default paths that won't be filtered out
-    $scopeRegistry = makeScopeRegistryWithPaths([
+        // so 'b2b' and 'fr' are non-default paths that won't be filtered out
+        $scopeRegistry = makeScopeRegistryWithPaths([
             'channel' => ['default', 'b2b', 'b2c'],
             'locale'  => ['en', 'fr', 'fr.be'],
         ]);
         $builder = new ConfigRegistryBuilder();
         $registry = $builder->build([ResolverMultiAxisConfig::class], $scopeRegistry);
         $storage = new InMemoryConfigStorage();
-    
+
         $context = new ScopeContext($scopeRegistry);
         $context->in('channel', 'b2b')->in('locale', 'fr');
-    
+
         // Store overrides: single-axis + composite — composite should win
-    $storage->compareAndSave('resolver/multi.value', new ConfigRow(
+        $storage->compareAndSave('resolver/multi.value', new ConfigRow(
             key: 'resolver/multi.value',
             value: 'global-value',
             overrides: [
@@ -302,7 +302,7 @@ it(
             ],
             version: 0,
         ), 0);
-    
+
         $enumerator = new SignatureCandidateEnumerator($scopeRegistry);
         $overrideMatcher = new OverrideMatcher($enumerator);
         $resolver = new ConfigResolver(
@@ -315,11 +315,11 @@ it(
             proxyLocator: new ProxyLocator(),
             preferenceRegistry: new PreferenceRegistry(),
         );
-    
+
         $result = $resolver->resolved(ResolverMultiAxisConfig::class, 'value');
-    
+
         expect($result)->toBe('composite-b2b-fr');
-    }
+    },
 );
 
 it('casts stored ints to int and stored strings to string', function (): void {
@@ -396,18 +396,18 @@ it(
         $builder = new ConfigRegistryBuilder();
         $registry = $builder->build([ResolverScopedConfig::class], $scopeRegistry);
         $storage = new InMemoryConfigStorage();
-    
+
         // The live (injected) context has no active axes
-    $liveContext = new ScopeContext($scopeRegistry);
-    
+        $liveContext = new ScopeContext($scopeRegistry);
+
         // Seed a row with a store:eu override
-    $storage->compareAndSave('resolver/scoped.value', new ConfigRow(
+        $storage->compareAndSave('resolver/scoped.value', new ConfigRow(
             key: 'resolver/scoped.value',
             value: 'global-value',
             overrides: ['store:eu' => 'override-for-eu'],
             version: 0,
         ), 0);
-    
+
         $enumerator = new SignatureCandidateEnumerator($scopeRegistry);
         $overrideMatcher = new OverrideMatcher($enumerator);
         $resolver = new ConfigResolver(
@@ -420,18 +420,18 @@ it(
             proxyLocator: new ProxyLocator(),
             preferenceRegistry: new PreferenceRegistry(),
         );
-    
+
         // Build an explicit context at store:eu
-    $explicitContext = new ScopeContext($scopeRegistry);
+        $explicitContext = new ScopeContext($scopeRegistry);
         $explicitContext->in('store', 'eu');
-    
+
         $resultViaResolvedAt = $resolver->resolvedAt(ResolverScopedConfig::class, 'value', $explicitContext);
         // resolved() uses the live context (no store set) — so no override matches, falls back to global
-    $resultViaResolved = $resolver->resolved(ResolverScopedConfig::class, 'value');
-    
+        $resultViaResolved = $resolver->resolved(ResolverScopedConfig::class, 'value');
+
         expect($resultViaResolvedAt)->toBe('override-for-eu')
             ->and($resultViaResolved)->toBe('global-value');
-    }
+    },
 );
 
 it('does not mutate the injected ScopeContext when resolvedAt is called', function (): void {

@@ -9,20 +9,20 @@ it(
     function (): void {
         $cache = new RequestConfigCache();
         $callCount = 0;
-    
+
         $loader = function () use (&$callCount): string {
             $callCount++;
-    
+
             return 'resolved-value';
         };
-    
+
         $first = $cache->get('my-key|store:eu', $loader);
         $second = $cache->get('my-key|store:eu', $loader);
-    
+
         expect($first)->toBe('resolved-value')
             ->and($second)->toBe('resolved-value')
             ->and($callCount)->toBe(1);
-    }
+    },
 );
 
 it(
@@ -30,20 +30,20 @@ it(
     function (): void {
         $cache = new RequestConfigCache();
         $callCount = 0;
-    
+
         $loader = function () use (&$callCount): mixed {
             $callCount++;
-    
+
             return null;
         };
-    
+
         $first = $cache->get('null-key', $loader);
         $second = $cache->get('null-key', $loader);
-    
+
         expect($first)->toBeNull()
             ->and($second)->toBeNull()
             ->and($callCount)->toBe(1);
-    }
+    },
 );
 
 it('caches independently for the same config under different ScopeContext projections', function (): void {

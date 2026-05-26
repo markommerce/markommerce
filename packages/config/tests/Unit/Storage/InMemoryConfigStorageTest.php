@@ -104,10 +104,10 @@ it(
     function (): void {
         $storage = new InMemoryConfigStorage();
         $emptyRow = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: null, overrides: [], version: 0);
-    
+
         $result = $storage->compareAndSave('markommerce/catalog.grid_page_size', $emptyRow, 0);
-    
+
         expect($result)->toBeTrue()
             ->and($storage->load('markommerce/catalog.grid_page_size'))->toBeNull();
-    }
+    },
 );

@@ -29,8 +29,7 @@ class MLM_FakeRouteMatcher implements RouteMatcherInterface
     public function match(
         string $method,
         string $path,
-    ): ?MatchedRoute
-    {
+    ): ?MatchedRoute {
         return $this->matched;
     }
 }
@@ -46,8 +45,7 @@ class MLM_FakeArtifactReader implements ArtifactReaderInterface
     public function __construct(
         ?array $artifact = null,
         bool $shouldThrow = false,
-    )
-    {
+    ) {
         $this->artifact = $artifact;
         $this->shouldThrow = $shouldThrow;
     }
@@ -79,8 +77,7 @@ class MLM_FakeRenderer implements RendererInterface
         PreparedTree $tree,
         Request $request,
         array $routeParams,
-    ): string
-    {
+    ): string {
         $this->renderCalled = true;
         $this->lastRouteParams = $routeParams;
 

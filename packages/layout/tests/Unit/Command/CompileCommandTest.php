@@ -147,13 +147,13 @@ it('prints a summary of compiled handles on success', function (): void {
         handleKey: 'App\Controller\HomeController::index',
         template: 'theme::layout',
         slots: [],
-        context: []
+        context: [],
     );
     $tree2 = new PreparedTree(
         handleKey: 'App\Controller\ProductController::show',
         template: 'theme::layout',
         slots: [],
-        context: []
+        context: [],
     );
     $fakeCompiler->result = ['App\Controller\HomeController::index' => $tree1, 'App\Controller\ProductController::show' => $tree2];
 

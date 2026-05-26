@@ -16,8 +16,7 @@ class ScopeResolutionException extends MarkoException
         string $resolverClass,
         string $axisName,
         Throwable $previous,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Resolver '$resolverClass' for axis '$axisName' threw an unexpected exception",
             context: "Running resolver '$resolverClass' for axis '$axisName'",
@@ -30,8 +29,7 @@ class ScopeResolutionException extends MarkoException
         string $resolverClass,
         string $axisName,
         string $path,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Resolver '$resolverClass' for axis '$axisName' returned an invalid path '$path' not found in the axis hierarchy",
             context: "Running resolver '$resolverClass' for axis '$axisName'",

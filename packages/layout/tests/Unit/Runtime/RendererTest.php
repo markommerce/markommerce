@@ -31,16 +31,14 @@ class FakeView implements ViewInterface
     public function render(
         string $template,
         array $data = [],
-    ): Response
-    {
+    ): Response {
         return Response::html($this->renderToString($template, $data));
     }
 
     public function renderToString(
         string $template,
         array $data = [],
-    ): string
-    {
+    ): string {
         // Build output: <div data-template="{template}">{prop values}{slot placeholders}</div>
         $props = '';
         foreach ($data as $key => $value) {
@@ -72,8 +70,7 @@ class FakeContainer implements ContainerInterface
     public function bind(
         string $class,
         object $instance,
-    ): void
-    {
+    ): void {
         $this->bindings[$class] = $instance;
     }
 
@@ -99,8 +96,7 @@ class FakeContainer implements ContainerInterface
     public function instance(
         string $id,
         object $instance,
-    ): void
-    {
+    ): void {
         $this->bindings[$id] = $instance;
     }
 
@@ -219,8 +215,7 @@ class RT_SimpleDecorator implements DecoratorInterface
     public function wrap(
         string $innerHtml,
         array $data = [],
-    ): string
-    {
+    ): string {
         return str_replace('{slot inner}', $innerHtml, $this->template());
     }
 }
@@ -235,8 +230,7 @@ class RT_OuterDecorator implements DecoratorInterface
     public function wrap(
         string $innerHtml,
         array $data = [],
-    ): string
-    {
+    ): string {
         return str_replace('{slot inner}', $innerHtml, $this->template());
     }
 }
@@ -251,8 +245,7 @@ class RT_InnerDecorator implements DecoratorInterface
     public function wrap(
         string $innerHtml,
         array $data = [],
-    ): string
-    {
+    ): string {
         return str_replace('{slot inner}', $innerHtml, $this->template());
     }
 }
@@ -390,8 +383,7 @@ it('makes parent data available to a child parent-data source', function (): voi
         public function renderToString(
             string $template,
             array $data = [],
-        ): string
-        {
+        ): string {
             $this->lastTemplate = $template;
             $this->lastData = $data;
 
@@ -447,8 +439,7 @@ it('inlines sub-slot HTML into a parent template slot placeholder', function ():
         public function renderToString(
             string $template,
             array $data = [],
-        ): string
-        {
+        ): string {
             $base = parent::renderToString($template, $data);
             // Inject a slot placeholder for the 'child_slot' slot
             if (isset($data['_slots']['child_slot'])) {
@@ -561,8 +552,7 @@ it('exposes the iteration item to repeat-slot children', function (): void {
         public function renderToString(
             string $template,
             array $data = [],
-        ): string
-        {
+        ): string {
             $this->calls[] = ['template' => $template, 'data' => $data];
 
             return parent::renderToString($template, $data);

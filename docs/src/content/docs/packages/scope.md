@@ -264,6 +264,47 @@ $context->in('market', 'eu.de');
 $price = $scopeResolver->resolved($product, 'price'); // 65.00
 ```
 
+### Field metadata
+
+`ScopedFieldRegistry` is the read-time source of truth for which properties of an entity class are scoped and which axes they belong to. `ScopeMetadataFactory` reads from the registry to build `ScopeMetadata` instances; consumers call `ScopeMetadataFactory::for($entityClass)` to retrieve metadata for a class. The public API of `ScopeMetadataFactory` is unchanged.
+
+#### Attribute path (lazy scan)
+
+The simplest way to mark a property as scoped is the `#[Scoped]` attribute. On the first call to `ScopeMetadataFactory::for($entityClass)`, the factory performs a one-time reflection scan of the class and its parents, writing any `#[Scoped]` findings into `ScopedFieldRegistry`. Subsequent calls return the cached `ScopeMetadata` without re-scanning.
+
+A `#[Scoped(axes: [])]` declaration is a no-op: the property will not appear in the resulting `ScopeMetadata`.
+
+#### Programmatic path (bridge `module.php`)
+
+Third-party packages that cannot annotate an entity directly --- for example, a bridge package adding scope support to a vendor entity --- register properties programmatically via a `boot` callback in their `module.php`. The container auto-injects `ScopedFieldRegistry` by type-hint:
+
+```php title="packages/acme-catalog-scope/module.php"
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Catalog\Entity\Product;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
+
+return [
+    'boot' => function (ScopedFieldRegistry $scopedFieldRegistry): void {
+        $scopedFieldRegistry->register(
+            entityClass: Product::class,
+            property: 'price',
+            axes: ['channel', 'locale'],
+        );
+    },
+];
+```
+
+Passing `axes: []` to `register()` is a no-op: the call returns without modifying the registry.
+
+If the `$entityClass` argument does not resolve to an existing class, interface, or enum, `register()` throws `UnknownEntityClassException`. If any axis name is not registered in `ScopeRegistryInterface`, `register()` throws `UnknownAxisException` --- there are no silent failures.
+
+#### Cache-staleness contract
+
+Once `ScopeMetadataFactory::for($entityClass)` has been called for a class, the resulting `ScopeMetadata` is frozen. Later calls to `ScopedFieldRegistry::register()` for the same class do NOT affect the already-cached metadata. All bridge contributions must happen during the boot phase, before any request handling begins.
+
 ### Writing overrides
 
 Use `ScopeResolver::setOverride()` to attach a scoped value to an entity before persisting. The signature must not reference any axis at its configured default scope --- doing so throws `ScopeStorageException`. To change the default-scope value, set the entity's base property directly:
@@ -694,6 +735,8 @@ If the resolver needs constructor arguments that are not in the container, use t
 | `Markommerce\Scope\Registry\ScopeRegistryInterface` | Interface for scope axis/hierarchy providers |
 | `Markommerce\Scope\Axis\ScopeAxis` | Value object representing a configured axis; exposes `$name`, `$hierarchy`, and `$default` (the axis's root/global scope path) |
 | `Markommerce\Scope\Hierarchy\ScopeHierarchy` | Ordered list of declared paths; provides `walkUp()` for fallback traversal |
+| `Markommerce\Scope\Metadata\ScopedFieldRegistry` | Accumulates (entityClass, property) → axes mappings at boot time; populated by attribute scanning and programmatic `register()` calls; registered as a singleton |
+| `Markommerce\Scope\Exceptions\UnknownEntityClassException` | Thrown by `ScopedFieldRegistry::register()` when the given class name does not resolve to an existing class, interface, or enum |
 | `Markommerce\Scope\Exceptions\InvalidSignatureException` | Thrown when a `ScopeSignature` is constructed with invalid input |
 | `Markommerce\Scope\Exceptions\InvalidSignatureForAttributeException` | Thrown when signature axes do not match the target property's `#[Scoped]` attribute, or when a signature names an axis at its default scope |
 | `Markommerce\Scope\Exceptions\ScopeConfigurationException` | Thrown at boot when an axis definition is malformed, missing `default`, declares an empty `scopes` map, or names a `default` path absent from `scopes` |
@@ -781,6 +824,15 @@ If the resolver needs constructor arguments that are not in the container, use t
 | `assertWritable(string $signature): void` | (Static) Throw `ScopeStorageException` if the signature contains any axis at its configured default scope. |
 | `reset(): void` | (Static) Clear the configured defaults. Intended for testing only. |
 | `isConfigured(): bool` | (Static) Return `true` if defaults have been configured. |
+
+### `ScopedFieldRegistry`
+
+| Method | Description |
+|--------|-------------|
+| `register(string $entityClass, string $property, array $axes): void` | Register a (class, property) → axes mapping. Throws `UnknownEntityClassException` if the class does not exist; throws `UnknownAxisException` if any axis name is unknown. Calling with `axes: []` is a no-op. Axes from multiple calls for the same property are merged (union, no duplicates). |
+| `axesForProperty(string $entityClass, string $property): list<string>` | Return the axes registered for a specific entity class + property pair, or an empty list if none are registered. |
+| `propertiesFor(string $entityClass): array<string, list<string>>` | Return all registered property → axes mappings for the given entity class. |
+| `hasScopedProperties(string $entityClass): bool` | Return `true` if at least one property is registered for the given entity class. |
 
 ## Caveats
 

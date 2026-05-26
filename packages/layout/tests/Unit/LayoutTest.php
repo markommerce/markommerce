@@ -7,7 +7,7 @@ use Markommerce\Layout\Operation\Remove;
 
 it('passes PHPStan level 8 with the new fields typed', function (): void {
     $output = shell_exec(
-        'cd /workspace/markommerce && ./vendor/bin/phpstan analyse packages/layout/src/Layout.php --level=8 --no-progress 2>&1'
+        'cd /workspace/markommerce && ./vendor/bin/phpstan analyse packages/layout/src/Layout.php --level=8 --no-progress 2>&1',
     );
 
     expect($output)->toContain('[OK] No errors');

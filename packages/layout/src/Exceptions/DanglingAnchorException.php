@@ -9,8 +9,7 @@ class DanglingAnchorException extends LayoutException
     public static function forAnchor(
         string $anchor,
         string $extensionFile,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Dangling anchor '$anchor' in extension file '$extensionFile'.",
             context: "Applying layout extension at '$extensionFile' — anchor '$anchor' does not exist in the target layout.",
@@ -22,8 +21,7 @@ class DanglingAnchorException extends LayoutException
         string $anchor,
         string $extensionFile,
         string $chain,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Dangling anchor '$anchor' references a placement that does not exist.",
             context: "Validating wrap marker at [$chain] — anchor '$anchor' does not exist in the resolved layout '$extensionFile'.",

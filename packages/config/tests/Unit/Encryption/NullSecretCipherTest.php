@@ -18,7 +18,7 @@ it(
     'NullSecretCipher can be constructed without arguments so it can serve as a default container binding',
     function (): void {
         $cipher = new NullSecretCipher();
-    
+
         expect($cipher)->toBeInstanceOf(NullSecretCipher::class);
-    }
+    },
 );

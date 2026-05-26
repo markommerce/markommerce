@@ -6,6 +6,7 @@ use Marko\Config\ConfigRepositoryInterface;
 use Marko\Core\Container\ContainerInterface;
 use Marko\Log\Contracts\LoggerInterface;
 use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Middleware\ScopeResolutionMiddleware;
 use Markommerce\Scope\Query\ScopedOrderByFactory;
@@ -44,6 +45,7 @@ return [
     ],
     'singletons' => [
         ScopeContext::class,
+        ScopedFieldRegistry::class,
         ScopeMetadataFactory::class,
         SignatureCandidateEnumerator::class,
         ScopeSignatureValidator::class,

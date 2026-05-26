@@ -18,8 +18,7 @@ class FakeResolverA implements ScopeAxisResolverInterface
     public function resolve(
         ScopeAxis $scopeAxis,
         ScopeResolutionContext $scopeResolutionContext,
-    ): ?string
-    {
+    ): ?string {
         return null;
     }
 }
@@ -29,8 +28,7 @@ class FakeResolverB implements ScopeAxisResolverInterface
     public function resolve(
         ScopeAxis $scopeAxis,
         ScopeResolutionContext $scopeResolutionContext,
-    ): ?string
-    {
+    ): ?string {
         return null;
     }
 }
@@ -42,8 +40,7 @@ class FakeResolverWithArgs implements ScopeAxisResolverInterface
     public function resolve(
         ScopeAxis $scopeAxis,
         ScopeResolutionContext $scopeResolutionContext,
-    ): ?string
-    {
+    ): ?string {
         return null;
     }
 }
@@ -66,8 +63,7 @@ function makeChainFactoryFakes(array $config = []): array
         public function bind(
             string $id,
             object $instance,
-        ): void
-        {
+        ): void {
             $this->bindings[$id] = $instance;
         }
 
@@ -94,8 +90,7 @@ function makeChainFactoryFakes(array $config = []): array
         public function instance(
             string $id,
             object $instance,
-        ): void
-        {
+        ): void {
             $this->bindings[$id] = $instance;
         }
 
@@ -113,8 +108,7 @@ function makeChainFactoryFakes(array $config = []): array
         public function get(
             string $key,
             ?string $scope = null,
-        ): mixed
-        {
+        ): mixed {
             if (!array_key_exists($key, $this->config)) {
                 throw new ConfigNotFoundException("Key '$key' not found");
             }
@@ -125,48 +119,42 @@ function makeChainFactoryFakes(array $config = []): array
         public function has(
             string $key,
             ?string $scope = null,
-        ): bool
-        {
+        ): bool {
             return array_key_exists($key, $this->config);
         }
 
         public function getString(
             string $key,
             ?string $scope = null,
-        ): string
-        {
+        ): string {
             return (string) $this->get($key);
         }
 
         public function getInt(
             string $key,
             ?string $scope = null,
-        ): int
-        {
+        ): int {
             return (int) $this->get($key);
         }
 
         public function getBool(
             string $key,
             ?string $scope = null,
-        ): bool
-        {
+        ): bool {
             return (bool) $this->get($key);
         }
 
         public function getFloat(
             string $key,
             ?string $scope = null,
-        ): float
-        {
+        ): float {
             return (float) $this->get($key);
         }
 
         public function getArray(
             string $key,
             ?string $scope = null,
-        ): array
-        {
+        ): array {
             return (array) $this->get($key);
         }
 
@@ -277,12 +265,12 @@ it(
         [$container, $configRepository] = makeChainFactoryFakes([
             'scope.axes.store.resolvers' => [NotAResolver::class],
         ]);
-    
+
         $factory = new ScopeResolverChainFactory($container, $configRepository);
-    
+
         expect(fn () => $factory->for('store'))
             ->toThrow(InvalidResolverConfigException::class);
-    }
+    },
 );
 
 it('preserves resolver order from the config array', function (): void {

@@ -9,8 +9,7 @@ class RepeatTypeMismatchException extends LayoutException
     public static function forItem(
         string $yieldsType,
         string $actualItemType,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Repeat type mismatch: yields type '$yieldsType' but item is '$actualItemType'.",
             context: "Iterating repeat block — loop declares yielded items as '$yieldsType' but found '$actualItemType'.",
@@ -22,8 +21,7 @@ class RepeatTypeMismatchException extends LayoutException
         string $yieldsType,
         string $actualItemType,
         string $chain,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Repeat type mismatch: yields type '$yieldsType' but item is '$actualItemType'.",
             context: "Iterating repeat block at [$chain] — loop declares yielded items as '$yieldsType' but found '$actualItemType'.",

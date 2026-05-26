@@ -16,9 +16,9 @@ it(
             defaultValue: 20,
             secret: false,
         );
-    
+
         expect($definition)->toBeInstanceOf(ConfigDefinition::class);
-    }
+    },
 );
 
 it(
@@ -33,7 +33,7 @@ it(
             defaultValue: 20,
             secret: false,
         );
-    
+
         expect($definition->key)->toBe('markommerce/catalog.grid_page_size')
             ->and($definition->configClass)->toBe('App\\Config\\CatalogConfig')
             ->and($definition->field)->toBe('gridPageSize')
@@ -41,5 +41,5 @@ it(
             ->and($definition->type)->toBe('int')
             ->and($definition->defaultValue)->toBe(20)
             ->and($definition->secret)->toBeFalse();
-    }
+    },
 );

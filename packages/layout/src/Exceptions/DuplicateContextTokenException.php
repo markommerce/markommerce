@@ -10,8 +10,7 @@ class DuplicateContextTokenException extends LayoutException
         string $token,
         string $sourceHandle,
         string $targetHandle,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Context token '$token' from '$sourceHandle' conflicts with an existing token in '$targetHandle'.",
             context: "Merging context from '$sourceHandle' into '$targetHandle' — token '$token' is already defined on '$targetHandle' and cannot be overwritten during inheritance or default merge.",

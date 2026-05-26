@@ -35,12 +35,12 @@ it(
     'throws DefaultHandleConflictException when a default handle declares an extends or inherits chain',
     function (): void {
         $exception = DefaultHandleConflictException::forField('inherits');
-    
+
         expect($exception)->toBeInstanceOf(LayoutException::class)
             ->and($exception->getMessage())->toContain('default')
             ->and($exception->getMessage())->toContain('inherits')
             ->and($exception->getSuggestion())->not->toBeEmpty();
-    }
+    },
 );
 
 it('throws DefaultHandleConflictException when a default handle declares handleProviders', function (): void {
@@ -66,37 +66,37 @@ it(
     'throws UnknownDynamicHandleException when a HandleProvider returns a handle key not in the artifact',
     function (): void {
         $exception = UnknownDynamicHandleException::forHandle('missing_handle', 'MyHandleProvider');
-    
+
         expect($exception)->toBeInstanceOf(LayoutException::class)
             ->and($exception->getMessage())->toContain('missing_handle')
             ->and($exception->getMessage())->toContain('MyHandleProvider')
             ->and($exception->getSuggestion())->not->toBeEmpty();
-    }
+    },
 );
 
 it(
     'throws DuplicateContextTokenException when an inherits or default merge introduces a duplicate token',
     function (): void {
         $exception = DuplicateContextTokenException::forToken('product_id', 'parent_handle', 'child_handle');
-    
+
         expect($exception)->toBeInstanceOf(LayoutException::class)
             ->and($exception->getMessage())->toContain('product_id')
             ->and($exception->getMessage())->toContain('parent_handle')
             ->and($exception->getMessage())->toContain('child_handle')
             ->and($exception->getSuggestion())->not->toBeEmpty();
-    }
+    },
 );
 
 it(
     'throws ChainedHandleProviderException when a dynamic handle\'s tree itself declares handleProviders',
     function (): void {
         $exception = ChainedHandleProviderException::forChain('MyDynamicProvider', 'dynamic_handle');
-    
+
         expect($exception)->toBeInstanceOf(LayoutException::class)
             ->and($exception->getMessage())->toContain('MyDynamicProvider')
             ->and($exception->getMessage())->toContain('dynamic_handle')
             ->and($exception->getSuggestion())->not->toBeEmpty();
-    }
+    },
 );
 
 it('each new exception extends LayoutException', function (): void {

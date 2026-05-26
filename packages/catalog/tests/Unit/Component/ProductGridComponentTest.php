@@ -22,6 +22,7 @@ use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
 use Markommerce\Layout\ExtensionBag;
 use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Registry\PhpScopeRegistry;
 use Markommerce\Scope\Resolution\ScopeWalker;
@@ -41,7 +42,7 @@ function productGridBuildScopeResolver(): ScopeResolver
     $registry = new PhpScopeRegistry($config);
 
     $context = new ScopeContext($registry);
-    $metadataFactory = new ScopeMetadataFactory($registry);
+    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $enumerator = new SignatureCandidateEnumerator($registry);
     $walker = new ScopeWalker($enumerator);
     $validator = new ScopeSignatureValidator($registry);

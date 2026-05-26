@@ -9,6 +9,7 @@ use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Exceptions\ScopeContextException;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Query\ScopedFieldExpression;
 use Markommerce\Scope\Query\ScopedFieldRendererInterface;
@@ -50,8 +51,7 @@ function makeScopedOrderByRegistry(array $axes = [], array $defaults = []): Scop
         public function __construct(
             private readonly array $axes,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
                 $default = $defaults[$name] ?? '__test_default';
@@ -111,8 +111,7 @@ function makeBuilderSpy(): EntityQueryBuilderInterface
         public function selectRaw(
             string $expression,
             array $bindings = [],
-        ): static
-        {
+        ): static {
             return $this;
         }
 
@@ -166,8 +165,7 @@ function makeBuilderSpy(): EntityQueryBuilderInterface
         public function whereRaw(
             string $expression,
             array $bindings = [],
-        ): static
-        {
+        ): static {
             return $this;
         }
 
@@ -342,7 +340,7 @@ function makeRenderer(string $sql = 'COALESCE(json_extract(scopes, \'$.store.en\
 
 it('accepts ScopeMetadataFactory, ScopeContext, and ScopedFieldRendererInterface in constructor', function (): void {
     $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-    $factory = new ScopeMetadataFactory($registry);
+    $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     $renderer = makeRenderer();
     $enumerator = new SignatureCandidateEnumerator($registry);
@@ -363,7 +361,7 @@ it('accepts ScopeMetadataFactory, ScopeContext, and ScopedFieldRendererInterface
 
 it('accepts a property name and optional direction defaulting to asc', function (): void {
     $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-    $factory = new ScopeMetadataFactory($registry);
+    $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     $renderer = makeRenderer();
     $enumerator = new SignatureCandidateEnumerator($registry);
@@ -383,7 +381,7 @@ it('accepts a property name and optional direction defaulting to asc', function 
 
 it('calls orderByRaw with the renderer-generated COALESCE expression when scope is active', function (): void {
     $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-    $factory = new ScopeMetadataFactory($registry);
+    $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     $context->in('store', 'en.gb');
 
@@ -410,7 +408,7 @@ it('calls orderByRaw with the renderer-generated COALESCE expression when scope 
 
 it('falls back to plain orderBy when no scope is active for any of the property\'s axes', function (): void {
     $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-    $factory = new ScopeMetadataFactory($registry);
+    $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     // No scope set on context
     $renderer = makeRenderer();
@@ -435,7 +433,7 @@ it('falls back to plain orderBy when no scope is active for any of the property\
 
 it('throws ScopeContextException when the property is not Scoped', function (): void {
     $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-    $factory = new ScopeMetadataFactory($registry);
+    $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     $renderer = makeRenderer();
     $enumerator = new SignatureCandidateEnumerator($registry);
@@ -457,7 +455,7 @@ it(
     'preserves direction asc or desc on the emitted ORDER BY',
     function (string $direction, string $expectedDirectionUpper): void {
         $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-        $factory = new ScopeMetadataFactory($registry);
+        $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
         $context = new ScopeContext($registry);
         $context->in('store', 'en');
         $renderer = makeRenderer('COALESCE(expr)');
@@ -486,7 +484,7 @@ it(
 
 it('builds a ScopedFieldExpression by reading ScopeMetadata for the entity class on apply', function (): void {
     $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-    $factory = new ScopeMetadataFactory($registry);
+    $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     $context->in('store', 'en.gb');
     $enumerator = new SignatureCandidateEnumerator($registry);
@@ -522,7 +520,7 @@ it('builds a ScopedFieldExpression by reading ScopeMetadata for the entity class
 
 it('builds a COALESCE-based orderByRaw using the candidate signatures from the enumerator', function (): void {
     $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-    $factory = new ScopeMetadataFactory($registry);
+    $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     $context->in('store', 'en.gb');
     $enumerator = new SignatureCandidateEnumerator($registry);
@@ -562,7 +560,7 @@ it('builds a COALESCE-based orderByRaw using the candidate signatures from the e
 
 it('it falls back to plain orderBy when the enumerator produces zero candidates', function (): void {
     $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-    $factory = new ScopeMetadataFactory($registry);
+    $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     // No scope set — enumerator will return zero candidates
     $renderer = makeRenderer();
@@ -589,7 +587,7 @@ it(
     'it produces signatures in descending-score order in the COALESCE chain (the order is preserved as enumerator output)',
     function (): void {
         $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-        $factory = new ScopeMetadataFactory($registry);
+        $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
         $context = new ScopeContext($registry);
         $context->in('store', 'en.gb');
         $enumerator = new SignatureCandidateEnumerator($registry);
@@ -631,7 +629,7 @@ it(
 
 it('it throws ScopeContextException when the property is not @Scoped on the entity', function (): void {
     $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-    $factory = new ScopeMetadataFactory($registry);
+    $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     $renderer = makeRenderer();
     $enumerator = new SignatureCandidateEnumerator($registry);
@@ -653,7 +651,7 @@ it(
     'it passes ASC or DESC direction to the query builder unchanged',
     function (string $direction, string $expectedUpper): void {
         $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-        $factory = new ScopeMetadataFactory($registry);
+        $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
         $context = new ScopeContext($registry);
         $context->in('store', 'en');
         $renderer = makeRenderer('COALESCE(expr)');
@@ -686,7 +684,7 @@ it(
     'it does NOT call HasScopesInterface::overrides() at all during apply (the SQL path never reads stored override keys; it derives the chain from the enumerator only)',
     function (): void {
         $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-        $factory = new ScopeMetadataFactory($registry);
+        $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
         $context = new ScopeContext($registry);
         $context->in('store', 'en.gb');
         $renderer = makeRenderer('COALESCE(expr)');
@@ -756,7 +754,7 @@ it(
             'store' => ['en', 'en.gb'],
             'locale' => ['default', 'default.formal'],
         ]);
-        $factory = new ScopeMetadataFactory($registry);
+        $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
         $context = new ScopeContext($registry);
         $context->in('store', 'en.gb');
         $context->in('locale', 'default.formal');
@@ -795,7 +793,7 @@ it(
     'for the same attribute axes and context, the JSONB keys appearing in the COALESCE chain match the order in which the walker iterates candidates (no algorithmic drift)',
     function (): void {
         $registry = makeScopedOrderByRegistry(['store' => ['en', 'en.gb']]);
-        $factory = new ScopeMetadataFactory($registry);
+        $factory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
         $context = new ScopeContext($registry);
         $context->in('store', 'en.gb');
         $enumerator = new SignatureCandidateEnumerator($registry);

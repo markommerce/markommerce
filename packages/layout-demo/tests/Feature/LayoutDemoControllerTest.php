@@ -369,11 +369,11 @@ it(
     function (): void {
         $layoutDemoPath = dirname(__DIR__, 2);
         $themeBlankPath = $layoutDemoPath . '/../theme-blank';
-    
+
         $trees = layoutDemoTestBuildArtifact($layoutDemoPath, $themeBlankPath);
-    
+
         $expectedHandle = LayoutDemoController::class . '::show';
         expect($trees)->toHaveKey($expectedHandle);
         expect($trees[$expectedHandle])->toBeInstanceOf(PreparedTree::class);
-    }
+    },
 );

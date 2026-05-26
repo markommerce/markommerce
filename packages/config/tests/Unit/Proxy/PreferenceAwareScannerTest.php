@@ -16,14 +16,14 @@ it(
     function (): void {
         $registry = new PreferenceRegistry();
         $registry->register(BaseConfig::class, ExtendedConfig::class);
-    
+
         $scanner = new PreferenceAwareScanner($registry);
-    
+
         $result = $scanner->expand([BaseConfig::class]);
-    
+
         expect($result)->toContain(BaseConfig::class)
             ->and($result)->toContain(ExtendedConfig::class);
-    }
+    },
 );
 
 it('follows nested preferences via PreferenceRegistry::getPreference (which already chains)', function (): void {
@@ -46,13 +46,13 @@ it(
     function (): void {
         $registry = new PreferenceRegistry();
         // UnrelatedConfig is not a subclass of BaseConfig
-    $registry->register(BaseConfig::class, UnrelatedConfig::class);
-    
+        $registry->register(BaseConfig::class, UnrelatedConfig::class);
+
         $scanner = new PreferenceAwareScanner($registry);
-    
+
         expect(fn () => $scanner->expand([BaseConfig::class]))
             ->toThrow(InvalidConfigClassException::class);
-    }
+    },
 );
 
 it(
@@ -60,12 +60,12 @@ it(
     function (): void {
         $registry = new PreferenceRegistry();
         // Create a cycle: ExtendedConfig -> DeeplyExtendedConfig -> ExtendedConfig
-    $registry->register(ExtendedConfig::class, DeeplyExtendedConfig::class);
+        $registry->register(ExtendedConfig::class, DeeplyExtendedConfig::class);
         $registry->register(DeeplyExtendedConfig::class, ExtendedConfig::class);
-    
+
         $scanner = new PreferenceAwareScanner($registry);
-    
+
         expect(fn () => $scanner->expand([ExtendedConfig::class]))
             ->toThrow(PreferenceConflictException::class);
-    }
+    },
 );

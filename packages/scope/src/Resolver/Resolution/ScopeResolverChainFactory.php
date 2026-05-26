@@ -67,8 +67,7 @@ class ScopeResolverChainFactory
         mixed $entry,
         int $index,
         string $axisName,
-    ): ScopeAxisResolverInterface
-    {
+    ): ScopeAxisResolverInterface {
         if (is_string($entry)) {
             return $this->buildFromClassString($entry, $axisName);
         }
@@ -82,8 +81,7 @@ class ScopeResolverChainFactory
     private function buildFromClassString(
         string $class,
         string $axisName,
-    ): ScopeAxisResolverInterface
-    {
+    ): ScopeAxisResolverInterface {
         if (!class_exists($class)) {
             throw InvalidResolverConfigException::unknownClass($class, $axisName);
         }
@@ -106,8 +104,7 @@ class ScopeResolverChainFactory
         array $entry,
         int $index,
         string $axisName,
-    ): ScopeAxisResolverInterface
-    {
+    ): ScopeAxisResolverInterface {
         if (!isset($entry['class'])) {
             throw InvalidResolverConfigException::missingClassKey($index, $axisName);
         }

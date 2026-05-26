@@ -31,8 +31,7 @@ class ScopeResolutionPipeline
     public function run(
         Request $request,
         string $channel,
-    ): void
-    {
+    ): void {
         /** @var array<string, string> $resolved */
         $resolved = [];
 

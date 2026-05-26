@@ -10,8 +10,7 @@ class InvalidSourceTypeException extends LayoutException
         string $source,
         string $value,
         string $targetType,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Invalid source type from '$source': got '$value', expected '$targetType'.",
             context: "Resolving source '$source' — the resolved value of type '$value' cannot be used as '$targetType'.",

@@ -112,14 +112,14 @@ it(
     'throws InvalidSignatureException when fromString receives a signature with duplicate axes (concrete: "locale:es|locale:de")',
     function (): void {
         expect(fn () => ScopeSignature::fromString('locale:es|locale:de'))->toThrow(InvalidSignatureException::class);
-    }
+    },
 );
 
 it(
     'throws InvalidSignatureException when fromString receives a part containing more than one colon (concrete: "locale:es:extra")',
     function (): void {
         expect(fn () => ScopeSignature::fromString('locale:es:extra'))->toThrow(InvalidSignatureException::class);
-    }
+    },
 );
 
 it('precomputes toString once in the constructor (no recomputation on repeated calls)', function (): void {

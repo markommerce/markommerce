@@ -69,18 +69,18 @@ it(
     'ProductCategoryAssignmentRepositoryInterface declares findByCategory and findByProductAndCategory methods',
     function (): void {
         $reflection = new ReflectionClass(ProductCategoryAssignmentRepositoryInterface::class);
-    
+
         expect($reflection->isInterface())->toBeTrue();
         expect($reflection->implementsInterface(RepositoryInterface::class))->toBeTrue();
         expect($reflection->hasMethod('findByCategory'))->toBeTrue();
         expect($reflection->hasMethod('findByProductAndCategory'))->toBeTrue();
-    
+
         $findByCategory = $reflection->getMethod('findByCategory');
         $categoryParams = $findByCategory->getParameters();
         expect($categoryParams)->toHaveCount(1);
         expect($categoryParams[0]->getName())->toBe('categoryId');
         expect((string) $categoryParams[0]->getType())->toBe('int');
-    
+
         $findByProductAndCategory = $reflection->getMethod('findByProductAndCategory');
         $assignmentParams = $findByProductAndCategory->getParameters();
         expect($assignmentParams)->toHaveCount(2);
@@ -88,7 +88,7 @@ it(
         expect((string) $assignmentParams[0]->getType())->toBe('int');
         expect($assignmentParams[1]->getName())->toBe('categoryId');
         expect((string) $assignmentParams[1]->getType())->toBe('int');
-    }
+    },
 );
 
 it('FakeProductCategoryAssignmentRepository returns only assignments matching a given category', function (): void {

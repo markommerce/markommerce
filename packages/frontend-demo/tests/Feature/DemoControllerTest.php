@@ -276,12 +276,12 @@ it(
         $reflection = new ReflectionClass(DemoController::class);
         $method = $reflection->getMethod('index');
         $middlewareAttributes = $method->getAttributes(Middleware::class);
-    
+
         expect($middlewareAttributes)->not->toBeEmpty();
-    
+
         $middlewareAttr = $middlewareAttributes[0]->newInstance();
         expect($middlewareAttr->middleware)->toContain(EnsureFrontendDemoEnabledMiddleware::class);
-    }
+    },
 );
 
 it('it embeds the <markommerce-counter> element in the rendered response body', function (): void {
@@ -329,13 +329,13 @@ it(
     function (): void {
         $cacheDir = sys_get_temp_dir() . '/latte-demo-vite-' . bin2hex(random_bytes(8));
         mkdir($cacheDir, 0755, true);
-    
+
         $frontendPath = dirname(__DIR__, 2) . '/../frontend';
         $frontendDemoPath = dirname(__DIR__, 2);
         $basePath = dirname(__DIR__, 4);
-    
+
         $manifestCreated = demoTestEnsureManifest($basePath);
-    
+
         $config = new ConfigRepository([
             'frontend_demo' => ['enabled' => true],
             'vite' => [
@@ -353,19 +353,19 @@ it(
                 'strict_types' => false,
             ],
         ]);
-    
+
         $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
         $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
         $response = $router->handle($request);
-    
+
         $body = $response->body();
         expect($body)->toMatch('/<(script|link)/');
-    
+
         demoTestCleanup($cacheDir);
         if ($manifestCreated) {
             @unlink($basePath . '/public/build/.vite/manifest.json');
         }
-    }
+    },
 );
 
 it('it has a layout file that returns a Layout for DemoController::index', function (): void {
@@ -415,12 +415,12 @@ it(
     'the demo main.ts imports open-props/style.css so Vite emits the Open Props stylesheet link in the head',
     function (): void {
         $mainTsPath = dirname(__DIR__, 2) . '/resources/js/main.ts';
-    
+
         expect(file_exists($mainTsPath))->toBeTrue();
-    
+
         $contents = file_get_contents($mainTsPath);
         expect($contents)->toContain("import 'open-props/style.css'");
-    }
+    },
 );
 
 it(
@@ -428,17 +428,17 @@ it(
     function (): void {
         $mainTsPath = dirname(__DIR__, 2) . '/resources/js/main.ts';
         $contents = file_get_contents($mainTsPath);
-    
+
         $layersPos = strpos($contents, '@markommerce/frontend/css/layers.css');
         $tokensPos = strpos($contents, '@markommerce/theme-blank/css/tokens.css');
         $componentPos = strpos($contents, 'counter.css');
-    
+
         expect($layersPos !== false)->toBeTrue()
             ->and($tokensPos !== false)->toBeTrue()
             ->and($componentPos !== false)->toBeTrue()
             ->and($layersPos)->toBeLessThan($componentPos)
             ->and($tokensPos)->toBeLessThan($componentPos);
-    }
+    },
 );
 
 it(
@@ -446,17 +446,17 @@ it(
     function (): void {
         $reflection = new ReflectionClass(EnsureFrontendDemoEnabledMiddleware::class);
         $constructor = $reflection->getConstructor();
-    
+
         expect($constructor)->not->toBeNull();
-    
+
         $params = $constructor->getParameters();
         $paramTypes = array_map(
             fn ($p) => $p->getType()?->getName(),
             $params,
         );
-    
+
         expect($paramTypes)->toContain(FrontendDemoConfig::class);
-    }
+    },
 );
 
 it(
@@ -464,29 +464,29 @@ it(
     function (): void {
         $reflection = new ReflectionClass(EnsureFrontendDemoEnabledMiddleware::class);
         $constructor = $reflection->getConstructor();
-    
+
         expect($constructor)->not->toBeNull();
-    
+
         $paramNames = array_map(
             fn ($p) => $p->getName(),
             $constructor->getParameters(),
         );
-    
+
         expect($paramNames)->toContain('frontendDemoConfig');
-    }
+    },
 );
 
 it(
     'it counter.latte renders only the markommerce-counter element and no longer contains primitives or form controls (file-content assertion)',
     function (): void {
         $lattePath = dirname(__DIR__, 2) . '/resources/views/counter.latte';
-    
+
         expect(file_exists($lattePath))->toBeTrue();
-    
+
         $contents = file_get_contents($lattePath);
         expect(trim($contents))->toBe('<markommerce-counter start-value="0" suffix=" clicks"></markommerce-counter>');
         expect($contents)->not->toContain('<mk-');
-    }
+    },
 );
 
 it(
@@ -494,13 +494,13 @@ it(
     function (): void {
         $cacheDir = sys_get_temp_dir() . '/latte-demo-no-mk-' . bin2hex(random_bytes(8));
         mkdir($cacheDir, 0755, true);
-    
+
         $frontendPath = dirname(__DIR__, 2) . '/../frontend';
         $frontendDemoPath = dirname(__DIR__, 2);
         $basePath = dirname(__DIR__, 4);
-    
+
         $manifestCreated = demoTestEnsureManifest($basePath);
-    
+
         $config = new ConfigRepository([
             'frontend_demo' => ['enabled' => true],
             'vite' => [
@@ -518,18 +518,18 @@ it(
                 'strict_types' => false,
             ],
         ]);
-    
+
         $router = demoTestBuildRouter($config, $frontendPath, $frontendDemoPath, $basePath, $cacheDir);
         $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo']);
         $response = $router->handle($request);
-    
+
         $body = $response->body();
         expect($body)->toContain('<markommerce-counter');
         expect($body)->not->toContain('<mk-');
-    
+
         demoTestCleanup($cacheDir);
         if ($manifestCreated) {
             @unlink($basePath . '/public/build/.vite/manifest.json');
         }
-    }
+    },
 );

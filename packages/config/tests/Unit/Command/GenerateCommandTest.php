@@ -120,7 +120,7 @@ it('expands the class list via PreferenceAwareScanner so preferenced subclasses 
     $extendedPath = $targetDir . DIRECTORY_SEPARATOR . str_replace(
         '\\',
         DIRECTORY_SEPARATOR,
-        $extendedProxyFqn
+        $extendedProxyFqn,
     ) . '.php';
 
     $result = runGenerateCommand($command);

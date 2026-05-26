@@ -251,22 +251,22 @@ it(
     function (): void {
         $key = random_bytes(SODIUM_CRYPTO_SECRETBOX_KEYBYTES);
         $cipher = new SodiumSecretCipher($key);
-    
+
         $storage = new InMemoryConfigStorage();
         $registry = (new ConfigRegistryBuilder())->build(
             [SecretGlobalConfig::class],
-            new FakeScopeRegistry(['store'])
+            new FakeScopeRegistry(['store']),
         );
-    
+
         $writer = new ConfigWriter(
             registry: $registry,
             storage: $storage,
             cipher: $cipher,
         );
-    
+
         $originalValue = 'super-secret-api-key-12345';
         $writer->setGlobal('secret/test.apiKey', $originalValue);
-    
+
         $resolver = new ConfigResolver(
             configRegistry: $registry,
             configStorage: $storage,
@@ -277,9 +277,9 @@ it(
             proxyLocator: new ProxyLocator(),
             preferenceRegistry: new PreferenceRegistry(),
         );
-    
+
         $resolved = $resolver->resolved(SecretGlobalConfig::class, 'apiKey');
-    
+
         expect($resolved)->toBe($originalValue);
-    }
+    },
 );

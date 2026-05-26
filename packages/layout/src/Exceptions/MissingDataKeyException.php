@@ -9,8 +9,7 @@ class MissingDataKeyException extends LayoutException
     public static function forKey(
         string $key,
         string $component,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Missing data key '$key' required by component '$component'.",
             context: "Preparing data for component '$component' — required key '$key' is absent from the data bag.",
@@ -22,8 +21,7 @@ class MissingDataKeyException extends LayoutException
         string $key,
         string $component,
         string $chain,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Missing data key '$key' required by component '$component'.",
             context: "Preparing data for component '$component' at [$chain] — required key '$key' is absent from the DTO.",

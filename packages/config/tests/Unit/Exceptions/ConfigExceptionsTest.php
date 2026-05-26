@@ -20,7 +20,7 @@ it(
             'Markommerce\Catalog\Config\CatalogConfig',
             'Markommerce\Catalog\Config\OverrideCatalogConfig',
         );
-    
+
         expect($exception)->toBeInstanceOf(ConfigKeyConflictException::class)
             ->and($exception)->toBeInstanceOf(MarkoException::class)
             ->and($exception->getMessage())->toContain('markommerce/catalog.grid_page_size')
@@ -28,7 +28,7 @@ it(
             ->and($exception->getMessage())->toContain('Markommerce\Catalog\Config\OverrideCatalogConfig')
             ->and($exception->getContext())->not->toBeEmpty()
             ->and($exception->getSuggestion())->not->toBeEmpty();
-    }
+    },
 );
 
 it(
@@ -37,13 +37,13 @@ it(
         $exception = InvalidConfigClassException::configClassHasRequiredConstructor(
             'Markommerce\Catalog\Config\CatalogConfig',
         );
-    
+
         expect($exception)->toBeInstanceOf(InvalidConfigClassException::class)
             ->and($exception)->toBeInstanceOf(MarkoException::class)
             ->and($exception->getMessage())->toContain('Markommerce\Catalog\Config\CatalogConfig')
             ->and($exception->getContext())->not->toBeEmpty()
             ->and($exception->getSuggestion())->not->toBeEmpty();
-    }
+    },
 );
 
 it(
@@ -53,14 +53,14 @@ it(
             'Markommerce\Catalog\Config\CatalogConfig',
             'gridPageSize',
         );
-    
+
         expect($exception)->toBeInstanceOf(InvalidConfigClassException::class)
             ->and($exception)->toBeInstanceOf(MarkoException::class)
             ->and($exception->getMessage())->toContain('Markommerce\Catalog\Config\CatalogConfig')
             ->and($exception->getMessage())->toContain('gridPageSize')
             ->and($exception->getContext())->not->toBeEmpty()
             ->and($exception->getSuggestion())->not->toBeEmpty();
-    }
+    },
 );
 
 it(
@@ -70,14 +70,14 @@ it(
             'Markommerce\Catalog\Config\CatalogConfig',
             'Markommerce\Vendor\Config\VendorConfig',
         );
-    
+
         expect($exception)->toBeInstanceOf(InvalidConfigClassException::class)
             ->and($exception)->toBeInstanceOf(MarkoException::class)
             ->and($exception->getMessage())->toContain('Markommerce\Catalog\Config\CatalogConfig')
             ->and($exception->getMessage())->toContain('Markommerce\Vendor\Config\VendorConfig')
             ->and($exception->getContext())->not->toBeEmpty()
             ->and($exception->getSuggestion())->not->toBeEmpty();
-    }
+    },
 );
 
 it(
@@ -92,7 +92,7 @@ it(
             'status',
             'union types are not supported',
         );
-    
+
         expect($withoutAttribute)->toBeInstanceOf(InvalidConfigClassException::class)
             ->and($withoutAttribute)->toBeInstanceOf(MarkoException::class)
             ->and($withoutAttribute->getMessage())->toContain('Markommerce\Catalog\Config\CatalogConfig')
@@ -105,7 +105,7 @@ it(
             ->and($withUnsupportedType->getMessage())->toContain('union types are not supported')
             ->and($withUnsupportedType->getContext())->not->toBeEmpty()
             ->and($withUnsupportedType->getSuggestion())->not->toBeEmpty();
-    }
+    },
 );
 
 it(
@@ -116,7 +116,7 @@ it(
             'not-a-number',
             'int',
         );
-    
+
         expect($exception)->toBeInstanceOf(InvalidConfigValueException::class)
             ->and($exception)->toBeInstanceOf(MarkoException::class)
             ->and($exception->getMessage())->toContain('markommerce/catalog.grid_page_size')
@@ -124,34 +124,34 @@ it(
             ->and($exception->getMessage())->toContain('int')
             ->and($exception->getContext())->not->toBeEmpty()
             ->and($exception->getSuggestion())->not->toBeEmpty();
-    }
+    },
 );
 
 it(
     'creates ProxyNotGeneratedException with a config:generate suggestion when a typed proxy is missing at runtime',
     function (): void {
         $exception = ProxyNotGeneratedException::forClass('Markommerce\Catalog\Config\CatalogConfig');
-    
+
         expect($exception)->toBeInstanceOf(ProxyNotGeneratedException::class)
             ->and($exception)->toBeInstanceOf(MarkoException::class)
             ->and($exception->getMessage())->toContain('Markommerce\Catalog\Config\CatalogConfig')
             ->and($exception->getContext())->not->toBeEmpty()
             ->and($exception->getSuggestion())->toContain('config:generate');
-    }
+    },
 );
 
 it(
     'creates StaleConfigWriteException naming the key and retry count after optimistic-lock retries are exhausted',
     function (): void {
         $exception = StaleConfigWriteException::afterRetries('markommerce/catalog.grid_page_size', 3);
-    
+
         expect($exception)->toBeInstanceOf(StaleConfigWriteException::class)
             ->and($exception)->toBeInstanceOf(MarkoException::class)
             ->and($exception->getMessage())->toContain('markommerce/catalog.grid_page_size')
             ->and($exception->getMessage())->toContain('3')
             ->and($exception->getContext())->not->toBeEmpty()
             ->and($exception->getSuggestion())->not->toBeEmpty();
-    }
+    },
 );
 
 it(
@@ -161,26 +161,26 @@ it(
             'markommerce/catalog.grid_page_size',
             'store',
         );
-    
+
         expect($exception)->toBeInstanceOf(AxisNotDeclaredException::class)
             ->and($exception)->toBeInstanceOf(MarkoException::class)
             ->and($exception->getMessage())->toContain('markommerce/catalog.grid_page_size')
             ->and($exception->getMessage())->toContain('store')
             ->and($exception->getContext())->not->toBeEmpty()
             ->and($exception->getSuggestion())->not->toBeEmpty();
-    }
+    },
 );
 
 it(
     'creates SecretCipherException via factory notConfigured naming MARKOMMERCE_CONFIG_SECRET_KEY in the suggestion',
     function (): void {
         $exception = SecretCipherException::notConfigured();
-    
+
         expect($exception)->toBeInstanceOf(SecretCipherException::class)
             ->and($exception)->toBeInstanceOf(MarkoException::class)
             ->and($exception->getContext())->not->toBeEmpty()
             ->and($exception->getSuggestion())->toContain('MARKOMMERCE_CONFIG_SECRET_KEY');
-    }
+    },
 );
 
 it(
@@ -189,7 +189,7 @@ it(
         $sodiumUnavailable = SecretCipherException::sodiumUnavailable();
         $invalidKeyLength = SecretCipherException::invalidKeyLength(16, 32);
         $tamperedCiphertext = SecretCipherException::tamperedCiphertext('markommerce/catalog.secret_key');
-    
+
         expect($sodiumUnavailable)->toBeInstanceOf(SecretCipherException::class)
             ->and($sodiumUnavailable)->toBeInstanceOf(MarkoException::class)
             ->and($sodiumUnavailable->getMessage())->not->toBeEmpty()
@@ -204,18 +204,18 @@ it(
             ->and($tamperedCiphertext->getMessage())->toContain('markommerce/catalog.secret_key')
             ->and($tamperedCiphertext->getContext())->not->toBeEmpty()
             ->and($tamperedCiphertext->getSuggestion())->not->toBeEmpty();
-    }
+    },
 );
 
 it(
     'creates ConfigNotFoundException with the missing key in message and a how-to-register suggestion',
     function (): void {
         $exception = ConfigNotFoundException::forKey('markommerce/catalog.grid_page_size');
-    
+
         expect($exception)->toBeInstanceOf(ConfigNotFoundException::class)
             ->and($exception)->toBeInstanceOf(MarkoException::class)
             ->and($exception->getMessage())->toContain('markommerce/catalog.grid_page_size')
             ->and($exception->getContext())->not->toBeEmpty()
             ->and($exception->getSuggestion())->toContain('register');
-    }
+    },
 );

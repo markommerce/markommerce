@@ -23,8 +23,7 @@ class ProductService
         string $sku,
         string $name,
         ?string $description = null,
-    ): Product
-    {
+    ): Product {
         $existing = $this->productRepository->findBySku($sku);
 
         if ($existing !== null) {

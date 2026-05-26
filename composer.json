@@ -29,7 +29,8 @@
         "psr-4": {
             "Markommerce\\Catalog\\Tests\\": "packages/catalog/tests/",
             "Markommerce\\Config\\Tests\\": "packages/config/tests/",
-            "Markommerce\\Layout\\Tests\\": "packages/layout/tests/"
+            "Markommerce\\Layout\\Tests\\": "packages/layout/tests/",
+            "Markommerce\\Scope\\Tests\\": "packages/scope/tests/"
         }
     },
     "require-dev": {

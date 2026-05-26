@@ -12,6 +12,7 @@ use Markommerce\Scope\Exceptions\InvalidSignatureForAttributeException;
 use Markommerce\Scope\Exceptions\MultiAxisWalkAtNotSupportedException;
 use Markommerce\Scope\Exceptions\ScopeContextException;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use Markommerce\Scope\Resolution\ScopeWalker;
@@ -95,8 +96,7 @@ function makeResolverRegistry(array $axes = ['store' => ['global', 'global.us']]
         public function __construct(
             array $axes,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
                 $default = $defaults[$name] ?? '__test_default';
@@ -134,7 +134,7 @@ function makeResolverSetup(): array
 {
     $registry = makeResolverRegistry();
     $context = new ScopeContext($registry);
-    $scopeMetaFactory = new ScopeMetadataFactory($registry);
+    $scopeMetaFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
     $validator = new ScopeSignatureValidator($registry);
 
@@ -307,7 +307,7 @@ it(
         // Build a resolver with NO extenders registered for ResolverProduct
         $registry = makeResolverRegistry();
         $context = new ScopeContext($registry);
-        $scopeMetaFactory = new ScopeMetadataFactory($registry);
+        $scopeMetaFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
         $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
         $validator = new ScopeSignatureValidator($registry);
         $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
@@ -385,7 +385,7 @@ it(
     function (): void {
         $registry = makeResolverRegistry();
         $context = new ScopeContext($registry);
-        $scopeMetaFactory = new ScopeMetadataFactory($registry);
+        $scopeMetaFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
         $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
         $validator = new ScopeSignatureValidator($registry);
         $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
@@ -401,7 +401,7 @@ it(
 it('ScopeResolver setOverride works on a trait-based entity', function (): void {
     $registry = makeResolverRegistry();
     $context = new ScopeContext($registry);
-    $scopeMetaFactory = new ScopeMetadataFactory($registry);
+    $scopeMetaFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
     $validator = new ScopeSignatureValidator($registry);
     $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
@@ -417,7 +417,7 @@ it('ScopeResolver setOverride works on a trait-based entity', function (): void 
 it('ScopeResolver setOverride works when a manual HasScopesInterface companion is attached', function (): void {
     $registry = makeResolverRegistry();
     $context = new ScopeContext($registry);
-    $scopeMetaFactory = new ScopeMetadataFactory($registry);
+    $scopeMetaFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
     $validator = new ScopeSignatureValidator($registry);
     $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
@@ -437,7 +437,7 @@ it(
         $registry = makeResolverRegistry();
         $context = new ScopeContext($registry);
         $context->in('store', 'global.us');
-        $scopeMetaFactory = new ScopeMetadataFactory($registry);
+        $scopeMetaFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
         $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
         $validator = new ScopeSignatureValidator($registry);
         $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
@@ -548,7 +548,7 @@ it('setOverride accepts a two-axis composite signature for a two-axis attribute'
         'currency' => ['usd', 'eur'],
     ]);
     $context = new ScopeContext($registry);
-    $scopeMetaFactory = new ScopeMetadataFactory($registry);
+    $scopeMetaFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
     $validator = new ScopeSignatureValidator($registry);
     $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
@@ -568,7 +568,7 @@ it('setOverride accepts a partial signature (subset of the attribute axes)', fun
         'currency' => ['usd', 'eur'],
     ]);
     $context = new ScopeContext($registry);
-    $scopeMetaFactory = new ScopeMetadataFactory($registry);
+    $scopeMetaFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
     $validator = new ScopeSignatureValidator($registry);
     $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
@@ -624,7 +624,7 @@ it('resolvedAt delegates to walkAt which throws on multi-axis signatures', funct
         'currency' => ['usd', 'eur'],
     ]);
     $context = new ScopeContext($registry);
-    $scopeMetaFactory = new ScopeMetadataFactory($registry);
+    $scopeMetaFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
     $validator = new ScopeSignatureValidator($registry);
     $resolver = new ScopeResolver($scopeMetaFactory, $walker, $context, $validator);
@@ -643,7 +643,7 @@ it(
         $registry = makeResolverRegistry();
         $context = new ScopeContext($registry);
         $context->in('store', 'global.us');
-        $scopeMetaFactory = new ScopeMetadataFactory($registry);
+        $scopeMetaFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
         $walker = new ScopeWalker(new SignatureCandidateEnumerator($registry));
 
         $callCount = 0;

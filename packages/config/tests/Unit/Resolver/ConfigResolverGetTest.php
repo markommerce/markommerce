@@ -74,16 +74,16 @@ it(
     function (): void {
         $preferenceRegistry = new PreferenceRegistry();
         $preferenceRegistry->register(SampleConfig::class, ExtendedSampleConfig::class);
-    
+
         $resolver = makeGetTestResolver([SampleConfig::class], preferenceRegistry: $preferenceRegistry);
-    
+
         $proxy = $resolver->get(SampleConfig::class);
-    
+
         expect($proxy)->toBeInstanceOf(ExtendedSampleConfig::class);
         expect($proxy)->toBeInstanceOf(
             'Markommerce\\Config\\Generated\\Markommerce\\Config\\Tests\\Unit\\Resolver\\Fixtures\\ExtendedSampleConfig_Resolved',
         );
-    }
+    },
 );
 
 it('instantiates the proxy with the resolver as the __resolver dependency', function (): void {
@@ -100,11 +100,11 @@ it(
     'throws ProxyNotGeneratedException with a config:generate suggestion when the proxy class is missing',
     function (): void {
         // Use a class whose proxy has not been generated (not registered with our autoloader)
-    $resolver = makeGetTestResolver([UnrelatedConfig::class]);
-    
+        $resolver = makeGetTestResolver([UnrelatedConfig::class]);
+
         expect(fn () => $resolver->get(UnrelatedConfig::class))
             ->toThrow(ProxyNotGeneratedException::class);
-    }
+    },
 );
 
 it(
@@ -112,16 +112,16 @@ it(
     function (): void {
         $preferenceRegistry = new PreferenceRegistry();
         // Register UnrelatedConfig as a preference for SampleConfig — it does NOT extend SampleConfig
-    $preferenceRegistry->register(SampleConfig::class, UnrelatedConfig::class);
-    
+        $preferenceRegistry->register(SampleConfig::class, UnrelatedConfig::class);
+
         $resolver = makeGetTestResolver(
             [SampleConfig::class, UnrelatedConfig::class],
-            preferenceRegistry: $preferenceRegistry
+            preferenceRegistry: $preferenceRegistry,
         );
-    
+
         expect(fn () => $resolver->get(SampleConfig::class))
             ->toThrow(InvalidConfigClassException::class);
-    }
+    },
 );
 
 it(
@@ -134,11 +134,11 @@ it(
             overrides: [],
             version: 0,
         ), 0);
-    
+
         $resolver = makeGetTestResolver([SampleConfig::class], $storage);
-    
+
         $proxy = $resolver->get(SampleConfig::class);
-    
+
         expect($proxy->greeting)->toBe('Stored greeting');
-    }
+    },
 );

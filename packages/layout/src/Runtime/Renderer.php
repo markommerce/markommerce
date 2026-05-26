@@ -386,8 +386,7 @@ class Renderer implements RendererInterface
     private function inlineSlots(
         string $html,
         array $slotHtml,
-    ): string
-    {
+    ): string {
         foreach ($slotHtml as $slotName => $content) {
             $html = preg_replace(
                 '/\{slot ' . preg_quote($slotName, '/') . '\}.*?\{\/slot\}/s',

@@ -132,8 +132,7 @@ class FakeProductRepository implements ProductRepositoryInterface
     private function matchesCriteria(
         Product $product,
         array $criteria,
-    ): bool
-    {
+    ): bool {
         return array_all(
             array_keys($criteria),
             fn (string $key) => $product->$key === $criteria[$key],

@@ -35,8 +35,7 @@ class DHM_FakeRouteMatcher implements RouteMatcherInterface
     public function match(
         string $method,
         string $path,
-    ): ?MatchedRoute
-    {
+    ): ?MatchedRoute {
         return $this->matched;
     }
 }
@@ -67,8 +66,7 @@ class DHM_FakeRenderer implements RendererInterface
         PreparedTree $tree,
         Request $request,
         array $routeParams,
-    ): string
-    {
+    ): string {
         $this->lastTree = $tree;
 
         return '<html>rendered</html>';
@@ -124,8 +122,7 @@ class DHM_FakeContainer implements ContainerInterface
     public function bind(
         string $class,
         object $instance,
-    ): void
-    {
+    ): void {
         $this->bindings[$class] = $instance;
     }
 
@@ -150,8 +147,7 @@ class DHM_FakeContainer implements ContainerInterface
     public function instance(
         string $id,
         object $instance,
-    ): void
-    {
+    ): void {
         $this->bindings[$id] = $instance;
     }
 
@@ -519,15 +515,15 @@ it(
         $controller = 'App\\Controller\\ProductController';
         $action = 'show';
         $handleKey = $controller . '::' . $action;
-    
+
         $renderer = new DHM_FakeRenderer();
         // Artifact has no entry for this handle
-    $middleware = dhm_makeMiddleware(
+        $middleware = dhm_makeMiddleware(
             matched: dhm_makeRoute($controller, $action),
             artifact: [],
             renderer: $renderer,
         );
-    
+
         $nextCalled = false;
         $middleware->handle(
             dhm_makeRequest(),
@@ -537,10 +533,10 @@ it(
                 return new Response('next response', 200);
             },
         );
-    
+
         expect($renderer->lastTree)->toBeNull();
         expect($nextCalled)->toBeTrue();
-    }
+    },
 );
 
 // =============================================================================
@@ -573,23 +569,23 @@ it(
         $controller = 'App\\Controller\\ProductController';
         $action = 'show';
         $handleKey = $controller . '::' . $action;
-    
+
         $baseContextValue = new stdClass();
         $dynamicContextValue = new stdClass();
-    
+
         $baseContextProviderInstance = new DHM_FakeContextProvider($baseContextValue);
         $dynamicContextProviderInstance = new DHM_FakeContextProvider($dynamicContextValue);
-    
+
         $baseContextProvide = new Provide('BaseToken', DHM_FakeContextProvider::class . '_base', []);
         $dynamicContextProvide = new Provide('DynamicToken', DHM_FakeContextProvider::class . '_dynamic', []);
-    
+
         $handleProviderInstance = new DHM_SpyHandleProvider(['dynamic-handle']);
-    
+
         $container = new DHM_FakeContainer();
         $container->bind(DHM_SpyHandleProvider::class, $handleProviderInstance);
         $container->bind(DHM_FakeContextProvider::class . '_base', $baseContextProviderInstance);
         $container->bind(DHM_FakeContextProvider::class . '_dynamic', $dynamicContextProviderInstance);
-    
+
         $baseTree = dhm_makeTree(
             handleKey: $handleKey,
             context: [$baseContextProvide],
@@ -599,7 +595,7 @@ it(
             handleKey: 'dynamic-handle',
             context: [$dynamicContextProvide],
         );
-    
+
         $renderer = new DHM_FakeRenderer();
         $middleware = dhm_makeMiddleware(
             matched: dhm_makeRoute($controller, $action),
@@ -607,18 +603,18 @@ it(
             renderer: $renderer,
             container: $container,
         );
-    
+
         $middleware->handle(
             dhm_makeRequest(),
             static fn (Request $r): Response => new Response('ok', 200),
         );
-    
+
         assert($renderer->lastTree !== null);
         // Base context providers come first, dynamic ones are appended
-    expect($renderer->lastTree->context)->toHaveCount(2);
+        expect($renderer->lastTree->context)->toHaveCount(2);
         expect($renderer->lastTree->context[0]->token)->toBe('BaseToken');
         expect($renderer->lastTree->context[1]->token)->toBe('DynamicToken');
-    }
+    },
 );
 
 // =============================================================================
@@ -632,30 +628,30 @@ it(
         $controller = 'App\\Controller\\ProductController';
         $action = 'show';
         $handleKey = $controller . '::' . $action;
-    
+
         // Provider returns a handle key that does not exist in the artifact
-    $provider = new DHM_SpyHandleProvider(['nonexistent-handle']);
+        $provider = new DHM_SpyHandleProvider(['nonexistent-handle']);
         $container = new DHM_FakeContainer();
         $container->bind(DHM_SpyHandleProvider::class, $provider);
-    
+
         $baseTree = dhm_makeTree(
             handleKey: $handleKey,
             handleProviders: [new ProvideHandle(provider: DHM_SpyHandleProvider::class, props: [])],
         );
-    
+
         $renderer = new DHM_FakeRenderer();
         $middleware = dhm_makeMiddleware(
             matched: dhm_makeRoute($controller, $action),
             artifact: [$handleKey => $baseTree], // 'nonexistent-handle' is NOT in the artifact
-        renderer: $renderer,
+            renderer: $renderer,
             container: $container,
         );
-    
+
         expect(
             fn () => $middleware->handle(
                 dhm_makeRequest(),
                 static fn (Request $r): Response => new Response('ok', 200),
             ),
         )->toThrow(UnknownDynamicHandleException::class);
-    }
+    },
 );

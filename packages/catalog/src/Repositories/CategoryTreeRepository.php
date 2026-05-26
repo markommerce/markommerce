@@ -27,8 +27,7 @@ class CategoryTreeRepository extends Repository implements CategoryTreeRepositor
     }
 
     /**
-     * @throws DefaultTreeMissingException
-     * @throws RepositoryException
+     * @throws DefaultTreeMissingException|RepositoryException
      */
     public function findDefault(): CategoryTree
     {

@@ -34,8 +34,7 @@ readonly class ScopeResolutionCommandPlugin
     public function beforeExecute(
         Input $input,
         Output $output,
-    ): void
-    {
+    ): void {
         $this->scopeResolutionPipeline->clear();
         $this->scopeResolutionPipeline->run(SyntheticRequest::create(), ScopeResolutionContext::CHANNEL_CLI);
     }
@@ -45,8 +44,7 @@ readonly class ScopeResolutionCommandPlugin
         int $result,
         Input $input,
         Output $output,
-    ): int
-    {
+    ): int {
         $this->scopeResolutionPipeline->clear();
 
         return $result;

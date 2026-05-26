@@ -14,8 +14,7 @@ class Source
     public static function route(
         string $name,
         string $as = 'string',
-    ): RouteSource
-    {
+    ): RouteSource {
         self::assertValidCast($as);
 
         return new RouteSource($name, $as);
@@ -25,8 +24,7 @@ class Source
         string $name,
         mixed $default = null,
         string $as = 'string',
-    ): QuerySource
-    {
+    ): QuerySource {
         self::assertValidCast($as);
 
         return new QuerySource($name, $default, $as);
@@ -35,24 +33,21 @@ class Source
     public static function context(
         string $token,
         ?string $path = null,
-    ): ContextSource
-    {
+    ): ContextSource {
         return new ContextSource($token, $path);
     }
 
     public static function iterated(
         string $token,
         ?string $path = null,
-    ): IteratedSource
-    {
+    ): IteratedSource {
         return new IteratedSource($token, $path);
     }
 
     public static function parentData(
         string $key,
         string $as = 'string',
-    ): ParentDataSource
-    {
+    ): ParentDataSource {
         return new ParentDataSource($key, $as);
     }
 

@@ -10,8 +10,7 @@ class ExtensionConflictException extends LayoutException
         string $operation,
         string $conflictingOperation,
         int $priority,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Extension conflict between '$operation' and '$conflictingOperation' at priority $priority.",
             context: "Applying layout extension operations '$operation' and '$conflictingOperation' both registered at priority $priority.",

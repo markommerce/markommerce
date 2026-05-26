@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Marko\Config\ConfigRepository;
 use Marko\Config\ConfigRepositoryInterface;
 use Marko\Core\Container\Container;
 use Marko\Core\Container\ContainerInterface;
@@ -10,6 +11,7 @@ use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Exceptions\NoDriverException;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Query\ScopedFieldRendererInterface;
 use Markommerce\Scope\Query\ScopedOrderByFactory;
@@ -146,3 +148,122 @@ it('constructs PhpScopeRegistry from injected config repository', function (): v
 
     expect($result)->toBeInstanceOf(PhpScopeRegistry::class);
 });
+
+it('module.php registers ScopedFieldRegistry as a singleton', function (): void {
+    $module = require dirname(__DIR__, 2) . '/module.php';
+
+    expect($module['singletons'])->toContain(ScopedFieldRegistry::class);
+});
+
+it('it resolves ScopedFieldRegistry from a real container with scope\'s module loaded', function (): void {
+    $rawConfig = require dirname(__DIR__, 2) . '/config/scope.php';
+    $config = new ConfigRepository(['scope' => $rawConfig]);
+
+    $container = new Container();
+    $container->instance(ConfigRepositoryInterface::class, $config);
+
+    $module = require dirname(__DIR__, 2) . '/module.php';
+
+    foreach ($module['singletons'] as $singleton) {
+        $container->singleton($singleton);
+    }
+
+    foreach ($module['bindings'] as $interface => $implementation) {
+        $container->bind($interface, $implementation);
+    }
+
+    $result = $container->get(ScopedFieldRegistry::class);
+
+    expect($result)->toBeInstanceOf(ScopedFieldRegistry::class);
+});
+
+it(
+    'it returns the same ScopedFieldRegistry instance on repeated container resolutions (singleton)',
+    function (): void {
+        $rawConfig = require dirname(__DIR__, 2) . '/config/scope.php';
+        $config = new ConfigRepository(['scope' => $rawConfig]);
+
+        $container = new Container();
+        $container->instance(ConfigRepositoryInterface::class, $config);
+
+        $module = require dirname(__DIR__, 2) . '/module.php';
+
+        foreach ($module['singletons'] as $singleton) {
+            $container->singleton($singleton);
+        }
+
+        foreach ($module['bindings'] as $interface => $implementation) {
+            $container->bind($interface, $implementation);
+        }
+
+        $first = $container->get(ScopedFieldRegistry::class);
+        $second = $container->get(ScopedFieldRegistry::class);
+
+        expect($first)->toBe($second);
+    },
+);
+
+it('it injects the same ScopedFieldRegistry instance into ScopeMetadataFactory via the container', function (): void {
+    $rawConfig = require dirname(__DIR__, 2) . '/config/scope.php';
+    $config = new ConfigRepository(['scope' => $rawConfig]);
+
+    $container = new Container();
+    $container->instance(ConfigRepositoryInterface::class, $config);
+
+    $module = require dirname(__DIR__, 2) . '/module.php';
+
+    foreach ($module['singletons'] as $singleton) {
+        $container->singleton($singleton);
+    }
+
+    foreach ($module['bindings'] as $interface => $implementation) {
+        $container->bind($interface, $implementation);
+    }
+
+    $registry = $container->get(ScopedFieldRegistry::class);
+    $factory = $container->get(ScopeMetadataFactory::class);
+
+    // The factory must hold the same ScopedFieldRegistry instance
+    // We verify by registering a field in the registry and checking the factory uses it
+    $registry->register(
+        entityClass: ScopedFieldRegistry::class,
+        property: 'map',
+        axes: ['locale'],
+    );
+
+    $metadata = $factory->for(ScopedFieldRegistry::class);
+
+    expect($metadata->scopedProperties())->toContain('map');
+});
+
+it(
+    'it allows register() to succeed without scope\'s boot closure having run, because PhpScopeRegistry resolves its axes at construction time',
+    function (): void {
+        $rawConfig = require dirname(__DIR__, 2) . '/config/scope.php';
+        $config = new ConfigRepository(['scope' => $rawConfig]);
+
+        $container = new Container();
+        $container->instance(ConfigRepositoryInterface::class, $config);
+
+        $module = require dirname(__DIR__, 2) . '/module.php';
+
+        foreach ($module['singletons'] as $singleton) {
+            $container->singleton($singleton);
+        }
+
+        foreach ($module['bindings'] as $interface => $implementation) {
+            $container->bind($interface, $implementation);
+        }
+
+        // Deliberately skip invoking ($module['boot'])($container)
+        $registry = $container->get(ScopedFieldRegistry::class);
+
+        // ScopedFieldRegistry::class itself exists, and 'locale' is a known axis in PhpScopeRegistry
+        // because PhpScopeRegistry reads its axes directly from config at construction time — no boot needed.
+        expect(fn () => $registry->register(
+            entityClass: ScopedFieldRegistry::class,
+            property: 'map',
+            axes: ['locale'],
+        ))->not->toThrow(Throwable::class);
+    },
+);

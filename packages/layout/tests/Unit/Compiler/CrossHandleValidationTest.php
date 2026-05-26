@@ -105,28 +105,28 @@ it(
     'defines a #[ProvidesHandles(...)] PHP attribute that providers can use to declare their static return set',
     function (): void {
         $reflection = new ReflectionClass(ProvidesHandles::class);
-    
+
         // Is a PHP Attribute
-    $attrAttributes = $reflection->getAttributes(Attribute::class);
+        $attrAttributes = $reflection->getAttributes(Attribute::class);
         expect($attrAttributes)->not->toBeEmpty();
-    
+
         $attributeInstance = $attrAttributes[0]->newInstance();
         expect($attributeInstance->flags & Attribute::TARGET_CLASS)->not->toBe(0);
-    
+
         // Has a public $handles property
-    expect($reflection->hasProperty('handles'))->toBeTrue();
+        expect($reflection->hasProperty('handles'))->toBeTrue();
         $handlesProp = $reflection->getProperty('handles');
         expect($handlesProp->isPublic())->toBeTrue();
-    
+
         // Can annotate a class and its values are accessible via reflection
-    $providerReflection = new ReflectionClass(CrossStaticProvider::class);
+        $providerReflection = new ReflectionClass(CrossStaticProvider::class);
         $attrs = $providerReflection->getAttributes(ProvidesHandles::class);
         expect($attrs)->toHaveCount(1);
-    
+
         /** @var ProvidesHandles $instance */
         $instance = $attrs[0]->newInstance();
         expect($instance->handles)->toBe(['cross.dynamic.a', 'cross.dynamic.b']);
-    }
+    },
 );
 
 // =============================================================================
@@ -142,27 +142,27 @@ it(
                 'main' => [cross_makePlace('shared.placement')],
             ],
         );
-    
+
         $baseLayout = cross_makeLayout(
             handleKey: 'base.handle',
             slots: [
                 'main' => [cross_makePlace('shared.placement')],  // same name as dynamic
-        ],
+            ],
             handleProviders: [
                 new ProvideHandle(provider: CrossStaticProvider::class, props: []),
             ],
         );
-    
+
         $resolvedLayouts = [
             'cross.dynamic.a' => $dynamicALayout,
             'cross.dynamic.b' => cross_makeLayout(handleKey: 'cross.dynamic.b'),
             'base.handle' => $baseLayout,
         ];
-    
+
         $validator = new ValidationPhase();
         expect(fn () => $validator->validate($resolvedLayouts))
             ->toThrow(DynamicHandleConflictException::class);
-    }
+    },
 );
 
 // =============================================================================
@@ -179,18 +179,18 @@ it(
             ],
             placementNames: ['shared.placement'],
         );
-    
+
         $addition = cross_makePreparedTree(
             handleKey: 'opaque.dynamic',
             slots: [
                 'main' => [cross_makePreparedPlace('shared.placement')],  // conflict
-        ],
+            ],
         );
-    
+
         $merger = new TreeMerger();
         expect(fn () => $merger->merge($base, [$addition]))
             ->toThrow(DynamicHandleConflictException::class);
-    }
+    },
 );
 
 // =============================================================================
@@ -204,26 +204,26 @@ it(
             handleKey: 'cross.dynamic.a',
             context: [new Provide('shared.token', 'SomeProvider', [])],
         );
-    
+
         $baseLayout = cross_makeLayout(
             handleKey: 'base.handle',
             slots: [],
             context: [new Provide('shared.token', 'AnotherProvider', [])],  // same token
-        handleProviders: [
+            handleProviders: [
                 new ProvideHandle(provider: CrossStaticProvider::class, props: []),
             ],
         );
-    
+
         $resolvedLayouts = [
             'cross.dynamic.a' => $dynamicALayout,
             'cross.dynamic.b' => cross_makeLayout(handleKey: 'cross.dynamic.b'),
             'base.handle' => $baseLayout,
         ];
-    
+
         $validator = new ValidationPhase();
         expect(fn () => $validator->validate($resolvedLayouts))
             ->toThrow(DuplicateContextTokenException::class);
-    }
+    },
 );
 
 // =============================================================================
@@ -290,30 +290,30 @@ it(
     'throws ChainedHandleProviderException at compile time when a statically-known dynamic handle\'s tree declares its own handleProviders',
     function (): void {
         // cross.dynamic.a itself has handleProviders — not allowed
-    $dynamicALayout = cross_makeLayout(
+        $dynamicALayout = cross_makeLayout(
             handleKey: 'cross.dynamic.a',
             handleProviders: [
                 new ProvideHandle(provider: CrossOpaqueProvider::class, props: []),
             ],
         );
-    
+
         $baseLayout = cross_makeLayout(
             handleKey: 'base.handle',
             handleProviders: [
                 new ProvideHandle(provider: CrossStaticProvider::class, props: []),
             ],
         );
-    
+
         $resolvedLayouts = [
             'cross.dynamic.a' => $dynamicALayout,
             'cross.dynamic.b' => cross_makeLayout(handleKey: 'cross.dynamic.b'),
             'base.handle' => $baseLayout,
         ];
-    
+
         $validator = new ValidationPhase();
         expect(fn () => $validator->validate($resolvedLayouts))
             ->toThrow(ChainedHandleProviderException::class);
-    }
+    },
 );
 
 // =============================================================================
@@ -324,16 +324,16 @@ it(
     'throws ChainedHandleProviderException at runtime when an opaque provider returns a handle whose tree declares handleProviders',
     function (): void {
         $base = cross_makePreparedTree(handleKey: 'base.handle');
-    
+
         $addition = cross_makePreparedTree(
             handleKey: 'opaque.dynamic',
             handleProviders: [
                 new ProvideHandle(provider: CrossOpaqueProvider::class, props: []),
             ],
         );
-    
+
         $merger = new TreeMerger();
         expect(fn () => $merger->merge($base, [$addition]))
             ->toThrow(ChainedHandleProviderException::class);
-    }
+    },
 );

@@ -12,12 +12,12 @@ it(
     function () use ($validKey): void {
         $cipher = new SodiumSecretCipher($validKey);
         $plaintext = 'my secret value';
-    
+
         $ciphertext = $cipher->encrypt($plaintext);
         $decrypted = $cipher->decrypt($ciphertext);
-    
+
         expect($decrypted)->toBe($plaintext);
-    }
+    },
 );
 
 it(
@@ -25,12 +25,12 @@ it(
     function () use ($validKey): void {
         $cipher = new SodiumSecretCipher($validKey);
         $plaintext = 'my secret value';
-    
+
         $ciphertext1 = $cipher->encrypt($plaintext);
         $ciphertext2 = $cipher->encrypt($plaintext);
-    
+
         expect($ciphertext1)->not->toBe($ciphertext2);
-    }
+    },
 );
 
 it(
@@ -38,7 +38,7 @@ it(
     function () use ($validKey): void {
         expect(fn () => new SodiumSecretCipher($validKey, sodiumAvailable: false))
             ->toThrow(SecretCipherException::class);
-    }
+    },
 );
 
 it('throws an exception when constructed with a key of the wrong length', function (): void {

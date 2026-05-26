@@ -162,8 +162,7 @@ class FakeCategoryTreeMarketAssignmentRepository implements CategoryTreeMarketAs
     private function matchesCriteria(
         CategoryTreeMarketAssignment $assignment,
         array $criteria,
-    ): bool
-    {
+    ): bool {
         return array_all(
             array_keys($criteria),
             fn (string $key) => $assignment->$key === $criteria[$key],

@@ -10,6 +10,6 @@ use Markommerce\ThemeBlankDemo\Controller\ThemeBlankDemoController;
 #[Component(
     template: 'theme-blank-demo::showcase',
     handle: [ThemeBlankDemoController::class, 'index'],
-    slot: 'content'
+    slot: 'content',
 )]
 class ThemeBlankShowcaseComponent {}

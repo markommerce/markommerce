@@ -12,8 +12,7 @@ class GalleryComponent
     public function data(
         GalleryEntity $gallery,
         int $page,
-    ): GalleryData
-    {
+    ): GalleryData {
         return new GalleryData(
             title: $gallery->title,
             page: $page,

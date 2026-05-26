@@ -79,56 +79,49 @@ function bootModuleContainer(
         public function get(
             string $key,
             ?string $scope = null,
-        ): mixed
-        {
+        ): mixed {
             return $this->config[$key] ?? null;
         }
 
         public function has(
             string $key,
             ?string $scope = null,
-        ): bool
-        {
+        ): bool {
             return array_key_exists($key, $this->config);
         }
 
         public function getString(
             string $key,
             ?string $scope = null,
-        ): string
-        {
+        ): string {
             return (string) ($this->config[$key] ?? '');
         }
 
         public function getInt(
             string $key,
             ?string $scope = null,
-        ): int
-        {
+        ): int {
             return (int) ($this->config[$key] ?? 0);
         }
 
         public function getBool(
             string $key,
             ?string $scope = null,
-        ): bool
-        {
+        ): bool {
             return (bool) ($this->config[$key] ?? false);
         }
 
         public function getFloat(
             string $key,
             ?string $scope = null,
-        ): float
-        {
+        ): float {
             return (float) ($this->config[$key] ?? 0.0);
         }
 
         public function getArray(
             string $key,
             ?string $scope = null,
-        ): array
-        {
+        ): array {
             return (array) ($this->config[$key] ?? []);
         }
 
@@ -191,9 +184,9 @@ it(
     'does not bind ConfigStorageInterface — a driver package (e.g. config-pgsql) must provide the implementation',
     function (): void {
         $moduleArray = require dirname(__DIR__, 2) . '/module.php';
-    
+
         expect($moduleArray['bindings'])->not->toHaveKey(ConfigStorageInterface::class);
-    }
+    },
 )->group('integration-destructive');
 
 it('registers PreferenceRegistry as an instance in the container during boot', function (): void {
@@ -331,10 +324,10 @@ it(
     function (): void {
         putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
         $container = bootModuleContainer();
-    
+
         expect(fn () => $container->get(SecretCipherInterface::class))
             ->toThrow(SecretCipherException::class);
-    }
+    },
 )->group('integration-destructive');
 
 it(
@@ -347,32 +340,32 @@ it(
             UnsetCommand::class,
             GenerateCommand::class,
         ];
-    
+
         foreach ($commandClasses as $class) {
             $reflection = new ReflectionClass($class);
             $attributes = $reflection->getAttributes(Command::class);
-    
+
             expect($attributes)->not->toBeEmpty("Command attribute missing on $class");
         }
-    
+
         expect($commandClasses)->toHaveCount(5);
-    }
+    },
 )->group('integration-destructive');
 
 it(
     'registers ConfigCacheResetMiddleware in globalMiddleware so RequestConfigCache is cleared per request',
     function (): void {
         $moduleArray = require dirname(__DIR__, 2) . '/module.php';
-    
+
         $middleware = $moduleArray['globalMiddleware'] ?? [];
-    
+
         $found = array_any(
             $middleware,
             fn ($entry) => isset($entry['class']) && $entry['class'] === ConfigCacheResetMiddleware::class,
         );
-    
+
         expect($found)->toBeTrue();
-    }
+    },
 )->group('integration-destructive');
 
 it(
@@ -380,16 +373,16 @@ it(
     function (): void {
         $key = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
         putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $key);
-    
+
         try {
             $container = bootModuleContainer();
             $cipher = $container->get(SecretCipherInterface::class);
-    
+
             expect($cipher)->toBeInstanceOf(SodiumSecretCipher::class);
         } finally {
             putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
         }
-    }
+    },
 )->group('integration-destructive');
 
 it(
@@ -397,31 +390,31 @@ it(
     function (): void {
         $key = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
         putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $key);
-    
+
         try {
             $container = bootModuleContainer();
             $resolver = $container->get(ConfigResolver::class);
-    
+
             expect($resolver)->toBeInstanceOf(CachingConfigResolver::class);
         } finally {
             putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
         }
-    }
+    },
 )->group('integration-destructive');
 
 it(
     'generates a missing proxy at boot when markommerce.config.auto_regenerate is true and the proxy file is absent',
     function (): void {
         $generatedDir = sys_get_temp_dir() . '/markommerce-regen-missing-test-' . uniqid() . '/var/generated/config';
-    
+
         $tempModuleDir = sys_get_temp_dir() . '/markommerce-regen-missing-module-' . uniqid();
         $srcDir = $tempModuleDir . '/src/Config';
         mkdir($srcDir, 0755, true);
-    
+
         $namespace = 'Markommerce\\Config\\Tests\\TempRegenMissing\\Config';
         $className = 'TempRegenMissingConfig' . uniqid('', false);
         $configKey = 'temp/regen-missing.' . uniqid('', false);
-    
+
         file_put_contents($srcDir . '/' . $className . '.php', <<<PHP
         <?php
         declare(strict_types=1);
@@ -432,46 +425,46 @@ it(
             public string \$value = 'default';
         }
         PHP);
-    
+
         require $srcDir . '/' . $className . '.php';
-    
+
         $manifest = new ModuleManifest(
             name: 'test/regen-missing',
             version: '1.0.0',
             path: $tempModuleDir,
             source: 'vendor',
         );
-    
+
         bootModuleContainer(
             modules: [$manifest],
             markoConfig: ['markommerce.config.auto_regenerate' => true],
             generatedDir: $generatedDir,
         );
-    
+
         $fqn = $namespace . '\\' . $className;
         $locator = new ProxyLocator();
         $proxyClass = $locator->proxyClassFor($fqn);
         $proxyRelative = str_replace('\\', DIRECTORY_SEPARATOR, $proxyClass) . '.php';
         $proxyFile = rtrim($generatedDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $proxyRelative;
-    
+
         expect(file_exists($proxyFile))->toBeTrue();
-    }
+    },
 )->group('integration-destructive');
 
 it(
     'regenerates a stale proxy at boot when markommerce.config.auto_regenerate is true and the config class source is newer than the proxy file',
     function (): void {
         $generatedDir = sys_get_temp_dir() . '/markommerce-regen-stale-test-' . uniqid() . '/var/generated/config';
-    
+
         $tempModuleDir = sys_get_temp_dir() . '/markommerce-regen-stale-module-' . uniqid();
         $srcDir = $tempModuleDir . '/src/Config';
         mkdir($srcDir, 0755, true);
-    
+
         $namespace = 'Markommerce\\Config\\Tests\\TempRegenStale\\Config';
         $className = 'TempRegenStaleConfig' . uniqid('', false);
         $configKey = 'temp/regen-stale.' . uniqid('', false);
         $sourceFile = $srcDir . '/' . $className . '.php';
-    
+
         file_put_contents($sourceFile, <<<PHP
         <?php
         declare(strict_types=1);
@@ -482,38 +475,38 @@ it(
             public string \$value = 'default';
         }
         PHP);
-    
+
         require $sourceFile;
-    
+
         $fqn = $namespace . '\\' . $className;
         $locator = new ProxyLocator();
         $proxyClass = $locator->proxyClassFor($fqn);
         $proxyRelative = str_replace('\\', DIRECTORY_SEPARATOR, $proxyClass) . '.php';
         $proxyFile = rtrim($generatedDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $proxyRelative;
-    
+
         // Pre-create a stale proxy file (older than the source)
-    mkdir(dirname($proxyFile), 0755, true);
+        mkdir(dirname($proxyFile), 0755, true);
         file_put_contents($proxyFile, '<?php // stale');
         touch($proxyFile, time() - 200);
         touch($sourceFile, time() - 100);
-    
+
         $staleContent = file_get_contents($proxyFile);
-    
+
         $manifest = new ModuleManifest(
             name: 'test/regen-stale',
             version: '1.0.0',
             path: $tempModuleDir,
             source: 'vendor',
         );
-    
+
         bootModuleContainer(
             modules: [$manifest],
             markoConfig: ['markommerce.config.auto_regenerate' => true],
             generatedDir: $generatedDir,
         );
-    
+
         expect(file_get_contents($proxyFile))->not->toBe($staleContent);
-    }
+    },
 )->group('integration-destructive');
 
 it('does NOT regenerate any proxy at boot when markommerce.config.auto_regenerate is false', function (): void {

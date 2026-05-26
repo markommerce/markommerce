@@ -67,8 +67,7 @@ class EPT_ReviewStarsPlugin
     public function data(
         mixed $result,
         int $id,
-    ): EPT_ProductCardData
-    {
+    ): EPT_ProductCardData {
         /** @var EPT_ProductCardData $result */
         return $result->withExtension(new EPT_ReviewStarsExtension(stars: 4.8));
     }

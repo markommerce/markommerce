@@ -25,7 +25,7 @@ it(
         $content = file_get_contents(__DIR__ . '/../../README.md');
         expect($content)->toContain('DB_')
             ->and($content)->toContain('MARKOMMERCE_CONFIG_SECRET_KEY');
-    }
+    },
 );
 
 it('links to the interface package README and the docs site for usage', function (): void {
