@@ -72,12 +72,12 @@ function productGridBuildComponent(
         $assignmentRepository,
     );
 
-    return new ProductGridComponent($categoryRepository, $service);
+    return new ProductGridComponent($service);
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-it('takes only CategoryRepositoryInterface and CategoryAssignmentService in its constructor (no ScopeResolver)', function (): void {
+it('takes only CategoryAssignmentService in its constructor (no ScopeResolver, no direct repository)', function (): void {
     $reflection = new ReflectionClass(ProductGridComponent::class);
     $constructor = $reflection->getConstructor();
 
@@ -87,12 +87,11 @@ it('takes only CategoryRepositoryInterface and CategoryAssignmentService in its 
     $paramNames = array_map(fn ($p) => $p->getName(), $params);
     $paramTypes = array_map(fn ($p) => $p->getType()?->getName(), $params);
 
-    expect($params)->toHaveCount(2);
-    expect($paramNames)->toContain('categoryRepository');
+    expect($params)->toHaveCount(1);
     expect($paramNames)->toContain('categoryAssignmentService');
+    expect($paramNames)->not->toContain('categoryRepository');
     expect($paramNames)->not->toContain('scopeResolver');
 
-    expect($paramTypes)->toContain(CategoryRepositoryInterface::class);
     expect($paramTypes)->toContain(CategoryAssignmentService::class);
 });
 
@@ -208,7 +207,7 @@ it('skips products with null id when building the resolved maps', function (): v
 
     $assignmentService->assign($productWithId->id, $category->id);
 
-    $component = new ProductGridComponent($categoryRepository, $assignmentService);
+    $component = new ProductGridComponent($assignmentService);
     $data = $component->data($category);
 
     // Only the product with a real id appears in the maps

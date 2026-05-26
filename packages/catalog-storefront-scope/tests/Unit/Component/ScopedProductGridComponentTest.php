@@ -113,7 +113,6 @@ function scopedGridBuildComponent(
     );
 
     return new ScopedProductGridComponent(
-        categoryRepository: $categoryRepository,
         categoryAssignmentService: $service,
         scopeResolver: $scopeResolver,
     );
@@ -132,12 +131,12 @@ it('carries the #[Preference(replaces: ProductGridComponent::class)] attribute',
     expect($preference->replaces)->toBe(ProductGridComponent::class);
 });
 
-it('extends Markommerce\\Catalog\\Component\\ProductGridComponent', function (): void {
+it('extends Markommerce\\CatalogStorefront\\Component\\ProductGridComponent', function (): void {
     expect(ScopedProductGridComponent::class)
         ->toExtend(ProductGridComponent::class);
 });
 
-it('accepts CategoryRepositoryInterface, CategoryAssignmentService, and ScopeResolver in its constructor', function (): void {
+it('accepts CategoryAssignmentService and ScopeResolver in its constructor (no direct repository)', function (): void {
     $reflection = new ReflectionClass(ScopedProductGridComponent::class);
     $constructor = $reflection->getConstructor();
 
@@ -146,10 +145,10 @@ it('accepts CategoryRepositoryInterface, CategoryAssignmentService, and ScopeRes
     $params = $constructor->getParameters();
     $paramNames = array_map(fn ($p) => $p->getName(), $params);
 
-    expect($paramNames)->toContain('categoryRepository');
+    expect($paramNames)->not->toContain('categoryRepository');
     expect($paramNames)->toContain('categoryAssignmentService');
     expect($paramNames)->toContain('scopeResolver');
-    expect($params)->toHaveCount(3);
+    expect($params)->toHaveCount(2);
 });
 
 it('returns a ProductGridData populated by parent::data() then overwrites resolvedNames with values from ScopeResolver::resolved', function (): void {
@@ -296,16 +295,12 @@ it('is resolved by the container as the preferred binding for ProductGridCompone
 
     $container = new Container($registry);
 
-    // Bind interfaces required to wire ScopedProductGridComponent
+    // Bind services required to wire ScopedProductGridComponent
     $categoryRepository = new FakeCategoryRepository();
     $productRepository = new FakeProductRepository();
     $assignmentRepository = new FakeProductCategoryAssignmentRepository();
     [$scopeResolver] = scopedGridMakeResolver();
 
-    $container->bind(
-        \Markommerce\Catalog\Contracts\CategoryRepositoryInterface::class,
-        fn () => $categoryRepository,
-    );
     $container->bind(
         \Markommerce\Catalog\Services\CategoryAssignmentService::class,
         fn () => new \Markommerce\Catalog\Services\CategoryAssignmentService(

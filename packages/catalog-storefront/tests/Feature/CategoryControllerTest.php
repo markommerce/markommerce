@@ -219,7 +219,7 @@ function catalogControllerTestBuildRouter(
     $container->instance(CategoryController::class, new CategoryController($categoryRepository));
     $container->instance(CategoryAssignmentService::class, $assignmentService);
 
-    $productGridComponent = new ProductGridComponent($categoryRepository, $assignmentService);
+    $productGridComponent = new ProductGridComponent($assignmentService);
     $container->instance(ProductGridComponent::class, $productGridComponent);
     $container->instance(ProductCard::class, new ProductCard());
     $container->instance(StockBadge::class, new StockBadge());

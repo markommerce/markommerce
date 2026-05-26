@@ -338,7 +338,7 @@ function buildTier1Container(
     $categoryController = new CategoryController($categoryRepository);
     $inner->instance(CategoryController::class, $categoryController);
 
-    $productGridComponent = new ProductGridComponent($categoryRepository, $assignmentService);
+    $productGridComponent = new ProductGridComponent($assignmentService);
     $inner->instance(ProductGridComponent::class, $productGridComponent);
     $inner->instance(ProductCard::class, new ProductCard());
     $inner->instance(StockBadge::class, new StockBadge());

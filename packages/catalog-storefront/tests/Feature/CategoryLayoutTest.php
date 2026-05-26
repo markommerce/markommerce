@@ -224,7 +224,7 @@ it('returns a typed ProductGridData DTO from the grid component data method', fu
         $assignmentRepository,
     );
 
-    $component = new ProductGridComponent($categoryRepository, $assignmentService);
+    $component = new ProductGridComponent($assignmentService);
     $data = $component->data($category);
 
     expect($data)->toBeInstanceOf(ProductGridData::class);
@@ -315,7 +315,7 @@ it('renders the category page with a grid of product cards', function (): void {
     $container->instance(CategoryController::class, new CategoryController($categoryRepository));
     $container->instance(CategoryAssignmentService::class, $assignmentService);
 
-    $productGridComponent = new ProductGridComponent($categoryRepository, $assignmentService);
+    $productGridComponent = new ProductGridComponent($assignmentService);
     $container->instance(ProductGridComponent::class, $productGridComponent);
 
     // Register CategoryDataProvider that uses the fake repository

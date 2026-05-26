@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Markommerce\CatalogStorefront\Component;
 
 use Marko\Database\Exceptions\RepositoryException;
-use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
@@ -14,7 +13,6 @@ use Markommerce\Layout\ExtensionBag;
 class ProductGridComponent
 {
     public function __construct(
-        private CategoryRepositoryInterface $categoryRepository,
         private CategoryAssignmentService $categoryAssignmentService,
     ) {}
 

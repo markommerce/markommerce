@@ -47,8 +47,8 @@ it('asserts every package that ships CSS exposes those files via package.json ex
     }
 });
 
-it('asserts catalog/package.json specifically exports ./css/components/*.css', function (): void {
-    $packageJsonPath = __DIR__ . '/../../packages/catalog/package.json';
+it('asserts catalog-storefront/package.json specifically exports ./css/components/*.css', function (): void {
+    $packageJsonPath = __DIR__ . '/../../packages/catalog-storefront/package.json';
 
     expect($packageJsonPath)->toBeFile();
 

@@ -6,7 +6,6 @@ namespace Markommerce\CatalogStorefrontScope\Component;
 
 use Marko\Core\Attributes\Preference;
 use Marko\Database\Exceptions\RepositoryException;
-use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
 use Markommerce\Catalog\Entity\Category;
@@ -20,11 +19,10 @@ use Markommerce\Scope\Resolver\ScopeResolver;
 class ScopedProductGridComponent extends ProductGridComponent
 {
     public function __construct(
-        CategoryRepositoryInterface $categoryRepository,
         CategoryAssignmentService $categoryAssignmentService,
         private ScopeResolver $scopeResolver,
     ) {
-        parent::__construct($categoryRepository, $categoryAssignmentService);
+        parent::__construct($categoryAssignmentService);
     }
 
     /**
