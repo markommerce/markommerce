@@ -28,6 +28,8 @@ declare(strict_types=1);
 
 return [
     'axes' => [
+        // The locale axis is contributed by markommerce/locale.
+        // Copy this block into your app's config/scope.php and extend it.
         'locale' => [
             'default' => 'default',
             'scopes'  => [
@@ -66,7 +68,7 @@ return [
 ];
 ```
 
-The package ships a minimal `config/scope.php` with `locale`, `market`, and `channel` axes as a starting point. Extend it with the scope paths your application needs.
+The package ships a minimal `config/scope.php` with `market` and `channel` axes as a starting point. Extend it with the scope paths your application needs. The `locale` axis is contributed by the separate [markommerce/locale](/docs/packages/locale/) package --- install it to make the `locale` axis available.
 
 Paths use dot notation. `walkUp('eu.de')` yields `['eu.de', 'eu']`, so a value set at `eu` is inherited by `eu.de` when no `eu.de`-specific override exists.
 
@@ -849,4 +851,7 @@ If the resolver needs constructor arguments that are not in the container, use t
 ## Related Packages
 
 - [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver
+- [markommerce/catalog-locale](/docs/packages/catalog-locale/) --- Canonical bridge example: registers catalog `Product` and `Category` fields as locale-scoped via `ScopedFieldRegistry` at boot
+- [markommerce/locale](/docs/packages/locale/) --- Declares the `locale` axis for the scope system
+- [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- Adds scope storage to catalog entities via companion entities
 - [marko/database](https://marko.build/docs/packages/database/) --- Entity system and `QuerySpecification` interface

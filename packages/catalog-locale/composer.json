@@ -1,0 +1,35 @@
+{
+    "name": "markommerce/catalog-locale",
+    "description": "Locale field bridge for catalog entities — registers Product and Category locale-scoped fields via ScopedFieldRegistry at boot",
+    "license": "MIT",
+    "type": "marko-module",
+    "require": {
+        "php": "^8.5",
+        "markommerce/catalog-scope": "self.version",
+        "markommerce/locale": "self.version"
+    },
+    "require-dev": {
+        "marko/testing": "self.version",
+        "pestphp/pest": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Markommerce\\CatalogLocale\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Markommerce\\CatalogLocale\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "marko": {
+            "module": true
+        }
+    }
+}

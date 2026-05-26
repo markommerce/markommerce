@@ -1,0 +1,87 @@
+<?php
+
+declare(strict_types=1);
+
+it('has no markommerce/scope entry in the require block of catalog\'s composer.json', function (): void {
+    $manifest = json_decode(
+        file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
+        true,
+    );
+
+    $require = $manifest['require'] ?? [];
+
+    expect($require)->not->toHaveKey('markommerce/scope');
+});
+
+it('has no markommerce/scope-pgsql entry in the require block of catalog\'s composer.json (it never had one, but assert anyway)', function (): void {
+    $manifest = json_decode(
+        file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
+        true,
+    );
+
+    $require = $manifest['require'] ?? [];
+
+    expect($require)->not->toHaveKey('markommerce/scope-pgsql');
+});
+
+it('lists markommerce/catalog-scope, markommerce/locale, and markommerce/catalog-locale in the root composer.json require block', function (): void {
+    $rootManifest = json_decode(
+        file_get_contents(dirname(__DIR__, 4) . '/composer.json'),
+        true,
+    );
+
+    $require = $rootManifest['require'] ?? [];
+
+    expect($require)
+        ->toHaveKey('markommerce/catalog-scope')
+        ->toHaveKey('markommerce/locale')
+        ->toHaveKey('markommerce/catalog-locale');
+});
+
+it('registers Markommerce\\CatalogScope\\Tests\\, Markommerce\\Locale\\Tests\\, and Markommerce\\CatalogLocale\\Tests\\ in the root composer.json autoload-dev.psr-4', function (): void {
+    $rootManifest = json_decode(
+        file_get_contents(dirname(__DIR__, 4) . '/composer.json'),
+        true,
+    );
+
+    $autoloadDev = $rootManifest['autoload-dev']['psr-4'] ?? [];
+
+    expect($autoloadDev)
+        ->toHaveKey('Markommerce\\CatalogScope\\Tests\\')
+        ->toHaveKey('Markommerce\\Locale\\Tests\\')
+        ->toHaveKey('Markommerce\\CatalogLocale\\Tests\\');
+});
+
+it('passes the full catalog test suite after the dependency is removed', function (): void {
+    $catalogManifest = json_decode(
+        file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
+        true,
+    );
+
+    $require = $catalogManifest['require'] ?? [];
+    $requireDev = $catalogManifest['require-dev'] ?? [];
+
+    expect($require)->not->toHaveKey('markommerce/scope');
+    expect($requireDev)->not->toHaveKey('markommerce/scope');
+    expect($require)->not->toHaveKey('markommerce/scope-pgsql');
+    expect($requireDev)->not->toHaveKey('markommerce/scope-pgsql');
+});
+
+it('succeeds composer dump-autoload at the monorepo root after the change', function (): void {
+    $rootDir = dirname(__DIR__, 4);
+    $rootManifest = json_decode(
+        file_get_contents($rootDir . '/composer.json'),
+        true,
+    );
+
+    expect($rootManifest)->not->toBeNull('Root composer.json must be valid JSON');
+
+    $autoloadDevPsr4 = $rootManifest['autoload-dev']['psr-4'] ?? [];
+
+    foreach ($autoloadDevPsr4 as $namespace => $path) {
+        $absolutePath = $rootDir . '/' . $path;
+        expect(is_dir($absolutePath))->toBeTrue(
+            "autoload-dev path for $namespace does not exist: $absolutePath",
+        );
+    }
+});

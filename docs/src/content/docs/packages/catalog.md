@@ -1,9 +1,9 @@
 ---
 title: markommerce/catalog
-description: Products and categories for Markommerce — locale-scoped names, globally-unique SKUs, per-market category trees, and a ready-made storefront route.
+description: Products and categories for Markommerce — globally-unique SKUs, per-market category trees, and a ready-made storefront route.
 ---
 
-Products and categories for Markommerce. `markommerce/catalog` provides the `Product` and `Category` entities, repository interfaces, services, a storefront controller, and a database seeder. Products carry a globally-unique SKU and locale-scoped `name`/`description` fields; categories carry locale-scoped `name`/`description` fields. Category placement in navigation is managed separately through category trees --- each market can have its own tree or fall back to a shared default, and the same category may appear at multiple positions within a tree. All scoped fields use `markommerce/scope` for per-locale value resolution with automatic hierarchy fallback.
+Products and categories for Markommerce. `markommerce/catalog` provides the `Product` and `Category` entities, repository interfaces, services, a storefront controller, and a database seeder. Products carry a globally-unique SKU; categories carry a name and optional description. Category placement in navigation is managed separately through category trees --- each market can have its own tree or fall back to a shared default, and the same category may appear at multiple positions within a tree. Scope support is not built into `markommerce/catalog` --- the package ships with no scope dependency. To add locale-scoped overrides to catalog entities, install [markommerce/catalog-scope](/docs/packages/catalog-scope/) (storage layer) and [markommerce/catalog-locale](/docs/packages/catalog-locale/) (field registration bridge).
 
 ## Installation
 
@@ -34,19 +34,7 @@ try {
 }
 ```
 
-To add locale-scoped overrides, call `setOverride()` on the entity directly and save via the repository:
-
-```php
-<?php
-
-declare(strict_types=1);
-
-use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
-
-$product->setOverride('locale:de', 'name', 'Widget DE');
-$product->setOverride('locale:fr', 'name', 'Widget FR');
-$productRepository->save($product);
-```
+To add locale-scoped overrides, install [markommerce/catalog-scope](/docs/packages/catalog-scope/) and [markommerce/catalog-locale](/docs/packages/catalog-locale/).
 
 ### Creating a category
 
@@ -63,8 +51,6 @@ use Markommerce\Catalog\Entity\Category;
 $category = new Category();
 $category->name = 'Widgets';
 $category->description = 'All widget products.';
-$category->setOverride('locale:de', 'name', 'Widgets DE');
-$category->setOverride('locale:fr', 'name', 'Widgets FR');
 $categoryRepository->save($category);
 ```
 
@@ -370,14 +356,14 @@ return new Layout(
 
 ### ProductGridComponent
 
-`ProductGridComponent` is a placement-agnostic component. Its `data(Category $category)` method receives the resolved `Category` context object, loads the assigned products, and resolves locale-scoped `name` and `description` via `ScopeResolver`. It returns a `ProductGridData` DTO:
+`ProductGridComponent` is a placement-agnostic component. Its `data(Category $category)` method receives the resolved `Category` context object, loads the assigned products, and populates `resolvedNames` and `resolvedDescs` with the raw entity values. It returns a `ProductGridData` DTO. When [markommerce/catalog-scope](/docs/packages/catalog-scope/) is installed, its `ScopedProductGridComponent` Preference replaces this component and performs locale-aware resolution instead:
 
 | Property | Type | Description |
 |---|---|---|
 | `$category` | `Category` | The resolved category entity |
 | `$products` | `list<Product>` | All products assigned to the category |
-| `$resolvedNames` | `array<int, string>` | Locale-resolved name keyed by product ID |
-| `$resolvedDescs` | `array<int, string\|null>` | Locale-resolved description keyed by product ID |
+| `$resolvedNames` | `array<int, string>` | Display name keyed by product ID (raw value; scope-resolved when `catalog-scope` is installed) |
+| `$resolvedDescs` | `array<int, string\|null>` | Display description keyed by product ID (raw value; scope-resolved when `catalog-scope` is installed) |
 | `$extensions` | `ExtensionBag` | Typed extension attributes (third-party use) |
 
 ### ProductCard and ProductCardData
@@ -387,8 +373,8 @@ return new Layout(
 | Property | Type | Description |
 |---|---|---|
 | `$product` | `Product` | The product entity |
-| `$resolvedName` | `string` | Locale-resolved product name |
-| `$resolvedDesc` | `string` | Locale-resolved product description |
+| `$resolvedName` | `string` | Display name (raw value; scope-resolved when `catalog-scope` is installed) |
+| `$resolvedDesc` | `string` | Display description (raw value; scope-resolved when `catalog-scope` is installed) |
 | `$inStock` | `bool` | Whether the product is currently in stock |
 | `$extensions` | `ExtensionBag` | Typed extension attributes (third-party use) |
 
@@ -396,13 +382,17 @@ Both `ProductGridData` and `ProductCardData` extend `ExtensibleData`, allowing t
 
 ### Seeder
 
-The `catalog` seeder populates 5 sample categories and 5 000 sample products, distributes products across categories, ensures a default category tree exists, and places all categories as root nodes of that tree. Categories have `locale:de` and `locale:fr` overrides applied; product overrides are added at random (10% probability per locale per product):
+The `catalog` seeder populates 5 sample categories and 5 000 sample products, distributes products across categories, ensures a default category tree exists, and places all categories as root nodes of that tree:
 
 ```bash
 php artisan db:seed --seeder=catalog
 ```
 
-> **Note:** The `locale:de` and `locale:fr` overrides only resolve once those locales are registered in `config/scope.php`. See [markommerce/scope](/docs/packages/scope/) for axis configuration.
+To also seed locale-scoped overrides for product and category names, run the `catalog-locale` seeder provided by [markommerce/catalog-scope](/docs/packages/catalog-scope/):
+
+```bash
+php artisan db:seed --seeder=catalog-locale
+```
 
 ## Module Bindings
 
@@ -429,10 +419,10 @@ Table: `catalog_products`
 |---|---|---|---|
 | `$id` | `?int` | `id` | Primary key, auto-increment |
 | `$sku` | `string` | `sku` (unique, length 64) | Globally unique; enforced at DB and service level |
-| `$name` | `string` | `name` (length 255) | Scoped to `locale` axis |
-| `$description` | `?string` | `description` (text, nullable) | Scoped to `locale` axis |
+| `$name` | `string` | `name` (length 255) | |
+| `$description` | `?string` | `description` (text, nullable) | |
 
-Implements `HasScopesInterface` via the `HasScopes` trait. Use `setOverride(string $signature, string $property, mixed $value)` to attach locale-scoped values before persisting.
+Scoped override support is not built into this entity. Install [markommerce/catalog-scope](/docs/packages/catalog-scope/) to add a `scopes` column and `HasScopesInterface` support via a companion entity.
 
 #### `Category`
 
@@ -441,10 +431,10 @@ Table: `catalog_categories`
 | Property | Type | Column | Notes |
 |---|---|---|---|
 | `$id` | `?int` | `id` | Primary key, auto-increment |
-| `$name` | `string` | `name` (length 255) | Scoped to `locale` axis |
-| `$description` | `?string` | `description` (text, nullable) | Scoped to `locale` axis |
+| `$name` | `string` | `name` (length 255) | |
+| `$description` | `?string` | `description` (text, nullable) | |
 
-Implements `HasScopesInterface` via the `HasScopes` trait.
+Scoped override support is not built into this entity. Install [markommerce/catalog-scope](/docs/packages/catalog-scope/) to add a `scopes` column and `HasScopesInterface` support via a companion entity.
 
 #### `ProductCategoryAssignment`
 
@@ -617,7 +607,9 @@ All exceptions extend `MarkoException` and carry a `message`, `context`, and `su
 
 ## Related Packages
 
-- [markommerce/scope](/docs/packages/scope/) --- Scoped attribute resolution used by `Product` and `Category` entities
+- [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- Adds `HasScopesInterface` support to `Product` and `Category` via companion entities; required if you want scoped overrides on catalog entities
+- [markommerce/catalog-locale](/docs/packages/catalog-locale/) --- Bridge that registers `name` and `description` as locale-scoped on `Product` and `Category`
+- [markommerce/scope](/docs/packages/scope/) --- Scoped attribute resolution engine
 - [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver required to persist and query scoped overrides
 - [markommerce/layout](/docs/packages/layout/) --- Layout resolution, typed component data DTOs, and extension operations used by the category storefront page
 - [markommerce/theme-blank](/docs/packages/theme-blank/) --- Provides `OneColumnLayout` and other `LayoutDefinition` classes extended by the category layout

@@ -1,0 +1,34 @@
+{
+    "name": "markommerce/locale",
+    "description": "Locale axis declaration for Markommerce — contributes the locale axis to scope.axes",
+    "license": "MIT",
+    "type": "marko-module",
+    "require": {
+        "php": "^8.5",
+        "markommerce/scope": "self.version"
+    },
+    "require-dev": {
+        "marko/testing": "self.version",
+        "pestphp/pest": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Markommerce\\Locale\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Markommerce\\Locale\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "marko": {
+            "module": true
+        }
+    }
+}

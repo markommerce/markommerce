@@ -1,11 +1,17 @@
 # markommerce/catalog
 
-Products and categories for Markommerce --- locale-scoped names, globally-unique SKUs, per-market category trees, and a ready-made storefront route.
+Products and categories for Markommerce --- globally-unique SKUs, per-market category trees, and a ready-made storefront route.
 
 ## Installation
 
 ```bash
 composer require markommerce/catalog
+```
+
+Scope override support is optional. To add scoped field storage to catalog entities, install the companion bridge package:
+
+```bash
+composer require markommerce/catalog-scope
 ```
 
 ## Quick Example
@@ -15,8 +21,8 @@ composer require markommerce/catalog
 
 declare(strict_types=1);
 
+use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Entity\Category;
-use Markommerce\Catalog\Enum\NodeRemovalStrategy;
 use Markommerce\Catalog\Services\CategoryTreeService;
 use Markommerce\Catalog\Services\ProductService;
 
@@ -37,16 +43,16 @@ $activeTree = $categoryTreeService->resolveTreeForMarket('market:eu');
 
 ## Storefront Route
 
-`GET /catalog/category/{id}` — returns the category and its products. Registered automatically by the module.
+`GET /catalog/category/{id}` --- returns the category and its products. Registered automatically by the module.
 
 ## Seeder
 
 ```bash
-# Seed 5 000 products, categories, and a default tree (locale:de and locale:fr overrides included)
-php artisan db:seed --class=catalog
+# Seed 5 000 products, categories, and a default tree
+php artisan db:seed --seeder=catalog
 ```
 
-The catalog seeder populates products with globally-unique SKUs, categories with locale-scoped names (`locale:de`, `locale:fr`), product-category assignments, and places all seeded categories in the default category tree.
+The catalog seeder populates products with globally-unique SKUs, categories, product-category assignments, and places all seeded categories in the default category tree. Locale-scoped overrides are seeded separately by `markommerce/catalog-scope` (`php artisan db:seed --seeder=catalog-locale`).
 
 ## Documentation
 

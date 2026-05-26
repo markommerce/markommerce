@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Latte\Engine;
-use Marko\Config\ConfigRepository;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
 use Marko\View\Latte\LatteEngineFactory;
@@ -12,6 +11,8 @@ use Marko\View\ModuleTemplateResolver;
 use Marko\View\ViewConfig;
 use Markommerce\Catalog\Component\ProductGridComponent;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
+use Markommerce\Catalog\Contracts\ProductCategoryAssignmentRepositoryInterface;
+use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
 use Markommerce\Catalog\Data\ProductCardData;
 use Markommerce\Catalog\Data\ProductGridData;
 use Markommerce\Catalog\Entity\Category;
@@ -20,35 +21,10 @@ use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
+use Marko\Config\ConfigRepository;
 use Markommerce\Layout\ExtensionBag;
-use Markommerce\Scope\Context\ScopeContext;
-use Markommerce\Scope\Metadata\ScopedFieldRegistry;
-use Markommerce\Scope\Metadata\ScopeMetadataFactory;
-use Markommerce\Scope\Registry\PhpScopeRegistry;
-use Markommerce\Scope\Resolution\ScopeWalker;
-use Markommerce\Scope\Resolver\ScopeResolver;
-use Markommerce\Scope\Signature\ScopeSignatureValidator;
-use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
-use Markommerce\Scope\Storage\DefaultScopeGuard;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function productGridBuildScopeResolver(): ScopeResolver
-{
-    DefaultScopeGuard::reset();
-
-    $rawConfig = require dirname(__DIR__, 4) . '/scope/config/scope.php';
-    $config = new ConfigRepository(['scope' => $rawConfig]);
-    $registry = new PhpScopeRegistry($config);
-
-    $context = new ScopeContext($registry);
-    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
-    $enumerator = new SignatureCandidateEnumerator($registry);
-    $walker = new ScopeWalker($enumerator);
-    $validator = new ScopeSignatureValidator($registry);
-
-    return new ScopeResolver($metadataFactory, $walker, $context, $validator);
-}
 
 function productGridBuildLatte(): Engine
 {
@@ -96,14 +72,12 @@ function productGridBuildComponent(
         $assignmentRepository,
     );
 
-    $scopeResolver = productGridBuildScopeResolver();
-
-    return new ProductGridComponent($categoryRepository, $service, $scopeResolver);
+    return new ProductGridComponent($categoryRepository, $service);
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-it('injects the category repository, assignment service, and scope resolver', function (): void {
+it('takes only CategoryRepositoryInterface and CategoryAssignmentService in its constructor (no ScopeResolver)', function (): void {
     $reflection = new ReflectionClass(ProductGridComponent::class);
     $constructor = $reflection->getConstructor();
 
@@ -113,13 +87,136 @@ it('injects the category repository, assignment service, and scope resolver', fu
     $paramNames = array_map(fn ($p) => $p->getName(), $params);
     $paramTypes = array_map(fn ($p) => $p->getType()?->getName(), $params);
 
+    expect($params)->toHaveCount(2);
     expect($paramNames)->toContain('categoryRepository');
     expect($paramNames)->toContain('categoryAssignmentService');
-    expect($paramNames)->toContain('scopeResolver');
+    expect($paramNames)->not->toContain('scopeResolver');
 
     expect($paramTypes)->toContain(CategoryRepositoryInterface::class);
     expect($paramTypes)->toContain(CategoryAssignmentService::class);
-    expect($paramTypes)->toContain(ScopeResolver::class);
+});
+
+it('has no Markommerce\\Scope imports in the ProductGridComponent class file', function (): void {
+    $source = file_get_contents(dirname(__DIR__, 3) . '/src/Component/ProductGridComponent.php');
+
+    expect($source)->not->toContain('Markommerce\\Scope');
+});
+
+it('returns a ProductGridData with the raw product name in resolvedNames keyed by product id', function (): void {
+    $categoryRepository = new FakeCategoryRepository();
+    $productRepository = new FakeProductRepository();
+    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+
+    $category = new Category();
+    $category->name = 'Shoes';
+    $categoryRepository->save($category);
+
+    $product = new Product();
+    $product->sku = 'SHOE-001';
+    $product->name = 'Running Shoes';
+    $productRepository->save($product);
+
+    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
+    $assignmentService->assign($product->id, $category->id);
+
+    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
+    $data = $component->data($category);
+
+    expect($data->resolvedNames[$product->id])->toBe('Running Shoes');
+});
+
+it('returns a ProductGridData with the raw product description in resolvedDescs keyed by product id', function (): void {
+    $categoryRepository = new FakeCategoryRepository();
+    $productRepository = new FakeProductRepository();
+    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+
+    $category = new Category();
+    $category->name = 'Shoes';
+    $categoryRepository->save($category);
+
+    $product = new Product();
+    $product->sku = 'SHOE-001';
+    $product->name = 'Running Shoes';
+    $product->description = 'Great running shoes';
+    $productRepository->save($product);
+
+    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
+    $assignmentService->assign($product->id, $category->id);
+
+    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
+    $data = $component->data($category);
+
+    expect($data->resolvedDescs[$product->id])->toBe('Great running shoes');
+});
+
+it('returns an empty products list when the category has no id', function (): void {
+    $categoryRepository = new FakeCategoryRepository();
+    $productRepository = new FakeProductRepository();
+    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+
+    $category = new Category();
+    $category->name = 'Unsaved Category';
+    // intentionally NOT saving — category has no id
+
+    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
+    $data = $component->data($category);
+
+    expect($data->products)->toBeEmpty();
+    expect($data->resolvedNames)->toBeEmpty();
+    expect($data->resolvedDescs)->toBeEmpty();
+});
+
+it('skips products with null id when building the resolved maps', function (): void {
+    $categoryRepository = new FakeCategoryRepository();
+    $productRepository = new FakeProductRepository();
+    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+
+    $category = new Category();
+    $category->name = 'Tech';
+    $categoryRepository->save($category);
+
+    $productWithId = new Product();
+    $productWithId->sku = 'TECH-001';
+    $productWithId->name = 'Gadget';
+    $productRepository->save($productWithId);
+
+    $nullIdProduct = new Product();
+    $nullIdProduct->sku = 'NULL-001';
+    $nullIdProduct->name = 'Ghost Product';
+    // id is not set — remains null
+
+    // Use an anonymous subclass of CategoryAssignmentService to inject a null-id product
+    $assignmentService = new class ($productRepository, $categoryRepository, $assignmentRepository, $nullIdProduct) extends CategoryAssignmentService {
+        public function __construct(
+            ProductRepositoryInterface $productRepository,
+            CategoryRepositoryInterface $categoryRepository,
+            ProductCategoryAssignmentRepositoryInterface $assignmentRepository,
+            private Product $extraNullIdProduct,
+        ) {
+            parent::__construct($productRepository, $categoryRepository, $assignmentRepository);
+        }
+
+        /** @return list<Product> */
+        public function productsInCategory(int $categoryId): array
+        {
+            $products = parent::productsInCategory($categoryId);
+            $products[] = $this->extraNullIdProduct;
+
+            return $products;
+        }
+    };
+
+    $assignmentService->assign($productWithId->id, $category->id);
+
+    $component = new ProductGridComponent($categoryRepository, $assignmentService);
+    $data = $component->data($category);
+
+    // Only the product with a real id appears in the maps
+    expect($data->resolvedNames)->toHaveKey($productWithId->id);
+    expect($data->resolvedNames)->toHaveCount(1);
+    expect($data->resolvedDescs)->toHaveKey($productWithId->id);
+    expect($data->resolvedDescs)->toHaveCount(1);
+    expect($data->products)->toHaveCount(2); // both products are in the list, but only one in maps
 });
 
 it('returns a typed ProductGridData DTO from data() for an existing category', function (): void {
@@ -307,35 +404,4 @@ it('renders a muted empty state when the category has no products', function ():
 
     expect($output)->toContain('No products found');
     expect($output)->toContain('muted');
-});
-
-it('resolves product names through ScopeResolver rather than the raw column value', function (): void {
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-
-    $category = new Category();
-    $category->name = 'Tech';
-    $categoryRepository->save($category);
-
-    $product = new Product();
-    $product->sku = 'TECH-001';
-    $product->name = 'Base Product Name';
-    $productRepository->save($product);
-
-    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $assignmentService->assign($product->id, $category->id);
-
-    // Build component with real ScopeResolver
-    $scopeResolver = productGridBuildScopeResolver();
-    $component = new ProductGridComponent($categoryRepository, $assignmentService, $scopeResolver);
-    $data = $component->data($category);
-
-    // In default scope context, resolved() falls back to the base column value.
-    // Verify the resolved name is in the map (not accessed directly from $product->name).
-    expect($data->resolvedNames[$product->id])->toBe('Base Product Name');
-
-    // The resolved name is available in the DTO map for product card rendering.
-    // Product-level rendering is handled by catalog::components/product-card via the layout system.
-    expect($data->resolvedNames[$product->id])->toBe('Base Product Name');
 });

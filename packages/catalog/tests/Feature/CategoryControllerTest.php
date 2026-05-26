@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Marko\Config\ConfigRepository;
 use Marko\Core\Container\ContainerInterface;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
@@ -36,34 +35,8 @@ use Markommerce\Layout\Compiler\ValidationPhase;
 use Markommerce\Layout\Discovery\LayoutDiscovery;
 use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
 use Markommerce\Layout\Runtime\Renderer;
-use Markommerce\Scope\Context\ScopeContext;
-use Markommerce\Scope\Metadata\ScopedFieldRegistry;
-use Markommerce\Scope\Metadata\ScopeMetadataFactory;
-use Markommerce\Scope\Registry\PhpScopeRegistry;
-use Markommerce\Scope\Resolution\ScopeWalker;
-use Markommerce\Scope\Resolver\ScopeResolver;
-use Markommerce\Scope\Signature\ScopeSignatureValidator;
-use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
-use Markommerce\Scope\Storage\DefaultScopeGuard;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function catalogControllerBuildScopeResolver(): ScopeResolver
-{
-    DefaultScopeGuard::reset();
-
-    $rawConfig = require dirname(__DIR__, 3) . '/scope/config/scope.php';
-    $config = new ConfigRepository(['scope' => $rawConfig]);
-    $registry = new PhpScopeRegistry($config);
-
-    $context = new ScopeContext($registry);
-    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
-    $enumerator = new SignatureCandidateEnumerator($registry);
-    $walker = new ScopeWalker($enumerator);
-    $validator = new ScopeSignatureValidator($registry);
-
-    return new ScopeResolver($metadataFactory, $walker, $context, $validator);
-}
 
 function catalogControllerTestCleanup(string $dir): void
 {
@@ -234,7 +207,6 @@ function catalogControllerTestBuildRouter(
     }
     $matcher = new RouteMatcher($routes);
 
-    $scopeResolver = catalogControllerBuildScopeResolver();
     $assignmentService = new CategoryAssignmentService(
         $productRepository,
         $categoryRepository,
@@ -245,10 +217,9 @@ function catalogControllerTestBuildRouter(
     $container->instance(RouteMatcherInterface::class, $matcher);
     $container->instance(CategoryRepositoryInterface::class, $categoryRepository);
     $container->instance(CategoryController::class, new CategoryController($categoryRepository));
-    $container->instance(ScopeResolver::class, $scopeResolver);
     $container->instance(CategoryAssignmentService::class, $assignmentService);
 
-    $productGridComponent = new ProductGridComponent($categoryRepository, $assignmentService, $scopeResolver);
+    $productGridComponent = new ProductGridComponent($categoryRepository, $assignmentService);
     $container->instance(ProductGridComponent::class, $productGridComponent);
     $container->instance(ProductCard::class, new ProductCard());
     $container->instance(StockBadge::class, new StockBadge());

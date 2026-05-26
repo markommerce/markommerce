@@ -5,8 +5,6 @@ declare(strict_types=1);
 use Marko\Database\Attributes\Column;
 use Marko\Database\Attributes\Table;
 use Markommerce\Catalog\Entity\Category;
-use Markommerce\Scope\Attributes\Scoped;
-use Markommerce\Scope\Storage\HasScopesInterface;
 
 it('maps the Category entity to the catalog_categories table', function (): void {
     $reflection = new ReflectionClass(Category::class);
@@ -19,68 +17,39 @@ it('maps the Category entity to the catalog_categories table', function (): void
     expect($table->name)->toBe('catalog_categories');
 });
 
-it('exposes an auto-increment integer primary key id', function (): void {
-    $reflection = new ReflectionClass(Category::class);
-    $property = $reflection->getProperty('id');
-    $attributes = $property->getAttributes(Column::class);
-
-    expect($attributes)->toHaveCount(1);
-
-    $column = $attributes[0]->newInstance();
-
-    expect($column->primaryKey)->toBeTrue()
-        ->and($column->autoIncrement)->toBeTrue();
-
-    $category = new Category();
-    expect($category->id)->toBeNull();
-});
-
-it('marks the name property as scoped on the locale axis', function (): void {
-    $reflection = new ReflectionClass(Category::class);
-    $property = $reflection->getProperty('name');
-    $attributes = $property->getAttributes(Scoped::class);
-
-    expect($attributes)->toHaveCount(1);
-
-    $scoped = $attributes[0]->newInstance();
-
-    expect($scoped->axes)->toBe(['locale']);
-});
-
-it('marks the description property as scoped on the locale axis', function (): void {
-    $reflection = new ReflectionClass(Category::class);
-    $property = $reflection->getProperty('description');
-    $attributes = $property->getAttributes(Scoped::class);
-
-    expect($attributes)->toHaveCount(1);
-
-    $scoped = $attributes[0]->newInstance();
-
-    expect($scoped->axes)->toBe(['locale']);
-});
-
-it('implements HasScopesInterface', function (): void {
+it('does not implement HasScopesInterface on Category', function (): void {
+    $hasScopesInterface = 'Markommerce\\Scope\\Storage\\HasScopesInterface';
     $category = new Category();
 
-    expect($category)->toBeInstanceOf(HasScopesInterface::class);
+    $implements = interface_exists($hasScopesInterface)
+        ? ($category instanceof $hasScopesInterface)
+        : false;
+
+    expect($implements)->toBeFalse();
 });
 
-it('exposes a scopes storage column via the HasScopes trait', function (): void {
+it('does not declare a scopes column on the Category entity reflection', function (): void {
     $reflection = new ReflectionClass(Category::class);
 
-    expect($reflection->hasProperty('scopes'))->toBeTrue();
+    expect($reflection->hasProperty('scopes'))->toBeFalse();
+});
 
-    $property = $reflection->getProperty('scopes');
-    $attributes = $property->getAttributes(Column::class);
+it('has no #[Scoped] attributes on any Category property', function (): void {
+    $scopedClass = 'Markommerce\\Scope\\Attributes\\Scoped';
+    $reflection = new ReflectionClass(Category::class);
 
-    expect($attributes)->toHaveCount(1);
+    foreach ($reflection->getProperties() as $property) {
+        $scopedAttrs = array_filter(
+            $property->getAttributes(),
+            fn ($attr) => $attr->getName() === $scopedClass,
+        );
+        expect(count($scopedAttrs))->toBe(0);
+    }
+});
 
-    $column = $attributes[0]->newInstance();
+it('has no Markommerce\\Scope namespace imports in the Category class file', function (): void {
+    $file = (new ReflectionClass(Category::class))->getFileName();
+    $contents = file_get_contents($file);
 
-    expect($column->name)->toBe('scopes')
-        ->and($column->type)->toBe('json')
-        ->and($column->nullable)->toBeTrue();
-
-    $category = new Category();
-    expect($category->scopes)->toBeNull();
+    expect($contents)->not->toContain('Markommerce\\Scope');
 });

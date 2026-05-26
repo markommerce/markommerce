@@ -17,7 +17,6 @@ use Markommerce\Catalog\Repositories\ProductRepository;
 use Markommerce\Catalog\Seed\CatalogSeeder;
 use Markommerce\Catalog\Services\CategoryTreeService;
 use Markommerce\Catalog\Tests\Feature\Helpers\PostgresTestConnection;
-use Markommerce\Scope\Storage\DefaultScopeGuard;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -69,8 +68,6 @@ function makeSeederWithRealRepos(PostgresTestConnection $conn): array
 beforeEach(function (): void {
     PostgresTestConnection::skipIfUnavailable();
 
-    DefaultScopeGuard::configure(['locale' => 'default']);
-
     $this->conn = new PostgresTestConnection();
 
     // Drop tables from previous runs (handle ordering for FK constraints)
@@ -101,8 +98,7 @@ beforeEach(function (): void {
         'CREATE TABLE IF NOT EXISTS catalog_categories (
             id          SERIAL PRIMARY KEY,
             name        VARCHAR(255) NOT NULL,
-            description TEXT,
-            scopes      JSON
+            description TEXT
         )',
     );
 
@@ -121,8 +117,7 @@ beforeEach(function (): void {
             id          SERIAL PRIMARY KEY,
             sku         VARCHAR(255) NOT NULL UNIQUE,
             name        VARCHAR(255) NOT NULL,
-            description TEXT,
-            scopes      JSON
+            description TEXT
         )',
     );
 
@@ -144,8 +139,6 @@ afterEach(function (): void {
         $this->conn->execute('DROP TABLE IF EXISTS catalog_categories CASCADE');
         $this->conn->execute('DROP TABLE IF EXISTS catalog_category_trees CASCADE');
     }
-
-    DefaultScopeGuard::reset();
 });
 
 // ─── Tests ───────────────────────────────────────────────────────────────────

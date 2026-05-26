@@ -10,14 +10,12 @@ use Markommerce\Catalog\Data\ProductGridData;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Layout\ExtensionBag;
-use Markommerce\Scope\Resolver\ScopeResolver;
 
 class ProductGridComponent
 {
     public function __construct(
         private CategoryRepositoryInterface $categoryRepository,
         private CategoryAssignmentService $categoryAssignmentService,
-        private ScopeResolver $scopeResolver,
     ) {}
 
     /**
@@ -38,8 +36,8 @@ class ProductGridComponent
                 continue;
             }
 
-            $resolvedNames[$product->id] = $this->scopeResolver->resolved($product, 'name');
-            $resolvedDescs[$product->id] = $this->scopeResolver->resolved($product, 'description');
+            $resolvedNames[$product->id] = $product->name;
+            $resolvedDescs[$product->id] = $product->description;
         }
 
         return new ProductGridData(
