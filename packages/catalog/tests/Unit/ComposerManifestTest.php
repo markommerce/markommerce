@@ -67,6 +67,30 @@ it('passes the full catalog test suite after the dependency is removed', functio
     expect($requireDev)->not->toHaveKey('markommerce/scope-pgsql');
 });
 
+it('extends packages/catalog/tests/Unit/ComposerManifestTest.php with assertions that catalog\'s composer.json no longer lists markommerce/layout, markommerce/frontend, markommerce/theme-blank, marko/routing, marko/view, marko/view-latte in either require or require-dev', function (): void {
+    $manifest = json_decode(
+        file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
+        true,
+    );
+
+    $require = $manifest['require'] ?? [];
+    $requireDev = $manifest['require-dev'] ?? [];
+
+    $storefrontPackages = [
+        'markommerce/layout',
+        'markommerce/frontend',
+        'markommerce/theme-blank',
+        'marko/routing',
+        'marko/view',
+        'marko/view-latte',
+    ];
+
+    foreach ($storefrontPackages as $package) {
+        expect($require)->not->toHaveKey($package);
+        expect($requireDev)->not->toHaveKey($package);
+    }
+});
+
 it('succeeds composer dump-autoload at the monorepo root after the change', function (): void {
     $rootDir = dirname(__DIR__, 4);
     $rootManifest = json_decode(

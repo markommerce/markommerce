@@ -1,0 +1,15 @@
+@layer components {
+    .catalog-product-card {
+        border: 1px solid var(--mk-color-border, currentColor);
+        border-radius: var(--mk-radius-md, 0.375rem);
+        padding: var(--mk-space-3, 0.75rem);
+        overflow: hidden;
+    }
+
+    .catalog-product-card__image {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1;
+        object-fit: cover;
+    }
+}

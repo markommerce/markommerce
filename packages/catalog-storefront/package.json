@@ -1,0 +1,23 @@
+{
+  "name": "@markommerce/catalog-storefront",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./resources/js/index.ts",
+  "exports": {
+    ".": "./resources/js/index.ts",
+    "./css/components/*.css": "./resources/css/components/*.css"
+  },
+  "markommerce": {
+    "extension": "./resources/js/index.ts",
+    "priority": 200
+  },
+  "dependencies": {
+    "@markommerce/frontend": "*",
+    "@markommerce/theme-blank": "*"
+  },
+  "peerDependencies": {
+    "lit": "^3.0",
+    "open-props": "^1.7"
+  }
+}

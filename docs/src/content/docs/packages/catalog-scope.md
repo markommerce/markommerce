@@ -3,7 +3,7 @@ title: markommerce/catalog-scope
 description: Scope storage bridge for catalog entities --- adds scoped override support to Product and Category via companion entities.
 ---
 
-Scope storage bridge for catalog entities. `markommerce/catalog-scope` adds `HasScopesInterface` support to `markommerce/catalog`'s `Product` and `Category` entities without modifying those entities. It does this through two companion entity classes --- `ProductScopedOverrides` and `CategoryScopedOverrides` --- that extend the catalog tables via single-table inheritance and carry the `scopes` JSON column. The package also ships `ScopedProductGridComponent`, a `#[Preference]` override of the catalog `ProductGridComponent` that resolves locale-scoped names and descriptions via `ScopeResolver` before returning component data.
+Scope storage bridge for catalog entities. `markommerce/catalog-scope` adds `HasScopesInterface` support to `markommerce/catalog`'s `Product` and `Category` entities without modifying those entities. It does this through two companion entity classes --- `ProductScopedOverrides` and `CategoryScopedOverrides` --- that extend the catalog tables via single-table inheritance and carry the `scopes` JSON column. For locale-aware storefront rendering, install [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-scope/), which provides the `ScopedProductGridComponent` Preference on top of this storage layer.
 
 ## Installation
 
@@ -101,33 +101,9 @@ $overrides = $product->companion(ProductScopedOverrides::class);
 
 If the `scopes` column is absent from the result set (for example, a partial SELECT), the companion is `null` and `ScopeResolver` falls back to the raw column value.
 
-### ScopedProductGridComponent
+### Locale-aware storefront rendering
 
-`ScopedProductGridComponent` is declared with `#[Preference(replaces: ProductGridComponent::class)]`. When this package is installed, Marko's container automatically resolves it wherever `ProductGridComponent` is requested. The override calls `ScopeResolver::resolved()` on each product's `name` and `description` fields before returning `ProductGridData`:
-
-```php
-<?php
-
-declare(strict_types=1);
-
-use Marko\Core\Attributes\Preference;
-use Markommerce\Catalog\Component\ProductGridComponent;
-use Markommerce\Scope\Resolver\ScopeResolver;
-
-#[Preference(replaces: ProductGridComponent::class)]
-class ScopedProductGridComponent extends ProductGridComponent
-{
-    public function __construct(
-        CategoryRepositoryInterface $categoryRepository,
-        CategoryAssignmentService $categoryAssignmentService,
-        private ScopeResolver $scopeResolver,
-    ) {
-        parent::__construct($categoryRepository, $categoryAssignmentService);
-    }
-}
-```
-
-No manual wiring is required --- installing the package and running Marko's module system is sufficient to activate the override.
+`catalog-scope` provides the storage layer for scoped overrides. Locale-aware storefront rendering --- the `ScopedProductGridComponent` that Preference-replaces the default product grid --- is provided by [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-scope/). Install that package on top of `catalog-scope` to activate locale-aware product names and descriptions in the storefront.
 
 ### Registering scoped fields
 
@@ -168,19 +144,10 @@ Table extension: `catalog_categories` (via `#[Table(extends: Category::class)]`)
 
 Same interface as `ProductScopedOverrides`, applied to `Category` properties.
 
-### Component
-
-#### `ScopedProductGridComponent`
-
-`#[Preference(replaces: ProductGridComponent::class)]`
-
-| Method | Description |
-|--------|-------------|
-| `data(Category $category): ProductGridData` | Returns product grid data with locale-resolved `resolvedNames` and `resolvedDescs` maps, replacing the raw values from the base component. |
-
 ## Related Packages
 
 - [markommerce/catalog](/docs/packages/catalog/) --- Provides `Product` and `Category` entities extended by this package
 - [markommerce/scope](/docs/packages/scope/) --- Provides `HasScopesInterface`, `ScopeResolver`, and the resolution infrastructure
 - [markommerce/catalog-locale](/docs/packages/catalog-locale/) --- Bridge that registers catalog fields as locale-scoped via `ScopedFieldRegistry`
+- [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-scope/) --- Storefront Preference that activates locale-aware product grid rendering on top of this package
 - [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver required to persist and query scoped overrides

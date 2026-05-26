@@ -87,7 +87,8 @@ register locale-scoped fields against catalog and config without merchant config
 | | Packages added on top of Tier 1 |
 |---|---|
 | **Current** | (none — already pulled in via Tier 1 today) |
-| **Desired** | `scope` + `scope-pgsql` + `🆕 catalog-scope` + `🆕 config-scope` + `🆕 locale` + `🆕 catalog-locale` + `🆕 config-locale` |
+| **Desired (headless)** | `scope` + `scope-pgsql` + `catalog-scope` + `🆕 config-scope` + `locale` + `catalog-locale` + `🆕 config-locale` |
+| **Desired (storefront)** | headless stack + `catalog-storefront-scope` (locale-aware storefront rendering via Preference) |
 
 ### Tier 3 — Multi-market international
 *Tier 2 plus multiple markets: distinct category trees per market, different
@@ -115,13 +116,15 @@ fields by market; per-market category trees with active-tree resolution.
 | Themed layout | ✅ | ✅ | ✅ |
 | Merchant-editable settings | ✅ | ✅ | ✅ |
 | Translated product/category fields | — | ✅ | ✅ |
+| Locale-aware storefront rendering | — | ✅ (storefront) | ✅ |
 | Per-locale settings | — | ✅ | ✅ |
 | Per-market category trees | — | — | ✅ |
 | Per-market product fields / per-channel visibility | — | — | ✅ |
 
 **Package count, Desired state:**
 - Tier 1: 7 packages
-- Tier 2: 14 packages (+ `scope`, `scope-pgsql`, `🆕 catalog-scope`, `🆕 config-scope`, `🆕 locale`, `🆕 catalog-locale`, `🆕 config-locale`)
+- Tier 2 headless: 14 packages (+ `scope`, `scope-pgsql`, `catalog-scope`, `🆕 config-scope`, `locale`, `catalog-locale`, `🆕 config-locale`)
+- Tier 2 storefront: 15 packages (headless + `catalog-storefront-scope` for locale-aware storefront rendering)
 - Tier 3: 18 packages (+ `🆕 market`, `🆕 catalog-market`, `🆕 config-market`, `🆕 catalog-market-category-trees`)
 
 **Package count today:** every merchant installs essentially the Tier 3 set, whether they use it or not.
@@ -134,10 +137,16 @@ fields by market; per-market category trees with active-tree resolution.
 
 | Package | Purpose | Requires |
 |---|---|---|
-| `🆕 markommerce/catalog-storefront` | HTTP controllers, route registration, Latte views, theme integration for the public shop | `catalog`, `layout`, `frontend` |
-| `🆕 markommerce/catalog-scope` | Machinery: substitutes catalog entities with scope-aware decorators; axis-agnostic | `catalog`, `scope` |
+| `markommerce/catalog-storefront` | HTTP controllers, route registration, Latte views, theme integration for the public shop | `catalog`, `layout`, `frontend` |
+| `markommerce/catalog-scope` | Machinery: substitutes catalog entities with scope-aware decorators; axis-agnostic | `catalog`, `scope` |
 | `🆕 markommerce/config-scope` | Machinery: adds per-scope override resolution on top of plain config | `config`, `scope` |
 | `🆕 markommerce/catalog-market-category-trees` | Multiple category trees with per-market assignment and active-tree resolution | `catalog`, `market` (transitively `scope`) |
+
+### Storefront extensions
+
+| Package | Purpose | Requires |
+|---|---|---|
+| `markommerce/catalog-storefront-scope` | Swaps `ProductGridComponent` with a locale-aware `ScopedProductGridComponent` via Marko Preference; renders translated product names and descriptions for the active locale | `catalog-storefront`, `catalog-scope` |
 
 ### Axis concept packages
 
@@ -189,9 +198,9 @@ no external consumers to deprecate against).
 
 | # | Phase | Status | Plan / branch | Outcome |
 |---|---|---|---|---|
-| **P1** | Refactor scope's metadata layer to be registry-driven | `pending` | `scope-metadata-registry` *(to be created)* | `ScopedFieldRegistry` is authoritative. Attributes still work via a boot-time scan that feeds the registry. Serializer reads only the registry. Foundation for everything below. |
-| **P2** | Decouple `catalog` from `scope`; create `catalog-scope`, `locale`, `catalog-locale` | `pending` | tbd | `Product` and `Category` become plain entities (no `#[Scoped]`, no `HasScopes` trait, no `Markommerce\Scope\…` imports). Multi-language behaviour shifts to the new bridge stack. Tier 2 reachable through the new architecture. |
-| **P3** | Extract `catalog-storefront` from `catalog` | `pending` | tbd | Move controllers, route registration, Latte templates, and asset wiring out of `catalog`. Tier 1 reachable. Headless catalog consumers stop pulling layout/frontend/theme. |
+| **P1** | Refactor scope's metadata layer to be registry-driven | `completed` | `scope-metadata-registry` | `ScopedFieldRegistry` is authoritative. Attributes still work via a boot-time scan that feeds the registry. Serializer reads only the registry. Foundation for everything below. |
+| **P2** | Decouple `catalog` from `scope`; create `catalog-scope`, `locale`, `catalog-locale` | `completed` | `catalog-scope-decouple` | `Product` and `Category` become plain entities (no `#[Scoped]`, no `HasScopes` trait, no `Markommerce\Scope\…` imports). Multi-language behaviour shifts to the new bridge stack. Tier 2 reachable through the new architecture. |
+| **P3** | Extract `catalog-storefront` from `catalog`; create `catalog-storefront-scope` | `completed` | `catalog-storefront-extract` | Move controllers, route registration, Latte templates, and asset wiring out of `catalog`. Tier 1 reachable. Headless catalog consumers stop pulling layout/frontend/theme. `catalog-storefront-scope` adds Preference-based locale-aware grid rendering for storefront merchants. |
 | **P4** | Create `market`, `catalog-market`; extract `catalog-market-category-trees` | `pending` | tbd | Tier 3 reachable. `CategoryTreeMarketAssignment`, the per-market resolver, and multi-tree CRUD move out of `catalog`. Catalog keeps a single default tree. |
 | **P5** | Decouple `config` from `scope`; create `config-scope`, `config-locale`, `config-market` | `pending` | tbd | Mirrors P2 for config. `config` becomes a plain key-value store; per-scope overlays come from `config-scope` + bridges. |
 

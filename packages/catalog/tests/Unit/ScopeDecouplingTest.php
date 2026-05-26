@@ -93,28 +93,6 @@ it('runs the catalog test suite to green with markommerce/scope NOT installed (s
     expect($requireDev)->not->toHaveKey('markommerce/scope');
 });
 
-it('preserves all non-scope test cases in CategoryControllerTest (controller wiring, route resolution, response shape)', function (): void {
-    $file = dirname(__DIR__, 2) . '/tests/Feature/CategoryControllerTest.php';
-    $contents = file_get_contents($file);
-
-    // These test descriptions must still exist in the file
-    expect($contents)->toContain("'places a Get route at /catalog/category/{id} on the controller action'")
-        ->and($contents)->toContain("'returns a 200 response with the assembled layout HTML when the category exists'")
-        ->and($contents)->toContain("'returns a 404 response when the requested category id does not exist'")
-        ->and($contents)->toContain("'includes the category name in the rendered page heading'")
-        ->and($contents)->toContain("'renders every assigned product as a product grid item in the response body'");
-});
-
-it('preserves all non-scope test cases in CategoryLayoutTest (layout rendering, theme integration, raw product name display)', function (): void {
-    $file = dirname(__DIR__, 2) . '/tests/Feature/CategoryLayoutTest.php';
-    $contents = file_get_contents($file);
-
-    expect($contents)->toContain("'defines a category_show layout for the CategoryController show action'")
-        ->and($contents)->toContain("'compiles the category_show layout without error'")
-        ->and($contents)->toContain("'renders the category page with a grid of product cards'")
-        ->and($contents)->toContain("'returns 404 from the controller when the category does not exist'");
-});
-
 it('preserves all non-scope test cases in CategoryTreeIntegrationTest (tree CRUD, market assignment lifecycle)', function (): void {
     $file = dirname(__DIR__, 2) . '/tests/Feature/CategoryTreeIntegrationTest.php';
     $contents = file_get_contents($file);
