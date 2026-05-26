@@ -13,7 +13,6 @@
         "marko/view": "self.version",
         "marko/view-latte": "self.version",
         "markommerce/frontend": "self.version",
-        "markommerce/scope": "self.version",
         "markommerce/theme-blank": "self.version"
     },
     "require-dev": {

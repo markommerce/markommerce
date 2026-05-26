@@ -18,7 +18,6 @@ use Markommerce\Catalog\Repositories\CategoryTreeRepository;
 use Markommerce\Catalog\Services\CategoryService;
 use Markommerce\Catalog\Services\CategoryTreeService;
 use Markommerce\Catalog\Tests\Feature\Helpers\PostgresTestConnection;
-use Markommerce\Scope\Storage\DefaultScopeGuard;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -76,8 +75,6 @@ function makeCategory(CategoryRepository $categoryRepository, string $name): Cat
 beforeEach(function (): void {
     PostgresTestConnection::skipIfUnavailable();
 
-    DefaultScopeGuard::configure(['locale' => 'default']);
-
     $this->conn = new PostgresTestConnection();
 
     $this->conn->execute('DROP TABLE IF EXISTS catalog_category_tree_nodes CASCADE');
@@ -105,8 +102,7 @@ beforeEach(function (): void {
         'CREATE TABLE IF NOT EXISTS catalog_categories (
             id          SERIAL PRIMARY KEY,
             name        VARCHAR(255) NOT NULL,
-            description TEXT,
-            scopes      JSON
+            description TEXT
         )',
     );
 
@@ -128,8 +124,6 @@ afterEach(function (): void {
         $this->conn->execute('DROP TABLE IF EXISTS catalog_categories CASCADE');
         $this->conn->execute('DROP TABLE IF EXISTS catalog_category_trees CASCADE');
     }
-
-    DefaultScopeGuard::reset();
 });
 
 // ─── Tests ───────────────────────────────────────────────────────────────────

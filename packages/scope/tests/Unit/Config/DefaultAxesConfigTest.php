@@ -74,13 +74,9 @@ function makeConfigStubForDefaultAxes(array $axes): ConfigRepositoryInterface
 
 $config = require dirname(__DIR__, 3) . '/config/scope.php';
 
-it('declares locale, market, and channel axes', function () use ($config): void {
-    expect($config['axes'])->toHaveKeys(['locale', 'market', 'channel']);
-});
-
-it('gives the locale axis a single scope named default set as its default', function () use ($config): void {
-    expect($config['axes']['locale']['default'])->toBe('default')
-        ->and($config['axes']['locale']['scopes'])->toHaveKey('default');
+it('declares only market and channel axes in scope\'s default config (no locale)', function () use ($config): void {
+    expect($config['axes'])->toHaveKeys(['market', 'channel'])
+        ->and($config['axes'])->not->toHaveKey('locale');
 });
 
 it('gives the market axis a single scope named default set as its default', function () use ($config): void {
@@ -93,9 +89,15 @@ it('gives the channel axis a single scope named web set as its default', functio
         ->and($config['axes']['channel']['scopes'])->toHaveKey('web');
 });
 
-it('is accepted by PhpScopeRegistry without error', function () use ($config): void {
+it('is accepted by PhpScopeRegistry and lists only [market, channel] axes from scope\'s default config', function () use ($config): void {
     $stub = makeConfigStubForDefaultAxes($config['axes']);
     $registry = new PhpScopeRegistry($stub);
 
-    expect($registry->listAxes())->toBe(['locale', 'market', 'channel']);
+    expect($registry->listAxes())->toBe(['market', 'channel']);
+});
+
+it('it removes the obsolete CatalogMetadataIntegrationTest file that cross-referenced catalog entities from scope tests', function (): void {
+    $obsoleteFile = dirname(__DIR__, 2) . '/Feature/CatalogMetadataIntegrationTest.php';
+
+    expect(file_exists($obsoleteFile))->toBeFalse();
 });

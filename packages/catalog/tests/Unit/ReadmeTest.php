@@ -43,6 +43,14 @@ it('the catalog README documents the catalog seeder', function (): void {
 
     expect($content)->toContain('catalog')
         ->and($content)->toContain('seeder')
-        ->and($content)->toContain('locale:de')
-        ->and($content)->toContain('locale:fr');
+        ->and($content)->not->toContain('setOverride');
+});
+
+it('updates packages/catalog/README.md to note that scope is no longer required and link to catalog-scope', function (): void {
+    $readmePath = dirname(__DIR__, 2) . '/README.md';
+    $content = file_get_contents($readmePath);
+
+    expect($content)
+        ->toContain('catalog-scope')
+        ->toContain('optional');
 });

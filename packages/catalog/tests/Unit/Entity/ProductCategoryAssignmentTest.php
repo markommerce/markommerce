@@ -6,7 +6,6 @@ use Marko\Database\Attributes\Column;
 use Marko\Database\Attributes\Index;
 use Marko\Database\Attributes\Table;
 use Markommerce\Catalog\Entity\ProductCategoryAssignment;
-use Markommerce\Scope\Storage\HasScopesInterface;
 
 it('maps the assignment entity to the catalog_product_category table', function (): void {
     $reflection = new ReflectionClass(ProductCategoryAssignment::class);
@@ -77,7 +76,12 @@ it('declares a composite unique index over product_id and category_id', function
 });
 
 it('does not implement HasScopesInterface', function (): void {
+    $hasScopesInterface = 'Markommerce\\Scope\\Storage\\HasScopesInterface';
     $assignment = new ProductCategoryAssignment();
 
-    expect($assignment)->not->toBeInstanceOf(HasScopesInterface::class);
+    $implements = interface_exists($hasScopesInterface)
+        ? ($assignment instanceof $hasScopesInterface)
+        : false;
+
+    expect($implements)->toBeFalse();
 });

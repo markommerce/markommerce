@@ -155,6 +155,34 @@ it('module.php registers ScopedFieldRegistry as a singleton', function (): void 
     expect($module['singletons'])->toContain(ScopedFieldRegistry::class);
 });
 
+it('it boots scope with no locale axis present in PhpScopeRegistry after the scope module\'s boot closure runs', function (): void {
+    DefaultScopeGuard::reset();
+
+    $rawConfig = require dirname(__DIR__, 2) . '/config/scope.php';
+    $config = new ConfigRepository(['scope' => $rawConfig]);
+
+    $container = new Container();
+    $container->instance(ConfigRepositoryInterface::class, $config);
+
+    $module = require dirname(__DIR__, 2) . '/module.php';
+
+    foreach ($module['singletons'] as $singleton) {
+        $container->singleton($singleton);
+    }
+
+    foreach ($module['bindings'] as $interface => $implementation) {
+        $container->bind($interface, $implementation);
+    }
+
+    $registry = $container->get(ScopeRegistryInterface::class);
+
+    expect($registry->listAxes())->not->toContain('locale')
+        ->and($registry->listAxes())->toContain('market')
+        ->and($registry->listAxes())->toContain('channel');
+
+    DefaultScopeGuard::reset();
+});
+
 it('it resolves ScopedFieldRegistry from a real container with scope\'s module loaded', function (): void {
     $rawConfig = require dirname(__DIR__, 2) . '/config/scope.php';
     $config = new ConfigRepository(['scope' => $rawConfig]);
@@ -228,7 +256,7 @@ it('it injects the same ScopedFieldRegistry instance into ScopeMetadataFactory v
     $registry->register(
         entityClass: ScopedFieldRegistry::class,
         property: 'map',
-        axes: ['locale'],
+        axes: ['market'],
     );
 
     $metadata = $factory->for(ScopedFieldRegistry::class);
@@ -258,12 +286,12 @@ it(
         // Deliberately skip invoking ($module['boot'])($container)
         $registry = $container->get(ScopedFieldRegistry::class);
 
-        // ScopedFieldRegistry::class itself exists, and 'locale' is a known axis in PhpScopeRegistry
+        // ScopedFieldRegistry::class itself exists, and 'market' is a known axis in PhpScopeRegistry
         // because PhpScopeRegistry reads its axes directly from config at construction time — no boot needed.
         expect(fn () => $registry->register(
             entityClass: ScopedFieldRegistry::class,
             property: 'map',
-            axes: ['locale'],
+            axes: ['market'],
         ))->not->toThrow(Throwable::class);
     },
 );

@@ -38,7 +38,7 @@ class DefaultScopeProduct extends Entity implements HasScopesInterface
     #[Column(primaryKey: true, autoIncrement: true)]
     public ?int $id = null;
 
-    #[Scoped(axes: ['locale', 'channel'])]
+    #[Scoped(axes: ['market', 'channel'])]
     #[Column]
     public string $name = 'base-name';
 }
@@ -378,15 +378,15 @@ it('produces a plain order by clause without a scopes json lookup for an all-def
 it('resolves overrides at non-default scopes added after the registry was extended', function (): void {
     DefaultScopeGuard::reset();
 
-    // Load the shipped config and deep-merge an extension that adds 'en' to locale scopes.
+    // Load the shipped config and deep-merge an extension that adds 'mobile' to channel scopes.
     $rawBase = require dirname(__DIR__, 2) . '/config/scope.php';
-    $extension = ['axes' => ['locale' => ['scopes' => ['en' => []]]]];
+    $extension = ['axes' => ['channel' => ['scopes' => ['mobile' => []]]]];
     $merged = (new ConfigMerger())->merge($rawBase, $extension);
     $config = new ConfigRepository(['scope' => $merged]);
     $registry = new PhpScopeRegistry($config);
 
     // Configure DefaultScopeGuard from the extended registry so that
-    // locale:default is blocked but locale:en is writable.
+    // channel:web is blocked but channel:mobile is writable.
     $defaults = [];
     foreach ($registry->listAxes() as $axisName) {
         $defaults[$axisName] = $registry->getAxis($axisName)->default;
@@ -395,18 +395,18 @@ it('resolves overrides at non-default scopes added after the registry was extend
 
     [, $context, , , , , $resolver] = buildResolverStack($registry);
 
-    // Set the context to locale:en (a non-default scope now available in the extended registry).
-    $context->in('locale', 'en');
+    // Set the context to channel:mobile (a non-default scope now available in the extended registry).
+    $context->in('channel', 'mobile');
 
     $product = new DefaultScopeProduct();
     $product->name = 'base-name';
 
-    // Write an override directly at locale:en on the entity's HasScopes storage.
-    $product->setOverride('locale:en', 'name', 'English Name');
+    // Write an override directly at channel:mobile on the entity's HasScopes storage.
+    $product->setOverride('channel:mobile', 'name', 'Mobile Name');
 
     $result = $resolver->resolved($product, 'name');
 
-    expect($result)->toBe('English Name');
+    expect($result)->toBe('Mobile Name');
 });
 
 it('rejects setOverride at a default scope through ScopeResolver', function (): void {
@@ -417,10 +417,10 @@ it('rejects setOverride at a default scope through ScopeResolver', function (): 
 
     $product = new DefaultScopeProduct();
 
-    // locale axis has default='default'; attempting to write an override at
-    // locale:default must be rejected by ScopeSignatureValidator before it
+    // channel axis has default='web'; attempting to write an override at
+    // channel:web must be rejected by ScopeSignatureValidator before it
     // even reaches the storage layer.
-    $defaultSignature = new ScopeSignature(['locale' => 'default']);
+    $defaultSignature = new ScopeSignature(['channel' => 'web']);
 
     expect(fn () => $resolver->setOverride($product, 'name', 'Should Fail', $defaultSignature))
         ->toThrow(InvalidSignatureForAttributeException::class);
@@ -437,10 +437,10 @@ it(
         $product = new DefaultScopeProduct();
         $product->name = 'base-name';
 
-        // ScopeSignature with locale at its default value ('default').
-        // walkAt → findFirstMatch filters 'default' from walkUp results → empty walk →
+        // ScopeSignature with channel at its default value ('web').
+        // walkAt → findFirstMatch filters 'web' from walkUp results → empty walk →
         // notFound → resolvedAt falls back to the base column property.
-        $defaultSignature = new ScopeSignature(['locale' => 'default']);
+        $defaultSignature = new ScopeSignature(['channel' => 'web']);
 
         $result = $resolver->resolvedAt($product, 'name', $defaultSignature);
 

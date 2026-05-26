@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Marko\Config\ConfigRepository;
 use Marko\Core\Container\ContainerInterface;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
@@ -40,15 +39,6 @@ use Markommerce\Layout\Layout;
 use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
 use Markommerce\Layout\Runtime\Renderer;
 use Markommerce\Layout\Slot;
-use Markommerce\Scope\Context\ScopeContext;
-use Markommerce\Scope\Metadata\ScopedFieldRegistry;
-use Markommerce\Scope\Metadata\ScopeMetadataFactory;
-use Markommerce\Scope\Registry\PhpScopeRegistry;
-use Markommerce\Scope\Resolution\ScopeWalker;
-use Markommerce\Scope\Resolver\ScopeResolver;
-use Markommerce\Scope\Signature\ScopeSignatureValidator;
-use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
-use Markommerce\Scope\Storage\DefaultScopeGuard;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -57,23 +47,6 @@ function catalogLayoutLoadLayoutFile(): Layout
     $path = dirname(__DIR__, 2) . '/layout/category_show.php';
 
     return require $path;
-}
-
-function catalogLayoutBuildScopeResolver(): ScopeResolver
-{
-    DefaultScopeGuard::reset();
-
-    $rawConfig = require dirname(__DIR__, 3) . '/scope/config/scope.php';
-    $config = new ConfigRepository(['scope' => $rawConfig]);
-    $registry = new PhpScopeRegistry($config);
-
-    $context = new ScopeContext($registry);
-    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
-    $enumerator = new SignatureCandidateEnumerator($registry);
-    $walker = new ScopeWalker($enumerator);
-    $validator = new ScopeSignatureValidator($registry);
-
-    return new ScopeResolver($metadataFactory, $walker, $context, $validator);
 }
 
 function catalogLayoutBuildCompiler(): Compiler
@@ -251,18 +224,7 @@ it('returns a typed ProductGridData DTO from the grid component data method', fu
         $assignmentRepository,
     );
 
-    DefaultScopeGuard::reset();
-    $rawConfig = require dirname(__DIR__, 3) . '/scope/config/scope.php';
-    $config = new ConfigRepository(['scope' => $rawConfig]);
-    $registry = new PhpScopeRegistry($config);
-    $context = new ScopeContext($registry);
-    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
-    $enumerator = new SignatureCandidateEnumerator($registry);
-    $walker = new ScopeWalker($enumerator);
-    $validator = new ScopeSignatureValidator($registry);
-    $scopeResolver = new ScopeResolver($metadataFactory, $walker, $context, $validator);
-
-    $component = new ProductGridComponent($categoryRepository, $assignmentService, $scopeResolver);
+    $component = new ProductGridComponent($categoryRepository, $assignmentService);
     $data = $component->data($category);
 
     expect($data)->toBeInstanceOf(ProductGridData::class);
@@ -338,8 +300,6 @@ it('renders the category page with a grid of product cards', function (): void {
     );
     $assignmentService->assign($product->id, $category->id);
 
-    $scopeResolver = catalogLayoutBuildScopeResolver();
-
     $container = new CatalogLayoutFakeContainer();
     $view = new CatalogLayoutFakeView();
 
@@ -354,9 +314,8 @@ it('renders the category page with a grid of product cards', function (): void {
     $container->instance(CategoryRepositoryInterface::class, $categoryRepository);
     $container->instance(CategoryController::class, new CategoryController($categoryRepository));
     $container->instance(CategoryAssignmentService::class, $assignmentService);
-    $container->instance(ScopeResolver::class, $scopeResolver);
 
-    $productGridComponent = new ProductGridComponent($categoryRepository, $assignmentService, $scopeResolver);
+    $productGridComponent = new ProductGridComponent($categoryRepository, $assignmentService);
     $container->instance(ProductGridComponent::class, $productGridComponent);
 
     // Register CategoryDataProvider that uses the fake repository

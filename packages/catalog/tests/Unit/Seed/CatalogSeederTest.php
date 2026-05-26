@@ -11,15 +11,6 @@ use Markommerce\Catalog\Tests\Support\FakeCategoryTreeNodeRepository;
 use Markommerce\Catalog\Tests\Support\FakeCategoryTreeRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
-use Markommerce\Scope\Storage\DefaultScopeGuard;
-
-beforeEach(function (): void {
-    DefaultScopeGuard::configure(['locale' => 'default']);
-});
-
-afterEach(function (): void {
-    DefaultScopeGuard::reset();
-});
 
 function makeSeederCategoryTreeService(
     ?FakeCategoryTreeRepository $treeRepository = null,
@@ -102,36 +93,48 @@ it('assigns seeded products to seeded categories', function (): void {
     expect($assignmentRepository->assignments)->not->toBeEmpty();
 });
 
-it('writes locale-scoped name overrides on seeded products using the de and fr locales', function (): void {
+it('existing seeder unit tests continue to pass with the new CategoryTreeService dependency', function (): void {
+    $seeder = makeCatalogSeeder();
+
+    expect($seeder)->toBeInstanceOf(CatalogSeeder::class);
+});
+
+it('seeds plain Product rows with no setOverride() calls from CatalogSeeder', function (): void {
     $productRepository = new FakeProductRepository();
     $seeder = makeCatalogSeeder(productRepository: $productRepository);
 
     $seeder->run();
 
     $products = array_values($productRepository->products);
-    $hasDeOverride = array_any($products, fn ($p) => $p->hasOverride('locale:de', 'name'));
-    $hasFrOverride = array_any($products, fn ($p) => $p->hasOverride('locale:fr', 'name'));
 
-    expect($hasDeOverride)->toBeTrue()
-        ->and($hasFrOverride)->toBeTrue();
+    expect($products)->not->toBeEmpty();
+
+    foreach ($products as $product) {
+        expect(method_exists($product, 'setOverride'))->toBeFalse();
+        expect($product->name)->not->toBeEmpty();
+        expect($product->sku)->not->toBeEmpty();
+    }
 });
 
-it('writes locale-scoped overrides on seeded categories', function (): void {
+it('seeds plain Category rows with no setOverride() calls from CatalogSeeder', function (): void {
     $categoryRepository = new FakeCategoryRepository();
     $seeder = makeCatalogSeeder(categoryRepository: $categoryRepository);
 
     $seeder->run();
 
     $categories = array_values($categoryRepository->categories);
-    $hasDeOverride = array_any($categories, fn ($c) => $c->hasOverride('locale:de', 'name'));
-    $hasFrOverride = array_any($categories, fn ($c) => $c->hasOverride('locale:fr', 'name'));
 
-    expect($hasDeOverride)->toBeTrue()
-        ->and($hasFrOverride)->toBeTrue();
+    expect($categories)->not->toBeEmpty();
+
+    foreach ($categories as $category) {
+        expect(method_exists($category, 'setOverride'))->toBeFalse();
+        expect($category->name)->not->toBeEmpty();
+    }
 });
 
-it('existing seeder unit tests continue to pass with the new CategoryTreeService dependency', function (): void {
-    $seeder = makeCatalogSeeder();
+it('has no Markommerce\\Scope namespace imports in CatalogSeeder.php', function (): void {
+    $file = (new ReflectionClass(CatalogSeeder::class))->getFileName();
+    $contents = file_get_contents($file);
 
-    expect($seeder)->toBeInstanceOf(CatalogSeeder::class);
+    expect($contents)->not->toContain('Markommerce\\Scope');
 });
