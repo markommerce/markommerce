@@ -84,8 +84,7 @@ class ContentiousStorage implements ConfigStorageInterface
         string $key,
         ConfigRow $row,
         int $expectedVersion,
-    ): bool
-    {
+    ): bool {
         $this->attempts++;
 
         if ($this->attempts <= $this->failCount) {
@@ -128,17 +127,17 @@ it(
     function (): void {
         $storage = new InMemoryConfigStorage();
         $writer = buildWriter($storage);
-    
+
         $writer->setGlobal('writer/scoped.value', 'first');
         $writer->setOverride('writer/scoped.value', new ScopeSignature(['store' => '1']), 'store-override');
         $writer->setGlobal('writer/scoped.value', 'second');
-    
+
         $row = $storage->load('writer/scoped.value');
         expect($row)->not->toBeNull()
             ->and($row->value)->toBe('second')
             ->and($row->overrides)->toHaveKey('store:1')
             ->and($row->overrides['store:1'])->toBe('store-override');
-    }
+    },
 );
 
 it('persists a new per-scope override via setOverride keyed by the signature string', function (): void {
@@ -172,41 +171,41 @@ it(
     'accepts SecretCipherInterface as a constructor dependency but does NOT invoke it for non-secret writes in this task\'s tests',
     function (): void {
         $storage = new InMemoryConfigStorage();
-    
+
         // NullSecretCipher throws when called — if it's invoked, this test fails
-    $writer = new ConfigWriter(
+        $writer = new ConfigWriter(
             registry: buildWriterRegistry(),
             storage: $storage,
             cipher: new NullSecretCipher(),
         );
-    
+
         // WriterGlobalConfig is not a secret config, so cipher must not be called
-    $writer->setGlobal('writer/general.page_size', 50);
-    
+        $writer->setGlobal('writer/general.page_size', 50);
+
         $row = $storage->load('writer/general.page_size');
         expect($row)->not->toBeNull()->and($row->value)->toBe(50);
-    }
+    },
 );
 
 it(
     'produces an identical row mutation when setOverride is called with null as when unsetOverride is called',
     function (): void {
         $sig = new ScopeSignature(['store' => '7']);
-    
+
         $storageA = new InMemoryConfigStorage();
         $writerA = buildWriter($storageA);
         $writerA->setOverride('writer/scoped.value', $sig, 'some-value');
         $writerA->setOverride('writer/scoped.value', $sig, null);
-    
+
         $storageB = new InMemoryConfigStorage();
         $writerB = buildWriter($storageB);
         $writerB->setOverride('writer/scoped.value', $sig, 'some-value');
         $writerB->unsetOverride('writer/scoped.value', $sig);
-    
+
         // Both remove the override, resulting in empty row (deleted)
-    expect($storageA->load('writer/scoped.value'))->toBeNull()
-            ->and($storageB->load('writer/scoped.value'))->toBeNull();
-    }
+        expect($storageA->load('writer/scoped.value'))->toBeNull()
+                ->and($storageB->load('writer/scoped.value'))->toBeNull();
+    },
 );
 
 it(
@@ -216,16 +215,16 @@ it(
         $writerA = buildWriter($storageA);
         $writerA->setGlobal('writer/general.page_size', 42);
         $writerA->setGlobal('writer/general.page_size', null);
-    
+
         $storageB = new InMemoryConfigStorage();
         $writerB = buildWriter($storageB);
         $writerB->setGlobal('writer/general.page_size', 42);
         $writerB->unsetGlobal('writer/general.page_size');
-    
+
         // Both should produce the same result: no row (deleted because empty)
-    expect($storageA->load('writer/general.page_size'))->toBeNull()
-            ->and($storageB->load('writer/general.page_size'))->toBeNull();
-    }
+        expect($storageA->load('writer/general.page_size'))->toBeNull()
+                ->and($storageB->load('writer/general.page_size'))->toBeNull();
+    },
 );
 
 it(
@@ -233,14 +232,14 @@ it(
     function (): void {
         $storage = new InMemoryConfigStorage();
         $writer = buildWriter($storage);
-    
+
         $signature = new ScopeSignature(['store' => '99']);
-    
+
         // Should not throw - storage contract handles the no-op
-    $writer->unsetOverride('writer/scoped.value', $signature);
-    
+        $writer->unsetOverride('writer/scoped.value', $signature);
+
         expect($storage->load('writer/scoped.value'))->toBeNull();
-    }
+    },
 );
 
 it('bumps the row version after a successful write (visible via subsequent load)', function (): void {
@@ -261,12 +260,12 @@ it(
     function (): void {
         $storage = new ContentiousStorage(failCount: 3);
         $writer = buildWriter($storage);
-    
+
         expect(fn () => $writer->setGlobal('writer/general.page_size', 99))
             ->toThrow(StaleConfigWriteException::class);
-    
+
         expect($storage->attempts)->toBe(3);
-    }
+    },
 );
 
 it(
@@ -274,12 +273,12 @@ it(
     function (): void {
         $storage = new InMemoryConfigStorage();
         $writer = buildWriter($storage);
-    
+
         // writer/general.page_size has no axes declared
-    $signature = new ScopeSignature(['store' => '1']);
+        $signature = new ScopeSignature(['store' => '1']);
         expect(fn () => $writer->setOverride('writer/general.page_size', $signature, 42))
             ->toThrow(AxisNotDeclaredException::class);
-    }
+    },
 );
 
 it('throws ConfigNotFoundException when writing to a key that no ConfigDefinition exists for', function (): void {

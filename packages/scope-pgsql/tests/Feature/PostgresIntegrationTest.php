@@ -24,6 +24,7 @@ use Markommerce\Scope\Attributes\Scoped;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\PgSql\Query\PgSqlScopedFieldRenderer;
 use Markommerce\Scope\PgSql\Schema\ScopesGinIndexEmitter;
@@ -148,8 +149,7 @@ function buildPgIntRegistry(array $axes = [], array $defaults = []): ScopeRegist
         public function __construct(
             array $axes,
             array $defaults,
-        )
-        {
+        ) {
             $this->builtAxes = [];
 
             foreach ($axes as $name => $paths) {
@@ -257,7 +257,7 @@ function buildPgIntResolver(): array
 {
     $registry = buildPgIntRegistry();
     $context = new ScopeContext($registry);
-    $metadataFactory = new ScopeMetadataFactory($registry);
+    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $enumerator = new SignatureCandidateEnumerator($registry);
     $walker = new ScopeWalker($enumerator);
     $validator = new ScopeSignatureValidator($registry);

@@ -7,8 +7,8 @@ it(
     function (): void {
         $path = __DIR__ . '/../../README.md';
         $contents = file_get_contents($path);
-    
+
         expect($contents)->toContain('theme-blank-demo');
         expect($contents)->toContain('/markommerce/_demo/theme-blank');
-    }
+    },
 );

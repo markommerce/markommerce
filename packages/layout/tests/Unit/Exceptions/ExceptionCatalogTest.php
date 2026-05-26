@@ -32,7 +32,7 @@ it('builds UnknownContextException naming the missing context token and layout',
 it('builds UnknownIterationException naming the iteration token and the placement', function (): void {
     $exception = UnknownIterationException::forIteration(
         'item_loop',
-        'storefront → category_show → content > product_grid'
+        'storefront → category_show → content > product_grid',
     );
 
     expect($exception)->toBeInstanceOf(LayoutException::class)

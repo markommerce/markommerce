@@ -25,8 +25,7 @@ readonly class AcceptLanguageResolver implements ScopeAxisResolverInterface
     public function resolve(
         ScopeAxis $scopeAxis,
         ScopeResolutionContext $scopeResolutionContext,
-    ): ?string
-    {
+    ): ?string {
         if ($scopeResolutionContext->channel !== ScopeResolutionContext::CHANNEL_HTTP) {
             return null;
         }

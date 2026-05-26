@@ -77,13 +77,13 @@ describe('ViteExtension', function (): void {
         function (): void {
             $vite = $this->createMock(Vite::class);
             $vite->expects($this->never())->method('headTags');
-    
+
             $config = $this->createMock(ConfigRepositoryInterface::class);
-    
+
             $extension = new ViteExtension($vite, $config);
-    
+
             expect(fn () => $extension->vite(''))->toThrow(ViteHelperException::class);
-        }
+        },
     );
 
     it(
@@ -93,17 +93,17 @@ describe('ViteExtension', function (): void {
                 'vite.entry',
                 'Set vite.entry in config/vite.php.',
             );
-    
+
             $vite = $this->createMock(Vite::class);
             $vite->method('headTags')->willThrowException($exception);
-    
+
             $config = $this->createMock(ConfigRepositoryInterface::class);
             $config->method('getString')->with('vite.entry')->willReturn('resources/js/app.ts');
-    
+
             $extension = new ViteExtension($vite, $config);
-    
+
             expect(fn () => $extension->vite())->toThrow(ViteConfigurationException::class);
-        }
+        },
     );
 
     it(
@@ -112,7 +112,7 @@ describe('ViteExtension', function (): void {
             $basePath = sys_get_temp_dir() . '/markommerce-vite-ext-test-' . bin2hex(random_bytes(8));
             $manifestDirectory = $basePath . '/public/build/.vite';
             mkdir($manifestDirectory, 0755, true);
-    
+
             $manifest = [
                 'resources/js/app.ts' => [
                     'file' => 'assets/app.abc123.js',
@@ -120,7 +120,7 @@ describe('ViteExtension', function (): void {
                 ],
             ];
             file_put_contents($manifestDirectory . '/manifest.json', json_encode($manifest));
-    
+
             $config = new ConfigRepository([
                 'vite' => [
                     'entry' => 'resources/js/app.ts',
@@ -129,27 +129,27 @@ describe('ViteExtension', function (): void {
                     'useDevServer' => false,
                 ],
             ]);
-    
+
             $vite = new Vite($config, new ProjectPaths($basePath));
             $extension = new ViteExtension($vite, $config);
-    
+
             $cacheDir = sys_get_temp_dir() . '/latte-vite-ext-cache-' . bin2hex(random_bytes(8));
             mkdir($cacheDir, 0755, true);
-    
+
             $engine = new Engine();
             $engine->setTempDirectory($cacheDir);
             $engine->addExtension($extension);
-    
+
             $templatePath = $cacheDir . '/vite-test.latte';
             file_put_contents($templatePath, '{vite()}');
-    
+
             $html = $engine->renderToString($templatePath);
-    
+
             expect($html)->toContain('assets/app.abc123.js');
             expect($html)->toContain('assets/app.def456.css');
             expect($html)->toContain('<script type="module"');
             expect($html)->toContain('<link rel="stylesheet"');
-    
+
             array_map('unlink', glob($cacheDir . '/*') ?: []);
             rmdir($cacheDir);
             array_map('unlink', glob($manifestDirectory . '/*') ?: []);
@@ -157,6 +157,6 @@ describe('ViteExtension', function (): void {
             rmdir(dirname($manifestDirectory));
             rmdir(dirname(dirname($manifestDirectory)));
             rmdir($basePath);
-        }
+        },
     );
 });

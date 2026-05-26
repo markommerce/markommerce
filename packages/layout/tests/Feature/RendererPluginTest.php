@@ -53,8 +53,7 @@ class RPT_BadgePlugin
     public function data(
         mixed $result,
         string $title = 'Default',
-    ): RPT_CardData
-    {
+    ): RPT_CardData {
         /** @var RPT_CardData $result */
         return $result->withExtension(new RPT_BadgeExtension(label: 'NEW'));
     }
@@ -71,16 +70,14 @@ class RPT_RecordingView implements ViewInterface
     public function render(
         string $template,
         array $data = [],
-    ): Response
-    {
+    ): Response {
         return Response::html($this->renderToString($template, $data));
     }
 
     public function renderToString(
         string $template,
         array $data = [],
-    ): string
-    {
+    ): string {
         $this->calls[] = ['template' => $template, 'data' => $data];
 
         return "<div data-template=\"$template\"></div>";

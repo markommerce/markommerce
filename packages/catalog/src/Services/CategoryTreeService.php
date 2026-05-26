@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Markommerce\Catalog\Services;
 
+use InvalidArgumentException;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Contracts\CategoryTreeMarketAssignmentRepositoryInterface;
 use Markommerce\Catalog\Contracts\CategoryTreeNodeRepositoryInterface;
@@ -14,8 +15,8 @@ use Markommerce\Catalog\Entity\CategoryTreeNode;
 use Markommerce\Catalog\Enum\NodeRemovalStrategy;
 use Markommerce\Catalog\Exceptions\CannotDeleteDefaultTreeException;
 use Markommerce\Catalog\Exceptions\CategoryNotFoundException;
-use Markommerce\Catalog\Exceptions\CategoryTreeNotFoundException;
 use Markommerce\Catalog\Exceptions\CategoryTreeNodeNotFoundException;
+use Markommerce\Catalog\Exceptions\CategoryTreeNotFoundException;
 use Markommerce\Catalog\Exceptions\CircularNodeReferenceException;
 use Markommerce\Catalog\Exceptions\DefaultTreeMissingException;
 use Markommerce\Catalog\Exceptions\DuplicateDefaultTreeException;
@@ -45,13 +46,12 @@ class CategoryTreeService
     ) {}
 
     /**
-     * @throws \InvalidArgumentException
-     * @throws DuplicateDefaultTreeException
+     * @throws InvalidArgumentException|DuplicateDefaultTreeException
      */
     public function createTree(string $code, string $name, bool $isDefault = false): CategoryTree
     {
         if (trim($code) === '') {
-            throw new \InvalidArgumentException('Category tree code must not be empty');
+            throw new InvalidArgumentException('Category tree code must not be empty');
         }
 
         if ($isDefault) {
@@ -94,9 +94,7 @@ class CategoryTreeService
     }
 
     /**
-     * @throws CategoryTreeNotFoundException
-     * @throws CannotDeleteDefaultTreeException
-     * @throws TreeHasMarketAssignmentsException
+     * @throws CategoryTreeNotFoundException|CannotDeleteDefaultTreeException|TreeHasMarketAssignmentsException
      */
     public function deleteTree(int $treeId): void
     {
@@ -150,8 +148,7 @@ class CategoryTreeService
     }
 
     /**
-     * @throws CategoryTreeNotFoundException
-     * @throws DefaultTreeMissingException
+     * @throws CategoryTreeNotFoundException|DefaultTreeMissingException
      */
     public function resolveTreeForMarket(string $market): CategoryTree
     {
@@ -186,10 +183,7 @@ class CategoryTreeService
     }
 
     /**
-     * @throws CategoryTreeNotFoundException
-     * @throws CategoryNotFoundException
-     * @throws CategoryTreeNodeNotFoundException
-     * @throws NodeNotInTreeException
+     * @throws CategoryTreeNotFoundException|CategoryNotFoundException|CategoryTreeNodeNotFoundException|NodeNotInTreeException
      */
     public function placeCategory(int $treeId, int $categoryId, ?int $parentNodeId = null, ?int $position = null): CategoryTreeNode
     {
@@ -242,9 +236,7 @@ class CategoryTreeService
     }
 
     /**
-     * @throws CategoryTreeNodeNotFoundException
-     * @throws NodeNotInTreeException
-     * @throws CircularNodeReferenceException
+     * @throws CategoryTreeNodeNotFoundException|NodeNotInTreeException|CircularNodeReferenceException
      */
     public function moveNode(int $nodeId, ?int $newParentNodeId, int $position): void
     {
@@ -311,8 +303,7 @@ class CategoryTreeService
 
     /**
      * @param list<int> $orderedNodeIds
-     * @throws CategoryTreeNodeNotFoundException
-     * @throws NodeNotInTreeException
+     * @throws CategoryTreeNodeNotFoundException|NodeNotInTreeException
      */
     public function reorderSiblings(?int $parentNodeId, int $treeId, array $orderedNodeIds): void
     {

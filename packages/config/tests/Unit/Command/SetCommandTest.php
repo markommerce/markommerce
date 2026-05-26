@@ -213,8 +213,7 @@ class SetCommandContentiousStorage implements ConfigStorageInterface
         string $key,
         ConfigRow $row,
         int $expectedVersion,
-    ): bool
-    {
+    ): bool {
         $this->attempts++;
 
         if ($this->attempts <= $this->failCount) {

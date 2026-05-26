@@ -202,63 +202,63 @@ it(
     'ProductCategoryAssignmentRepository findByCategory queries assignments filtered by category id',
     function (): void {
         $sqlLog = [];
-    
+
         $connection = new class ($sqlLog) implements ConnectionInterface
         {
             private int $lastId = 0;
-    
+
             public function __construct(
                 private array &$sqlLog,
             ) {}
-    
+
             public function connect(): void {}
-    
+
             public function disconnect(): void {}
-    
+
             public function isConnected(): bool
             {
                 return true;
             }
-    
+
             public function query(
                 string $sql,
                 array $bindings = [],
             ): array {
                 $this->sqlLog[] = ['sql' => $sql, 'bindings' => $bindings];
-    
+
                 return [];
             }
-    
+
             public function execute(
                 string $sql,
                 array $bindings = [],
             ): int {
                 $this->sqlLog[] = ['sql' => $sql, 'bindings' => $bindings];
                 $this->lastId++;
-    
+
                 return 1;
             }
-    
+
             public function prepare(string $sql): StatementInterface
             {
                 throw new RuntimeException('Not implemented');
             }
-    
+
             public function lastInsertId(): int
             {
                 return $this->lastId;
             }
         };
-    
+
         $metadataFactory = new EntityMetadataFactory();
         $hydrator = new EntityHydrator($metadataFactory);
         $repository = new ProductCategoryAssignmentRepository($connection, $metadataFactory, $hydrator);
-    
+
         $repository->findByCategory(42);
-    
+
         expect($sqlLog)->toHaveCount(1)
             ->and($sqlLog[0]['sql'])->toContain('catalog_product_category')
             ->and($sqlLog[0]['sql'])->toContain('category_id')
             ->and($sqlLog[0]['bindings'])->toContain(42);
-    }
+    },
 );

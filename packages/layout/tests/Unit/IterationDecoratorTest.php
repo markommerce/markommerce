@@ -38,7 +38,7 @@ it('defines a DecoratorInterface contract', function (): void {
 
     $methods = array_map(
         fn (ReflectionMethod $m) => $m->getName(),
-        $reflection->getMethods(ReflectionMethod::IS_PUBLIC)
+        $reflection->getMethods(ReflectionMethod::IS_PUBLIC),
     );
     expect($methods)->toContain('template')
         ->and($methods)->toContain('wrap');
@@ -78,8 +78,7 @@ class MissingSlotDecoratorFixture implements DecoratorInterface
     public function wrap(
         string $innerHtml,
         array $data = [],
-    ): string
-    {
+    ): string {
         return str_replace('{slot inner}', $innerHtml, $this->template());
     }
 }

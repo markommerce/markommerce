@@ -24,8 +24,7 @@ function makeRegistry(array $axes = [], array $defaults = []): ScopeRegistryInte
         public function __construct(
             array $axes,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
                 $default = $defaults[$name] ?? '__test_default';
@@ -75,9 +74,9 @@ it(
 
         $enumerator = new SignatureCandidateEnumerator($registry);
         $result = $enumerator->enumerate(['channel', 'locale'], $context);
-    
+
         expect($result)->toBe([]);
-    }
+    },
 );
 
 it('emits a single-axis signature when one axis is declared and context has one value at the root', function (): void {
@@ -98,14 +97,14 @@ it(
         $registry = makeRegistry(['locale' => ['es', 'es.es']]);
         $context = new ScopeContext($registry);
         $context->in('locale', 'es.es');
-    
+
         $enumerator = new SignatureCandidateEnumerator($registry);
         $result = $enumerator->enumerate(['locale'], $context);
-    
+
         expect($result)->toHaveCount(2)
             ->and($result[0]->toString())->toBe('locale:es.es')
             ->and($result[1]->toString())->toBe('locale:es');
-    }
+    },
 );
 
 it('emits the cartesian product of walk-up values across two axes', function (): void {
@@ -133,22 +132,22 @@ it(
     'emits signatures in descending-score order matching the declared axis priority (case 11: channel:b2b before locale:es.es)',
     function (): void {
         // Case 11: channel path=b2b (root), locale path=es (root)
-    // walkUp(b2b) = [b2b], walkUp(es) = [es]
-    // Expected order: channel:b2b|locale:es, channel:b2b, locale:es
-    $registry = makeRegistry([
+        // walkUp(b2b) = [b2b], walkUp(es) = [es]
+        // Expected order: channel:b2b|locale:es, channel:b2b, locale:es
+        $registry = makeRegistry([
             'channel' => ['b2b'],
             'locale' => ['es'],
         ]);
         $context = new ScopeContext($registry);
         $context->in('channel', 'b2b')->in('locale', 'es');
-    
+
         $enumerator = new SignatureCandidateEnumerator($registry);
         $result = $enumerator->enumerate(['channel', 'locale'], $context);
-    
+
         $strings = array_map(fn ($s) => $s->toString(), $result);
-    
+
         expect($strings)->toBe(['channel:b2b|locale:es', 'channel:b2b', 'locale:es']);
-    }
+    },
 );
 
 it('emits the most-specific composite first then progressively less specific ones (case 10)', function (): void {
@@ -322,86 +321,86 @@ it(
         $registry = makeRegistry(['channel' => ['b2b', 'b2c']]);
         $context = new ScopeContext($registry);
         $context->in('channel', 'b2b');
-    
+
         $enumerator = new SignatureCandidateEnumerator($registry);
-    
+
         $first = $enumerator->enumerate(['channel'], $context);
-    
+
         // Change context
-    $context->in('channel', 'b2c');
+        $context->in('channel', 'b2c');
         $second = $enumerator->enumerate(['channel'], $context);
-    
+
         expect($first)->not->toBe($second)
             ->and($first[0]->toString())->toBe('channel:b2b')
             ->and($second[0]->toString())->toBe('channel:b2c');
-    }
+    },
 );
 
 it(
     'returns the same cached list regardless of the order in which axes were added to ScopeContext (cache key is ksorted before serialization)',
     function (): void {
         $registry = makeRegistry(['channel' => ['b2b'], 'locale' => ['es']]);
-    
+
         // Context 1: channel set first
-    $context1 = new ScopeContext($registry);
+        $context1 = new ScopeContext($registry);
         $context1->in('channel', 'b2b')->in('locale', 'es');
-    
+
         // Context 2: locale set first
-    $context2 = new ScopeContext($registry);
+        $context2 = new ScopeContext($registry);
         $context2->in('locale', 'es')->in('channel', 'b2b');
-    
+
         $enumerator = new SignatureCandidateEnumerator($registry);
-    
+
         $result1 = $enumerator->enumerate(['channel', 'locale'], $context1);
         $result2 = $enumerator->enumerate(['channel', 'locale'], $context2);
-    
+
         // Both should return the same cached result (same object identity)
-    expect($result1)->toBe($result2);
-    }
+        expect($result1)->toBe($result2);
+    },
 );
 
 it(
     'returns ScopeSignature objects with axes alphabetically sorted regardless of declaration order',
     function (): void {
         // Declare axes in non-alphabetical order (z before a before m)
-    $registry = makeRegistry([
+        $registry = makeRegistry([
             'zebra' => ['zval'],
             'apple' => ['aval'],
             'mango' => ['mval'],
         ]);
         $context = new ScopeContext($registry);
         $context->in('zebra', 'zval')->in('apple', 'aval')->in('mango', 'mval');
-    
+
         $enumerator = new SignatureCandidateEnumerator($registry);
         $result = $enumerator->enumerate(['zebra', 'apple', 'mango'], $context);
-    
+
         // The full composite signature should have axes alphabetically sorted
-    $fullSignature = array_find($result, fn ($s) => count($s->axes()) === 3);
+        $fullSignature = array_find($result, fn ($s) => count($s->axes()) === 3);
         expect($fullSignature)->not->toBeNull()
             ->and($fullSignature->axes())->toBe(['apple', 'mango', 'zebra'])
             ->and($fullSignature->toString())->toBe('apple:aval|mango:mval|zebra:zval');
-    }
+    },
 );
 
 it(
     'emits OMIT exactly once for an attribute axis not present in context (the axis contributes one OMIT iteration, not zero — composites without that axis still emit)',
     function (): void {
         // channel and locale are in registry. Only channel is active in context.
-    // locale is declared in attributeAxes but has no active context value.
-    // Expected: the locale contributes one OMIT iteration → only channel:b2b emits
-    $registry = makeRegistry(['channel' => ['b2b'], 'locale' => ['es']]);
+        // locale is declared in attributeAxes but has no active context value.
+        // Expected: the locale contributes one OMIT iteration → only channel:b2b emits
+        $registry = makeRegistry(['channel' => ['b2b'], 'locale' => ['es']]);
         $context = new ScopeContext($registry);
         $context->in('channel', 'b2b');
         // locale not set
 
         $enumerator = new SignatureCandidateEnumerator($registry);
         $result = $enumerator->enumerate(['channel', 'locale'], $context);
-    
+
         $strings = array_map(fn ($s) => $s->toString(), $result);
-    
+
         // locale is OMIT → no signatures mentioning locale, only channel:b2b
-    expect($strings)->toBe(['channel:b2b']);
-    }
+        expect($strings)->toBe(['channel:b2b']);
+    },
 );
 
 it('returns an empty list when no axes are declared', function (): void {

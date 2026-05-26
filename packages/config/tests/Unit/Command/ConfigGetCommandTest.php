@@ -121,20 +121,20 @@ it(
     function (): void {
         $registry = makeGetRegistry();
         $storage = new InMemoryConfigStorage();
-    
+
         $storage->compareAndSave('payment/stripe.secret_key', new ConfigRow(
             key: 'payment/stripe.secret_key',
             value: 'sk_live_supersecretvalue',
             overrides: [],
             version: 0,
         ), 0);
-    
+
         $result = runGetCommand($registry, $storage, 'payment/stripe.secret_key');
-    
+
         expect($result['exitCode'])->toBe(0)
             ->and($result['output'])->toContain('***')
             ->and($result['output'])->not->toContain('sk_live_supersecretvalue');
-    }
+    },
 );
 
 it('exits non-zero with a did-you-mean hint when the key is unknown', function (): void {

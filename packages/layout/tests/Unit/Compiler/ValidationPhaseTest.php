@@ -38,8 +38,7 @@ class SimpleComponent
     public function data(
         string $title,
         string $subtitle = '',
-    ): SimpleDto
-    {
+    ): SimpleDto {
         return new SimpleDto($title, $subtitle);
     }
 }
@@ -235,11 +234,11 @@ it('throws MissingDataKeyException when a repeat slot key is absent from the par
                     [
                         'items' => new ResolvedRepeatSlot(
                             dataKey: 'nonexistent', // Not a property on ProductListDto
-                        yields: ProductItemDto::class,
+                            yields: ProductItemDto::class,
                             as: 'product',
                             children: [],
                         ),
-                    ]
+                    ],
                 ),
             ],
         ],
@@ -362,7 +361,7 @@ it('throws MissingDataKeyException when a parentData key is absent from the pare
                                 'title' => new ParentDataSource('nonexistentKey', 'string'),
                             ]),
                         ],
-                    ]
+                    ],
                 ),
             ],
         ],

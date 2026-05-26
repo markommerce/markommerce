@@ -22,33 +22,33 @@ it(
             $packagesDir . '/scope',
             $packagesDir . '/scope-pgsql',
         ];
-    
+
         $matches = [];
         foreach ($dirs as $dir) {
             if (!is_dir($dir)) {
                 continue;
             }
-    
+
             $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir));
-    
+
             foreach ($files as $file) {
                 if (!$file->isFile() || $file->getExtension() !== 'php') {
                     continue;
                 }
-    
+
                 $contents = file_get_contents($file->getPathname());
-    
+
                 if (str_contains($contents, 'ScopeSortRendererInterface') || str_contains(
                     $contents,
-                    'ScopeSortExpression'
+                    'ScopeSortExpression',
                 )) {
                     $matches[] = $file->getPathname();
                 }
             }
         }
-    
+
         expect($matches)->toBe([]);
-    }
+    },
 );
 
 it('ScopedFieldExpression does NOT have a direction field', function (): void {
@@ -81,12 +81,12 @@ it(
     'NoDriverException::noDriverInstalled() message and context reference ScopedFieldRendererInterface (not the old ScopeSortRendererInterface vocabulary)',
     function (): void {
         $exception = NoDriverException::noDriverInstalled();
-    
+
         expect($exception->getMessage())->not->toContain('scope sort renderer')
             ->and($exception->getMessage())->not->toContain('ScopeSortRendererInterface')
             ->and($exception->getContext())->not->toContain('ScopeSortRendererInterface')
             ->and($exception->getContext())->toContain('ScopedFieldRendererInterface');
-    }
+    },
 );
 
 it(
@@ -95,17 +95,17 @@ it(
         $sig1 = new ScopeSignature(['store' => 'en.gb']);
         $sig2 = new ScopeSignature(['store' => 'en']);
         $sig3 = new ScopeSignature(['channel' => 'b2b']);
-    
+
         $expression = new ScopedFieldExpression(
             property: 'price',
             column: 'price',
             candidateSignatures: [$sig1, $sig2, $sig3],
         );
-    
+
         expect($expression->candidateSignatures[0])->toBe($sig1)
             ->and($expression->candidateSignatures[1])->toBe($sig2)
             ->and($expression->candidateSignatures[2])->toBe($sig3);
-    }
+    },
 );
 
 it('ScopedFieldExpression can be constructed with property, column, and a list of signatures', function (): void {

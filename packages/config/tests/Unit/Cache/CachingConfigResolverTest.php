@@ -134,34 +134,34 @@ it(
             'locale'  => ['en', 'fr'],
             'channel' => ['web', 'app'],
         ]);
-    
+
         $builder = new ConfigRegistryBuilder();
         $registry = $builder->build([CachingScopedConfig::class], $scopeRegistry);
         $storage = new InMemoryConfigStorage();
-    
+
         // Context has store + channel + locale active, but config only declares 'store'
-    $context = new ScopeContext($scopeRegistry);
+        $context = new ScopeContext($scopeRegistry);
         $context->in('store', 'eu')->in('channel', 'app');
-    
+
         $storage->compareAndSave('caching/scoped.value', new ConfigRow(
             key: 'caching/scoped.value',
             value: 'global-value',
             overrides: [],
             version: 0,
         ), 0);
-    
+
         $innerResolver = makeCachingConfigResolver($registry, $storage, $context);
         $cache = new RequestConfigCache();
         $cachingResolver = new CachingConfigResolver($innerResolver, $cache, $registry, $context);
-    
+
         // Pre-seed the cache with a key that only uses 'store' (not 'channel')
-    $cache->get('caching/scoped.value|store:eu', fn () => 'cached-value');
-    
+        $cache->get('caching/scoped.value|store:eu', fn () => 'cached-value');
+
         // Now resolving should hit the cache and NOT go to the inner resolver
-    $result = $cachingResolver->resolved(CachingScopedConfig::class, 'value');
-    
+        $result = $cachingResolver->resolved(CachingScopedConfig::class, 'value');
+
         expect($result)->toBe('cached-value');
-    }
+    },
 );
 
 it(
@@ -172,22 +172,22 @@ it(
         $registry = $builder->build([CachingUnscopedConfig::class], $scopeRegistry);
         $storage = new InMemoryConfigStorage();
         $context = new ScopeContext($scopeRegistry);
-    
+
         $storage->compareAndSave('caching/test.value', new ConfigRow(
             key: 'caching/test.value',
             value: 'stored-value',
             overrides: [],
             version: 0,
         ), 0);
-    
+
         $innerResolver = makeCachingConfigResolver($registry, $storage, $context);
         $cache = new RequestConfigCache();
         $cachingResolver = new CachingConfigResolver($innerResolver, $cache, $registry, $context);
-    
+
         $result = $cachingResolver->resolved(CachingUnscopedConfig::class, 'value');
-    
+
         expect($result)->toBe('stored-value');
-    }
+    },
 );
 
 it(
@@ -198,24 +198,24 @@ it(
         $registry = $builder->build([CachingUnscopedConfig::class], $scopeRegistry);
         $storage = new InMemoryConfigStorage();
         $context = new ScopeContext($scopeRegistry);
-    
+
         $storage->compareAndSave('caching/test.value', new ConfigRow(
             key: 'caching/test.value',
             value: 'stored-value',
             overrides: [],
             version: 0,
         ), 0);
-    
+
         $innerResolver = makeCachingConfigResolver($registry, $storage, $context);
         $cache = new RequestConfigCache();
         $cachingResolver = new CachingConfigResolver($innerResolver, $cache, $registry, $context);
-    
+
         // Pre-seed cache
-    $cache->get('caching/test.value', fn () => 'pre-cached-value');
-    
+        $cache->get('caching/test.value', fn () => 'pre-cached-value');
+
         $result = $cachingResolver->resolved(CachingUnscopedConfig::class, 'value');
-    
+
         // Should return pre-cached, NOT the stored-value from storage
-    expect($result)->toBe('pre-cached-value');
-    }
+        expect($result)->toBe('pre-cached-value');
+    },
 );

@@ -18,8 +18,7 @@ class ItemComponent
         Item $item,
         string $galleryTitle,
         LabelFormatterInterface $labelFormatter,
-    ): ItemData
-    {
+    ): ItemData {
         return new ItemData(
             id: $item->id,
             label: $item->label,

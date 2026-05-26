@@ -48,7 +48,7 @@ it(
     function (): void {
         $cacheDir = sys_get_temp_dir() . '/latte-markommerce-test-' . bin2hex(random_bytes(8));
         mkdir($cacheDir, 0755, true);
-    
+
         $config = new ConfigRepository([
             'vite' => [
                 'entry' => 'packages/frontend-demo/resources/js/main.ts',
@@ -64,30 +64,30 @@ it(
                 'strict_types' => false,
             ],
         ]);
-    
+
         $viewConfig = new ViewConfig($config);
         $paths = new ProjectPaths(sys_get_temp_dir());
         $vite = new Vite($config, $paths);
         $viteExtension = new ViteExtension($vite, $config);
         $factory = new MarkommerceLatteEngineFactory($viewConfig, $viteExtension);
-    
+
         $engine = $factory->create();
-    
+
         expect($engine)->toBeInstanceOf(Engine::class);
-    
+
         // The engine should have both SlotExtension and ViteExtension
-    $reflection = new ReflectionClass($engine);
+        $reflection = new ReflectionClass($engine);
         $extensionsProperty = $reflection->getProperty('extensions');
         $extensions = $extensionsProperty->getValue($engine);
-    
+
         $extensionClasses = array_map(fn ($ext) => $ext::class, $extensions);
-    
+
         expect($extensionClasses)->toContain(SlotExtension::class);
         expect($extensionClasses)->toContain(ViteExtension::class);
-    
+
         array_map('unlink', glob($cacheDir . '/*') ?: []);
         rmdir($cacheDir);
-    }
+    },
 );
 
 it('it loads cleanly in a Pest feature test that boots a minimal Marko app', function (): void {

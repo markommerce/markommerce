@@ -118,8 +118,7 @@ function makeFakeResolver(?string $returns): ScopeAxisResolverInterface
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $context,
-        ): ?string
-        {
+        ): ?string {
             return $this->returns;
         }
     };
@@ -147,8 +146,7 @@ it('iterates axes in registry registration order', function (): void {
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $context,
-        ): ?string
-        {
+        ): ?string {
             $this->visited[] = $this->axisName;
 
             return $scopeAxis->default;
@@ -166,8 +164,7 @@ it('iterates axes in registry registration order', function (): void {
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $context,
-        ): ?string
-        {
+        ): ?string {
             $this->visited[] = $this->axisName;
 
             return $scopeAxis->default;
@@ -185,8 +182,7 @@ it('iterates axes in registry registration order', function (): void {
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $context,
-        ): ?string
-        {
+        ): ?string {
             $this->visited[] = $this->axisName;
 
             return $scopeAxis->default;
@@ -267,8 +263,7 @@ it('exposes resolved axes to later resolvers via context resolved map', function
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $context,
-        ): ?string
-        {
+        ): ?string {
             $this->capturedResolved = $context->resolved;
 
             return $scopeAxis->default;
@@ -307,8 +302,7 @@ it('propagates the request and channel into the ScopeResolutionContext for every
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $context,
-        ): ?string
-        {
+        ): ?string {
             $this->capturedRequest = $context->request;
             $this->capturedChannel = $context->channel;
 
@@ -378,8 +372,7 @@ it('skips a resolver that throws an exception and tries the next one', function 
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $context,
-        ): ?string
-        {
+        ): ?string {
             throw new RuntimeException('Resolver exploded');
         }
     };
@@ -409,8 +402,7 @@ it('never propagates a Throwable thrown by a resolver out of run', function (): 
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $context,
-        ): ?string
-        {
+        ): ?string {
             throw new Error('Fatal error from resolver');
         }
     };
@@ -450,8 +442,7 @@ it('logs ScopeResolutionException via the injected logger when a resolver fails'
         public function error(
             string $message,
             array $context = [],
-        ): void
-        {
+        ): void {
             $this->loggedMessages[] = $message;
         }
 
@@ -492,8 +483,7 @@ it('logs ScopeResolutionException via the injected logger when a resolver fails'
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $context,
-        ): ?string
-        {
+        ): ?string {
             throw new RuntimeException('Resolver exploded');
         }
     };
@@ -519,8 +509,7 @@ it('operates correctly when the logger is null', function (): void {
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $context,
-        ): ?string
-        {
+        ): ?string {
             throw new RuntimeException('Resolver exploded');
         }
     };

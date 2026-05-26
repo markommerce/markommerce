@@ -18,8 +18,7 @@ class DuplicateNameException extends LayoutException
     public static function forNameWithChain(
         string $name,
         string $chain,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Duplicate placement name '$name'.",
             context: "Registering placement '$name' at [$chain] — a placement with this name already exists in the layout.",

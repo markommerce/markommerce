@@ -136,15 +136,15 @@ it(
             slots: ['main' => [new Place('OwnContent', 'own-content', [], [])]],
             operations: [new Remove('default-header')],
         );
-    
+
         $result = (new ResolutionPhase())->resolve(
             makeDefaultDiscoveryResult([$defaultLayout, $pageLayout]),
         );
-    
+
         // The sibling removes the default-provided 'default-header'
-    expect($result['page.override']->slots['main'])->toHaveCount(1)
-            ->and($result['page.override']->slots['main'][0]->component)->toBe('OwnContent');
-    }
+        expect($result['page.override']->slots['main'])->toHaveCount(1)
+                ->and($result['page.override']->slots['main'][0]->component)->toBe('OwnContent');
+    },
 );
 
 it(
@@ -169,18 +169,18 @@ it(
             context: [],
             slots: ['main' => [new Place('ChildContent', 'child-content', [], [])]],
         );
-    
+
         $result = (new ResolutionPhase())->resolve(
             makeDefaultDiscoveryResult([$defaultLayout, $parentLayout, $childLayout]),
         );
-    
+
         // child.handle should have: [default-header, parent-content, child-content]
-    // NOT: [default-header, default-header, parent-content, child-content] (double-merge)
-    expect($result['child.handle']->slots['main'])->toHaveCount(3)
-            ->and($result['child.handle']->slots['main'][0]->component)->toBe('DefaultHeader')
-            ->and($result['child.handle']->slots['main'][1]->component)->toBe('ParentContent')
-            ->and($result['child.handle']->slots['main'][2]->component)->toBe('ChildContent');
-    }
+        // NOT: [default-header, default-header, parent-content, child-content] (double-merge)
+        expect($result['child.handle']->slots['main'])->toHaveCount(3)
+                ->and($result['child.handle']->slots['main'][0]->component)->toBe('DefaultHeader')
+                ->and($result['child.handle']->slots['main'][1]->component)->toBe('ParentContent')
+                ->and($result['child.handle']->slots['main'][2]->component)->toBe('ChildContent');
+    },
 );
 
 it('omits the default key from the final runtime artifact', function (): void {
@@ -258,7 +258,7 @@ it(
     'throws DuplicateContextTokenException when default and a sibling declare the same context token',
     function (): void {
         $sharedProvide = new Provide('SharedToken', 'SomeProvider', []);
-    
+
         $defaultLayout = new Layout(
             handle: 'default',
             extends: null,
@@ -271,9 +271,9 @@ it(
             context: [$sharedProvide],
             slots: [],
         );
-    
+
         expect(fn () => (new ResolutionPhase())->resolve(
             makeDefaultDiscoveryResult([$defaultLayout, $pageLayout]),
         ))->toThrow(DuplicateContextTokenException::class);
-    }
+    },
 );

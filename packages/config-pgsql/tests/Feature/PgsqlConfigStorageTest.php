@@ -219,25 +219,25 @@ it(
         $connA = new PostgresTestConnection();
         $connB = new PostgresTestConnection();
         $tableName = $this->tableName;
-    
+
         $storageA = new PgsqlConfigStorage($connA, $tableName);
         $storageB = new PgsqlConfigStorage($connB, $tableName);
-    
+
         $key = 'markommerce/catalog.concurrent_test';
-    
+
         // Both try to insert at expectedVersion 0
-    $row = makeRow($key, 'value');
-    
+        $row = makeRow($key, 'value');
+
         $resultA = $storageA->compareAndSave($key, $row, 0);
         $resultB = $storageB->compareAndSave($key, $row, 0);
-    
+
         // Exactly one must succeed
-    expect($resultA xor $resultB)->toBeTrue();
-    
+        expect($resultA xor $resultB)->toBeTrue();
+
         // The stored version must be exactly 1
-    $loaded = $this->storage->load($key);
+        $loaded = $this->storage->load($key);
         expect($loaded->version)->toBe(1);
-    }
+    },
 )->group('integration-destructive');
 
 it(
@@ -246,13 +246,13 @@ it(
         /** @var PgsqlConfigStorage $storage */
         $storage = $this->storage;
         $key = 'markommerce/catalog.absent_key';
-    
+
         $emptyRow = makeRow($key, null, []);
         $result = $storage->compareAndSave($key, $emptyRow, 0);
-    
+
         expect($result)->toBeTrue();
         expect($storage->load($key))->toBeNull();
-    }
+    },
 )->group('integration-destructive');
 
 it(
@@ -261,13 +261,13 @@ it(
         /** @var PgsqlConfigStorage $storage */
         $storage = $this->storage;
         $key = 'markommerce/catalog.deleted_key';
-    
+
         // No row exists, but we claim expectedVersion = 5
-    $result = $storage->compareAndSave($key, makeRow($key, 42), 5);
-    
+        $result = $storage->compareAndSave($key, makeRow($key, 42), 5);
+
         expect($result)->toBeFalse();
         expect($storage->load($key))->toBeNull();
-    }
+    },
 )->group('integration-destructive');
 
 it(
@@ -277,35 +277,35 @@ it(
         $connA = new PostgresTestConnection();
         $connB = new PostgresTestConnection();
         $tableName = $this->tableName;
-    
+
         $storageA = new PgsqlConfigStorage($connA, $tableName);
         $storageB = new PgsqlConfigStorage($connB, $tableName);
-    
+
         $key = 'markommerce/catalog.serialize_test';
-    
+
         // First, insert a row so both can claim expectedVersion 1
-    $this->storage->compareAndSave($key, makeRow($key, 'initial'), 0);
-    
+        $this->storage->compareAndSave($key, makeRow($key, 'initial'), 0);
+
         // A tries to delete (empty row), B tries to update with a new value
-    $deleteRow = makeRow($key, null, []);
+        $deleteRow = makeRow($key, null, []);
         $updateRow = makeRow($key, 'updated', ['channel:web' => 'override']);
-    
+
         $resultA = $storageA->compareAndSave($key, $deleteRow, 1);
         $resultB = $storageB->compareAndSave($key, $updateRow, 1);
-    
+
         // Exactly one must succeed
-    expect($resultA xor $resultB)->toBeTrue();
-    
+        expect($resultA xor $resultB)->toBeTrue();
+
         // If B succeeded (update), we must see the updated value
-    if ($resultB) {
+        if ($resultB) {
             $loaded = $this->storage->load($key);
             expect($loaded)->not->toBeNull()
                 ->and($loaded->value)->toBe('updated');
         } else {
             // A succeeded (delete), B failed — row is gone
-        expect($this->storage->load($key))->toBeNull();
+            expect($this->storage->load($key))->toBeNull();
         }
-    }
+    },
 )->group('integration-destructive');
 
 it(
@@ -314,23 +314,23 @@ it(
         $connA = new PostgresTestConnection();
         $connB = new PostgresTestConnection();
         $tableName = $this->tableName;
-    
+
         $storageA = new PgsqlConfigStorage($connA, $tableName);
         $storageB = new PgsqlConfigStorage($connB, $tableName);
-    
+
         $key = 'markommerce/catalog.race_insert';
-    
+
         $rowA = makeRow($key, 'writer_a');
         $rowB = makeRow($key, 'writer_b');
-    
+
         $resultA = $storageA->compareAndSave($key, $rowA, 0);
         $resultB = $storageB->compareAndSave($key, $rowB, 0);
-    
+
         // Exactly one INSERT must win
-    expect($resultA xor $resultB)->toBeTrue();
-    
+        expect($resultA xor $resultB)->toBeTrue();
+
         // The stored row must have version 1 (inserted once)
-    $loaded = $this->storage->load($key);
+        $loaded = $this->storage->load($key);
         expect($loaded->version)->toBe(1);
-    }
+    },
 )->group('integration-destructive');

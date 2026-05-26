@@ -35,8 +35,7 @@ function makeMiddlewareRegistry(array $axes = [], array $defaults = []): ScopeRe
         public function __construct(
             array $axes,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
                 $default = $defaults[$name] ?? $paths[0] ?? '__test_default';
@@ -135,8 +134,7 @@ it('it runs the pipeline with http channel before calling next', function (): vo
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $resolutionContext,
-        ): string
-        {
+        ): string {
             $this->capturedChannel = $resolutionContext->channel;
 
             return $scopeAxis->default;
@@ -207,8 +205,7 @@ it('it clears the scope context after the handler returns successfully', functio
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $resolutionContext,
-        ): string
-        {
+        ): string {
             return $scopeAxis->default;
         }
     };
@@ -238,8 +235,7 @@ it('it clears the scope context when the handler throws an Exception', function 
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $resolutionContext,
-        ): string
-        {
+        ): string {
             return $scopeAxis->default;
         }
     };
@@ -274,8 +270,7 @@ it('it clears the scope context when the handler throws an Error (not just Excep
         public function resolve(
             ScopeAxis $scopeAxis,
             ScopeResolutionContext $resolutionContext,
-        ): string
-        {
+        ): string {
             return $scopeAxis->default;
         }
     };

@@ -78,11 +78,11 @@ it(
             provider: HandleProvider::class,
             props: ['product' => new ContextSource('ProductToken', null)],
         );
-    
+
         expect($provideHandle->provider)->toBe(HandleProvider::class);
         expect($provideHandle->props)->toHaveKey('product');
         expect($provideHandle->props['product'])->toBeInstanceOf(ContextSource::class);
-    }
+    },
 );
 
 // =============================================================================

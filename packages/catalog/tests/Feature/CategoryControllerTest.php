@@ -37,6 +37,7 @@ use Markommerce\Layout\Discovery\LayoutDiscovery;
 use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
 use Markommerce\Layout\Runtime\Renderer;
 use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Registry\PhpScopeRegistry;
 use Markommerce\Scope\Resolution\ScopeWalker;
@@ -56,7 +57,7 @@ function catalogControllerBuildScopeResolver(): ScopeResolver
     $registry = new PhpScopeRegistry($config);
 
     $context = new ScopeContext($registry);
-    $metadataFactory = new ScopeMetadataFactory($registry);
+    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $enumerator = new SignatureCandidateEnumerator($registry);
     $walker = new ScopeWalker($enumerator);
     $validator = new ScopeSignatureValidator($registry);
@@ -121,16 +122,14 @@ class CatalogControllerFakeView implements ViewInterface
     public function render(
         string $template,
         array $data = [],
-    ): Response
-    {
+    ): Response {
         return Response::html($this->renderToString($template, $data));
     }
 
     public function renderToString(
         string $template,
         array $data = [],
-    ): string
-    {
+    ): string {
         $output = '<div data-template="' . htmlspecialchars($template) . '"';
 
         foreach ($data as $key => $value) {
@@ -188,8 +187,7 @@ class CatalogControllerFakeContainer implements ContainerInterface
     public function bind(
         string $class,
         object $instance,
-    ): void
-    {
+    ): void {
         $this->bindings[$class] = $instance;
     }
 
@@ -214,8 +212,7 @@ class CatalogControllerFakeContainer implements ContainerInterface
     public function instance(
         string $id,
         object $instance,
-    ): void
-    {
+    ): void {
         $this->bindings[$id] = $instance;
     }
 
@@ -300,16 +297,16 @@ it(
     'defines the layout for CategoryController show via a layout file instead of a controller attribute',
     function (): void {
         $reflection = new ReflectionClass(CategoryController::class);
-    
+
         // Controller should NOT have marko/layout's Layout attribute
-    $markoLayoutClass = 'Marko\Layout\Attributes\Layout';
+        $markoLayoutClass = 'Marko\Layout\Attributes\Layout';
         $attributes = $reflection->getAttributes($markoLayoutClass);
         expect($attributes)->toBeEmpty();
-    
+
         // The layout file should exist
-    $layoutPath = dirname(__DIR__, 2) . '/layout/category_show.php';
+        $layoutPath = dirname(__DIR__, 2) . '/layout/category_show.php';
         expect(file_exists($layoutPath))->toBeTrue();
-    }
+    },
 );
 
 it('returns a 200 response with the assembled layout HTML when the category exists', function (): void {

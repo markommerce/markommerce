@@ -12,6 +12,7 @@ use Marko\Database\Query\QueryBuilderInterface;
 use Markommerce\Scope\Attributes\Scoped;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Exceptions\InvalidSignatureForAttributeException;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Query\ScopedFieldExpression;
 use Markommerce\Scope\Query\ScopedFieldRendererInterface;
@@ -61,7 +62,7 @@ function loadShippedRegistry(): PhpScopeRegistry
 function buildResolverStack(PhpScopeRegistry $registry): array
 {
     $context = new ScopeContext($registry);
-    $metadataFactory = new ScopeMetadataFactory($registry);
+    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $enumerator = new SignatureCandidateEnumerator($registry);
     $walker = new ScopeWalker($enumerator);
     $validator = new ScopeSignatureValidator($registry);
@@ -102,8 +103,7 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
         public function selectRaw(
             string $expression,
             array $bindings = [],
-        ): static
-        {
+        ): static {
             return $this;
         }
 
@@ -116,16 +116,14 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
             string $column,
             string $operator,
             mixed $value,
-        ): static
-        {
+        ): static {
             return $this;
         }
 
         public function whereIn(
             string $column,
             array $values,
-        ): static
-        {
+        ): static {
             return $this;
         }
 
@@ -142,8 +140,7 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
         public function whereJsonContains(
             string $column,
             mixed $value,
-        ): static
-        {
+        ): static {
             return $this;
         }
 
@@ -160,8 +157,7 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
         public function whereRaw(
             string $expression,
             array $bindings = [],
-        ): static
-        {
+        ): static {
             return $this;
         }
 
@@ -169,8 +165,7 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
             string $column,
             string $operator,
             mixed $value,
-        ): static
-        {
+        ): static {
             return $this;
         }
 
@@ -179,8 +174,7 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
             string $first,
             string $operator,
             string $second,
-        ): static
-        {
+        ): static {
             return $this;
         }
 
@@ -189,8 +183,7 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
             string $first,
             string $operator,
             string $second,
-        ): static
-        {
+        ): static {
             return $this;
         }
 
@@ -199,8 +192,7 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
             string $first,
             string $operator,
             string $second,
-        ): static
-        {
+        ): static {
             return $this;
         }
 
@@ -212,8 +204,7 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
         public function having(
             string $expression,
             array $bindings = [],
-        ): static
-        {
+        ): static {
             return $this;
         }
 
@@ -300,16 +291,14 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
         public function raw(
             string $sql,
             array $bindings = [],
-        ): array
-        {
+        ): array {
             return [];
         }
 
         public function orderBy(
             string $column,
             string $direction = 'ASC',
-        ): static
-        {
+        ): static {
             $this->orderByCalls[] = ['column' => $column, 'direction' => $direction];
 
             return $this;
@@ -318,8 +307,7 @@ function makeRecordingBuilder(): EntityQueryBuilderInterface
         public function orderByRaw(
             string $expression,
             string $direction = 'ASC',
-        ): static
-        {
+        ): static {
             $this->orderByRawCalls[] = ['expression' => $expression, 'direction' => $direction];
 
             return $this;
@@ -442,20 +430,20 @@ it(
     'resolvedAt with a default-scope signature returns the base column value (the findFirstMatch filter)',
     function (): void {
         DefaultScopeGuard::reset();
-    
+
         $registry = loadShippedRegistry();
         [, , , , , , $resolver] = buildResolverStack($registry);
-    
+
         $product = new DefaultScopeProduct();
         $product->name = 'base-name';
-    
+
         // ScopeSignature with locale at its default value ('default').
-    // walkAt → findFirstMatch filters 'default' from walkUp results → empty walk →
-    // notFound → resolvedAt falls back to the base column property.
-    $defaultSignature = new ScopeSignature(['locale' => 'default']);
-    
+        // walkAt → findFirstMatch filters 'default' from walkUp results → empty walk →
+        // notFound → resolvedAt falls back to the base column property.
+        $defaultSignature = new ScopeSignature(['locale' => 'default']);
+
         $result = $resolver->resolvedAt($product, 'name', $defaultSignature);
-    
+
         expect($result)->toBe('base-name');
-    }
+    },
 );

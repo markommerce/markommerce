@@ -127,8 +127,7 @@ class FakeCategoryRepository implements CategoryRepositoryInterface
     private function matchesCriteria(
         Category $category,
         array $criteria,
-    ): bool
-    {
+    ): bool {
         return array_all(
             array_keys($criteria),
             fn (string $key) => $category->$key === $criteria[$key],

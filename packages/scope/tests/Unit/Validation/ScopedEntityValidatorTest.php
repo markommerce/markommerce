@@ -10,6 +10,7 @@ use Markommerce\Scope\Attributes\Scoped;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Exceptions\ScopeConfigurationException;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use Markommerce\Scope\Storage\HasScopes;
@@ -113,7 +114,8 @@ function makeValidatorRegistry(): ScopeRegistryInterface
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 it('accepts a trait-based entity as valid scopes storage (HasScopesInterface on entity)', function (): void {
-    $scopeFactory = new ScopeMetadataFactory(makeValidatorRegistry());
+    $validatorRegistry = makeValidatorRegistry();
+    $scopeFactory = new ScopeMetadataFactory($validatorRegistry, new ScopedFieldRegistry(scopeRegistry: $validatorRegistry));
     $entityFactory = new EntityMetadataFactory();
     $validator = new ScopedEntityValidator($scopeFactory, $entityFactory);
 
@@ -121,7 +123,8 @@ it('accepts a trait-based entity as valid scopes storage (HasScopesInterface on 
 });
 
 it('accepts a companion that implements HasScopesInterface as valid scopes storage', function (): void {
-    $scopeFactory = new ScopeMetadataFactory(makeValidatorRegistry());
+    $validatorRegistry = makeValidatorRegistry();
+    $scopeFactory = new ScopeMetadataFactory($validatorRegistry, new ScopedFieldRegistry(scopeRegistry: $validatorRegistry));
     $entityFactory = new EntityMetadataFactory();
     $entityFactory->linkExtenders(
         ValidatorCompanionScopedProduct::class,
@@ -133,7 +136,8 @@ it('accepts a companion that implements HasScopesInterface as valid scopes stora
 });
 
 it('accepts an entity with no scoped properties regardless of storage', function (): void {
-    $scopeFactory = new ScopeMetadataFactory(makeValidatorRegistry());
+    $validatorRegistry = makeValidatorRegistry();
+    $scopeFactory = new ScopeMetadataFactory($validatorRegistry, new ScopedFieldRegistry(scopeRegistry: $validatorRegistry));
     $entityFactory = new EntityMetadataFactory();
     $validator = new ScopedEntityValidator($scopeFactory, $entityFactory);
 
@@ -143,7 +147,8 @@ it('accepts an entity with no scoped properties regardless of storage', function
 it(
     'throws ScopeConfigurationException missingScopesStorage when entity has scoped properties but no storage',
     function (): void {
-        $scopeFactory = new ScopeMetadataFactory(makeValidatorRegistry());
+        $validatorRegistry = makeValidatorRegistry();
+        $scopeFactory = new ScopeMetadataFactory($validatorRegistry, new ScopedFieldRegistry(scopeRegistry: $validatorRegistry));
         $entityFactory = new EntityMetadataFactory();
         $validator = new ScopedEntityValidator($scopeFactory, $entityFactory);
 
@@ -153,7 +158,8 @@ it(
 );
 
 it('the missingScopesStorage exception message names the entity class and describes both remedies', function (): void {
-    $scopeFactory = new ScopeMetadataFactory(makeValidatorRegistry());
+    $validatorRegistry = makeValidatorRegistry();
+    $scopeFactory = new ScopeMetadataFactory($validatorRegistry, new ScopedFieldRegistry(scopeRegistry: $validatorRegistry));
     $entityFactory = new EntityMetadataFactory();
     $validator = new ScopedEntityValidator($scopeFactory, $entityFactory);
 

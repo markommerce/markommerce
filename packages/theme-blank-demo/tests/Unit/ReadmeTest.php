@@ -57,11 +57,11 @@ it(
     function (): void {
         $path = __DIR__ . '/../../../../docs/src/content/docs/packages/theme-blank-demo.md';
         $contents = file_get_contents($path);
-    
+
         expect($contents)->toContain('## Installation');
         expect($contents)->toContain('## Usage');
         expect($contents)->toContain("## What's on the page");
         expect($contents)->toContain('## Architecture');
         expect($contents)->toContain('## Related');
-    }
+    },
 );

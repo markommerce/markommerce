@@ -9,8 +9,7 @@ class UnknownIterationException extends LayoutException
     public static function forIteration(
         string $iteration,
         string $placement,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Unknown iteration token '$iteration' at placement '$placement'.",
             context: "Resolving iteration '$iteration' at '$placement'.",
@@ -21,8 +20,7 @@ class UnknownIterationException extends LayoutException
     public static function forIterationWithChain(
         string $iteration,
         string $chain,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Unknown iteration token '$iteration'.",
             context: "Resolving iteration '$iteration' at [$chain] — no enclosing repeat slot provides this token.",

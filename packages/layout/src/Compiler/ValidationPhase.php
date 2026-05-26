@@ -54,8 +54,7 @@ class ValidationPhase
     private function validateLayout(
         string $handleKey,
         ResolvedLayout $layout,
-    ): void
-    {
+    ): void {
         $seenNames = [];
         $contextTokens = array_map(fn ($p) => $p->token, $layout->context);
 
@@ -146,7 +145,7 @@ class ValidationPhase
                 $slot->dataKey,
                 $parentPlace->component,
                 $parentChain,
-                $handleKey
+                $handleKey,
             );
 
             // Check that the property is typed as a collection of slot->yields
@@ -306,8 +305,7 @@ class ValidationPhase
         string $component,
         array $parentChain,
         string $handleKey,
-    ): string
-    {
+    ): string {
         if (!class_exists($component)) {
             throw new TypeMismatchException(
                 message: "Component class '$component' not found.",
@@ -437,8 +435,7 @@ class ValidationPhase
     private function resolveTypeName(
         string $typeName,
         ReflectionClass $declaringClass,
-    ): string
-    {
+    ): string {
         // Already fully qualified
         if (str_starts_with($typeName, '\\')) {
             return ltrim($typeName, '\\');
@@ -555,8 +552,7 @@ class ValidationPhase
     private function isTypeAssignable(
         string $sourceType,
         string $expectedType,
-    ): bool
-    {
+    ): bool {
         if ($sourceType === $expectedType) {
             return true;
         }
@@ -582,8 +578,7 @@ class ValidationPhase
         string $component,
         array $parentChain,
         string $handleKey,
-    ): array
-    {
+    ): array {
         if (!class_exists($component)) {
             return [];
         }
@@ -663,8 +658,7 @@ class ValidationPhase
     private function chainToString(
         array $chain,
         string $handleKey,
-    ): string
-    {
+    ): string {
         if (empty($chain)) {
             return $handleKey;
         }

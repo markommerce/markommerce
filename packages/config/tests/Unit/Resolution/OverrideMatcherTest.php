@@ -28,8 +28,7 @@ function makeConfigRegistry(array $axes = [], array $defaults = []): ScopeRegist
         public function __construct(
             array $axes,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
                 $default = $defaults[$name] ?? 'default';
@@ -124,18 +123,18 @@ it(
         ]);
         $context = new ScopeContext($registry);
         $context->in('channel', 'b2b')->in('locale', 'en');
-    
+
         $enumerator = new SignatureCandidateEnumerator($registry);
         $matcher = new OverrideMatcher($enumerator);
-    
+
         $row = makeRow(overrides: [
             'channel:b2b'           => 'b2b-value',
             'locale:en'             => 'en-value',
             'channel:b2b|locale:en' => 'composite-value',
         ]);
-    
+
         expect($matcher->match($row, ['channel', 'locale'], $context))->toBe('composite-value');
-    }
+    },
 );
 
 it(
@@ -144,16 +143,16 @@ it(
         $registry = makeConfigRegistry(['store' => ['eu', 'eu.de']]);
         $context = new ScopeContext($registry);
         // Context is at the leaf scope eu.de
-    $context->in('store', 'eu.de');
-    
+        $context->in('store', 'eu.de');
+
         $enumerator = new SignatureCandidateEnumerator($registry);
         $matcher = new OverrideMatcher($enumerator);
-    
+
         // Only the parent scope override exists, not the leaf
-    $row = makeRow(overrides: ['store:eu' => 'eu-value']);
-    
+        $row = makeRow(overrides: ['store:eu' => 'eu-value']);
+
         expect($matcher->match($row, ['store'], $context))->toBe('eu-value');
-    }
+    },
 );
 
 it('ignores overrides whose signature references axes not declared on the property', function (): void {

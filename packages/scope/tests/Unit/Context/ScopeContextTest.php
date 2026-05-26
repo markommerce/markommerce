@@ -24,8 +24,7 @@ function makeScopeRegistry(array $axes = [], array $defaults = []): ScopeRegistr
         public function __construct(
             private readonly array $axes,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
                 $default = $defaults[$name] ?? '__test_default';
@@ -123,11 +122,11 @@ it(
         $registry = makeScopeRegistry(['geo' => ['eu', 'eu.de', 'us'], 'locale' => ['en', 'fr']]);
         $context = new ScopeContext($registry);
         $context->in('geo', 'eu.de')->in('locale', 'en');
-    
+
         $state = $context->state();
-    
+
         expect($state)->toBe(['geo' => 'eu.de', 'locale' => 'en']);
-    }
+    },
 );
 
 it('returns an empty array when no axes are active', function (): void {

@@ -14,8 +14,7 @@ class InvalidResolverConfigException extends MarkoException
     public static function unknownClass(
         string $className,
         string $axisName,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Resolver class '$className' for axis '$axisName' does not exist",
             context: "Validating resolver configuration for axis '$axisName'",
@@ -26,8 +25,7 @@ class InvalidResolverConfigException extends MarkoException
     public static function missingClassKey(
         int $index,
         string $axisName,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Resolver entry at index $index for axis '$axisName' is missing the required 'class' key",
             context: "Validating resolver configuration for axis '$axisName' at index $index",
@@ -38,8 +36,7 @@ class InvalidResolverConfigException extends MarkoException
     public static function notImplementingInterface(
         string $className,
         string $axisName,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Resolver class '$className' for axis '$axisName' does not implement the required interface",
             context: "Validating resolver configuration for axis '$axisName'",

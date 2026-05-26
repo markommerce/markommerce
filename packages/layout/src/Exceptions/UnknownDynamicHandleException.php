@@ -9,8 +9,7 @@ class UnknownDynamicHandleException extends LayoutException
     public static function forHandle(
         string $handle,
         string $providerClass,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Handle provider '$providerClass' returned handle key '$handle', which does not exist in the compiled artifact.",
             context: "Resolving dynamic handle at runtime — '$providerClass' returned '$handle', but no handle with that key was found.",

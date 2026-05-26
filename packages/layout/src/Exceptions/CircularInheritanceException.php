@@ -18,7 +18,7 @@ class CircularInheritanceException extends LayoutException
             context: "Resolving handle inheritance — the chain '$chainStr' loops back to a previously visited handle.",
             suggestion: "Break the cycle by removing the circular 'inherits:' reference in one of the handles: " . implode(
                 ', ',
-                array_unique($chain)
+                array_unique($chain),
             ) . '.',
         );
     }

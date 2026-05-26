@@ -85,7 +85,7 @@ it(
     'throws InvalidConfigValueException carrying the key, raw value, and declared type in the message',
     function (): void {
         $caster = new ValueCaster();
-    
+
         try {
             $caster->cast('not-a-number', makeDefinition('int'));
             expect(true)->toBeFalse('Expected exception not thrown');
@@ -95,5 +95,5 @@ it(
                 ->toContain('not-a-number')
                 ->toContain('int');
         }
-    }
+    },
 );

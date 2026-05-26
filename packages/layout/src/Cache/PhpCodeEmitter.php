@@ -142,7 +142,7 @@ class PhpCodeEmitter
             default => throw new RuntimeException(
                 sprintf(
                     'PhpCodeEmitter: unsupported operation type "%s". Register it in emitOperation().',
-                    $op::class
+                    $op::class,
                 ),
             ),
         };
@@ -377,8 +377,7 @@ class PhpCodeEmitter
     private function emitList(
         array $list,
         callable $emitter,
-    ): string
-    {
+    ): string {
         if ($list === []) {
             return '[]';
         }

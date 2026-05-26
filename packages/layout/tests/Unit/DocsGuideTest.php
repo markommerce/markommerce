@@ -86,17 +86,17 @@ it(
         expect($content)->not->toBeFalse();
         /** @var string $content */
         expect($content)->toContain('## Handles');
-    
+
         $handlesPos = strpos($content, '## Handles');
         $repeatSlotsPos = strpos($content, '## Repeat Slots');
         $extendingPos = strpos($content, '## Extending a Layout');
-    
+
         expect($handlesPos)->not->toBeFalse();
         expect($repeatSlotsPos)->not->toBeFalse();
         expect($extendingPos)->not->toBeFalse();
         expect($repeatSlotsPos)->toBeLessThan($handlesPos);
         expect($handlesPos)->toBeLessThan($extendingPos);
-    }
+    },
 );
 
 it('documents the default handle with the demo default.php example', function () use ($guideFile): void {

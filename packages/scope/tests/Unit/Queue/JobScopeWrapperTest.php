@@ -26,8 +26,7 @@ function makeFakePipeline(): object
         public function run(
             Request $request,
             string $channel,
-        ): void
-        {
+        ): void {
             $this->calls[] = 'run:' . $channel;
         }
 
@@ -71,8 +70,7 @@ it('withScope uses a SyntheticRequest as the request', function (): void {
         public function run(
             Request $request,
             string $channel,
-        ): void
-        {
+        ): void {
             $this->capturedRequest = $request;
         }
 

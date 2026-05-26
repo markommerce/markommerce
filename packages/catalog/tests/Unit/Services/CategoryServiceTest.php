@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Markommerce\Catalog\Entity\Category;
+use Markommerce\Catalog\Entity\CategoryTreeNode;
 use Markommerce\Catalog\Exceptions\CategoryHasPlacementsException;
 use Markommerce\Catalog\Exceptions\CategoryNotFoundException;
 use Markommerce\Catalog\Services\CategoryService;
@@ -48,7 +49,7 @@ it('delete throws CategoryHasPlacementsException when the category is placed in 
     $category->name = 'Test Category';
     $categoryRepository->save($category);
 
-    $node = new \Markommerce\Catalog\Entity\CategoryTreeNode();
+    $node = new CategoryTreeNode();
     $node->categoryId = $category->id;
     $node->treeId = 1;
     $node->position = 0;
@@ -71,13 +72,13 @@ it('CategoryHasPlacementsException carries the placement count for diagnostics',
     $category->name = 'Test Category';
     $categoryRepository->save($category);
 
-    $node1 = new \Markommerce\Catalog\Entity\CategoryTreeNode();
+    $node1 = new CategoryTreeNode();
     $node1->categoryId = $category->id;
     $node1->treeId = 1;
     $node1->position = 0;
     $nodeRepository->save($node1);
 
-    $node2 = new \Markommerce\Catalog\Entity\CategoryTreeNode();
+    $node2 = new CategoryTreeNode();
     $node2->categoryId = $category->id;
     $node2->treeId = 2;
     $node2->position = 0;

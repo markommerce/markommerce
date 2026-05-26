@@ -9,8 +9,7 @@ class UnknownContextException extends LayoutException
     public static function forContext(
         string $context,
         string $layout,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Unknown context token '$context' in layout '$layout'.",
             context: "Attempting to resolve context '$context' in layout '$layout'.",
@@ -22,8 +21,7 @@ class UnknownContextException extends LayoutException
         string $context,
         string $layout,
         string $chain,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Unknown context token '$context' in layout '$layout'.",
             context: "Attempting to resolve context '$context' at [$chain].",

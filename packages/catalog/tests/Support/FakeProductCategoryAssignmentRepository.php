@@ -89,7 +89,7 @@ class FakeProductCategoryAssignmentRepository implements ProductCategoryAssignme
             throw RepositoryException::invalidEntityType(
                 self::class,
                 ProductCategoryAssignment::class,
-                $entity::class
+                $entity::class,
             );
         }
 
@@ -109,7 +109,7 @@ class FakeProductCategoryAssignmentRepository implements ProductCategoryAssignme
             throw RepositoryException::invalidEntityType(
                 self::class,
                 ProductCategoryAssignment::class,
-                $entity::class
+                $entity::class,
             );
         }
 
@@ -143,8 +143,7 @@ class FakeProductCategoryAssignmentRepository implements ProductCategoryAssignme
     public function findByProductAndCategory(
         int $productId,
         int $categoryId,
-    ): ?ProductCategoryAssignment
-    {
+    ): ?ProductCategoryAssignment {
         return array_find(
             $this->assignments,
             fn (ProductCategoryAssignment $a) => $a->productId === $productId && $a->categoryId === $categoryId,
@@ -157,8 +156,7 @@ class FakeProductCategoryAssignmentRepository implements ProductCategoryAssignme
     private function matchesCriteria(
         ProductCategoryAssignment $assignment,
         array $criteria,
-    ): bool
-    {
+    ): bool {
         return array_all(
             array_keys($criteria),
             fn (string $key) => $assignment->$key === $criteria[$key],

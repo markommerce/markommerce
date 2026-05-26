@@ -646,16 +646,16 @@ it(
             context: [],
             slots: ['main' => [new Place('ChildComponent', 'child-item', [], [])]],
         );
-    
+
         $result = (new ResolutionPhase())->resolve(
             makeDiscoveryResult([$parentLayout, $childLayout]),
         );
-    
+
         expect($result)->toHaveKey('child.handle')
             ->and($result['child.handle']->slots['main'])->toHaveCount(2)
             ->and($result['child.handle']->slots['main'][0]->component)->toBe('ParentComponent')
             ->and($result['child.handle']->slots['main'][1]->component)->toBe('ChildComponent');
-    }
+    },
 );
 
 it('resolves a multi-level inheritance chain in ancestor-first order', function (): void {
@@ -838,7 +838,7 @@ it(
     'throws DuplicateContextTokenException when parent and child Provide entries declare the same token',
     function (): void {
         $sharedProvide = new Provide('SharedToken', 'SomeProvider', []);
-    
+
         $parentLayout = new Layout(
             handle: 'dup.parent',
             extends: null,
@@ -852,11 +852,11 @@ it(
             context: [$sharedProvide],
             slots: [],
         );
-    
+
         expect(fn () => (new ResolutionPhase())->resolve(
             makeDiscoveryResult([$parentLayout, $childLayout]),
         ))->toThrow(DuplicateContextTokenException::class);
-    }
+    },
 );
 
 it('composes extends and inherits on the same layout: shell then parent then own slots, in order', function (): void {

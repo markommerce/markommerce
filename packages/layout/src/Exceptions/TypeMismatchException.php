@@ -10,8 +10,7 @@ class TypeMismatchException extends LayoutException
         string $prop,
         string $expectedType,
         string $actualType,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Type mismatch for prop '$prop': expected '$expectedType', got '$actualType'.",
             context: "Validating prop '$prop' — expected type '$expectedType' but received '$actualType'.",
@@ -24,8 +23,7 @@ class TypeMismatchException extends LayoutException
         string $expectedType,
         string $actualType,
         string $chain,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Type mismatch for prop '$prop': expected '$expectedType', got '$actualType'.",
             context: "Validating prop '$prop' at [$chain] — expected type '$expectedType' but received '$actualType'.",

@@ -137,7 +137,7 @@ it(
     'throws InvalidConfigClassException when the config class declares a constructor with required parameters',
     function (): void {
         $generator = new ProxyGenerator();
-    
+
         $definition = new ConfigDefinition(
             key: 'proxy/ctor.value',
             configClass: RequiredConstructorProxyConfig::class,
@@ -147,10 +147,10 @@ it(
             defaultValue: 1,
             secret: false,
         );
-    
+
         expect(fn () => $generator->generate(RequiredConstructorProxyConfig::class, [$definition]))
             ->toThrow(InvalidConfigClassException::class);
-    }
+    },
 );
 
 it('emits enum-typed property hooks using a leading-backslash FQN for the enum type', function (): void {
@@ -168,21 +168,21 @@ it(
         $generator = new ProxyGenerator();
         $writer = new ProxyWriter();
         $definitions = buildProxyDefinitions(SinglePropConfig::class);
-    
+
         $source = $generator->generate(SinglePropConfig::class, $definitions);
-    
+
         // Verify the source is valid PHP using token_get_all which raises ParseError on invalid syntax
-    $tokens = token_get_all($source, TOKEN_PARSE);
+        $tokens = token_get_all($source, TOKEN_PARSE);
         expect($tokens)->not->toBeEmpty();
-    
+
         // Write and include to confirm class can be loaded
-    $generatedFqn = 'Markommerce\\Config\\Generated\\Markommerce\\Config\\Tests\\Fixtures\\Proxy\\SinglePropConfig_Resolved_Parse';
+        $generatedFqn = 'Markommerce\\Config\\Generated\\Markommerce\\Config\\Tests\\Fixtures\\Proxy\\SinglePropConfig_Resolved_Parse';
         $source2 = str_replace('SinglePropConfig_Resolved', 'SinglePropConfig_Resolved_Parse', $source);
         $targetDir = sys_get_temp_dir() . '/proxy-parse-' . uniqid();
         $path = $writer->write($generatedFqn, $source2, $targetDir);
-    
+
         require $path;
-    
+
         expect(class_exists($generatedFqn))->toBeTrue();
-    }
+    },
 );

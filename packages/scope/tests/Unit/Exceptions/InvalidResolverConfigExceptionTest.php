@@ -33,9 +33,9 @@ it(
     'InvalidResolverConfigException notImplementingInterface names ScopeAxisResolverInterface in suggestion',
     function (): void {
         $exception = InvalidResolverConfigException::notImplementingInterface('App\\Resolver\\BadResolver', 'store');
-    
+
         expect($exception->getSuggestion())->toContain('ScopeAxisResolverInterface');
-    }
+    },
 );
 
 it('both exception classes extend MarkoException', function (): void {

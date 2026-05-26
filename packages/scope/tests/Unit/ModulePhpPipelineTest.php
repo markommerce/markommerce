@@ -27,11 +27,11 @@ it(
     'module.php registers ScopeResolutionPipeline via a closure binding that handles a missing logger gracefully',
     function (): void {
         $module = require dirname(__DIR__, 2) . '/module.php';
-    
+
         expect($module)->toHaveKey('bindings')
             ->and($module['bindings'])->toHaveKey(ScopeResolutionPipeline::class)
             ->and($module['bindings'][ScopeResolutionPipeline::class])->toBeInstanceOf(Closure::class);
-    }
+    },
 );
 
 it('module.php registers ScopeResolutionPipeline as shared so the same instance is returned', function (): void {
@@ -62,32 +62,32 @@ it(
     'boot closure surfaces InvalidResolverConfigException from a misconfigured axis during Application initialize',
     function (): void {
         DefaultScopeGuard::reset();
-    
+
         $module = require dirname(__DIR__, 2) . '/module.php';
-    
+
         $localeAxis = new ScopeAxis(
             name: 'locale',
             hierarchy: ScopeHierarchy::fromPaths(['en']),
             default: 'en',
         );
-    
+
         $registry = $this->createMock(ScopeRegistryInterface::class);
         $registry->method('listAxes')->willReturn(['locale']);
         $registry->method('getAxis')->willReturn($localeAxis);
-    
+
         $factory = new class () extends ScopeResolverChainFactory
         {
             public function __construct()
             {
                 // skip parent constructor
-        }
-    
+            }
+
             public function for(string $axisName): array
             {
                 throw InvalidResolverConfigException::unknownClass('NoSuchClass', $axisName);
             }
         };
-    
+
         $container = $this->createMock(ContainerInterface::class);
         $container->method('get')
             ->willReturnCallback(function (string $id) use ($registry, $factory): object {
@@ -97,23 +97,23 @@ it(
                     default => throw new RuntimeException("Unexpected: $id"),
                 };
             });
-    
+
         expect(fn () => ($module['boot'])($container))
             ->toThrow(InvalidResolverConfigException::class);
-    
+
         DefaultScopeGuard::reset();
-    }
+    },
 );
 
 it(
     'boot closure pre-builds every axis resolver chain so misconfig throws at boot not on first request',
     function (): void {
         DefaultScopeGuard::reset();
-    
+
         $module = require dirname(__DIR__, 2) . '/module.php';
-    
+
         $builtAxes = [];
-    
+
         $localeAxis = new ScopeAxis(
             name: 'locale',
             hierarchy: ScopeHierarchy::fromPaths(['en', 'fr']),
@@ -124,30 +124,30 @@ it(
             hierarchy: ScopeHierarchy::fromPaths(['global', 'eu']),
             default: 'global',
         );
-    
+
         $registry = $this->createMock(ScopeRegistryInterface::class);
         $registry->method('listAxes')->willReturn(['locale', 'market']);
         $registry->method('getAxis')->willReturnMap([
             ['locale', $localeAxis],
             ['market', $marketAxis],
         ]);
-    
+
         $factory = new class ($builtAxes) extends ScopeResolverChainFactory
         {
             /** @param list<string> $builtAxes */
             public function __construct(private array &$builtAxes)
             {
                 // skip parent constructor
-        }
-    
+            }
+
             public function for(string $axisName): array
             {
                 $this->builtAxes[] = $axisName;
-    
+
                 return [];
             }
         };
-    
+
         $container = $this->createMock(ContainerInterface::class);
         $container->method('get')
             ->willReturnCallback(function (string $id) use ($registry, $factory): object {
@@ -157,14 +157,14 @@ it(
                     default => throw new RuntimeException("Unexpected: $id"),
                 };
             });
-    
+
         ($module['boot'])($container);
-    
+
         expect($builtAxes)->toContain('locale')
             ->and($builtAxes)->toContain('market');
-    
+
         DefaultScopeGuard::reset();
-    }
+    },
 );
 
 it('axis config with resolvers key successfully builds a chain via the factory after boot', function (): void {
@@ -269,10 +269,10 @@ it(
     'the pipeline closure returns a working ScopeResolutionPipeline when marko log is not installed',
     function (): void {
         $module = require dirname(__DIR__, 2) . '/module.php';
-    
+
         $rawConfig = require dirname(__DIR__, 2) . '/config/scope.php';
         $config = new ConfigRepository(['scope' => $rawConfig]);
-    
+
         $registry = new PhpScopeRegistry($config);
         $context = new ScopeContext($registry);
         $factory = new ScopeResolverChainFactory(
@@ -282,24 +282,24 @@ it(
                 {
                     return new $id();
                 }
-    
+
                 public function has(string $id): bool
                 {
                     return class_exists($id);
                 }
-    
+
                 public function singleton(string $id): void {}
-    
+
                 public function instance(
                     string $id,
                     object $instance,
                 ): void {}
-    
+
                 public function bind(
                     string $id,
                     mixed $implementation,
                 ): void {}
-    
+
                 public function call(Closure $callable): mixed
                 {
                     return $callable();
@@ -307,7 +307,7 @@ it(
             },
             $config,
         );
-    
+
         $container = $this->createMock(ContainerInterface::class);
         $container->method('get')
             ->willReturnCallback(function (string $id) use ($registry, $context, $factory): object {
@@ -318,10 +318,10 @@ it(
                     default => throw new RuntimeException("Unexpected: $id"),
                 };
             });
-    
+
         $closure = $module['bindings'][ScopeResolutionPipeline::class];
         $pipeline = $closure($container);
-    
+
         expect($pipeline)->toBeInstanceOf(ScopeResolutionPipeline::class);
-    }
+    },
 );

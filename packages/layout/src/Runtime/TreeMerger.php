@@ -40,8 +40,7 @@ class TreeMerger
     public function merge(
         PreparedTree $base,
         array $additions,
-    ): PreparedTree
-    {
+    ): PreparedTree {
         if ($additions === []) {
             return $base;
         }
@@ -119,8 +118,7 @@ class TreeMerger
         array $slots,
         object $operation,
         string $handleKey,
-    ): array
-    {
+    ): array {
         return match (true) {
             $operation instanceof Remove => $this->applyRemove($slots, $operation, $handleKey),
             $operation instanceof WrapWith => $this->applyWrapWith($slots, $operation, $handleKey),
@@ -146,8 +144,7 @@ class TreeMerger
         array $slots,
         Remove $op,
         string $handleKey,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             $new = [];
@@ -180,8 +177,7 @@ class TreeMerger
         array $slots,
         WrapWith $op,
         string $handleKey,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             return array_map(function (PreparedPlace $place) use ($op, &$found): PreparedPlace {
@@ -220,8 +216,7 @@ class TreeMerger
         array $slots,
         MergeProps $op,
         string $handleKey,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             return array_map(function (PreparedPlace $place) use ($op, &$found): PreparedPlace {
@@ -260,8 +255,7 @@ class TreeMerger
         array $slots,
         ReplaceProps $op,
         string $handleKey,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             return array_map(function (PreparedPlace $place) use ($op, &$found): PreparedPlace {
@@ -300,8 +294,7 @@ class TreeMerger
         array $slots,
         InsertAfter $op,
         string $handleKey,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             $new = [];
@@ -334,8 +327,7 @@ class TreeMerger
         array $slots,
         InsertBefore $op,
         string $handleKey,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             $new = [];
@@ -368,8 +360,7 @@ class TreeMerger
         array $slots,
         Append $op,
         string $handleKey,
-    ): array
-    {
+    ): array {
         if (!isset($slots[$op->slotPath])) {
             throw DanglingAnchorException::forAnchor($op->slotPath, "dynamic handle '$handleKey'");
         }
@@ -395,8 +386,7 @@ class TreeMerger
         array $slots,
         Prepend $op,
         string $handleKey,
-    ): array
-    {
+    ): array {
         if (!isset($slots[$op->slotPath])) {
             throw DanglingAnchorException::forAnchor($op->slotPath, "dynamic handle '$handleKey'");
         }
@@ -422,8 +412,7 @@ class TreeMerger
         array $slots,
         Replace $op,
         string $handleKey,
-    ): array
-    {
+    ): array {
         $found = false;
         $slots = $this->mapPlacements($slots, function (array $placements) use ($op, &$found): array {
             $new = [];
@@ -457,8 +446,7 @@ class TreeMerger
     private function mapPlacements(
         array $slots,
         callable $callback,
-    ): array
-    {
+    ): array {
         $result = [];
         foreach ($slots as $slotName => $value) {
             if ($value instanceof PreparedRepeatSlot) {
@@ -487,8 +475,7 @@ class TreeMerger
     private function mapPlacementsInPlace(
         PreparedPlace $place,
         callable $callback,
-    ): PreparedPlace
-    {
+    ): PreparedPlace {
         return new PreparedPlace(
             component: $place->component,
             name: $place->name,

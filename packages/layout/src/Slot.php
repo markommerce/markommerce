@@ -24,8 +24,7 @@ readonly class Slot
         string $yields,
         string $as,
         array $children,
-    ): self
-    {
+    ): self {
         return new self($dataKey, $yields, $as, $children);
     }
 }

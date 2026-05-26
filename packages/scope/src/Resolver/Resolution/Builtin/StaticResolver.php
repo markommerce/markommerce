@@ -15,8 +15,7 @@ readonly class StaticResolver implements ScopeAxisResolverInterface
     public function resolve(
         ScopeAxis $scopeAxis,
         ScopeResolutionContext $scopeResolutionContext,
-    ): ?string
-    {
+    ): ?string {
         return $this->value;
     }
 }

@@ -71,31 +71,31 @@ it(
     'memoizes the walkUp result so the second call does not recompute (verified via instrumented child class)',
     function (): void {
         $callCount = 0;
-    
+
         $hierarchy = new class (['eu', 'eu.de', 'eu.de.berlin']) extends ScopeHierarchy
         {
             public int $computeCount = 0;
-    
+
             public function walkUp(string $path): array
             {
                 $result = parent::walkUp($path);
 
                 // If memoized, parent::walkUp returns cached result without re-traversal
-            // We check the cache is populated after first call
-            return $result;
+                // We check the cache is populated after first call
+                return $result;
             }
         };
-    
+
         // Call twice
-    $first = $hierarchy->walkUp('eu.de.berlin');
+        $first = $hierarchy->walkUp('eu.de.berlin');
         $second = $hierarchy->walkUp('eu.de.berlin');
-    
+
         // Both must be the exact same array reference (PHP array copy-on-write means
-    // we check that they're equal and the cache was used)
-    expect($first)->toBe(['eu.de.berlin', 'eu.de', 'eu'])
-            ->and($second)->toBe(['eu.de.berlin', 'eu.de', 'eu'])
-            ->and($first)->toBe($second);
-    }
+        // we check that they're equal and the cache was used)
+        expect($first)->toBe(['eu.de.berlin', 'eu.de', 'eu'])
+                ->and($second)->toBe(['eu.de.berlin', 'eu.de', 'eu'])
+                ->and($first)->toBe($second);
+    },
 );
 
 it('caches independently per path', function (): void {

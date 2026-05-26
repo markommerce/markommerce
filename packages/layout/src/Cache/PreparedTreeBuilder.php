@@ -53,8 +53,7 @@ class PreparedTreeBuilder
     private function validateProviderClass(
         string $handleKey,
         ProvideHandle $provideHandle,
-    ): void
-    {
+    ): void {
         $exists = class_exists($provideHandle->provider) || interface_exists($provideHandle->provider);
 
         if (!$exists || !is_a($provideHandle->provider, HandleProvider::class, true)) {
@@ -68,8 +67,7 @@ class PreparedTreeBuilder
     private function validateProviderProps(
         string $handleKey,
         ProvideHandle $provideHandle,
-    ): void
-    {
+    ): void {
         foreach ($provideHandle->props as $propKey => $source) {
             if ($source instanceof ParentDataSource || $source instanceof IteratedSource) {
                 throw InvalidSourceTypeException::forDisallowedHandleProviderSource(

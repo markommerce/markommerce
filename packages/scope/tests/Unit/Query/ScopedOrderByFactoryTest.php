@@ -6,6 +6,7 @@ use Markommerce\Scope\Attributes\Scoped;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Query\ScopedFieldExpression;
 use Markommerce\Scope\Query\ScopedFieldRendererInterface;
@@ -36,7 +37,7 @@ function makeFactoryRegistry(): ScopeRegistryInterface
             $this->builtAxes = ['store' => new ScopeAxis(
                 name: 'store',
                 hierarchy: $hierarchy,
-                default: '__test_default'
+                default: '__test_default',
             )];
         }
 
@@ -77,7 +78,7 @@ function makeFactoryRenderer(): ScopedFieldRendererInterface
 
 it('constructs a ScopedOrderBy with the entity class, property, and direction', function (): void {
     $registry = makeFactoryRegistry();
-    $metadataFactory = new ScopeMetadataFactory($registry);
+    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     $renderer = makeFactoryRenderer();
     $enumerator = new SignatureCandidateEnumerator($registry);
@@ -92,7 +93,7 @@ it('constructs a ScopedOrderBy with the entity class, property, and direction', 
 
 it('injects ScopeMetadataFactory, ScopeContext, and ScopedFieldRendererInterface into the spec', function (): void {
     $registry = makeFactoryRegistry();
-    $metadataFactory = new ScopeMetadataFactory($registry);
+    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     $renderer = makeFactoryRenderer();
     $enumerator = new SignatureCandidateEnumerator($registry);
@@ -105,7 +106,7 @@ it('injects ScopeMetadataFactory, ScopeContext, and ScopedFieldRendererInterface
 
 it('defaults direction to asc when omitted', function (): void {
     $registry = makeFactoryRegistry();
-    $metadataFactory = new ScopeMetadataFactory($registry);
+    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     $renderer = makeFactoryRenderer();
     $enumerator = new SignatureCandidateEnumerator($registry);
@@ -124,7 +125,7 @@ it('is a readonly class with constructor-injected dependencies', function (): vo
 
 it('it constructs a ScopedOrderBy with the new enumerator and field renderer dependencies', function (): void {
     $registry = makeFactoryRegistry();
-    $metadataFactory = new ScopeMetadataFactory($registry);
+    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     $renderer = makeFactoryRenderer();
     $enumerator = new SignatureCandidateEnumerator($registry);
@@ -145,7 +146,7 @@ it('it constructs a ScopedOrderBy with the new enumerator and field renderer dep
 
 it('it forwards the entity class, property, and direction to the spec', function (): void {
     $registry = makeFactoryRegistry();
-    $metadataFactory = new ScopeMetadataFactory($registry);
+    $metadataFactory = new ScopeMetadataFactory($registry, new ScopedFieldRegistry(scopeRegistry: $registry));
     $context = new ScopeContext($registry);
     $renderer = makeFactoryRenderer();
     $enumerator = new SignatureCandidateEnumerator($registry);

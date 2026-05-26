@@ -47,10 +47,10 @@ it('createTree throws InvalidArgumentException when code is empty or only whites
     $service = makeCategoryTreeService();
 
     expect(fn () => $service->createTree(code: '', name: 'Test'))
-        ->toThrow(\InvalidArgumentException::class);
+        ->toThrow(InvalidArgumentException::class);
 
     expect(fn () => $service->createTree(code: '   ', name: 'Test'))
-        ->toThrow(\InvalidArgumentException::class);
+        ->toThrow(InvalidArgumentException::class);
 });
 
 it('createTree with isDefault=true marks the tree as default', function (): void {

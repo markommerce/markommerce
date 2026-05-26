@@ -9,8 +9,7 @@ class MissingPropException extends LayoutException
     public static function forProp(
         string $prop,
         string $component,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Required prop '$prop' is missing for component '$component'.",
             context: "Rendering component '$component' — required prop '$prop' was not provided.",
@@ -22,8 +21,7 @@ class MissingPropException extends LayoutException
         string $prop,
         string $component,
         string $chain,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Required prop '$prop' is missing for component '$component'.",
             context: "Validating component '$component' at [$chain] — required prop '$prop' was not provided.",

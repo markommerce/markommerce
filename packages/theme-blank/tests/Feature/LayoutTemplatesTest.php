@@ -182,9 +182,9 @@ it(
     '2columns-left.latte extends base.latte, wraps main in mk-container and mk-sidebar, exposes sidebar-left and content slots',
     function (): void {
         $templatePath = dirname(__DIR__, 2) . '/resources/views/layout/2columns-left.latte';
-    
+
         expect(file_exists($templatePath))->toBeTrue();
-    
+
         $contents = file_get_contents($templatePath);
         expect($contents)->toContain("layout 'theme-blank::layout/base'");
         expect($contents)->toContain('{block main}');
@@ -193,16 +193,16 @@ it(
         expect($contents)->toContain('<aside>');
         expect($contents)->toContain('{slot sidebar-left}{/slot}');
         expect($contents)->toContain('{slot content}{/slot}');
-    }
+    },
 );
 
 it(
     '2columns-right.latte extends base.latte, wraps main in mk-container and mk-sidebar with side=right, exposes sidebar-right and content slots',
     function (): void {
         $templatePath = dirname(__DIR__, 2) . '/resources/views/layout/2columns-right.latte';
-    
+
         expect(file_exists($templatePath))->toBeTrue();
-    
+
         $contents = file_get_contents($templatePath);
         expect($contents)->toContain("layout 'theme-blank::layout/base'");
         expect($contents)->toContain('{block main}');
@@ -211,16 +211,16 @@ it(
         expect($contents)->toContain('<aside>');
         expect($contents)->toContain('{slot sidebar-right}{/slot}');
         expect($contents)->toContain('{slot content}{/slot}');
-    }
+    },
 );
 
 it(
     '3columns.latte extends base.latte, wraps main in .mk-layout-3col, exposes sidebar-left, sidebar-right, and content slots',
     function (): void {
         $templatePath = dirname(__DIR__, 2) . '/resources/views/layout/3columns.latte';
-    
+
         expect(file_exists($templatePath))->toBeTrue();
-    
+
         $contents = file_get_contents($templatePath);
         expect($contents)->toContain("layout 'theme-blank::layout/base'");
         expect($contents)->toContain('{block main}');
@@ -228,7 +228,7 @@ it(
         expect($contents)->toContain('{slot sidebar-left}{/slot}');
         expect($contents)->toContain('{slot sidebar-right}{/slot}');
         expect($contents)->toContain('{slot content}{/slot}');
-    }
+    },
 );
 
 it('it leaves base.latte\'s inheritance blocks unchanged so the leaf layouts still extend it', function (): void {
@@ -345,11 +345,11 @@ it(
     function (): void {
         $cssPath = dirname(__DIR__, 2) . '/resources/css/layouts.css';
         $contents = file_get_contents($cssPath);
-    
+
         expect($contents)->not->toContain('.mk-layout-1col');
         expect($contents)->not->toContain('.mk-layout-2col-left');
         expect($contents)->not->toContain('.mk-layout-2col-right');
-    }
+    },
 );
 
 it('layouts.css defines responsive grid columns for .mk-layout-3col using --mk-breakpoint-lg', function (): void {
@@ -366,9 +366,9 @@ it(
     function (): void {
         $packageJsonPath = dirname(__DIR__, 2) . '/package.json';
         $manifest = json_decode(file_get_contents($packageJsonPath), true);
-    
+
         expect($manifest['exports']['./css/layouts.css'])->toBe('./resources/css/layouts.css');
-    }
+    },
 );
 
 it('each layout template compiles successfully through the Latte engine', function (): void {
@@ -413,20 +413,20 @@ it(
     function (): void {
         $cacheDir = sys_get_temp_dir() . '/latte-theme-blank-vite-' . bin2hex(random_bytes(8));
         mkdir($cacheDir, 0755, true);
-    
+
         $themeBlankPath = dirname(__DIR__, 2);
         $basePath = dirname(__DIR__, 4);
-    
+
         $originalManifest = themeBlankTestEnsureManifest($basePath);
-    
+
         $config = themeBlankTestBuildConfig($cacheDir);
         $view = themeBlankTestBuildView($config, $themeBlankPath, $basePath);
-    
+
         $result = $view->renderToString('theme-blank::layout/base');
-    
+
         expect($result)->not->toBeEmpty();
         expect($result)->toMatch('/<(script|link)/');
-    
+
         themeBlankTestCleanup($cacheDir);
         if ($originalManifest !== null) {
             $manifestPath = $basePath . '/public/build/.vite/manifest.json';
@@ -436,5 +436,5 @@ it(
                 file_put_contents($manifestPath, $originalManifest);
             }
         }
-    }
+    },
 );

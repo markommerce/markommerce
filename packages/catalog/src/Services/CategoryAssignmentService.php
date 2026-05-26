@@ -27,8 +27,7 @@ class CategoryAssignmentService
     public function assign(
         int $productId,
         int $categoryId,
-    ): void
-    {
+    ): void {
         if ($this->productRepository->find($productId) === null) {
             throw ProductNotFoundException::forId($productId);
         }
@@ -56,8 +55,7 @@ class CategoryAssignmentService
     public function detach(
         int $productId,
         int $categoryId,
-    ): void
-    {
+    ): void {
         $existing = $this->productCategoryAssignmentRepository->findByProductAndCategory($productId, $categoryId);
 
         if ($existing === null) {
