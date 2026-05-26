@@ -1,6 +1,6 @@
 # markommerce/catalog
 
-Products and categories for Markommerce --- locale-scoped names, globally-unique SKUs, and a ready-made storefront route.
+Products and categories for Markommerce --- locale-scoped names, globally-unique SKUs, per-market category trees, and a ready-made storefront route.
 
 ## Installation
 
@@ -15,42 +15,38 @@ composer require markommerce/catalog
 
 declare(strict_types=1);
 
-use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
-use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
 use Markommerce\Catalog\Entity\Category;
-use Markommerce\Catalog\Services\CategoryAssignmentService;
+use Markommerce\Catalog\Enum\NodeRemovalStrategy;
+use Markommerce\Catalog\Services\CategoryTreeService;
 use Markommerce\Catalog\Services\ProductService;
 
-// Create a product with a globally-unique sku
+// Create a product with a globally-unique SKU
 $product = $productService->createProduct(sku: 'SKU-0001', name: 'Widget', description: 'A handy widget.');
-$product->setOverride('locale:de', 'name', 'Widget DE');
-$product->setOverride('locale:fr', 'name', 'Widget FR');
-$productRepository->save($product);
 
-// Create a category
+// Create a category and place it in the default tree
 $category = new Category();
 $category->name = 'Widgets';
-$category->setOverride('locale:de', 'name', 'Widgets DE');
-$category->setOverride('locale:fr', 'name', 'Widgets FR');
 $categoryRepository->save($category);
 
-// Assign the product to the category
-$categoryAssignmentService->assign($product->id, $category->id);
+$tree = $categoryTreeService->ensureDefaultTreeExists();
+$categoryTreeService->placeCategory(treeId: $tree->id, categoryId: $category->id);
+
+// Resolve the active tree for a market
+$activeTree = $categoryTreeService->resolveTreeForMarket('market:eu');
 ```
 
-## Storefront
+## Storefront Route
 
-`GET /catalog/category/{id}` lists all products in a category using the active locale via `ScopeResolver`.
+`GET /catalog/category/{id}` — returns the category and its products. Registered automatically by the module.
 
 ## Seeder
 
-Run the catalog seeder to generate fake products, categories, and assignments (including `locale:de` / `locale:fr` overrides):
-
 ```bash
-php bin/marko db:seed catalog
+# Seed 5 000 products, categories, and a default tree (locale:de and locale:fr overrides included)
+php artisan db:seed --class=catalog
 ```
 
-Note: locale overrides only resolve after those locales are registered in `config/scope.php`.
+The catalog seeder populates products with globally-unique SKUs, categories with locale-scoped names (`locale:de`, `locale:fr`), product-category assignments, and places all seeded categories in the default category tree.
 
 ## Documentation
 

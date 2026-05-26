@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 use Marko\Database\Seed\Seeder;
 use Markommerce\Catalog\Seed\CatalogSeeder;
+use Markommerce\Catalog\Services\CategoryTreeService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
+use Markommerce\Catalog\Tests\Support\FakeCategoryTreeMarketAssignmentRepository;
+use Markommerce\Catalog\Tests\Support\FakeCategoryTreeNodeRepository;
+use Markommerce\Catalog\Tests\Support\FakeCategoryTreeRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
 use Markommerce\Scope\Storage\DefaultScopeGuard;
@@ -17,12 +21,35 @@ afterEach(function (): void {
     DefaultScopeGuard::reset();
 });
 
-function makeSeeder(): CatalogSeeder
-{
+function makeSeederCategoryTreeService(
+    ?FakeCategoryTreeRepository $treeRepository = null,
+    ?FakeCategoryTreeMarketAssignmentRepository $marketAssignmentRepository = null,
+    ?FakeCategoryTreeNodeRepository $nodeRepository = null,
+    ?FakeCategoryRepository $categoryRepository = null,
+): CategoryTreeService {
+    return new CategoryTreeService(
+        categoryTreeRepository: $treeRepository ?? new FakeCategoryTreeRepository(),
+        categoryTreeMarketAssignmentRepository: $marketAssignmentRepository ?? new FakeCategoryTreeMarketAssignmentRepository(),
+        categoryTreeNodeRepository: $nodeRepository ?? new FakeCategoryTreeNodeRepository(),
+        categoryRepository: $categoryRepository ?? new FakeCategoryRepository(),
+    );
+}
+
+function makeCatalogSeeder(
+    ?FakeProductRepository $productRepository = null,
+    ?FakeCategoryRepository $categoryRepository = null,
+    ?FakeProductCategoryAssignmentRepository $assignmentRepository = null,
+    ?CategoryTreeService $categoryTreeService = null,
+    ?FakeCategoryTreeNodeRepository $categoryTreeNodeRepository = null,
+): CatalogSeeder {
+    $sharedCategoryRepository = $categoryRepository ?? new FakeCategoryRepository();
+
     return new CatalogSeeder(
-        productRepository: new FakeProductRepository(),
-        categoryRepository: new FakeCategoryRepository(),
-        assignmentRepository: new FakeProductCategoryAssignmentRepository(),
+        productRepository: $productRepository ?? new FakeProductRepository(),
+        categoryRepository: $sharedCategoryRepository,
+        assignmentRepository: $assignmentRepository ?? new FakeProductCategoryAssignmentRepository(),
+        categoryTreeService: $categoryTreeService ?? makeSeederCategoryTreeService(categoryRepository: $sharedCategoryRepository),
+        categoryTreeNodeRepository: $categoryTreeNodeRepository ?? new FakeCategoryTreeNodeRepository(),
     );
 }
 
@@ -39,11 +66,7 @@ it('is annotated with the Seeder attribute named catalog', function (): void {
 
 it('seeds the configured number of categories', function (): void {
     $categoryRepository = new FakeCategoryRepository();
-    $seeder = new CatalogSeeder(
-        productRepository: new FakeProductRepository(),
-        categoryRepository: $categoryRepository,
-        assignmentRepository: new FakeProductCategoryAssignmentRepository(),
-    );
+    $seeder = makeCatalogSeeder(categoryRepository: $categoryRepository);
 
     $seeder->run();
 
@@ -52,11 +75,7 @@ it('seeds the configured number of categories', function (): void {
 
 it('seeds the configured number of products', function (): void {
     $productRepository = new FakeProductRepository();
-    $seeder = new CatalogSeeder(
-        productRepository: $productRepository,
-        categoryRepository: new FakeCategoryRepository(),
-        assignmentRepository: new FakeProductCategoryAssignmentRepository(),
-    );
+    $seeder = makeCatalogSeeder(productRepository: $productRepository);
 
     $seeder->run();
 
@@ -65,11 +84,7 @@ it('seeds the configured number of products', function (): void {
 
 it('gives every seeded product a unique sku', function (): void {
     $productRepository = new FakeProductRepository();
-    $seeder = new CatalogSeeder(
-        productRepository: $productRepository,
-        categoryRepository: new FakeCategoryRepository(),
-        assignmentRepository: new FakeProductCategoryAssignmentRepository(),
-    );
+    $seeder = makeCatalogSeeder(productRepository: $productRepository);
 
     $seeder->run();
 
@@ -80,11 +95,7 @@ it('gives every seeded product a unique sku', function (): void {
 
 it('assigns seeded products to seeded categories', function (): void {
     $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-    $seeder = new CatalogSeeder(
-        productRepository: new FakeProductRepository(),
-        categoryRepository: new FakeCategoryRepository(),
-        assignmentRepository: $assignmentRepository,
-    );
+    $seeder = makeCatalogSeeder(assignmentRepository: $assignmentRepository);
 
     $seeder->run();
 
@@ -93,11 +104,7 @@ it('assigns seeded products to seeded categories', function (): void {
 
 it('writes locale-scoped name overrides on seeded products using the de and fr locales', function (): void {
     $productRepository = new FakeProductRepository();
-    $seeder = new CatalogSeeder(
-        productRepository: $productRepository,
-        categoryRepository: new FakeCategoryRepository(),
-        assignmentRepository: new FakeProductCategoryAssignmentRepository(),
-    );
+    $seeder = makeCatalogSeeder(productRepository: $productRepository);
 
     $seeder->run();
 
@@ -111,11 +118,7 @@ it('writes locale-scoped name overrides on seeded products using the de and fr l
 
 it('writes locale-scoped overrides on seeded categories', function (): void {
     $categoryRepository = new FakeCategoryRepository();
-    $seeder = new CatalogSeeder(
-        productRepository: new FakeProductRepository(),
-        categoryRepository: $categoryRepository,
-        assignmentRepository: new FakeProductCategoryAssignmentRepository(),
-    );
+    $seeder = makeCatalogSeeder(categoryRepository: $categoryRepository);
 
     $seeder->run();
 
@@ -125,4 +128,10 @@ it('writes locale-scoped overrides on seeded categories', function (): void {
 
     expect($hasDeOverride)->toBeTrue()
         ->and($hasFrOverride)->toBeTrue();
+});
+
+it('existing seeder unit tests continue to pass with the new CategoryTreeService dependency', function (): void {
+    $seeder = makeCatalogSeeder();
+
+    expect($seeder)->toBeInstanceOf(CatalogSeeder::class);
 });

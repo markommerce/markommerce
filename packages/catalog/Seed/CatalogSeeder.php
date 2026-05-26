@@ -7,11 +7,14 @@ namespace Markommerce\Catalog\Seed;
 use Marko\Database\Seed\Seeder;
 use Marko\Database\Seed\SeederInterface;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
+use Markommerce\Catalog\Contracts\CategoryTreeNodeRepositoryInterface;
 use Markommerce\Catalog\Contracts\ProductCategoryAssignmentRepositoryInterface;
 use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
 use Markommerce\Catalog\Entity\Category;
+use Markommerce\Catalog\Entity\CategoryTree;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Entity\ProductCategoryAssignment;
+use Markommerce\Catalog\Services\CategoryTreeService;
 use Markommerce\Scope\Exceptions\ScopeStorageException;
 
 #[Seeder(name: 'catalog')]
@@ -27,6 +30,8 @@ class CatalogSeeder implements SeederInterface
         private readonly ProductRepositoryInterface $productRepository,
         private readonly CategoryRepositoryInterface $categoryRepository,
         private readonly ProductCategoryAssignmentRepositoryInterface $assignmentRepository,
+        private readonly CategoryTreeService $categoryTreeService,
+        private readonly CategoryTreeNodeRepositoryInterface $categoryTreeNodeRepository,
     ) {}
 
     /**
@@ -36,6 +41,8 @@ class CatalogSeeder implements SeederInterface
     {
         $categories = $this->seedCategories();
         $this->seedProductsAndAssignments($categories);
+        $defaultTree = $this->categoryTreeService->ensureDefaultTreeExists();
+        $this->placeCategoriesInDefaultTree($categories, $defaultTree);
     }
 
     /**
@@ -118,6 +125,23 @@ class CatalogSeeder implements SeederInterface
         }
 
         $this->assignmentRepository->insertBatch($assignments);
+    }
+
+    /**
+     * @param list<Category> $categories
+     */
+    private function placeCategoriesInDefaultTree(array $categories, CategoryTree $defaultTree): void
+    {
+        $treeId = (int) $defaultTree->id;
+
+        foreach ($categories as $category) {
+            $categoryId = (int) $category->id;
+            $existing = $this->categoryTreeNodeRepository->findByCategoryInTree($categoryId, $treeId);
+
+            if (count($existing) === 0) {
+                $this->categoryTreeService->placeCategory($treeId, $categoryId, parentNodeId: null, position: null);
+            }
+        }
     }
 
     private function shouldAddOverride(): bool
