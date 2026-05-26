@@ -28,6 +28,8 @@ $scopeResolver->setOverride(
 $price = $scopeResolver->resolved($product, 'price'); // 85.00
 ```
 
+For locale-aware product grid rendering in the storefront, see [markommerce/catalog-storefront-scope](https://markommerce.dev/docs/packages/catalog-storefront-scope/).
+
 ## Documentation
 
 Full usage, API reference, and examples: [markommerce/catalog-scope](https://markommerce.dev/docs/packages/catalog-scope/)

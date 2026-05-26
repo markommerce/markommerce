@@ -1,9 +1,9 @@
 ---
 title: markommerce/catalog
-description: Products and categories for Markommerce — globally-unique SKUs, per-market category trees, and a ready-made storefront route.
+description: Products and categories for Markommerce — globally-unique SKUs, per-market category trees, and a headless domain layer.
 ---
 
-Products and categories for Markommerce. `markommerce/catalog` provides the `Product` and `Category` entities, repository interfaces, services, a storefront controller, and a database seeder. Products carry a globally-unique SKU; categories carry a name and optional description. Category placement in navigation is managed separately through category trees --- each market can have its own tree or fall back to a shared default, and the same category may appear at multiple positions within a tree. Scope support is not built into `markommerce/catalog` --- the package ships with no scope dependency. To add locale-scoped overrides to catalog entities, install [markommerce/catalog-scope](/docs/packages/catalog-scope/) (storage layer) and [markommerce/catalog-locale](/docs/packages/catalog-locale/) (field registration bridge).
+Products and categories for Markommerce. `markommerce/catalog` provides the `Product` and `Category` entities, repository interfaces, services, and a database seeder. Products carry a globally-unique SKU; categories carry a name and optional description. Category placement in navigation is managed separately through category trees --- each market can have its own tree or fall back to a shared default, and the same category may appear at multiple positions within a tree. Scope support is not built into `markommerce/catalog` --- the package ships with no scope dependency. To add locale-scoped overrides to catalog entities, install [markommerce/catalog-scope](/docs/packages/catalog-scope/) (storage layer) and [markommerce/catalog-locale](/docs/packages/catalog-locale/) (field registration bridge).
 
 ## Installation
 
@@ -284,101 +284,9 @@ try {
 }
 ```
 
-### Storefront route
+### Storefront
 
-The catalog module registers a storefront route automatically:
-
-```
-GET /catalog/category/{id}
-```
-
-`CategoryController` performs a quick category lookup and returns a `404` response when the category ID does not exist. The page is rendered by `markommerce/layout` --- `CategoryController` carries no `#[Layout]` attribute; placement is described entirely in `packages/catalog/layout/category_show.php`.
-
-### Layout definition
-
-The category page layout is declared in `layout/category_show.php`. It extends `OneColumnLayout` from `markommerce/theme-blank`, provides the category via `CategoryDataProvider`, places `ProductGridComponent` in the `content` slot, and uses a `Slot::repeat()` to render a `ProductCard` for each product:
-
-```php title="packages/catalog/layout/category_show.php"
-<?php
-
-declare(strict_types=1);
-
-use Markommerce\Catalog\Component\ProductCard;
-use Markommerce\Catalog\Component\ProductGridComponent;
-use Markommerce\Catalog\Context\CategoryDataProvider;
-use Markommerce\Catalog\Context\CategoryToken;
-use Markommerce\Catalog\Controller\CategoryController;
-use Markommerce\Catalog\Entity\Product;
-use Markommerce\Catalog\Iteration\ProductIteration;
-use Markommerce\Layout\Layout;
-use Markommerce\Layout\Place;
-use Markommerce\Layout\Provide;
-use Markommerce\Layout\Slot;
-use Markommerce\Layout\Source\Source;
-use Markommerce\ThemeBlank\Layout\OneColumnLayout;
-
-return new Layout(
-    handle: [CategoryController::class, 'show'],
-    extends: OneColumnLayout::class,
-    context: [
-        new Provide(
-            token: CategoryToken::class,
-            provider: CategoryDataProvider::class,
-            props: ['id' => Source::route('id', 'int')],
-        ),
-    ],
-    slots: [
-        'content' => [
-            new Place(
-                component: ProductGridComponent::class,
-                name: 'catalog.product_grid',
-                props: ['category' => Source::context(CategoryToken::class)],
-                slots: [
-                    'products' => Slot::repeat(
-                        dataKey: 'products',
-                        yields: Product::class,
-                        as: ProductIteration::class,
-                        children: [
-                            new Place(
-                                component: ProductCard::class,
-                                name: 'catalog.product_card',
-                                props: ['product' => Source::iterated(ProductIteration::class)],
-                                slots: [],
-                            ),
-                        ],
-                    ),
-                ],
-            ),
-        ],
-    ],
-);
-```
-
-### ProductGridComponent
-
-`ProductGridComponent` is a placement-agnostic component. Its `data(Category $category)` method receives the resolved `Category` context object, loads the assigned products, and populates `resolvedNames` and `resolvedDescs` with the raw entity values. It returns a `ProductGridData` DTO. When [markommerce/catalog-scope](/docs/packages/catalog-scope/) is installed, its `ScopedProductGridComponent` Preference replaces this component and performs locale-aware resolution instead:
-
-| Property | Type | Description |
-|---|---|---|
-| `$category` | `Category` | The resolved category entity |
-| `$products` | `list<Product>` | All products assigned to the category |
-| `$resolvedNames` | `array<int, string>` | Display name keyed by product ID (raw value; scope-resolved when `catalog-scope` is installed) |
-| `$resolvedDescs` | `array<int, string\|null>` | Display description keyed by product ID (raw value; scope-resolved when `catalog-scope` is installed) |
-| `$extensions` | `ExtensionBag` | Typed extension attributes (third-party use) |
-
-### ProductCard and ProductCardData
-
-`ProductCard` is the per-item component rendered inside the `products` repeat slot. Its `data(Product $product)` method returns a `ProductCardData` DTO:
-
-| Property | Type | Description |
-|---|---|---|
-| `$product` | `Product` | The product entity |
-| `$resolvedName` | `string` | Display name (raw value; scope-resolved when `catalog-scope` is installed) |
-| `$resolvedDesc` | `string` | Display description (raw value; scope-resolved when `catalog-scope` is installed) |
-| `$inStock` | `bool` | Whether the product is currently in stock |
-| `$extensions` | `ExtensionBag` | Typed extension attributes (third-party use) |
-
-Both `ProductGridData` and `ProductCardData` extend `ExtensibleData`, allowing third-party modules to attach typed extension attributes via `withExtension()` without subclassing the DTO. See [markommerce/layout](/docs/packages/layout/) for details on the extension attribute pattern.
+The catalog storefront route, layout definition, `ProductGridComponent`, `ProductCard`, `StockBadge`, and Latte templates are provided by [markommerce/catalog-storefront](/docs/packages/catalog-storefront/). Install that package to add the `GET /catalog/category/{id}` route and the full product grid UI to your application.
 
 ### Seeder
 
@@ -607,9 +515,8 @@ All exceptions extend `MarkoException` and carry a `message`, `context`, and `su
 
 ## Related Packages
 
+- [markommerce/catalog-storefront](/docs/packages/catalog-storefront/) --- Storefront route, layout definition, product grid and card components for `markommerce/catalog`
 - [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- Adds `HasScopesInterface` support to `Product` and `Category` via companion entities; required if you want scoped overrides on catalog entities
 - [markommerce/catalog-locale](/docs/packages/catalog-locale/) --- Bridge that registers `name` and `description` as locale-scoped on `Product` and `Category`
 - [markommerce/scope](/docs/packages/scope/) --- Scoped attribute resolution engine
 - [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver required to persist and query scoped overrides
-- [markommerce/layout](/docs/packages/layout/) --- Layout resolution, typed component data DTOs, and extension operations used by the category storefront page
-- [markommerce/theme-blank](/docs/packages/theme-blank/) --- Provides `OneColumnLayout` and other `LayoutDefinition` classes extended by the category layout

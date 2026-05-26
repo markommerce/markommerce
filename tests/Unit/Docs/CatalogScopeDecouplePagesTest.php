@@ -34,11 +34,13 @@ it('creates docs/src/content/docs/packages/catalog-scope.md following DOCS-STAND
 
     // #[Preference] mechanism is documented
     expect($content)->toContain('Preference');
-    expect($content)->toContain('ScopedProductGridComponent');
 
     // Cross-links to related packages
     expect($content)->toContain('markommerce/scope');
     expect($content)->toContain('markommerce/catalog');
+
+    // ScopedProductGridComponent moved to catalog-storefront-scope; must cross-link there
+    expect($content)->toContain('markommerce/catalog-storefront-scope');
 });
 
 it('creates docs/src/content/docs/packages/locale.md following DOCS-STANDARDS sectioning', function (): void {
@@ -148,6 +150,8 @@ it('passes docs site build (no broken links, valid frontmatter)', function (): v
         'catalog-locale.md',
         'catalog.md',
         'scope.md',
+        'catalog-storefront.md',
+        'catalog-storefront-scope.md',
     ];
 
     foreach ($expectedPages as $page) {

@@ -1,6 +1,6 @@
 # markommerce/catalog
 
-Products and categories for Markommerce --- globally-unique SKUs, per-market category trees, and a ready-made storefront route.
+Products and categories for Markommerce --- globally-unique SKUs, per-market category trees, and a seeder for test data.
 
 ## Installation
 
@@ -13,6 +13,8 @@ Scope override support is optional. To add scoped field storage to catalog entit
 ```bash
 composer require markommerce/catalog-scope
 ```
+
+For the ready-made storefront category route, product grid, and Latte templates, see [markommerce/catalog-storefront](https://markommerce.dev/docs/packages/catalog-storefront/).
 
 ## Quick Example
 
@@ -40,10 +42,6 @@ $categoryTreeService->placeCategory(treeId: $tree->id, categoryId: $category->id
 // Resolve the active tree for a market
 $activeTree = $categoryTreeService->resolveTreeForMarket('market:eu');
 ```
-
-## Storefront Route
-
-`GET /catalog/category/{id}` --- returns the category and its products. Registered automatically by the module.
 
 ## Seeder
 

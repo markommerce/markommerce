@@ -13,6 +13,8 @@
         "markommerce/catalog": "self.version",
         "markommerce/catalog-locale": "self.version",
         "markommerce/catalog-scope": "self.version",
+        "markommerce/catalog-storefront": "self.version",
+        "markommerce/catalog-storefront-scope": "self.version",
         "markommerce/locale": "self.version",
         "markommerce/frontend": "self.version",
         "markommerce/layout": "self.version",

@@ -30,11 +30,11 @@ it('the catalog README documents the Product and Category entities', function ()
         ->and($content)->toContain('locale');
 });
 
-it('the catalog README documents the storefront category route', function (): void {
+it('the catalog README cross-links to markommerce/catalog-storefront for the storefront route', function (): void {
     $readmePath = dirname(__DIR__, 2) . '/README.md';
     $content = file_get_contents($readmePath);
 
-    expect($content)->toContain('/catalog/category/{id}');
+    expect($content)->toContain('catalog-storefront');
 });
 
 it('the catalog README documents the catalog seeder', function (): void {
@@ -53,4 +53,11 @@ it('updates packages/catalog/README.md to note that scope is no longer required 
     expect($content)
         ->toContain('catalog-scope')
         ->toContain('optional');
+});
+
+it('it trims packages/catalog/README.md to remove the Storefront Route section, the layout snippet, and the ProductGridComponent overview, replacing them with a cross-link to catalog-storefront', function (): void {
+    $readmePath = dirname(__DIR__, 2) . '/README.md';
+    $content = file_get_contents($readmePath);
+
+    expect($content)->toContain('catalog-storefront');
 });
