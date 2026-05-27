@@ -17,6 +17,7 @@
         "php": "^8.5",
         "markommerce/catalog": "self.version",
         "markommerce/catalog-locale": "self.version",
+        "markommerce/catalog-market": "self.version",
         "markommerce/catalog-scope": "self.version",
         "markommerce/catalog-storefront": "self.version",
         "markommerce/catalog-storefront-scope": "self.version",
@@ -26,6 +27,7 @@
         "markommerce/frontend": "self.version",
         "markommerce/layout": "self.version",
         "markommerce/locale": "self.version",
+        "markommerce/market": "self.version",
         "markommerce/scope": "self.version",
         "markommerce/scope-pgsql": "self.version",
         "markommerce/theme-blank": "self.version"
@@ -34,12 +36,14 @@
         "psr-4": {
             "Markommerce\\Catalog\\Tests\\": "packages/catalog/tests/",
             "Markommerce\\CatalogLocale\\Tests\\": "packages/catalog-locale/tests/",
+            "Markommerce\\CatalogMarket\\Tests\\": "packages/catalog-market/tests/",
             "Markommerce\\CatalogScope\\Tests\\": "packages/catalog-scope/tests/",
             "Markommerce\\CatalogStorefront\\Tests\\": "packages/catalog-storefront/tests/",
             "Markommerce\\CatalogStorefrontScope\\Tests\\": "packages/catalog-storefront-scope/tests/",
             "Markommerce\\Config\\Tests\\": "packages/config/tests/",
             "Markommerce\\Layout\\Tests\\": "packages/layout/tests/",
             "Markommerce\\Locale\\Tests\\": "packages/locale/tests/",
+            "Markommerce\\Market\\Tests\\": "packages/market/tests/",
             "Markommerce\\Scope\\Tests\\": "packages/scope/tests/"
         }
     },

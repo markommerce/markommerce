@@ -93,13 +93,11 @@ it('runs the catalog test suite to green with markommerce/scope NOT installed (s
     expect($requireDev)->not->toHaveKey('markommerce/scope');
 });
 
-it('preserves all non-scope test cases in CategoryTreeIntegrationTest (tree CRUD, market assignment lifecycle)', function (): void {
+it('preserves all non-scope test cases in CategoryTreeIntegrationTest (tree CRUD, materialization)', function (): void {
     $file = dirname(__DIR__, 2) . '/tests/Feature/CategoryTreeIntegrationTest.php';
     $contents = file_get_contents($file);
 
-    expect($contents)->toContain("'creates a non-default tree, places categories, assigns it to a market, and resolves the tree for that market'")
-        ->and($contents)->toContain("'resolves the default tree for a market with no assignment'")
-        ->and($contents)->toContain("'materializes the tree with correct nesting and position order against the real database'");
+    expect($contents)->toContain("'materializes the tree with correct nesting and position order against the real database'");
 });
 
 it('preserves all non-scope test cases in CatalogSeederTreeTest and CatalogSeederTest (seeder happy paths)', function (): void {

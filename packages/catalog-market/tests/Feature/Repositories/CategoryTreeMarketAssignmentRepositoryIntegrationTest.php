@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Markommerce\Catalog\Tests\Feature\Repositories;
+namespace Markommerce\CatalogMarket\Tests\Feature\Repositories;
 
 require_once __DIR__ . '/../Helpers/PostgresTestConnection.php';
 
 use Marko\Database\Entity\EntityHydrator;
 use Marko\Database\Entity\EntityMetadataFactory;
 use Markommerce\Catalog\Entity\CategoryTree;
-use Markommerce\Catalog\Entity\CategoryTreeMarketAssignment;
-use Markommerce\Catalog\Repositories\CategoryTreeMarketAssignmentRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeRepository;
-use Markommerce\Catalog\Tests\Feature\Helpers\PostgresTestConnection;
+use Markommerce\CatalogMarket\Entity\CategoryTreeMarketAssignment;
+use Markommerce\CatalogMarket\Repositories\CategoryTreeMarketAssignmentRepository;
+use Markommerce\CatalogMarket\Tests\Feature\Helpers\PostgresTestConnection;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function makeCategoryTreeForAssignmentTest(string $code, string $name): CategoryTree
+function makeCategoryTreeForMarketAssignmentTest(string $code, string $name): CategoryTree
 {
     $tree = new CategoryTree();
     $tree->code = $code;
@@ -26,7 +26,7 @@ function makeCategoryTreeForAssignmentTest(string $code, string $name): Category
     return $tree;
 }
 
-function makeAssignment(string $market, ?int $treeId = null): CategoryTreeMarketAssignment
+function makeMarketAssignment(string $market, ?int $treeId = null): CategoryTreeMarketAssignment
 {
     $assignment = new CategoryTreeMarketAssignment();
     $assignment->market = $market;
@@ -65,7 +65,7 @@ beforeEach(function (): void {
     $this->repository = new CategoryTreeMarketAssignmentRepository($this->conn, $metadataFactory, $hydrator);
 
     // Create a default tree for FK references
-    $this->tree = makeCategoryTreeForAssignmentTest('main', 'Main Tree');
+    $this->tree = makeCategoryTreeForMarketAssignmentTest('main', 'Main Tree');
     $this->treeRepository->save($this->tree);
 });
 
@@ -82,7 +82,7 @@ it('persists a new assignment and reads it back by market', function (): void {
     /** @var CategoryTreeMarketAssignmentRepository $repository */
     $repository = $this->repository;
 
-    $assignment = makeAssignment('us', $this->tree->id);
+    $assignment = makeMarketAssignment('us', $this->tree->id);
     $repository->save($assignment);
 
     $found = $repository->findByMarket('us');
@@ -105,10 +105,10 @@ it('updates an existing assignment when saving for the same market (upsert)', fu
     /** @var CategoryTreeMarketAssignmentRepository $repository */
     $repository = $this->repository;
 
-    $tree2 = makeCategoryTreeForAssignmentTest('secondary', 'Secondary Tree');
+    $tree2 = makeCategoryTreeForMarketAssignmentTest('secondary', 'Secondary Tree');
     $this->treeRepository->save($tree2);
 
-    $assignment = makeAssignment('de', $this->tree->id);
+    $assignment = makeMarketAssignment('de', $this->tree->id);
     $repository->save($assignment);
 
     $assignment->treeId = $tree2->id;
@@ -125,13 +125,13 @@ it('does not produce a duplicate-key error when saving twice for the same market
     /** @var CategoryTreeMarketAssignmentRepository $repository */
     $repository = $this->repository;
 
-    $tree2 = makeCategoryTreeForAssignmentTest('other', 'Other Tree');
+    $tree2 = makeCategoryTreeForMarketAssignmentTest('other', 'Other Tree');
     $this->treeRepository->save($tree2);
 
-    $first = makeAssignment('fr', $this->tree->id);
+    $first = makeMarketAssignment('fr', $this->tree->id);
     $repository->save($first);
 
-    $second = makeAssignment('fr', $tree2->id);
+    $second = makeMarketAssignment('fr', $tree2->id);
     $repository->save($second);
 
     $found = $repository->findByMarket('fr');
@@ -145,12 +145,12 @@ it('finds all assignments pointing to a given tree', function (): void {
     /** @var CategoryTreeMarketAssignmentRepository $repository */
     $repository = $this->repository;
 
-    $tree2 = makeCategoryTreeForAssignmentTest('alt', 'Alt Tree');
+    $tree2 = makeCategoryTreeForMarketAssignmentTest('alt', 'Alt Tree');
     $this->treeRepository->save($tree2);
 
-    $repository->save(makeAssignment('us', $this->tree->id));
-    $repository->save(makeAssignment('de', $this->tree->id));
-    $repository->save(makeAssignment('fr', $tree2->id));
+    $repository->save(makeMarketAssignment('us', $this->tree->id));
+    $repository->save(makeMarketAssignment('de', $this->tree->id));
+    $repository->save(makeMarketAssignment('fr', $tree2->id));
 
     $results = $repository->findByTree($this->tree->id);
 
@@ -163,8 +163,8 @@ it('returns the full list of assignments via findAll', function (): void {
     /** @var CategoryTreeMarketAssignmentRepository $repository */
     $repository = $this->repository;
 
-    $repository->save(makeAssignment('us', $this->tree->id));
-    $repository->save(makeAssignment('de', $this->tree->id));
+    $repository->save(makeMarketAssignment('us', $this->tree->id));
+    $repository->save(makeMarketAssignment('de', $this->tree->id));
 
     $all = $repository->findAll();
 
@@ -175,7 +175,7 @@ it('deletes an assignment', function (): void {
     /** @var CategoryTreeMarketAssignmentRepository $repository */
     $repository = $this->repository;
 
-    $assignment = makeAssignment('es', $this->tree->id);
+    $assignment = makeMarketAssignment('es', $this->tree->id);
     $repository->save($assignment);
 
     $repository->delete($assignment);

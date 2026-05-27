@@ -3,26 +3,21 @@
 declare(strict_types=1);
 
 use Markommerce\Catalog\Entity\CategoryTree;
-use Markommerce\Catalog\Entity\CategoryTreeMarketAssignment;
 use Markommerce\Catalog\Exceptions\CannotDeleteDefaultTreeException;
 use Markommerce\Catalog\Exceptions\CategoryTreeNotFoundException;
 use Markommerce\Catalog\Exceptions\DuplicateDefaultTreeException;
-use Markommerce\Catalog\Exceptions\TreeHasMarketAssignmentsException;
 use Markommerce\Catalog\Services\CategoryTreeService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
-use Markommerce\Catalog\Tests\Support\FakeCategoryTreeMarketAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeCategoryTreeNodeRepository;
 use Markommerce\Catalog\Tests\Support\FakeCategoryTreeRepository;
 
 function makeCategoryTreeService(
     ?FakeCategoryTreeRepository $treeRepo = null,
-    ?FakeCategoryTreeMarketAssignmentRepository $assignmentRepo = null,
     ?FakeCategoryTreeNodeRepository $nodeRepo = null,
     ?FakeCategoryRepository $categoryRepo = null,
 ): CategoryTreeService {
     return new CategoryTreeService(
         categoryTreeRepository: $treeRepo ?? new FakeCategoryTreeRepository(),
-        categoryTreeMarketAssignmentRepository: $assignmentRepo ?? new FakeCategoryTreeMarketAssignmentRepository(),
         categoryTreeNodeRepository: $nodeRepo ?? new FakeCategoryTreeNodeRepository(),
         categoryRepository: $categoryRepo ?? new FakeCategoryRepository(),
     );
@@ -143,23 +138,6 @@ it('deleteTree throws CannotDeleteDefaultTreeException when targeting the defaul
 
     expect(fn () => $service->deleteTree($defaultTree->id))
         ->toThrow(CannotDeleteDefaultTreeException::class);
-});
-
-it('deleteTree throws TreeHasMarketAssignmentsException when the tree still serves any market', function (): void {
-    $treeRepo = new FakeCategoryTreeRepository();
-    $assignmentRepo = new FakeCategoryTreeMarketAssignmentRepository();
-    $service = makeCategoryTreeService(treeRepo: $treeRepo, assignmentRepo: $assignmentRepo);
-
-    $defaultTree = $service->createTree(code: 'main', name: 'Main', isDefault: true);
-    $otherTree = $service->createTree(code: 'other', name: 'Other');
-
-    $assignment = new CategoryTreeMarketAssignment();
-    $assignment->treeId = $otherTree->id;
-    $assignment->market = 'us';
-    $assignmentRepo->save($assignment);
-
-    expect(fn () => $service->deleteTree($otherTree->id))
-        ->toThrow(TreeHasMarketAssignmentsException::class);
 });
 
 it('ensureDefaultTreeExists returns existing default when present', function (): void {

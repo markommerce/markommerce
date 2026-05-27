@@ -2,14 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Markommerce\Catalog\Exceptions;
+namespace Markommerce\CatalogMarket\Exceptions;
 
 use Marko\Core\Exceptions\MarkoException;
 
 class TreeHasMarketAssignmentsException extends MarkoException
 {
     /** @param array<string> $markets */
-    public static function forTreeId(int $treeId, array $markets): self
+    public static function forTreeId(
+        int $treeId,
+        array $markets,
+    ): self
     {
         $marketList = implode(', ', $markets);
 

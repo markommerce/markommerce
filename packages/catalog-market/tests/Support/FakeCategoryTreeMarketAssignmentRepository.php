@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Markommerce\Catalog\Tests\Support;
+namespace Markommerce\CatalogMarket\Tests\Support;
 
 use Marko\Database\Entity\Entity;
 use Marko\Database\Entity\EntityCollection;
 use Marko\Database\Exceptions\RepositoryException;
-use Markommerce\Catalog\Contracts\CategoryTreeMarketAssignmentRepositoryInterface;
-use Markommerce\Catalog\Entity\CategoryTreeMarketAssignment;
+use Markommerce\CatalogMarket\Contracts\CategoryTreeMarketAssignmentRepositoryInterface;
+use Markommerce\CatalogMarket\Entity\CategoryTreeMarketAssignment;
 
 /**
  * In-memory fake repository for CategoryTreeMarketAssignment.

@@ -61,3 +61,17 @@ it('it trims packages/catalog/README.md to remove the Storefront Route section, 
 
     expect($content)->toContain('catalog-storefront');
 });
+
+it('markommerce/catalog README cross-links to markommerce/catalog-market-category-trees in a Market-aware multi-tree section', function (): void {
+    $readmePath = dirname(__DIR__, 2) . '/README.md';
+    $content = file_get_contents($readmePath);
+
+    expect($content)->toContain('catalog-market-category-trees');
+});
+
+it('the updated catalog ReadmeTest asserts the new cross-link to markommerce/catalog-market-category-trees', function (): void {
+    $readmePath = dirname(__DIR__, 2) . '/README.md';
+    $content = file_get_contents($readmePath);
+
+    expect($content)->toContain('catalog-market-category-trees');
+});

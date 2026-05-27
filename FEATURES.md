@@ -102,7 +102,7 @@ fields by market; per-market category trees with active-tree resolution.
 | | Packages added on top of Tier 2 |
 |---|---|
 | **Current** | (none — multi-market trees already ship inside `catalog`) |
-| **Desired** | `🆕 market` + `🆕 catalog-market` + `🆕 config-market` + `🆕 catalog-market-category-trees` |
+| **Desired** | `🆕 market` + `🆕 catalog-market` + `🆕 config-market` |
 
 ---
 
@@ -125,7 +125,7 @@ fields by market; per-market category trees with active-tree resolution.
 - Tier 1: 7 packages
 - Tier 2 headless: 14 packages (+ `scope`, `scope-pgsql`, `catalog-scope`, `🆕 config-scope`, `locale`, `catalog-locale`, `🆕 config-locale`)
 - Tier 2 storefront: 15 packages (headless + `catalog-storefront-scope` for locale-aware storefront rendering)
-- Tier 3: 18 packages (+ `🆕 market`, `🆕 catalog-market`, `🆕 config-market`, `🆕 catalog-market-category-trees`)
+- Tier 3: 17 packages (+ `🆕 market`, `🆕 catalog-market`, `🆕 config-market`)
 
 **Package count today:** every merchant installs essentially the Tier 3 set, whether they use it or not.
 
@@ -140,7 +140,7 @@ fields by market; per-market category trees with active-tree resolution.
 | `markommerce/catalog-storefront` | HTTP controllers, route registration, Latte views, theme integration for the public shop | `catalog`, `layout`, `frontend` |
 | `markommerce/catalog-scope` | Machinery: substitutes catalog entities with scope-aware decorators; axis-agnostic | `catalog`, `scope` |
 | `🆕 markommerce/config-scope` | Machinery: adds per-scope override resolution on top of plain config | `config`, `scope` |
-| `🆕 markommerce/catalog-market-category-trees` | Multiple category trees with per-market assignment and active-tree resolution | `catalog`, `market` (transitively `scope`) |
+| `markommerce/catalog-market` | Market integration for catalog: per-market category trees, resolver, deletion guard plugin, and ScopedFieldRegistry hook for market-scoped fields | `catalog`, `catalog-scope`, `market` |
 
 ### Storefront extensions
 
@@ -201,7 +201,7 @@ no external consumers to deprecate against).
 | **P1** | Refactor scope's metadata layer to be registry-driven | `completed` | `scope-metadata-registry` | `ScopedFieldRegistry` is authoritative. Attributes still work via a boot-time scan that feeds the registry. Serializer reads only the registry. Foundation for everything below. |
 | **P2** | Decouple `catalog` from `scope`; create `catalog-scope`, `locale`, `catalog-locale` | `completed` | `catalog-scope-decouple` | `Product` and `Category` become plain entities (no `#[Scoped]`, no `HasScopes` trait, no `Markommerce\Scope\…` imports). Multi-language behaviour shifts to the new bridge stack. Tier 2 reachable through the new architecture. |
 | **P3** | Extract `catalog-storefront` from `catalog`; create `catalog-storefront-scope` | `completed` | `catalog-storefront-extract` | Move controllers, route registration, Latte templates, and asset wiring out of `catalog`. Tier 1 reachable. Headless catalog consumers stop pulling layout/frontend/theme. `catalog-storefront-scope` adds Preference-based locale-aware grid rendering for storefront merchants. |
-| **P4** | Create `market`, `catalog-market`; extract `catalog-market-category-trees` | `pending` | tbd | Tier 3 reachable. `CategoryTreeMarketAssignment`, the per-market resolver, and multi-tree CRUD move out of `catalog`. Catalog keeps a single default tree. |
+| **P4** | Create `market`, `catalog-market`; extract `catalog-market-category-trees` | `completed` | `catalog-market-extract` | Tier 3 reachable. `CategoryTreeMarketAssignment`, the per-market resolver, and multi-tree CRUD move out of `catalog`. Catalog keeps a single default tree. Note: `catalog-market` ships as a no-op placeholder today; `Product.price` and `Product.visibility` field registrations are deferred until those columns exist on `Product`. |
 | **P5** | Decouple `config` from `scope`; create `config-scope`, `config-locale`, `config-market` | `pending` | tbd | Mirrors P2 for config. `config` becomes a plain key-value store; per-scope overlays come from `config-scope` + bridges. |
 
 ### Decisions locked in for all phases

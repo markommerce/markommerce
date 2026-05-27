@@ -1,6 +1,6 @@
 # markommerce/catalog
 
-Products and categories for Markommerce --- globally-unique SKUs, per-market category trees, and a seeder for test data.
+Products and categories for Markommerce --- globally-unique SKUs, category trees, and a seeder for test data.
 
 ## Installation
 
@@ -15,6 +15,8 @@ composer require markommerce/catalog-scope
 ```
 
 For the ready-made storefront category route, product grid, and Latte templates, see [markommerce/catalog-storefront](https://markommerce.dev/docs/packages/catalog-storefront/).
+
+For per-market category tree assignment and resolution, see [markommerce/catalog-market-category-trees](https://markommerce.dev/docs/packages/catalog-market-category-trees/).
 
 ## Quick Example
 
@@ -38,9 +40,6 @@ $categoryRepository->save($category);
 
 $tree = $categoryTreeService->ensureDefaultTreeExists();
 $categoryTreeService->placeCategory(treeId: $tree->id, categoryId: $category->id);
-
-// Resolve the active tree for a market
-$activeTree = $categoryTreeService->resolveTreeForMarket('market:eu');
 ```
 
 ## Seeder

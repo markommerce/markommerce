@@ -1,0 +1,38 @@
+{
+    "name": "markommerce/catalog-market",
+    "description": "Market field bridge for catalog entities — placeholder bridge that reserves the ScopedFieldRegistry hook for future price and visibility axes",
+    "license": "MIT",
+    "type": "marko-module",
+    "require": {
+        "php": "^8.5",
+        "marko/core": "self.version",
+        "marko/database": "self.version",
+        "markommerce/catalog": "self.version",
+        "markommerce/catalog-scope": "self.version",
+        "markommerce/market": "self.version"
+    },
+    "require-dev": {
+        "marko/testing": "self.version",
+        "pestphp/pest": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Markommerce\\CatalogMarket\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Markommerce\\CatalogMarket\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "marko": {
+            "module": true
+        }
+    }
+}

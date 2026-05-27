@@ -9,7 +9,6 @@ require_once __DIR__ . '/Helpers/PostgresTestConnection.php';
 use Marko\Database\Entity\EntityHydrator;
 use Marko\Database\Entity\EntityMetadataFactory;
 use Markommerce\Catalog\Repositories\CategoryRepository;
-use Markommerce\Catalog\Repositories\CategoryTreeMarketAssignmentRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeNodeRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeRepository;
 use Markommerce\Catalog\Repositories\ProductCategoryAssignmentRepository;
@@ -36,13 +35,11 @@ function makeSeederWithRealRepos(PostgresTestConnection $conn): array
     $categoryRepository = new CategoryRepository($conn, $metadataFactory, $hydrator);
     $treeRepository = new CategoryTreeRepository($conn, $metadataFactory, $hydrator);
     $treeNodeRepository = new CategoryTreeNodeRepository($conn, $metadataFactory, $hydrator);
-    $treeMarketAssignmentRepository = new CategoryTreeMarketAssignmentRepository($conn, $metadataFactory, $hydrator);
     $productRepository = new ProductRepository($conn, $metadataFactory, $hydrator);
     $assignmentRepository = new ProductCategoryAssignmentRepository($conn, $metadataFactory, $hydrator);
 
     $categoryTreeService = new CategoryTreeService(
         categoryTreeRepository: $treeRepository,
-        categoryTreeMarketAssignmentRepository: $treeMarketAssignmentRepository,
         categoryTreeNodeRepository: $treeNodeRepository,
         categoryRepository: $categoryRepository,
     );
@@ -194,14 +191,10 @@ it('the tree-placement step is idempotent: when seeded categories already have a
 
     $freshTreeNodeRepository = new CategoryTreeNodeRepository($this->conn, $metadataFactory, $hydrator);
     $freshTreeRepository = new CategoryTreeRepository($this->conn, $metadataFactory, $hydrator);
-    $freshMarketRepository = new CategoryTreeMarketAssignmentRepository($this->conn, $metadataFactory, $hydrator);
     $freshCategoryRepository = new CategoryRepository($this->conn, $metadataFactory, $hydrator);
-    $freshProductRepository = new ProductRepository($this->conn, $metadataFactory, $hydrator);
-    $freshAssignmentRepository = new ProductCategoryAssignmentRepository($this->conn, $metadataFactory, $hydrator);
 
     $freshTreeService = new CategoryTreeService(
         categoryTreeRepository: $freshTreeRepository,
-        categoryTreeMarketAssignmentRepository: $freshMarketRepository,
         categoryTreeNodeRepository: $freshTreeNodeRepository,
         categoryRepository: $freshCategoryRepository,
     );
