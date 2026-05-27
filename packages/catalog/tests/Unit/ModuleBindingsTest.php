@@ -3,13 +3,11 @@
 declare(strict_types=1);
 
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
-use Markommerce\Catalog\Contracts\CategoryTreeMarketAssignmentRepositoryInterface;
 use Markommerce\Catalog\Contracts\CategoryTreeNodeRepositoryInterface;
 use Markommerce\Catalog\Contracts\CategoryTreeRepositoryInterface;
 use Markommerce\Catalog\Contracts\ProductCategoryAssignmentRepositoryInterface;
 use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
 use Markommerce\Catalog\Repositories\CategoryRepository;
-use Markommerce\Catalog\Repositories\CategoryTreeMarketAssignmentRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeNodeRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeRepository;
 use Markommerce\Catalog\Repositories\ProductCategoryAssignmentRepository;
@@ -73,14 +71,6 @@ it('module.php binds CategoryTreeNodeRepositoryInterface to CategoryTreeNodeRepo
     expect($module['bindings'])->toHaveKey(CategoryTreeNodeRepositoryInterface::class);
     expect($module['bindings'][CategoryTreeNodeRepositoryInterface::class])
         ->toBe(CategoryTreeNodeRepository::class);
-});
-
-it('module.php binds CategoryTreeMarketAssignmentRepositoryInterface to CategoryTreeMarketAssignmentRepository', function (): void {
-    $module = readCatalogModule();
-
-    expect($module['bindings'])->toHaveKey(CategoryTreeMarketAssignmentRepositoryInterface::class);
-    expect($module['bindings'][CategoryTreeMarketAssignmentRepositoryInterface::class])
-        ->toBe(CategoryTreeMarketAssignmentRepository::class);
 });
 
 it('module.php preserves the existing pre-tree bindings (ProductRepositoryInterface, CategoryRepositoryInterface, ProductCategoryAssignmentRepositoryInterface)', function (): void {

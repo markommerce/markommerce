@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Markommerce\Catalog\Tests\Feature\Repositories;
+namespace Markommerce\CatalogMarketCategoryTrees\Tests\Feature\Repositories;
 
 require_once __DIR__ . '/../Helpers/PostgresTestConnection.php';
 
 use Marko\Database\Entity\EntityHydrator;
 use Marko\Database\Entity\EntityMetadataFactory;
 use Markommerce\Catalog\Entity\CategoryTree;
-use Markommerce\Catalog\Entity\CategoryTreeMarketAssignment;
-use Markommerce\Catalog\Repositories\CategoryTreeMarketAssignmentRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeRepository;
-use Markommerce\Catalog\Tests\Feature\Helpers\PostgresTestConnection;
+use Markommerce\CatalogMarketCategoryTrees\Entity\CategoryTreeMarketAssignment;
+use Markommerce\CatalogMarketCategoryTrees\Repositories\CategoryTreeMarketAssignmentRepository;
+use Markommerce\CatalogMarketCategoryTrees\Tests\Feature\Helpers\PostgresTestConnection;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

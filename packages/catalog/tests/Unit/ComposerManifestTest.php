@@ -91,6 +91,45 @@ it('extends packages/catalog/tests/Unit/ComposerManifestTest.php with assertions
     }
 });
 
+it('ComposerManifestTest asserts catalog.composer.json does not require markommerce/market in either require or require-dev', function (): void {
+    $manifest = json_decode(
+        file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
+        true,
+    );
+
+    $require = $manifest['require'] ?? [];
+    $requireDev = $manifest['require-dev'] ?? [];
+
+    expect($require)->not->toHaveKey('markommerce/market');
+    expect($requireDev)->not->toHaveKey('markommerce/market');
+});
+
+it('ComposerManifestTest asserts catalog.composer.json does not require markommerce/catalog-market in either require or require-dev', function (): void {
+    $manifest = json_decode(
+        file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
+        true,
+    );
+
+    $require = $manifest['require'] ?? [];
+    $requireDev = $manifest['require-dev'] ?? [];
+
+    expect($require)->not->toHaveKey('markommerce/catalog-market');
+    expect($requireDev)->not->toHaveKey('markommerce/catalog-market');
+});
+
+it('ComposerManifestTest asserts catalog.composer.json does not require markommerce/catalog-market-category-trees in either require or require-dev', function (): void {
+    $manifest = json_decode(
+        file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
+        true,
+    );
+
+    $require = $manifest['require'] ?? [];
+    $requireDev = $manifest['require-dev'] ?? [];
+
+    expect($require)->not->toHaveKey('markommerce/catalog-market-category-trees');
+    expect($requireDev)->not->toHaveKey('markommerce/catalog-market-category-trees');
+});
+
 it('succeeds composer dump-autoload at the monorepo root after the change', function (): void {
     $rootDir = dirname(__DIR__, 4);
     $rootManifest = json_decode(

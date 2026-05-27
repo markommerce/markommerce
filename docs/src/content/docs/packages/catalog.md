@@ -92,7 +92,7 @@ Use `CategoryTreeService` to create trees and manage the default:
 
 declare(strict_types=1);
 
-use Markommerce\Catalog\Services\CategoryTreeService;
+use Markommerce\Catalog\Contracts\CategoryTreeServiceInterface;
 use Markommerce\Catalog\Exceptions\DuplicateDefaultTreeException;
 
 // Create a non-default tree
@@ -114,22 +114,7 @@ $defaultTree = $categoryTreeService->ensureDefaultTreeExists();
 
 #### Assigning trees to markets
 
-```php
-<?php
-
-declare(strict_types=1);
-
-use Markommerce\Catalog\Services\CategoryTreeService;
-
-// Assign a specific tree to a market
-$categoryTreeService->assignTreeToMarket($euTree->id, 'market:eu');
-
-// Remove a market's explicit assignment (falls back to default)
-$categoryTreeService->unassignMarket('market:eu');
-
-// Resolve the active tree for a market
-$tree = $categoryTreeService->resolveTreeForMarket('market:eu');
-```
+Market-to-tree assignment and resolution is provided by [markommerce/catalog-market-category-trees](/docs/packages/catalog-market-category-trees/). Install that package to use `CategoryTreeMarketAssignmentService` and `CategoryTreeMarketResolver`.
 
 #### Placing categories in a tree
 
@@ -140,7 +125,7 @@ A category can be placed at multiple positions within the same tree. Pass `null`
 
 declare(strict_types=1);
 
-use Markommerce\Catalog\Services\CategoryTreeService;
+use Markommerce\Catalog\Contracts\CategoryTreeServiceInterface;
 
 // Place a category at the root of the default tree
 $rootNode = $categoryTreeService->placeCategory(
@@ -171,7 +156,7 @@ $categoryTreeService->placeCategory(
 
 declare(strict_types=1);
 
-use Markommerce\Catalog\Services\CategoryTreeService;
+use Markommerce\Catalog\Contracts\CategoryTreeServiceInterface;
 use Markommerce\Catalog\Exceptions\CircularNodeReferenceException;
 
 // Move a node to a new parent at a given position (cycle detection included)
@@ -198,7 +183,7 @@ Use `NodeRemovalStrategy` to choose what happens to the removed node's children:
 
 declare(strict_types=1);
 
-use Markommerce\Catalog\Services\CategoryTreeService;
+use Markommerce\Catalog\Contracts\CategoryTreeServiceInterface;
 use Markommerce\Catalog\Enum\NodeRemovalStrategy;
 
 // Remove node and all its descendants
@@ -217,7 +202,7 @@ $categoryTreeService->removeNode($nodeId, NodeRemovalStrategy::PROMOTE_CHILDREN)
 
 declare(strict_types=1);
 
-use Markommerce\Catalog\Services\CategoryTreeService;
+use Markommerce\Catalog\Contracts\CategoryTreeServiceInterface;
 
 // Returns array<int, array{node: CategoryTreeNode, category_id: int, children: array<int, mixed>}>
 $tree = $categoryTreeService->getMaterializedTree($defaultTree->id);
@@ -313,7 +298,6 @@ php artisan db:seed --seeder=catalog-locale
 | `ProductCategoryAssignmentRepositoryInterface` | `ProductCategoryAssignmentRepository` |
 | `CategoryTreeRepositoryInterface` | `CategoryTreeRepository` |
 | `CategoryTreeNodeRepositoryInterface` | `CategoryTreeNodeRepository` |
-| `CategoryTreeMarketAssignmentRepositoryInterface` | `CategoryTreeMarketAssignmentRepository` |
 
 ## API Reference
 
@@ -381,15 +365,6 @@ Table: `catalog_category_tree_nodes`
 
 A unique index on `(tree_id, parent_node_id, position)` prevents two nodes from occupying the same slot. Additional indexes on `(tree_id, category_id)` and `(parent_node_id, position)` support efficient tree queries.
 
-#### `CategoryTreeMarketAssignment`
-
-Table: `catalog_category_tree_market_assignments`
-
-| Property | Type | Column | Notes |
-|---|---|---|---|
-| `$market` | `string` | `market` (PK, length 64) | Market identifier; composite primary key |
-| `$treeId` | `?int` | `tree_id` | FK → `catalog_category_trees`, RESTRICT on delete |
-
 ### Interfaces
 
 #### `ProductRepositoryInterface`
@@ -436,14 +411,21 @@ Extends `RepositoryInterface<CategoryTreeNode>`.
 | `findByCategoryInTree(int $categoryId, int $treeId)` | `list<CategoryTreeNode>` | Return all placements of a category within a specific tree (multi-placement support). |
 | `findByCategoryAcrossTrees(int $categoryId)` | `list<CategoryTreeNode>` | Return all placements of a category across all trees. Used by the category deletion guard. |
 
-#### `CategoryTreeMarketAssignmentRepositoryInterface`
+#### `CategoryTreeServiceInterface`
 
-Extends `RepositoryInterface<CategoryTreeMarketAssignment>`.
+The primary contract for category tree lifecycle management. Implemented by `CategoryTreeService`. Third-party packages can target this interface with Marko Plugins --- [markommerce/catalog-market-category-trees](/docs/packages/catalog-market-category-trees/) uses it as the plugin target for its tree-deletion guard.
 
-| Method | Return type | Description |
-|---|---|---|
-| `findByMarket(string $market)` | `?CategoryTreeMarketAssignment` | Return the assignment for a given market. Returns `null` when no explicit assignment exists. |
-| `findByTree(int $treeId)` | `list<CategoryTreeMarketAssignment>` | Return all market assignments for a given tree. |
+| Method | Return type | Throws | Description |
+|---|---|---|---|
+| `createTree(string $code, string $name, bool $isDefault = false)` | `CategoryTree` | `DuplicateDefaultTreeException`, `\InvalidArgumentException` | Create a new tree. |
+| `setDefaultTree(int $treeId)` | `void` | `CategoryTreeNotFoundException` | Promote a tree to default; demotes the current default. |
+| `deleteTree(int $treeId)` | `void` | `CategoryTreeNotFoundException`, `CannotDeleteDefaultTreeException` | Delete a tree. Blocked when the tree is the default. |
+| `ensureDefaultTreeExists()` | `CategoryTree` | --- | Return the existing default or create one. Idempotent. |
+| `placeCategory(int $treeId, int $categoryId, ?int $parentNodeId = null, ?int $position = null)` | `CategoryTreeNode` | `CategoryTreeNotFoundException`, `CategoryNotFoundException`, `CategoryTreeNodeNotFoundException`, `NodeNotInTreeException` | Place a category in a tree as a node. |
+| `moveNode(int $nodeId, ?int $newParentNodeId, int $position)` | `void` | `CategoryTreeNodeNotFoundException`, `NodeNotInTreeException`, `CircularNodeReferenceException` | Move a node to a new parent and position. |
+| `removeNode(int $nodeId, NodeRemovalStrategy $strategy)` | `void` | `CategoryTreeNodeNotFoundException` | Remove a node using `CASCADE` or `PROMOTE_CHILDREN`. |
+| `reorderSiblings(?int $parentNodeId, int $treeId, array $orderedNodeIds)` | `void` | `CategoryTreeNodeNotFoundException`, `NodeNotInTreeException` | Reorder siblings by supplying an ordered list of node IDs. |
+| `getMaterializedTree(int $treeId)` | `array` | `CategoryTreeNotFoundException` | Return the full tree as a nested array of `{node, category_id, children}` entries, sorted by position. |
 
 ### Services
 
@@ -468,16 +450,13 @@ Extends `RepositoryInterface<CategoryTreeMarketAssignment>`.
 |---|---|---|---|
 | `createTree(string $code, string $name, bool $isDefault = false)` | `CategoryTree` | `DuplicateDefaultTreeException`, `\InvalidArgumentException` | Create and persist a new tree. Throws when `$code` is empty or when `$isDefault` is `true` and a default already exists. |
 | `setDefaultTree(int $treeId)` | `void` | `CategoryTreeNotFoundException` | Promote a tree to default. Demotes the current default automatically. |
-| `deleteTree(int $treeId)` | `void` | `CategoryTreeNotFoundException`, `CannotDeleteDefaultTreeException`, `TreeHasMarketAssignmentsException` | Delete a tree. Blocked when the tree is the default or has active market assignments. |
-| `assignTreeToMarket(int $treeId, string $market)` | `void` | `CategoryTreeNotFoundException` | Assign a specific tree to a market. |
-| `unassignMarket(string $market)` | `void` | --- | Remove a market's explicit tree assignment. No-op if the market has no assignment. |
-| `resolveTreeForMarket(string $market)` | `CategoryTree` | `CategoryTreeNotFoundException`, `DefaultTreeMissingException` | Return the tree assigned to a market, or the default tree when no explicit assignment exists. |
+| `deleteTree(int $treeId)` | `void` | `CategoryTreeNotFoundException`, `CannotDeleteDefaultTreeException` | Delete a tree. Blocked when the tree is the default. Market assignment guard is provided by [markommerce/catalog-market-category-trees](/docs/packages/catalog-market-category-trees/). |
 | `ensureDefaultTreeExists()` | `CategoryTree` | --- | Return the existing default tree or create one with `code='default'` and `name='Default'`. Idempotent. |
 | `placeCategory(int $treeId, int $categoryId, ?int $parentNodeId = null, ?int $position = null)` | `CategoryTreeNode` | `CategoryTreeNotFoundException`, `CategoryNotFoundException`, `CategoryTreeNodeNotFoundException`, `NodeNotInTreeException` | Create a node placing a category in a tree. Omit `$position` to append after existing siblings. |
 | `moveNode(int $nodeId, ?int $newParentNodeId, int $position)` | `void` | `CategoryTreeNodeNotFoundException`, `NodeNotInTreeException`, `CircularNodeReferenceException` | Move a node to a new parent and position. Cycle detection prevents a node from becoming its own ancestor. |
 | `removeNode(int $nodeId, NodeRemovalStrategy $strategy)` | `void` | `CategoryTreeNodeNotFoundException` | Remove a node using `CASCADE` (delete subtree) or `PROMOTE_CHILDREN` (reparent children to removed node's parent). |
 | `reorderSiblings(?int $parentNodeId, int $treeId, array $orderedNodeIds)` | `void` | `CategoryTreeNodeNotFoundException`, `NodeNotInTreeException` | Reorder a sibling group by supplying an ordered list of node IDs. Positions are reassigned as multiples of 10. |
-| `getMaterializedTree(int $treeId)` | `array` | `CategoryTreeNotFoundException` | Return the full tree as a nested array keyed by node ID, sorted by position. Result is cached in-memory until the tree is modified. |
+| `getMaterializedTree(int $treeId)` | `array` | `CategoryTreeNotFoundException` | Return the full tree as a nested array of `{node, category_id, children}` entries, sorted by position. Result is cached in-memory until the tree is modified. |
 
 #### `CategoryService`
 
@@ -505,10 +484,9 @@ All exceptions extend `MarkoException` and carry a `message`, `context`, and `su
 | `CategoryNotFoundException` | `forId(int $id)` | `CategoryAssignmentService::assign()`, `productsInCategory()`, or `CategoryService::delete()` cannot find the category |
 | `CategoryHasPlacementsException` | `forCategory(int $categoryId, int $placementCount)` | `CategoryService::delete()` finds active tree placements for the category |
 | `CategoryTreeNotFoundException` | `forId(int $id)`, `forCode(string $code)` | A `CategoryTreeService` method cannot find the requested tree |
-| `DefaultTreeMissingException` | `forResolution()` | `CategoryTreeRepositoryInterface::findDefault()` or `resolveTreeForMarket()` finds no default tree configured |
+| `DefaultTreeMissingException` | `forResolution()` | `CategoryTreeRepositoryInterface::findDefault()` finds no default tree configured |
 | `DuplicateDefaultTreeException` | `forCode(string $code)` | `CategoryTreeService::createTree()` is called with `$isDefault = true` when a default already exists |
 | `CannotDeleteDefaultTreeException` | `forTreeId(int $treeId)` | `CategoryTreeService::deleteTree()` is called on the active default tree |
-| `TreeHasMarketAssignmentsException` | `forTreeId(int $treeId, array $markets)` | `CategoryTreeService::deleteTree()` is called on a tree that still has market assignments |
 | `CategoryTreeNodeNotFoundException` | `forId(int $id)` | A `CategoryTreeService` method cannot find the requested node |
 | `NodeNotInTreeException` | `forNodeAndTree(int $nodeId, int $expectedTreeId, int $actualTreeId)`, `forParentMismatch(int $nodeId, ?int $expectedParentNodeId, ?int $actualParentNodeId)` | A node is referenced against the wrong tree, or a sibling group contains a node with a mismatched parent |
 | `CircularNodeReferenceException` | `forNodeAndParent(int $nodeId, int $proposedParentId)` | `CategoryTreeService::moveNode()` detects that the proposed parent is a descendant of the node being moved |
@@ -518,5 +496,6 @@ All exceptions extend `MarkoException` and carry a `message`, `context`, and `su
 - [markommerce/catalog-storefront](/docs/packages/catalog-storefront/) --- Storefront route, layout definition, product grid and card components for `markommerce/catalog`
 - [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- Adds `HasScopesInterface` support to `Product` and `Category` via companion entities; required if you want scoped overrides on catalog entities
 - [markommerce/catalog-locale](/docs/packages/catalog-locale/) --- Bridge that registers `name` and `description` as locale-scoped on `Product` and `Category`
+- [markommerce/catalog-market-category-trees](/docs/packages/catalog-market-category-trees/) --- Per-market category tree assignment and resolution; also provides the deletion guard plugin
 - [markommerce/scope](/docs/packages/scope/) --- Scoped attribute resolution engine
 - [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver required to persist and query scoped overrides

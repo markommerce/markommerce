@@ -6,11 +6,10 @@ namespace Markommerce\Catalog\Services;
 
 use InvalidArgumentException;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
-use Markommerce\Catalog\Contracts\CategoryTreeMarketAssignmentRepositoryInterface;
 use Markommerce\Catalog\Contracts\CategoryTreeNodeRepositoryInterface;
 use Markommerce\Catalog\Contracts\CategoryTreeRepositoryInterface;
+use Markommerce\Catalog\Contracts\CategoryTreeServiceInterface;
 use Markommerce\Catalog\Entity\CategoryTree;
-use Markommerce\Catalog\Entity\CategoryTreeMarketAssignment;
 use Markommerce\Catalog\Entity\CategoryTreeNode;
 use Markommerce\Catalog\Enum\NodeRemovalStrategy;
 use Markommerce\Catalog\Exceptions\CannotDeleteDefaultTreeException;
@@ -21,7 +20,6 @@ use Markommerce\Catalog\Exceptions\CircularNodeReferenceException;
 use Markommerce\Catalog\Exceptions\DefaultTreeMissingException;
 use Markommerce\Catalog\Exceptions\DuplicateDefaultTreeException;
 use Markommerce\Catalog\Exceptions\NodeNotInTreeException;
-use Markommerce\Catalog\Exceptions\TreeHasMarketAssignmentsException;
 
 /**
  * Service responsible for category tree lifecycle management.
@@ -31,7 +29,7 @@ use Markommerce\Catalog\Exceptions\TreeHasMarketAssignmentsException;
  * unique indexes natively. All methods that create or promote a default tree
  * check for an existing default before persisting.
  */
-class CategoryTreeService
+class CategoryTreeService implements CategoryTreeServiceInterface
 {
     private const int POSITION_GAP = 10;
 
@@ -40,7 +38,6 @@ class CategoryTreeService
 
     public function __construct(
         private CategoryTreeRepositoryInterface $categoryTreeRepository,
-        private CategoryTreeMarketAssignmentRepositoryInterface $categoryTreeMarketAssignmentRepository,
         private CategoryTreeNodeRepositoryInterface $categoryTreeNodeRepository,
         private CategoryRepositoryInterface $categoryRepository,
     ) {}
@@ -94,7 +91,7 @@ class CategoryTreeService
     }
 
     /**
-     * @throws CategoryTreeNotFoundException|CannotDeleteDefaultTreeException|TreeHasMarketAssignmentsException
+     * @throws CategoryTreeNotFoundException|CannotDeleteDefaultTreeException
      */
     public function deleteTree(int $treeId): void
     {
@@ -108,64 +105,7 @@ class CategoryTreeService
             throw CannotDeleteDefaultTreeException::forTreeId($treeId);
         }
 
-        $assignments = $this->categoryTreeMarketAssignmentRepository->findByTree($treeId);
-
-        if (count($assignments) > 0) {
-            $markets = array_map(fn ($a) => $a->market, $assignments);
-            throw TreeHasMarketAssignmentsException::forTreeId($treeId, $markets);
-        }
-
         $this->categoryTreeRepository->delete($tree);
-    }
-
-    /**
-     * @throws CategoryTreeNotFoundException
-     */
-    public function assignTreeToMarket(int $treeId, string $market): void
-    {
-        $tree = $this->categoryTreeRepository->find($treeId);
-
-        if ($tree === null) {
-            throw CategoryTreeNotFoundException::forId($treeId);
-        }
-
-        $assignment = new CategoryTreeMarketAssignment();
-        $assignment->market = $market;
-        $assignment->treeId = $treeId;
-
-        $this->categoryTreeMarketAssignmentRepository->save($assignment);
-    }
-
-    public function unassignMarket(string $market): void
-    {
-        $assignment = $this->categoryTreeMarketAssignmentRepository->findByMarket($market);
-
-        if ($assignment === null) {
-            return;
-        }
-
-        $this->categoryTreeMarketAssignmentRepository->delete($assignment);
-    }
-
-    /**
-     * @throws CategoryTreeNotFoundException|DefaultTreeMissingException
-     */
-    public function resolveTreeForMarket(string $market): CategoryTree
-    {
-        $assignment = $this->categoryTreeMarketAssignmentRepository->findByMarket($market);
-
-        if ($assignment !== null) {
-            $treeId = (int) $assignment->treeId;
-            $tree = $this->categoryTreeRepository->find($treeId);
-
-            if ($tree === null) {
-                throw CategoryTreeNotFoundException::forId($treeId);
-            }
-
-            return $tree;
-        }
-
-        return $this->categoryTreeRepository->findDefault();
     }
 
     /**

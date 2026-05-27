@@ -12,7 +12,6 @@ use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Exceptions\CategoryHasPlacementsException;
 use Markommerce\Catalog\Exceptions\CircularNodeReferenceException;
 use Markommerce\Catalog\Repositories\CategoryRepository;
-use Markommerce\Catalog\Repositories\CategoryTreeMarketAssignmentRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeNodeRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeRepository;
 use Markommerce\Catalog\Services\CategoryService;
@@ -38,11 +37,9 @@ function makeServices(PostgresTestConnection $conn): array
     $categoryRepository = new CategoryRepository($conn, $metadataFactory, $hydrator);
     $treeRepository = new CategoryTreeRepository($conn, $metadataFactory, $hydrator);
     $treeNodeRepository = new CategoryTreeNodeRepository($conn, $metadataFactory, $hydrator);
-    $treeMarketAssignmentRepository = new CategoryTreeMarketAssignmentRepository($conn, $metadataFactory, $hydrator);
 
     $treeService = new CategoryTreeService(
         categoryTreeRepository: $treeRepository,
-        categoryTreeMarketAssignmentRepository: $treeMarketAssignmentRepository,
         categoryTreeNodeRepository: $treeNodeRepository,
         categoryRepository: $categoryRepository,
     );
@@ -78,7 +75,6 @@ beforeEach(function (): void {
     $this->conn = new PostgresTestConnection();
 
     $this->conn->execute('DROP TABLE IF EXISTS catalog_category_tree_nodes CASCADE');
-    $this->conn->execute('DROP TABLE IF EXISTS catalog_category_tree_market_assignments CASCADE');
     $this->conn->execute('DROP TABLE IF EXISTS catalog_categories CASCADE');
     $this->conn->execute('DROP TABLE IF EXISTS catalog_category_trees CASCADE');
 
@@ -88,13 +84,6 @@ beforeEach(function (): void {
             code       VARCHAR(64) NOT NULL UNIQUE,
             name       VARCHAR(255) NOT NULL,
             is_default BOOLEAN NOT NULL DEFAULT FALSE
-        )',
-    );
-
-    $this->conn->execute(
-        'CREATE TABLE IF NOT EXISTS catalog_category_tree_market_assignments (
-            market  VARCHAR(64) PRIMARY KEY,
-            tree_id INTEGER REFERENCES catalog_category_trees(id) ON DELETE RESTRICT
         )',
     );
 
@@ -120,64 +109,12 @@ beforeEach(function (): void {
 afterEach(function (): void {
     if (isset($this->conn)) {
         $this->conn->execute('DROP TABLE IF EXISTS catalog_category_tree_nodes CASCADE');
-        $this->conn->execute('DROP TABLE IF EXISTS catalog_category_tree_market_assignments CASCADE');
         $this->conn->execute('DROP TABLE IF EXISTS catalog_categories CASCADE');
         $this->conn->execute('DROP TABLE IF EXISTS catalog_category_trees CASCADE');
     }
 });
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
-
-it('creates a non-default tree, places categories, assigns it to a market, and resolves the tree for that market', function (): void {
-    [
-        'treeService' => $treeService,
-        'categoryRepository' => $categoryRepository,
-    ] = makeServices($this->conn);
-
-    // Create a non-default tree
-    $nonDefaultTree = $treeService->createTree('uk', 'UK Tree', false);
-    expect($nonDefaultTree->id)->not->toBeNull();
-
-    // Create and place categories in the tree
-    $catA = makeCategory($categoryRepository, 'Category A');
-    $catB = makeCategory($categoryRepository, 'Category B');
-
-    $nodeA = $treeService->placeCategory((int) $nonDefaultTree->id, (int) $catA->id);
-    $nodeB = $treeService->placeCategory((int) $nonDefaultTree->id, (int) $catB->id);
-
-    expect($nodeA->id)->not->toBeNull()
-        ->and($nodeA->treeId)->toBe($nonDefaultTree->id)
-        ->and($nodeA->categoryId)->toBe($catA->id)
-        ->and($nodeB->id)->not->toBeNull()
-        ->and($nodeB->categoryId)->toBe($catB->id);
-
-    // Assign the tree to a market
-    $treeService->assignTreeToMarket((int) $nonDefaultTree->id, 'uk');
-
-    // Resolve the tree for that market — should return the non-default tree
-    $resolved = $treeService->resolveTreeForMarket('uk');
-
-    expect($resolved->id)->toBe($nonDefaultTree->id)
-        ->and($resolved->code)->toBe('uk');
-})->group('integration-destructive');
-
-it('resolves the default tree for a market with no assignment', function (): void {
-    [
-        'treeService' => $treeService,
-    ] = makeServices($this->conn);
-
-    // Create a default tree
-    $defaultTree = $treeService->createTree('default', 'Default Tree', true);
-
-    // Create a non-default tree but do NOT assign it to the market
-    $treeService->createTree('de', 'DE Tree', false);
-
-    // Resolving for any market with no assignment should return the default tree
-    $resolved = $treeService->resolveTreeForMarket('us');
-
-    expect($resolved->id)->toBe($defaultTree->id)
-        ->and($resolved->isDefault)->toBeTrue();
-})->group('integration-destructive');
 
 it('materializes the tree with correct nesting and position order against the real database', function (): void {
     [

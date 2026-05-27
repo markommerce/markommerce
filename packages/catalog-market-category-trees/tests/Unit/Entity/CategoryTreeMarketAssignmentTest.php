@@ -4,7 +4,19 @@ declare(strict_types=1);
 
 use Marko\Database\Attributes\Column;
 use Marko\Database\Attributes\Table;
-use Markommerce\Catalog\Entity\CategoryTreeMarketAssignment;
+use Markommerce\CatalogMarketCategoryTrees\Entity\CategoryTreeMarketAssignment;
+
+it('relocates CategoryTreeMarketAssignment entity to Markommerce\\CatalogMarketCategoryTrees\\Entity namespace with the catalog_category_tree_market_assignments table attribute preserved', function (): void {
+    $reflection = new ReflectionClass(CategoryTreeMarketAssignment::class);
+
+    expect($reflection->getNamespaceName())->toBe('Markommerce\\CatalogMarketCategoryTrees\\Entity');
+
+    $attributes = $reflection->getAttributes(Table::class);
+    expect($attributes)->toHaveCount(1);
+
+    $table = $attributes[0]->newInstance();
+    expect($table->name)->toBe('catalog_category_tree_market_assignments');
+});
 
 it('can be instantiated with default values', function (): void {
     $assignment = new CategoryTreeMarketAssignment();

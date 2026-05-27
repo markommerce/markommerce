@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Markommerce\Catalog\Repositories;
+namespace Markommerce\CatalogMarketCategoryTrees\Repositories;
 
 use Marko\Database\Entity\Entity;
 use Marko\Database\Exceptions\RepositoryException;
 use Marko\Database\Repository\Repository;
-use Markommerce\Catalog\Contracts\CategoryTreeMarketAssignmentRepositoryInterface;
-use Markommerce\Catalog\Entity\CategoryTreeMarketAssignment;
+use Markommerce\CatalogMarketCategoryTrees\Contracts\CategoryTreeMarketAssignmentRepositoryInterface;
+use Markommerce\CatalogMarketCategoryTrees\Entity\CategoryTreeMarketAssignment;
 
 /**
  * Concrete repository for CategoryTreeMarketAssignment entities.

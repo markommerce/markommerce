@@ -12,19 +12,16 @@ use Markommerce\Catalog\Exceptions\CircularNodeReferenceException;
 use Markommerce\Catalog\Exceptions\NodeNotInTreeException;
 use Markommerce\Catalog\Services\CategoryTreeService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
-use Markommerce\Catalog\Tests\Support\FakeCategoryTreeMarketAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeCategoryTreeNodeRepository;
 use Markommerce\Catalog\Tests\Support\FakeCategoryTreeRepository;
 
 function makeCategoryTreeServiceForPlaceAndMove(
     ?FakeCategoryTreeRepository $treeRepo = null,
-    ?FakeCategoryTreeMarketAssignmentRepository $assignmentRepo = null,
     ?FakeCategoryTreeNodeRepository $nodeRepo = null,
     ?FakeCategoryRepository $categoryRepo = null,
 ): CategoryTreeService {
     return new CategoryTreeService(
         categoryTreeRepository: $treeRepo ?? new FakeCategoryTreeRepository(),
-        categoryTreeMarketAssignmentRepository: $assignmentRepo ?? new FakeCategoryTreeMarketAssignmentRepository(),
         categoryTreeNodeRepository: $nodeRepo ?? new FakeCategoryTreeNodeRepository(),
         categoryRepository: $categoryRepo ?? new FakeCategoryRepository(),
     );

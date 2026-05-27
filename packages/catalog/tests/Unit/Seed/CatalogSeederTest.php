@@ -6,7 +6,6 @@ use Marko\Database\Seed\Seeder;
 use Markommerce\Catalog\Seed\CatalogSeeder;
 use Markommerce\Catalog\Services\CategoryTreeService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
-use Markommerce\Catalog\Tests\Support\FakeCategoryTreeMarketAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeCategoryTreeNodeRepository;
 use Markommerce\Catalog\Tests\Support\FakeCategoryTreeRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
@@ -14,13 +13,11 @@ use Markommerce\Catalog\Tests\Support\FakeProductRepository;
 
 function makeSeederCategoryTreeService(
     ?FakeCategoryTreeRepository $treeRepository = null,
-    ?FakeCategoryTreeMarketAssignmentRepository $marketAssignmentRepository = null,
     ?FakeCategoryTreeNodeRepository $nodeRepository = null,
     ?FakeCategoryRepository $categoryRepository = null,
 ): CategoryTreeService {
     return new CategoryTreeService(
         categoryTreeRepository: $treeRepository ?? new FakeCategoryTreeRepository(),
-        categoryTreeMarketAssignmentRepository: $marketAssignmentRepository ?? new FakeCategoryTreeMarketAssignmentRepository(),
         categoryTreeNodeRepository: $nodeRepository ?? new FakeCategoryTreeNodeRepository(),
         categoryRepository: $categoryRepository ?? new FakeCategoryRepository(),
     );

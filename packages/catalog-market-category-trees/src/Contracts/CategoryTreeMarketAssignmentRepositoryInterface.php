@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Markommerce\Catalog\Contracts;
+namespace Markommerce\CatalogMarketCategoryTrees\Contracts;
 
 use Marko\Database\Repository\RepositoryInterface;
-use Markommerce\Catalog\Entity\CategoryTreeMarketAssignment;
+use Markommerce\CatalogMarketCategoryTrees\Entity\CategoryTreeMarketAssignment;
 
 /**
  * @extends RepositoryInterface<CategoryTreeMarketAssignment>

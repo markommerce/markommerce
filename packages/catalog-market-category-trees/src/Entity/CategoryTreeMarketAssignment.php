@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Markommerce\Catalog\Entity;
+namespace Markommerce\CatalogMarketCategoryTrees\Entity;
 
 use Marko\Database\Attributes\Column;
 use Marko\Database\Attributes\Table;
