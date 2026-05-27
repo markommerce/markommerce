@@ -1,6 +1,6 @@
 # markommerce/catalog-market
 
-Market field bridge for catalog entities --- placeholder bridge that reserves the `ScopedFieldRegistry` boot hook for future market-scoped fields (e.g. price, visibility).
+Market integration for catalog entities --- per-market category tree assignment and resolution, a deletion guard plugin, and a `ScopedFieldRegistry` boot hook for future market-scoped fields.
 
 ## Installation
 
@@ -10,30 +10,16 @@ composer require markommerce/catalog-market
 
 ## Quick Example
 
-This package is a thin auto-wiring bridge. Its `boot` closure in `module.php` is typed on `ScopedFieldRegistry` and ready for future market-scoped catalog fields --- no manual wiring required once fields are added:
+```php
+use Markommerce\CatalogMarket\Services\CategoryTreeMarketAssignmentService;
+use Markommerce\CatalogMarket\Services\CategoryTreeMarketResolver;
 
-```php title="packages/catalog-market/module.php"
-use Markommerce\Scope\Metadata\ScopedFieldRegistry;
+// Assign a tree to a market
+$categoryTreeMarketAssignmentService->assignTreeToMarket($euTree->id, 'market:eu-de');
 
-return [
-    'require' => [
-        'markommerce/catalog-scope' => '*',
-        'markommerce/market' => '*',
-    ],
-    'boot' => function (ScopedFieldRegistry $scopedFieldRegistry): void {
-        // No fields registered yet — Product does not have price or visibility columns.
-        // This closure is type-hinted on ScopedFieldRegistry for future expansion.
-    },
-];
+// Resolve the active tree for a market (falls back to the default tree)
+$tree = $categoryTreeMarketResolver->resolveTreeForMarket('market:eu-de');
 ```
-
-Installing this package is the configuration --- the `boot` closure will run automatically when the module is loaded.
-
-## Placeholder Status
-
-This package ships with an empty boot closure today. `Product` does not yet have `price` or `visibility` columns, so no market-scoped fields are registered. The boot hook is in place and typed on `ScopedFieldRegistry` so that adding those fields in a future release requires no structural changes --- only the registration calls inside the closure.
-
-See the [Tier 3 row in FEATURES.md](https://github.com/markommerce/markommerce/blob/main/FEATURES.md) for the planned end state.
 
 ## Documentation
 

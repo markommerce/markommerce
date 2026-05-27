@@ -127,6 +127,7 @@ none
 | 010 | READMEs: write `market/README.md`, `catalog-market/README.md`, `catalog-market-category-trees/README.md`; trim `catalog/README.md`; update `catalog/tests/Unit/ReadmeTest.php` assertions | 002, 003, 005, 006, 007 | completed |
 | 011 | Docs site: new pages `market.md`, `catalog-market.md`, `catalog-market-category-trees.md`; edit `catalog.md`; add `tests/Unit/Docs/CatalogMarketExtractPagesTest.php` | 010 | completed |
 | 012 | Update `FEATURES.md` — P4 status `pending` → `completed`, plan field `tbd` → `catalog-market-extract`; refresh package counts/notes if needed | 007, 008, 009, 010, 011 | completed |
+| 013 | Consolidate `catalog-market-category-trees` into `catalog-market`; remove the former package entirely | 001–012 | completed |
 
 ## Architecture Notes
 

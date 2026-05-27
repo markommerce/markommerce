@@ -102,7 +102,7 @@ fields by market; per-market category trees with active-tree resolution.
 | | Packages added on top of Tier 2 |
 |---|---|
 | **Current** | (none — multi-market trees already ship inside `catalog`) |
-| **Desired** | `🆕 market` + `🆕 catalog-market` + `🆕 config-market` + `🆕 catalog-market-category-trees` |
+| **Desired** | `🆕 market` + `🆕 catalog-market` + `🆕 config-market` |
 
 ---
 
@@ -125,7 +125,7 @@ fields by market; per-market category trees with active-tree resolution.
 - Tier 1: 7 packages
 - Tier 2 headless: 14 packages (+ `scope`, `scope-pgsql`, `catalog-scope`, `🆕 config-scope`, `locale`, `catalog-locale`, `🆕 config-locale`)
 - Tier 2 storefront: 15 packages (headless + `catalog-storefront-scope` for locale-aware storefront rendering)
-- Tier 3: 18 packages (+ `🆕 market`, `🆕 catalog-market`, `🆕 config-market`, `🆕 catalog-market-category-trees`)
+- Tier 3: 17 packages (+ `🆕 market`, `🆕 catalog-market`, `🆕 config-market`)
 
 **Package count today:** every merchant installs essentially the Tier 3 set, whether they use it or not.
 
@@ -140,7 +140,7 @@ fields by market; per-market category trees with active-tree resolution.
 | `markommerce/catalog-storefront` | HTTP controllers, route registration, Latte views, theme integration for the public shop | `catalog`, `layout`, `frontend` |
 | `markommerce/catalog-scope` | Machinery: substitutes catalog entities with scope-aware decorators; axis-agnostic | `catalog`, `scope` |
 | `🆕 markommerce/config-scope` | Machinery: adds per-scope override resolution on top of plain config | `config`, `scope` |
-| `🆕 markommerce/catalog-market-category-trees` | Multiple category trees with per-market assignment and active-tree resolution | `catalog`, `market` (transitively `scope`) |
+| `markommerce/catalog-market` | Market integration for catalog: per-market category trees, resolver, deletion guard plugin, and ScopedFieldRegistry hook for market-scoped fields | `catalog`, `catalog-scope`, `market` |
 
 ### Storefront extensions
 

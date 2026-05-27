@@ -5,6 +5,9 @@
     "type": "marko-module",
     "require": {
         "php": "^8.5",
+        "marko/core": "self.version",
+        "marko/database": "self.version",
+        "markommerce/catalog": "self.version",
         "markommerce/catalog-scope": "self.version",
         "markommerce/market": "self.version"
     },

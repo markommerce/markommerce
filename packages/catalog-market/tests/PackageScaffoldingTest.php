@@ -10,7 +10,10 @@ it('requires markommerce/catalog-scope and markommerce/market in composer.json',
     $composer = json_decode(file_get_contents($composerPath), true);
 
     expect($composer['require'])->toHaveKey('markommerce/catalog-scope')
-        ->and($composer['require'])->toHaveKey('markommerce/market');
+        ->and($composer['require'])->toHaveKey('markommerce/market')
+        ->and($composer['require'])->toHaveKey('marko/core')
+        ->and($composer['require'])->toHaveKey('marko/database')
+        ->and($composer['require'])->toHaveKey('markommerce/catalog');
 });
 
 it('declares itself as a marko-module via composer extra.marko.module=true', function (): void {
@@ -38,7 +41,8 @@ it('declares require entries for markommerce/catalog-scope and markommerce/marke
     expect($module)->toBeArray()
         ->and($module)->toHaveKey('require')
         ->and($module['require'])->toHaveKey('markommerce/catalog-scope')
-        ->and($module['require'])->toHaveKey('markommerce/market');
+        ->and($module['require'])->toHaveKey('markommerce/market')
+        ->and($module['require'])->toHaveKey('markommerce/catalog');
 });
 
 it('ships an empty-but-callable boot closure typed on ScopedFieldRegistry', function (): void {

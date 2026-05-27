@@ -56,10 +56,9 @@ $scopeContext->in('market', 'eu-de');
 
 From that point, any call to `ScopeResolver::resolved()` on a market-scoped property will walk the `eu-de → eu` hierarchy and return the most specific override found.
 
-To assign per-market category trees to the catalog, install `markommerce/catalog-market-category-trees`. That package provides `CategoryTreeMarketResolver` and `CategoryTreeMarketAssignmentService` for routing each market to its dedicated category tree, with automatic fallback to the default tree.
+To assign per-market category trees to the catalog, install `markommerce/catalog-market`. That package provides `CategoryTreeMarketResolver` and `CategoryTreeMarketAssignmentService` for routing each market to its dedicated category tree, with automatic fallback to the default tree.
 
 ## Related Packages
 
 - [markommerce/scope](/docs/packages/scope/) --- Scope resolution engine; `market` is one axis within the multi-axis system
-- [markommerce/catalog-market](/docs/packages/catalog-market/) --- Placeholder bridge that reserves the `ScopedFieldRegistry` hook for future market-scoped fields on catalog entities
-- [markommerce/catalog-market-category-trees](/docs/packages/catalog-market-category-trees/) --- Assigns per-market category trees and resolves the active tree for a market
+- [markommerce/catalog-market](/docs/packages/catalog-market/) --- Market integration for catalog entities: per-market category trees, resolver, deletion guard plugin, and a ScopedFieldRegistry hook for future market-scoped catalog fields

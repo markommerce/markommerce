@@ -114,7 +114,7 @@ $defaultTree = $categoryTreeService->ensureDefaultTreeExists();
 
 #### Assigning trees to markets
 
-Market-to-tree assignment and resolution is provided by [markommerce/catalog-market-category-trees](/docs/packages/catalog-market-category-trees/). Install that package to use `CategoryTreeMarketAssignmentService` and `CategoryTreeMarketResolver`.
+Market-to-tree assignment and resolution is provided by [markommerce/catalog-market](/docs/packages/catalog-market/). Install that package to use `CategoryTreeMarketAssignmentService` and `CategoryTreeMarketResolver`.
 
 #### Placing categories in a tree
 
@@ -413,7 +413,7 @@ Extends `RepositoryInterface<CategoryTreeNode>`.
 
 #### `CategoryTreeServiceInterface`
 
-The primary contract for category tree lifecycle management. Implemented by `CategoryTreeService`. Third-party packages can target this interface with Marko Plugins --- [markommerce/catalog-market-category-trees](/docs/packages/catalog-market-category-trees/) uses it as the plugin target for its tree-deletion guard.
+The primary contract for category tree lifecycle management. Implemented by `CategoryTreeService`. Third-party packages can target this interface with Marko Plugins --- [markommerce/catalog-market](/docs/packages/catalog-market/) uses it as the plugin target for its tree-deletion guard.
 
 | Method | Return type | Throws | Description |
 |---|---|---|---|
@@ -450,7 +450,7 @@ The primary contract for category tree lifecycle management. Implemented by `Cat
 |---|---|---|---|
 | `createTree(string $code, string $name, bool $isDefault = false)` | `CategoryTree` | `DuplicateDefaultTreeException`, `\InvalidArgumentException` | Create and persist a new tree. Throws when `$code` is empty or when `$isDefault` is `true` and a default already exists. |
 | `setDefaultTree(int $treeId)` | `void` | `CategoryTreeNotFoundException` | Promote a tree to default. Demotes the current default automatically. |
-| `deleteTree(int $treeId)` | `void` | `CategoryTreeNotFoundException`, `CannotDeleteDefaultTreeException` | Delete a tree. Blocked when the tree is the default. Market assignment guard is provided by [markommerce/catalog-market-category-trees](/docs/packages/catalog-market-category-trees/). |
+| `deleteTree(int $treeId)` | `void` | `CategoryTreeNotFoundException`, `CannotDeleteDefaultTreeException` | Delete a tree. Blocked when the tree is the default. Market assignment guard is provided by [markommerce/catalog-market](/docs/packages/catalog-market/). |
 | `ensureDefaultTreeExists()` | `CategoryTree` | --- | Return the existing default tree or create one with `code='default'` and `name='Default'`. Idempotent. |
 | `placeCategory(int $treeId, int $categoryId, ?int $parentNodeId = null, ?int $position = null)` | `CategoryTreeNode` | `CategoryTreeNotFoundException`, `CategoryNotFoundException`, `CategoryTreeNodeNotFoundException`, `NodeNotInTreeException` | Create a node placing a category in a tree. Omit `$position` to append after existing siblings. |
 | `moveNode(int $nodeId, ?int $newParentNodeId, int $position)` | `void` | `CategoryTreeNodeNotFoundException`, `NodeNotInTreeException`, `CircularNodeReferenceException` | Move a node to a new parent and position. Cycle detection prevents a node from becoming its own ancestor. |
@@ -496,6 +496,6 @@ All exceptions extend `MarkoException` and carry a `message`, `context`, and `su
 - [markommerce/catalog-storefront](/docs/packages/catalog-storefront/) --- Storefront route, layout definition, product grid and card components for `markommerce/catalog`
 - [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- Adds `HasScopesInterface` support to `Product` and `Category` via companion entities; required if you want scoped overrides on catalog entities
 - [markommerce/catalog-locale](/docs/packages/catalog-locale/) --- Bridge that registers `name` and `description` as locale-scoped on `Product` and `Category`
-- [markommerce/catalog-market-category-trees](/docs/packages/catalog-market-category-trees/) --- Per-market category tree assignment and resolution; also provides the deletion guard plugin
+- [markommerce/catalog-market](/docs/packages/catalog-market/) --- Per-market category tree assignment, resolution, and deletion guard plugin; also provides the ScopedFieldRegistry hook for future market-scoped catalog fields
 - [markommerce/scope](/docs/packages/scope/) --- Scoped attribute resolution engine
 - [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver required to persist and query scoped overrides

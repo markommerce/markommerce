@@ -29,12 +29,9 @@ it('ships a docs page at docs/src/content/docs/packages/market.md with axis decl
     // Axis declaration content
     expect($content)->toContain('market');
     expect($content)->toContain('config/scope.php');
-
-    // Cross-link to catalog-market-category-trees
-    expect($content)->toContain('markommerce/catalog-market-category-trees');
 });
 
-it('ships a docs page at docs/src/content/docs/packages/catalog-market.md that documents placeholder status', function (): void {
+it('ships a docs page at docs/src/content/docs/packages/catalog-market.md that documents placeholder status and the resolver, assignment service, and delete plugin', function (): void {
     $file = __DIR__ . '/../../../docs/src/content/docs/packages/catalog-market.md';
 
     expect(file_exists($file))->toBeTrue();
@@ -61,45 +58,21 @@ it('ships a docs page at docs/src/content/docs/packages/catalog-market.md that d
     // Placeholder status documented
     expect($content)->toContain('placeholder');
 
-    // Cross-links
-    expect($content)->toContain('markommerce/catalog-scope');
-    expect($content)->toContain('markommerce/market');
-});
-
-it('ships a docs page at docs/src/content/docs/packages/catalog-market-category-trees.md that documents the resolver, assignment service, and delete plugin', function (): void {
-    $file = __DIR__ . '/../../../docs/src/content/docs/packages/catalog-market-category-trees.md';
-
-    expect(file_exists($file))->toBeTrue();
-
-    $content = file_get_contents($file);
-
-    // Valid frontmatter with title and description
-    expect($content)->toMatch('/^---\ntitle:/');
-    expect($content)->toContain('title: markommerce/catalog-market-category-trees');
-    expect($content)->toContain('description:');
-
-    // No ## Overview heading
-    expect($content)->not->toContain('## Overview');
-
-    // Has intro paragraph after frontmatter
-    $withoutFrontmatter = preg_replace('/^---.*?---\n/s', '', $content);
-    expect(trim($withoutFrontmatter))->not->toBeEmpty();
-
-    // Required sections
-    expect($content)->toContain('## Installation');
-    expect($content)->toContain('composer require markommerce/catalog-market-category-trees');
-    expect($content)->toContain('## Usage');
-    expect($content)->toContain('## API Reference');
-    expect($content)->toContain('## Related Packages');
-
     // Three key services documented
     expect($content)->toContain('CategoryTreeMarketResolver');
     expect($content)->toContain('CategoryTreeMarketAssignmentService');
     expect($content)->toContain('CategoryTreeServiceDeletePlugin');
 
-    // Cross-links to related packages
-    expect($content)->toContain('markommerce/catalog');
+    // Cross-links
+    expect($content)->toContain('markommerce/catalog-scope');
     expect($content)->toContain('markommerce/market');
+    expect($content)->toContain('markommerce/catalog');
+});
+
+it('catalog-market-category-trees.md no longer exists — functionality merged into catalog-market', function (): void {
+    $file = __DIR__ . '/../../../docs/src/content/docs/packages/catalog-market-category-trees.md';
+
+    expect(file_exists($file))->toBeFalse();
 });
 
 it('the updated catalog.md no longer mentions resolveTreeForMarket, assignTreeToMarket, or unassignMarket', function (): void {
@@ -114,15 +87,15 @@ it('the updated catalog.md no longer mentions resolveTreeForMarket, assignTreeTo
     expect($content)->not->toContain('unassignMarket');
 });
 
-it('the updated catalog.md cross-links to the catalog-market-category-trees page', function (): void {
+it('the updated catalog.md cross-links to the catalog-market page', function (): void {
     $file = __DIR__ . '/../../../docs/src/content/docs/packages/catalog.md';
 
     expect(file_exists($file))->toBeTrue();
 
     $content = file_get_contents($file);
 
-    expect($content)->toContain('catalog-market-category-trees');
-    expect($content)->toContain('/docs/packages/catalog-market-category-trees/');
+    expect($content)->toContain('catalog-market');
+    expect($content)->toContain('/docs/packages/catalog-market/');
 });
 
 it('tests/Unit/Docs/CatalogMarketExtractPagesTest.php exists and all its assertions pass', function (): void {
@@ -142,7 +115,7 @@ it('tests/Unit/Docs/CatalogMarketExtractPagesTest.php exists and all its asserti
     expect($content)->toContain('assignTreeToMarket');
     expect($content)->toContain('unassignMarket');
 
-    // Test file must assert catalog-market-category-trees.md mentions the three services
+    // Test file must assert catalog-market.md mentions the three services
     expect($content)->toContain('CategoryTreeMarketResolver');
     expect($content)->toContain('CategoryTreeMarketAssignmentService');
     expect($content)->toContain('CategoryTreeServiceDeletePlugin');
