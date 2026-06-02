@@ -26,9 +26,6 @@ use Markommerce\Config\Proxy\ProxyLocator;
 use Markommerce\Config\Proxy\ProxyWriter;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
-use Markommerce\Config\Resolution\OverrideMatcher;
-use Markommerce\Scope\Context\ScopeContext;
-use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 return [
     'bindings' => [
@@ -53,9 +50,7 @@ return [
             $baseResolver = new ConfigResolver(
                 $container->get(ConfigRegistry::class),
                 $container->get(ConfigStorageInterface::class),
-                $container->get(OverrideMatcher::class),
                 $container->get(ValueCaster::class),
-                $container->get(ScopeContext::class),
                 $container->get(SecretCipherInterface::class),
                 $container->get(ProxyLocator::class),
                 $container->get(PreferenceRegistry::class),
@@ -65,7 +60,6 @@ return [
                 $baseResolver,
                 $container->get(ConfigCacheInterface::class),
                 $container->get(ConfigRegistry::class),
-                $container->get(ScopeContext::class),
             );
         },
     ],
@@ -86,9 +80,8 @@ return [
         $configClasses = $discovery->discover();
 
         // 3. Build the ConfigRegistry from discovered config classes
-        $scopeRegistry = $container->get(ScopeRegistryInterface::class);
         $builder = $container->get(ConfigRegistryBuilder::class);
-        $registry = $builder->build($configClasses, $scopeRegistry);
+        $registry = $builder->build($configClasses);
         $container->instance(ConfigRegistry::class, $registry);
 
         // 4. Register ProxyAutoloader so generated proxies become loadable

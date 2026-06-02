@@ -12,8 +12,7 @@ class TreeHasMarketAssignmentsException extends MarkoException
     public static function forTreeId(
         int $treeId,
         array $markets,
-    ): self
-    {
+    ): self {
         $marketList = implode(', ', $markets);
 
         return new self(

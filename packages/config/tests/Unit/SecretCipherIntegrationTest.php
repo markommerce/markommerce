@@ -12,19 +12,9 @@ use Markommerce\Config\Encryption\SodiumSecretCipher;
 use Markommerce\Config\Proxy\ProxyLocator;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
-use Markommerce\Config\Resolution\OverrideMatcher;
 use Markommerce\Config\Storage\InMemoryConfigStorage;
-use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
 use Markommerce\Config\Tests\Fakes\IdentitySecretCipher;
 use Markommerce\Config\ValueObjects\ConfigRow;
-use Markommerce\Scope\Attributes\Scoped;
-use Markommerce\Scope\Axis\ScopeAxis;
-use Markommerce\Scope\Context\ScopeContext;
-use Markommerce\Scope\Exceptions\UnknownAxisException;
-use Markommerce\Scope\Hierarchy\ScopeHierarchy;
-use Markommerce\Scope\Registry\ScopeRegistryInterface;
-use Markommerce\Scope\Signature\ScopeSignature;
-use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 
 // --- Fixture config classes ---
 
@@ -32,13 +22,6 @@ class SecretGlobalConfig
 {
     #[Config(key: 'secret/test.apiKey', secret: true)]
     public string $apiKey = 'default-key';
-}
-
-class SecretScopedConfig
-{
-    #[Config(key: 'secret/scoped.token', secret: true)]
-    #[Scoped(axes: ['store'])]
-    public string $token = 'default-token';
 }
 
 class NonSecretConfig
@@ -53,10 +36,7 @@ function buildSecretRegistry(array $configClasses = []): ConfigRegistry
 {
     $builder = new ConfigRegistryBuilder();
 
-    return $builder->build(
-        $configClasses,
-        new FakeScopeRegistry(['store']),
-    );
+    return $builder->build($configClasses);
 }
 
 function buildSecretWriter(InMemoryConfigStorage $storage, array $configClasses): ConfigWriter
@@ -70,18 +50,12 @@ function buildSecretWriter(InMemoryConfigStorage $storage, array $configClasses)
 
 function buildSecretResolver(InMemoryConfigStorage $storage, array $configClasses): ConfigResolver
 {
-    $fakeScopeRegistry = new FakeScopeRegistry(['store']);
     $registry = buildSecretRegistry($configClasses);
-    $enumerator = new SignatureCandidateEnumerator($fakeScopeRegistry);
-    $overrideMatcher = new OverrideMatcher($enumerator);
-    $context = new ScopeContext($fakeScopeRegistry);
 
     return new ConfigResolver(
         configRegistry: $registry,
         configStorage: $storage,
-        overrideMatcher: $overrideMatcher,
         valueCaster: new ValueCaster(),
-        scopeContext: $context,
         secretCipher: new IdentitySecretCipher(),
         proxyLocator: new ProxyLocator(),
         preferenceRegistry: new PreferenceRegistry(),
@@ -103,20 +77,6 @@ it('encrypts the value with SecretCipher when writing a #[Config(secret: true)] 
     expect($row->value)->toBe(json_encode('my-secret-api-key'));
 });
 
-it('encrypts the value with SecretCipher when writing a #[Config(secret: true)] override', function (): void {
-    $storage = new InMemoryConfigStorage();
-    $writer = buildSecretWriter($storage, [SecretScopedConfig::class]);
-
-    $signature = new ScopeSignature(['store' => '1']);
-    $writer->setOverride('secret/scoped.token', $signature, 'store-secret-token');
-
-    $row = $storage->load('secret/scoped.token');
-    expect($row)->not->toBeNull();
-
-    // IdentitySecretCipher: encrypt(json_encode('store-secret-token')) == json_encode('store-secret-token')
-    expect($row->overrides[$signature->toString()])->toBe(json_encode('store-secret-token'));
-});
-
 it('decrypts the stored ciphertext when resolving a #[Config(secret: true)] global', function (): void {
     $storage = new InMemoryConfigStorage();
 
@@ -124,7 +84,6 @@ it('decrypts the stored ciphertext when resolving a #[Config(secret: true)] glob
     $storage->compareAndSave('secret/test.apiKey', new ConfigRow(
         key: 'secret/test.apiKey',
         value: json_encode('stored-api-key'),
-        overrides: [],
         version: 0,
     ), 0);
 
@@ -135,89 +94,11 @@ it('decrypts the stored ciphertext when resolving a #[Config(secret: true)] glob
     expect($result)->toBe('stored-api-key');
 });
 
-it('decrypts the stored ciphertext when resolving a #[Config(secret: true)] override', function (): void {
-    $fakeScopeRegistry = new FakeScopeRegistry(['store']);
-    $registry = buildSecretRegistry([SecretScopedConfig::class]);
-    $storage = new InMemoryConfigStorage();
-
-    // Pre-seed with an override ciphertext
-    $storage->compareAndSave('secret/scoped.token', new ConfigRow(
-        key: 'secret/scoped.token',
-        value: null,
-        overrides: ['store:eu' => json_encode('override-secret-token')],
-        version: 0,
-    ), 0);
-
-    $scopeRegistry = new class (['store' => ['default', 'eu']]) implements ScopeRegistryInterface
-    {
-        /** @var array<string, ScopeAxis> */
-        private array $builtAxes;
-
-        /** @param array<string, list<string>> $axes */
-        public function __construct(array $axes)
-        {
-            $this->builtAxes = [];
-
-            foreach ($axes as $name => $paths) {
-                $default = $paths[0] ?? 'default';
-                $hierarchy = new ScopeHierarchy($paths);
-                $this->builtAxes[$name] = new ScopeAxis(name: $name, hierarchy: $hierarchy, default: $default);
-            }
-        }
-
-        public function hasAxis(string $name): bool
-        {
-            return isset($this->builtAxes[$name]);
-        }
-
-        /** @throws UnknownAxisException */
-        public function getAxis(string $name): ScopeAxis
-        {
-            return $this->builtAxes[$name] ?? throw UnknownAxisException::forAxis($name);
-        }
-
-        /** @return list<string> */
-        public function listAxes(): array
-        {
-            return array_keys($this->builtAxes);
-        }
-
-        /** @throws UnknownAxisException */
-        public function getHierarchy(string $axisName): ScopeHierarchy
-        {
-            return $this->getAxis($axisName)->hierarchy;
-        }
-    };
-
-    $context = new ScopeContext($scopeRegistry);
-    $context->in('store', 'eu');
-
-    $enumerator = new SignatureCandidateEnumerator($scopeRegistry);
-    $overrideMatcher = new OverrideMatcher($enumerator);
-
-    $resolverRegistry = (new ConfigRegistryBuilder())->build([SecretScopedConfig::class], $scopeRegistry);
-
-    $resolver = new ConfigResolver(
-        configRegistry: $resolverRegistry,
-        configStorage: $storage,
-        overrideMatcher: $overrideMatcher,
-        valueCaster: new ValueCaster(),
-        scopeContext: $context,
-        secretCipher: new IdentitySecretCipher(),
-        proxyLocator: new ProxyLocator(),
-        preferenceRegistry: new PreferenceRegistry(),
-    );
-
-    $result = $resolver->resolved(SecretScopedConfig::class, 'token');
-
-    expect($result)->toBe('override-secret-token');
-});
-
 it('does not invoke the cipher when the property is not marked secret', function (): void {
     $storage = new InMemoryConfigStorage();
 
     // NullSecretCipher throws when called — proves cipher is bypassed
-    $registry = (new ConfigRegistryBuilder())->build([NonSecretConfig::class], new FakeScopeRegistry());
+    $registry = (new ConfigRegistryBuilder())->build([NonSecretConfig::class]);
     $writer = new ConfigWriter(
         registry: $registry,
         storage: $storage,
@@ -234,9 +115,7 @@ it('does not invoke the cipher when the property is not marked secret', function
     $resolver = new ConfigResolver(
         configRegistry: $registry,
         configStorage: $storage,
-        overrideMatcher: new OverrideMatcher(new SignatureCandidateEnumerator(new FakeScopeRegistry())),
         valueCaster: new ValueCaster(),
-        scopeContext: new ScopeContext(new FakeScopeRegistry()),
         secretCipher: new NullSecretCipher(),
         proxyLocator: new ProxyLocator(),
         preferenceRegistry: new PreferenceRegistry(),
@@ -253,10 +132,7 @@ it(
         $cipher = new SodiumSecretCipher($key);
 
         $storage = new InMemoryConfigStorage();
-        $registry = (new ConfigRegistryBuilder())->build(
-            [SecretGlobalConfig::class],
-            new FakeScopeRegistry(['store']),
-        );
+        $registry = (new ConfigRegistryBuilder())->build([SecretGlobalConfig::class]);
 
         $writer = new ConfigWriter(
             registry: $registry,
@@ -270,9 +146,7 @@ it(
         $resolver = new ConfigResolver(
             configRegistry: $registry,
             configStorage: $storage,
-            overrideMatcher: new OverrideMatcher(new SignatureCandidateEnumerator(new FakeScopeRegistry(['store']))),
             valueCaster: new ValueCaster(),
-            scopeContext: new ScopeContext(new FakeScopeRegistry(['store'])),
             secretCipher: $cipher,
             proxyLocator: new ProxyLocator(),
             preferenceRegistry: new PreferenceRegistry(),

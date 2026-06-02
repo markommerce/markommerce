@@ -112,8 +112,7 @@ class CatalogSeeder implements SeederInterface
     private function placeCategoriesInDefaultTree(
         array $categories,
         CategoryTree $defaultTree,
-    ): void
-    {
+    ): void {
         $treeId = (int) $defaultTree->id;
 
         foreach ($categories as $category) {

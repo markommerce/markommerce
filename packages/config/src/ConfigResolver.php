@@ -15,20 +15,16 @@ use Markommerce\Config\Exceptions\ProxyNotGeneratedException;
 use Markommerce\Config\Exceptions\SecretCipherException;
 use Markommerce\Config\Proxy\ProxyLocator;
 use Markommerce\Config\Registry\ConfigRegistry;
-use Markommerce\Config\Resolution\OverrideMatcher;
-use Markommerce\Scope\Context\ScopeContext;
 
 class ConfigResolver
 {
     public function __construct(
-        private ConfigRegistry $configRegistry,
-        private ConfigStorageInterface $configStorage,
-        private OverrideMatcher $overrideMatcher,
-        private ValueCaster $valueCaster,
-        private ScopeContext $scopeContext,
-        private SecretCipherInterface $secretCipher,
-        private ProxyLocator $proxyLocator,
-        private PreferenceRegistry $preferenceRegistry,
+        protected ConfigRegistry $configRegistry,
+        protected ConfigStorageInterface $configStorage,
+        protected ValueCaster $valueCaster,
+        protected SecretCipherInterface $secretCipher,
+        protected ProxyLocator $proxyLocator,
+        protected PreferenceRegistry $preferenceRegistry,
     ) {}
 
     /**
@@ -59,24 +55,11 @@ class ConfigResolver
     /**
      * @param class-string $configClass
      *
-     * @throws ConfigNotFoundException|InvalidConfigValueException
+     * @throws ConfigNotFoundException|InvalidConfigValueException|SecretCipherException
      */
     public function resolved(
         string $configClass,
         string $field,
-    ): mixed {
-        return $this->resolvedAt($configClass, $field, $this->scopeContext);
-    }
-
-    /**
-     * @param class-string $configClass
-     *
-     * @throws ConfigNotFoundException|InvalidConfigValueException|SecretCipherException
-     */
-    public function resolvedAt(
-        string $configClass,
-        string $field,
-        ScopeContext $explicitContext,
     ): mixed {
         $definition = $this->configRegistry->definition($configClass, $field);
 
@@ -84,17 +67,6 @@ class ConfigResolver
 
         if ($row === null) {
             return $definition->defaultValue;
-        }
-
-        $overrideValue = $this->overrideMatcher->match($row, $definition->axes, $explicitContext);
-
-        if ($overrideValue !== null) {
-            if ($definition->secret) {
-                $decrypted = $this->secretCipher->decrypt($overrideValue);
-                $overrideValue = json_decode($decrypted, true);
-            }
-
-            return $this->valueCaster->cast($overrideValue, $definition);
         }
 
         if ($row->value !== null) {

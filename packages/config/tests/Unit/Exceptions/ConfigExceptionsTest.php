@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Marko\Core\Exceptions\MarkoException;
-use Markommerce\Config\Exceptions\AxisNotDeclaredException;
 use Markommerce\Config\Exceptions\ConfigKeyConflictException;
 use Markommerce\Config\Exceptions\ConfigNotFoundException;
 use Markommerce\Config\Exceptions\InvalidConfigClassException;
@@ -149,23 +148,6 @@ it(
             ->and($exception)->toBeInstanceOf(MarkoException::class)
             ->and($exception->getMessage())->toContain('markommerce/catalog.grid_page_size')
             ->and($exception->getMessage())->toContain('3')
-            ->and($exception->getContext())->not->toBeEmpty()
-            ->and($exception->getSuggestion())->not->toBeEmpty();
-    },
-);
-
-it(
-    'creates AxisNotDeclaredException when a write signature references an axis not declared on the property',
-    function (): void {
-        $exception = AxisNotDeclaredException::forPropertyAndAxis(
-            'markommerce/catalog.grid_page_size',
-            'store',
-        );
-
-        expect($exception)->toBeInstanceOf(AxisNotDeclaredException::class)
-            ->and($exception)->toBeInstanceOf(MarkoException::class)
-            ->and($exception->getMessage())->toContain('markommerce/catalog.grid_page_size')
-            ->and($exception->getMessage())->toContain('store')
             ->and($exception->getContext())->not->toBeEmpty()
             ->and($exception->getSuggestion())->not->toBeEmpty();
     },

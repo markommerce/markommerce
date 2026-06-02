@@ -17,10 +17,6 @@ use Markommerce\Config\Encryption\NullSecretCipher;
 use Markommerce\Config\Exceptions\ConfigNotFoundException;
 use Markommerce\Config\Proxy\ProxyLocator;
 use Markommerce\Config\Registry\ConfigRegistry;
-use Markommerce\Config\Resolution\OverrideMatcher;
-use Markommerce\Scope\Context\ScopeContext;
-use Markommerce\Scope\Registry\ScopeRegistryInterface;
-use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 
 #[Command(name: 'config:get', description: 'Get a config value by key')]
 readonly class ConfigGetCommand implements CommandInterface
@@ -30,7 +26,6 @@ readonly class ConfigGetCommand implements CommandInterface
     public function __construct(
         private ConfigRegistry $configRegistry,
         private ConfigStorageInterface $configStorage,
-        private ScopeRegistryInterface $scopeRegistry,
         private SecretCipherInterface $secretCipher = new NullSecretCipher(),
     ) {}
 
@@ -45,7 +40,7 @@ readonly class ConfigGetCommand implements CommandInterface
 
         if ($key === null) {
             $output->writeLine('Error: Missing required argument <key>.');
-            $output->writeLine('Usage: config:get <key> [--scope=axis=value,axis2=value2]');
+            $output->writeLine('Usage: config:get <key>');
 
             return 1;
         }
@@ -56,21 +51,14 @@ readonly class ConfigGetCommand implements CommandInterface
             return $this->handleNotFound($key, $output);
         }
 
-        $context = $this->buildContext($input);
-
-        $enumerator = new SignatureCandidateEnumerator($this->scopeRegistry);
-        $overrideMatcher = new OverrideMatcher($enumerator);
         $valueCaster = new ValueCaster();
         $proxyLocator = new ProxyLocator();
         $preferenceRegistry = new PreferenceRegistry();
-        $emptyContext = new ScopeContext($this->scopeRegistry);
 
         $resolver = new ConfigResolver(
             configRegistry: $this->configRegistry,
             configStorage: $this->configStorage,
-            overrideMatcher: $overrideMatcher,
             valueCaster: $valueCaster,
-            scopeContext: $emptyContext,
             secretCipher: $this->secretCipher,
             proxyLocator: $proxyLocator,
             preferenceRegistry: $preferenceRegistry,
@@ -82,38 +70,10 @@ readonly class ConfigGetCommand implements CommandInterface
             return 0;
         }
 
-        $value = $resolver->resolvedAt($definition->configClass, $definition->field, $context);
+        $value = $resolver->resolved($definition->configClass, $definition->field);
         $output->writeLine((string) $value);
 
         return 0;
-    }
-
-    private function buildContext(Input $input): ScopeContext
-    {
-        $context = new ScopeContext($this->scopeRegistry);
-        $scopeOption = $input->getOption('scope');
-
-        if ($scopeOption === null || $scopeOption === 'true') {
-            return $context;
-        }
-
-        $pairs = explode(',', $scopeOption);
-
-        foreach ($pairs as $pair) {
-            $parts = explode('=', $pair, 2);
-
-            if (count($parts) === 2) {
-                [$axis, $path] = $parts;
-                $axis = trim($axis);
-                $path = trim($path);
-
-                if ($axis !== '' && $path !== '') {
-                    $context->in($axis, $path);
-                }
-            }
-        }
-
-        return $context;
     }
 
     private function handleNotFound(

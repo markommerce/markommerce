@@ -8,7 +8,6 @@ readonly class ConfigDefinition
 {
     /**
      * @param class-string $configClass
-     * @param list<string> $axes
      *
      * @phpstan-param class-string $configClass
      */
@@ -17,7 +16,6 @@ readonly class ConfigDefinition
         /** @phpstan-var class-string */
         public private(set) string $configClass,
         public private(set) string $field,
-        public private(set) array $axes,
         public private(set) string $type,
         public private(set) mixed $defaultValue,
         public private(set) bool $secret,

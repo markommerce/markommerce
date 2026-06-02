@@ -18,7 +18,6 @@ function makeDefinition(string $type): ConfigDefinition
         key: 'test/module.some_key',
         configClass: 'App\\Config\\TestConfig',
         field: 'someKey',
-        axes: [],
         type: $type,
         defaultValue: null,
         secret: false,

@@ -7,22 +7,20 @@ namespace Markommerce\Config;
 use Markommerce\Config\Contracts\ConfigStorageInterface;
 use Markommerce\Config\Contracts\ConfigWriterInterface;
 use Markommerce\Config\Contracts\SecretCipherInterface;
-use Markommerce\Config\Exceptions\AxisNotDeclaredException;
 use Markommerce\Config\Exceptions\ConfigNotFoundException;
 use Markommerce\Config\Exceptions\SecretCipherException;
 use Markommerce\Config\Exceptions\StaleConfigWriteException;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\ValueObjects\ConfigRow;
-use Markommerce\Scope\Signature\ScopeSignature;
 
 class ConfigWriter implements ConfigWriterInterface
 {
     private const int MAX_RETRIES = 3;
 
     public function __construct(
-        private ConfigRegistry $registry,
-        private ConfigStorageInterface $storage,
-        private SecretCipherInterface $cipher,
+        protected ConfigRegistry $registry,
+        protected ConfigStorageInterface $storage,
+        protected SecretCipherInterface $cipher,
     ) {}
 
     /**
@@ -56,45 +54,6 @@ class ConfigWriter implements ConfigWriterInterface
     }
 
     /**
-     * @throws ConfigNotFoundException|AxisNotDeclaredException|StaleConfigWriteException|SecretCipherException
-     */
-    public function setOverride(
-        string $key,
-        ScopeSignature $signature,
-        mixed $value,
-    ): void {
-        $definition = $this->registry->byKey($key);
-
-        foreach ($signature->axes() as $axis) {
-            if (!in_array($axis, $definition->axes, true)) {
-                throw AxisNotDeclaredException::forPropertyAndAxis($key, $axis);
-            }
-        }
-
-        if ($definition->secret && $value !== null) {
-            $value = $this->cipher->encrypt(json_encode($value, JSON_THROW_ON_ERROR));
-        }
-
-        $this->writeWithRetry($key, static function (ConfigRow $row) use ($signature, $value): ConfigRow {
-            if ($value === null) {
-                return $row->withoutOverride($signature->toString());
-            }
-
-            return $row->withOverride($signature->toString(), $value);
-        });
-    }
-
-    /**
-     * @throws ConfigNotFoundException|AxisNotDeclaredException|StaleConfigWriteException
-     */
-    public function unsetOverride(
-        string $key,
-        ScopeSignature $signature,
-    ): void {
-        $this->setOverride($key, $signature, null);
-    }
-
-    /**
      * @param callable(ConfigRow): ConfigRow $mutate
      *
      * @throws StaleConfigWriteException
@@ -106,7 +65,7 @@ class ConfigWriter implements ConfigWriterInterface
         for ($attempt = 0; $attempt < self::MAX_RETRIES; $attempt++) {
             $existing = $this->storage->load($key);
             $currentVersion = $existing !== null ? $existing->version : 0;
-            $row = $existing ?? new ConfigRow(key: $key, value: null, overrides: [], version: 0);
+            $row = $existing ?? new ConfigRow(key: $key, value: null, version: 0);
 
             $mutated = $mutate($row);
 

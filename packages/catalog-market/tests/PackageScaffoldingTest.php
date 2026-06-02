@@ -1,6 +1,11 @@
 <?php
 
 declare(strict_types=1);
+use Markommerce\Catalog\Entity\Product;
+use Markommerce\Scope\Axis\ScopeAxis;
+use Markommerce\Scope\Hierarchy\ScopeHierarchy;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
+use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 it('requires markommerce/catalog-scope and markommerce/market in composer.json', function (): void {
     $composerPath = dirname(__DIR__) . '/composer.json';
@@ -58,7 +63,7 @@ it('ships an empty-but-callable boot closure typed on ScopedFieldRegistry', func
 
     $type = $parameters[0]->getType();
     expect($type)->not->toBeNull()
-        ->and((string) $type)->toBe(\Markommerce\Scope\Metadata\ScopedFieldRegistry::class);
+        ->and((string) $type)->toBe(ScopedFieldRegistry::class);
 });
 
 it('registers the package in the root composer.json require block and adds Markommerce\\CatalogMarket\\Tests\\ to autoload-dev.psr-4', function (): void {
@@ -71,17 +76,18 @@ it('registers the package in the root composer.json require block and adds Marko
 });
 
 it('registers no scoped fields when the boot closure runs against a fresh ScopedFieldRegistry', function (): void {
-    $fakeScopeRegistry = new class implements \Markommerce\Scope\Registry\ScopeRegistryInterface {
+    $fakeScopeRegistry = new class () implements ScopeRegistryInterface
+    {
         public function hasAxis(string $name): bool
         {
             return true;
         }
 
-        public function getAxis(string $name): \Markommerce\Scope\Axis\ScopeAxis
+        public function getAxis(string $name): ScopeAxis
         {
-            return new \Markommerce\Scope\Axis\ScopeAxis(
+            return new ScopeAxis(
                 name: $name,
-                hierarchy: \Markommerce\Scope\Hierarchy\ScopeHierarchy::fromPaths(['default']),
+                hierarchy: ScopeHierarchy::fromPaths(['default']),
                 default: 'default',
             );
         }
@@ -91,15 +97,15 @@ it('registers no scoped fields when the boot closure runs against a fresh Scoped
             return [];
         }
 
-        public function getHierarchy(string $axisName): \Markommerce\Scope\Hierarchy\ScopeHierarchy
+        public function getHierarchy(string $axisName): ScopeHierarchy
         {
-            return \Markommerce\Scope\Hierarchy\ScopeHierarchy::fromPaths(['default']);
+            return ScopeHierarchy::fromPaths(['default']);
         }
     };
 
-    $registry = new \Markommerce\Scope\Metadata\ScopedFieldRegistry(scopeRegistry: $fakeScopeRegistry);
+    $registry = new ScopedFieldRegistry(scopeRegistry: $fakeScopeRegistry);
     $boot = (require dirname(__DIR__) . '/module.php')['boot'];
     $boot($registry);
 
-    expect($registry->hasScopedProperties(\Markommerce\Catalog\Entity\Product::class))->toBeFalse();
+    expect($registry->hasScopedProperties(Product::class))->toBeFalse();
 });

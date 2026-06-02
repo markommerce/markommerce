@@ -25,7 +25,7 @@ class PgsqlConfigStorage implements ConfigStorageInterface
     {
         $rows = $this->connection->query(
             sprintf(
-                'SELECT config_key, value, overrides, version, updated_at FROM "%s" WHERE config_key = ?',
+                'SELECT config_key, value, version, updated_at FROM "%s" WHERE config_key = ?',
                 $this->tableName,
             ),
             [$key],
@@ -53,7 +53,7 @@ class PgsqlConfigStorage implements ConfigStorageInterface
 
         $rows = $this->connection->query(
             sprintf(
-                'SELECT config_key, value, overrides, version, updated_at FROM "%s" WHERE config_key IN (%s)',
+                'SELECT config_key, value, version, updated_at FROM "%s" WHERE config_key IN (%s)',
                 $this->tableName,
                 $placeholders,
             ),
@@ -78,7 +78,7 @@ class PgsqlConfigStorage implements ConfigStorageInterface
         ConfigRow $row,
         int $expectedVersion,
     ): bool {
-        $isEmpty = $row->value === null && $row->overrides === [];
+        $isEmpty = $row->value === null;
 
         if ($isEmpty) {
             return $this->handleEmptyRow($key, $expectedVersion);
@@ -138,16 +138,14 @@ class PgsqlConfigStorage implements ConfigStorageInterface
         ConfigRow $row,
     ): bool {
         $valueJson = $row->value !== null ? json_encode($row->value) : null;
-        $overridesJson = json_encode($row->overrides);
 
         $rows = $this->connection->query(
             sprintf(
                 <<<'SQL'
-                INSERT INTO "%s" (config_key, value, overrides, version, updated_at)
-                VALUES (?, ?::jsonb, ?::jsonb, 1, NOW())
+                INSERT INTO "%s" (config_key, value, version, updated_at)
+                VALUES (?, ?::jsonb, 1, NOW())
                 ON CONFLICT (config_key) DO UPDATE
                     SET value      = EXCLUDED.value,
-                        overrides  = EXCLUDED.overrides,
                         version    = "%s".version + 1,
                         updated_at = NOW()
                     WHERE "%s".version = 0
@@ -157,7 +155,7 @@ class PgsqlConfigStorage implements ConfigStorageInterface
                 $this->tableName,
                 $this->tableName,
             ),
-            [$key, $valueJson, $overridesJson],
+            [$key, $valueJson],
         );
 
         return $rows !== [];
@@ -172,14 +170,12 @@ class PgsqlConfigStorage implements ConfigStorageInterface
         int $expectedVersion,
     ): bool {
         $valueJson = $row->value !== null ? json_encode($row->value) : null;
-        $overridesJson = json_encode($row->overrides);
 
         $rows = $this->connection->query(
             sprintf(
                 <<<'SQL'
                 UPDATE "%s"
                 SET value      = ?::jsonb,
-                    overrides  = ?::jsonb,
                     version    = version + 1,
                     updated_at = NOW()
                 WHERE config_key = ?
@@ -188,7 +184,7 @@ class PgsqlConfigStorage implements ConfigStorageInterface
                 SQL,
                 $this->tableName,
             ),
-            [$valueJson, $overridesJson, $key, $expectedVersion],
+            [$valueJson, $key, $expectedVersion],
         );
 
         return $rows !== [];
@@ -202,7 +198,6 @@ class PgsqlConfigStorage implements ConfigStorageInterface
         return new ConfigRow(
             key: (string) $dbRow['config_key'],
             value: isset($dbRow['value']) ? json_decode((string) $dbRow['value'], true) : null,
-            overrides: json_decode((string) $dbRow['overrides'], true) ?? [],
             version: (int) $dbRow['version'],
             updatedAt: isset($dbRow['updated_at']) ? new DateTimeImmutable((string) $dbRow['updated_at']) : null,
         );

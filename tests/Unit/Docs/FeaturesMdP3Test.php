@@ -61,12 +61,10 @@ it('updates the package count rollup to reflect markommerce/catalog-storefront-s
     expect($content)->toMatch('/15.*catalog-storefront-scope|catalog-storefront-scope.*15/s');
 });
 
-it('leaves the P4 and P5 rows untouched (still pending)', function (): void {
+it('leaves the P4 row in the FEATURES.md Refactor phases table as completed', function (): void {
     $content = file_get_contents(__DIR__ . '/../../../FEATURES.md');
 
-    // P4 must still be pending
-    expect($content)->toMatch('/\*\*P4\*\*.*?`pending`/s');
-
-    // P5 must still be pending
-    expect($content)->toMatch('/\*\*P5\*\*.*?`pending`/s');
+    // P4 was completed in the catalog-market-extract phase
+    expect($content)->toMatch('/\*\*P4\*\*.*?`completed`/s');
+    expect($content)->toMatch('/\*\*P4\*\*.*?catalog-market-extract/s');
 });

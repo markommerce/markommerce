@@ -3,15 +3,12 @@
 declare(strict_types=1);
 
 use Markommerce\Config\Attributes\Config;
-use Markommerce\Config\Exceptions\AxisNotDeclaredException;
 use Markommerce\Config\Exceptions\ConfigKeyConflictException;
 use Markommerce\Config\Exceptions\ConfigNotFoundException;
 use Markommerce\Config\Exceptions\InvalidConfigClassException;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
-use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
 use Markommerce\Config\ValueObjects\ConfigDefinition;
-use Markommerce\Scope\Attributes\Scoped;
 
 // --- Fixture config classes for testing ---
 
@@ -42,12 +39,6 @@ class UnionTypeConfig
     public int|string $value = 42;
 }
 
-class IntersectionTypeConfig
-{
-    // We can't easily declare intersection type at runtime for a property
-    // but we can test with a union which is the practical case
-}
-
 class NonNullableNoDefaultConfig
 {
     #[Config(key: 'test/nodft.value')]
@@ -63,7 +54,7 @@ class NullableNoDefaultConfig
 class RequiredConstructorConfig
 {
     public function __construct(
-        private readonly string $requiredParam,
+        private readonly string $requiredParam, // @phpstan-ignore property.onlyWritten
     ) {}
 
     #[Config(key: 'test/ctor.value')]
@@ -73,17 +64,17 @@ class RequiredConstructorConfig
 class OptionalConstructorConfig
 {
     public function __construct(
-        private string $optionalParam = 'default',
+        private string $optionalParam = 'default', // @phpstan-ignore property.onlyWritten
     ) {}
 
     #[Config(key: 'test/optctor.value')]
     public int $value = 1;
 }
 
-class ScopedConfig
+class ScopedWithAttributeConfig
 {
-    #[Config(key: 'test/scoped.value')]
-    #[Scoped(axes: ['website', 'store'])]
+    // Note: any #[Scoped] attribute was removed as config no longer depends on markommerce/scope
+    #[Config(key: 'test/scoped-attr.value')]
     public int $value = 10;
 }
 
@@ -105,36 +96,82 @@ class ConflictConfigB
     public int $other = 2;
 }
 
-class ScopedWithUnknownAxisConfig
-{
-    #[Config(key: 'test/unknownaxis.value')]
-    #[Scoped(axes: ['nonexistent'])]
-    public int $value = 10;
-}
-
 class SecretConfig
 {
     #[Config(key: 'test/secret.value', secret: true)]
     public string $value = '';
 }
 
-it('builds a registry from a single config class with one #[Config] property', function (): void {
-    $builder = new ConfigRegistryBuilder();
-    $registry = $builder->build([SinglePropConfig::class], new FakeScopeRegistry());
+it(
+    'it constructs ConfigRegistryBuilder with no constructor parameters and exposes a single-argument build(configClasses) method',
+    function (): void {
+        $builder = new ConfigRegistryBuilder();
 
-    expect($registry)->toBeInstanceOf(ConfigRegistry::class);
+        expect($builder)->toBeInstanceOf(ConfigRegistryBuilder::class);
 
-    $definition = $registry->definition(SinglePropConfig::class, 'value');
+        $reflection = new ReflectionClass(ConfigRegistryBuilder::class);
+        $buildMethod = $reflection->getMethod('build');
+        $params = $buildMethod->getParameters();
 
-    expect($definition)->toBeInstanceOf(ConfigDefinition::class)
-        ->and($definition->key)->toBe('test/general.value')
-        ->and($definition->configClass)->toBe(SinglePropConfig::class)
-        ->and($definition->field)->toBe('value');
-});
+        expect($params)->toHaveCount(1)
+            ->and($params[0]->getName())->toBe('configClasses');
+    },
+);
+
+it(
+    'it builds a ConfigRegistry from a list of #[Config]-annotated classes without consulting any scope registry',
+    function (): void {
+        $builder = new ConfigRegistryBuilder();
+        $registry = $builder->build([SinglePropConfig::class]);
+
+        expect($registry)->toBeInstanceOf(ConfigRegistry::class);
+
+        $definition = $registry->definition(SinglePropConfig::class, 'value');
+
+        expect($definition)->toBeInstanceOf(ConfigDefinition::class)
+            ->and($definition->key)->toBe('test/general.value')
+            ->and($definition->configClass)->toBe(SinglePropConfig::class)
+            ->and($definition->field)->toBe('value');
+    },
+);
+
+it(
+    'it ignores any #[Scoped] attributes on properties when building the registry (no axes captured)',
+    function (): void {
+        $builder = new ConfigRegistryBuilder();
+        $registry = $builder->build([ScopedWithAttributeConfig::class]);
+
+        $definition = $registry->definition(ScopedWithAttributeConfig::class, 'value');
+
+        // ConfigDefinition no longer has axes — just verify the definition was built fine
+        expect($definition)->toBeInstanceOf(ConfigDefinition::class)
+            ->and($definition->key)->toBe('test/scoped-attr.value');
+    },
+);
+
+it(
+    'it throws ConfigKeyConflictException unchanged when two properties declare the same #[Config(key)]',
+    function (): void {
+        $builder = new ConfigRegistryBuilder();
+
+        expect(fn () => $builder->build([ConflictConfigA::class, ConflictConfigB::class]))
+            ->toThrow(ConfigKeyConflictException::class);
+    },
+);
+
+it(
+    'it throws InvalidConfigClassException unchanged when a #[Config] property has a union type',
+    function (): void {
+        $builder = new ConfigRegistryBuilder();
+
+        expect(fn () => $builder->build([UnionTypeConfig::class]))
+            ->toThrow(InvalidConfigClassException::class);
+    },
+);
 
 it('builds a registry from multiple config classes', function (): void {
     $builder = new ConfigRegistryBuilder();
-    $registry = $builder->build([SinglePropConfig::class, AnotherConfig::class], new FakeScopeRegistry());
+    $registry = $builder->build([SinglePropConfig::class, AnotherConfig::class]);
 
     $all = $registry->all();
 
@@ -143,7 +180,7 @@ it('builds a registry from multiple config classes', function (): void {
 
 it('captures the property\'s declared PHP type as a normalized string in ConfigDefinition', function (): void {
     $builder = new ConfigRegistryBuilder();
-    $registry = $builder->build([SinglePropConfig::class], new FakeScopeRegistry());
+    $registry = $builder->build([SinglePropConfig::class]);
 
     $definition = $registry->definition(SinglePropConfig::class, 'value');
 
@@ -152,46 +189,11 @@ it('captures the property\'s declared PHP type as a normalized string in ConfigD
 
 it('captures the property\'s default value in ConfigDefinition', function (): void {
     $builder = new ConfigRegistryBuilder();
-    $registry = $builder->build([SinglePropConfig::class], new FakeScopeRegistry());
+    $registry = $builder->build([SinglePropConfig::class]);
 
     $definition = $registry->definition(SinglePropConfig::class, 'value');
 
     expect($definition->defaultValue)->toBe(42);
-});
-
-it('captures axes from #[Scoped] when present and uses an empty axes list when absent', function (): void {
-    $builder = new ConfigRegistryBuilder();
-    $registry = $builder->build(
-        [ScopedConfig::class, UnscopedConfig::class],
-        new FakeScopeRegistry(['website', 'store']),
-    );
-
-    $scoped = $registry->definition(ScopedConfig::class, 'value');
-    $unscoped = $registry->definition(UnscopedConfig::class, 'value');
-
-    expect($scoped->axes)->toBe(['website', 'store'])
-        ->and($unscoped->axes)->toBe([]);
-});
-
-it('throws ConfigKeyConflictException when two properties declare the same #[Config(key)]', function (): void {
-    $builder = new ConfigRegistryBuilder();
-
-    expect(fn () => $builder->build([ConflictConfigA::class, ConflictConfigB::class], new FakeScopeRegistry()))
-        ->toThrow(ConfigKeyConflictException::class);
-});
-
-it('throws AxisNotDeclaredException when a property\'s #[Scoped] axis is not in the ScopeRegistry', function (): void {
-    $builder = new ConfigRegistryBuilder();
-
-    expect(fn () => $builder->build([ScopedWithUnknownAxisConfig::class], new FakeScopeRegistry()))
-        ->toThrow(AxisNotDeclaredException::class);
-});
-
-it('throws InvalidConfigClassException when a #[Config] property has a union or intersection type', function (): void {
-    $builder = new ConfigRegistryBuilder();
-
-    expect(fn () => $builder->build([UnionTypeConfig::class], new FakeScopeRegistry()))
-        ->toThrow(InvalidConfigClassException::class);
 });
 
 it(
@@ -199,7 +201,7 @@ it(
     function (): void {
         $builder = new ConfigRegistryBuilder();
 
-        expect(fn () => $builder->build([NonNullableNoDefaultConfig::class], new FakeScopeRegistry()))
+        expect(fn () => $builder->build([NonNullableNoDefaultConfig::class]))
             ->toThrow(InvalidConfigClassException::class);
     },
 );
@@ -209,14 +211,14 @@ it(
     function (): void {
         $builder = new ConfigRegistryBuilder();
 
-        expect(fn () => $builder->build([RequiredConstructorConfig::class], new FakeScopeRegistry()))
+        expect(fn () => $builder->build([RequiredConstructorConfig::class]))
             ->toThrow(InvalidConfigClassException::class);
     },
 );
 
 it('accepts a config class whose constructor has only optional/defaulted parameters', function (): void {
     $builder = new ConfigRegistryBuilder();
-    $registry = $builder->build([OptionalConstructorConfig::class], new FakeScopeRegistry());
+    $registry = $builder->build([OptionalConstructorConfig::class]);
 
     expect($registry)->toBeInstanceOf(ConfigRegistry::class);
 });
@@ -225,7 +227,7 @@ it(
     'throws ConfigNotFoundException when registry.definition(class, field) is called for unknown fields',
     function (): void {
         $builder = new ConfigRegistryBuilder();
-        $registry = $builder->build([SinglePropConfig::class], new FakeScopeRegistry());
+        $registry = $builder->build([SinglePropConfig::class]);
 
         expect(fn () => $registry->definition(SinglePropConfig::class, 'nonexistent'))
             ->toThrow(ConfigNotFoundException::class);
@@ -234,10 +236,25 @@ it(
 
 it('returns a definition by string key via registry.byKey(key)', function (): void {
     $builder = new ConfigRegistryBuilder();
-    $registry = $builder->build([SinglePropConfig::class], new FakeScopeRegistry());
+    $registry = $builder->build([SinglePropConfig::class]);
 
     $definition = $registry->byKey('test/general.value');
 
     expect($definition)->toBeInstanceOf(ConfigDefinition::class)
         ->and($definition->key)->toBe('test/general.value');
+});
+
+it('it does not import scope namespace from any of the three production files after task completes', function (): void {
+    $files = [
+        dirname(__DIR__, 3) . '/src/ConfigResolver.php',
+        dirname(__DIR__, 3) . '/src/Cache/CachingConfigResolver.php',
+        dirname(__DIR__, 3) . '/src/Registry/ConfigRegistryBuilder.php',
+    ];
+
+    $scopeNs = 'Markommerce' . '\\' . 'Scope' . '\\';
+
+    foreach ($files as $file) {
+        $content = file_get_contents($file);
+        expect($content)->not->toContain($scopeNs, "File $file still imports scope namespace");
+    }
 });

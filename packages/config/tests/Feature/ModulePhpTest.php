@@ -30,19 +30,15 @@ use Markommerce\Config\Proxy\ProxyLocator;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
 use Markommerce\Config\Storage\InMemoryConfigStorage;
-use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
-use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 /**
  * Boots a fresh container using the module.php file.
  *
- * @param array<string, list<string>> $scopeAxes
  * @param array<string, mixed> $markoConfig Additional Marko config values (e.g., ['markommerce.config.auto_regenerate' => true])
  * @param list<ModuleManifest> $modules Modules for discovery
  * @param string|null $generatedDir Override the generated proxy directory
  */
 function bootModuleContainer(
-    array $scopeAxes = [],
     array $markoConfig = [],
     array $modules = [],
     ?string $generatedDir = null,
@@ -67,13 +63,10 @@ function bootModuleContainer(
     $projectPaths = new ProjectPaths($basePath);
     $container->instance(ProjectPaths::class, $projectPaths);
 
-    // Bind a fake scope registry
-    $scopeRegistry = new FakeScopeRegistry($scopeAxes);
-    $container->instance(ScopeRegistryInterface::class, $scopeRegistry);
-
     // Bind Marko ConfigRepositoryInterface with a fake that returns markoConfig values
     $fakeConfigRepo = new class ($markoConfig) implements ConfigRepositoryInterface
     {
+        /** @param array<string, mixed> $config */
         public function __construct(private array $config) {}
 
         public function get(
@@ -118,6 +111,7 @@ function bootModuleContainer(
             return (float) ($this->config[$key] ?? 0.0);
         }
 
+        /** @return array<mixed> */
         public function getArray(
             string $key,
             ?string $scope = null,
@@ -125,6 +119,7 @@ function bootModuleContainer(
             return (array) ($this->config[$key] ?? []);
         }
 
+        /** @return array<string, mixed> */
         public function all(?string $scope = null): array
         {
             return $this->config;
@@ -441,6 +436,7 @@ it(
             generatedDir: $generatedDir,
         );
 
+        /** @var class-string $fqn */
         $fqn = $namespace . '\\' . $className;
         $locator = new ProxyLocator();
         $proxyClass = $locator->proxyClassFor($fqn);
@@ -478,6 +474,7 @@ it(
 
         require $sourceFile;
 
+        /** @var class-string $fqn */
         $fqn = $namespace . '\\' . $className;
         $locator = new ProxyLocator();
         $proxyClass = $locator->proxyClassFor($fqn);
@@ -534,6 +531,7 @@ it('does NOT regenerate any proxy at boot when markommerce.config.auto_regenerat
 
     require $sourceFile;
 
+    /** @var class-string $fqn */
     $fqn = $namespace . '\\' . $className;
     $locator = new ProxyLocator();
     $proxyClass = $locator->proxyClassFor($fqn);

@@ -185,7 +185,8 @@ it('skips products with null id when building the resolved maps', function (): v
     // id is not set — remains null
 
     // Use an anonymous subclass of CategoryAssignmentService to inject a null-id product
-    $assignmentService = new class ($productRepository, $categoryRepository, $assignmentRepository, $nullIdProduct) extends CategoryAssignmentService {
+    $assignmentService = new class ($productRepository, $categoryRepository, $assignmentRepository, $nullIdProduct) extends CategoryAssignmentService
+    {
         public function __construct(
             ProductRepositoryInterface $productRepository,
             CategoryRepositoryInterface $categoryRepository,

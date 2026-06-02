@@ -3,7 +3,7 @@ title: markommerce/config
 description: Developer-declared, merchant-overridable, per-scope configuration values for Markommerce stores.
 ---
 
-Developer-declared, merchant-overridable, per-scope configuration values for Markommerce stores. `markommerce/config` lets module authors define typed configuration classes whose properties carry default values and optional per-scope overrides. Merchants write values at runtime (globally or scoped to a channel, locale, or any other axis) without touching code. The package ships attributes, a resolver, a writer, a code-generation CLI, and an in-memory storage fake for testing --- but no database driver. Install `markommerce/config-pgsql` for PostgreSQL persistence.
+Developer-declared, merchant-overridable configuration values for Markommerce stores. `markommerce/config` lets module authors define typed configuration classes whose properties carry default values that merchants can override at runtime without touching code. The package ships attributes, a resolver, a writer, a code-generation CLI, and an in-memory storage fake for testing --- but no database driver. Install `markommerce/config-pgsql` for PostgreSQL persistence. For per-scope overrides (locale, market, channel), install `markommerce/config-scope`.
 
 > **Not `marko/config`** --- this package manages merchant-editable store settings (e.g. "items per page", "welcome message"). Marko's own `marko/config` handles static environment configuration (env vars, config files). The two systems are unrelated.
 
@@ -23,7 +23,7 @@ composer require markommerce/config-pgsql
 
 ### Declaring a config class
 
-Create a plain PHP class. Annotate each property with `#[Config]`, giving it a dot-separated key in `vendor/group.setting` format. Properties that should resolve differently per scope also get `#[Scoped]` from `markommerce/scope`:
+Create a plain PHP class. Annotate each property with `#[Config]`, giving it a dot-separated key in `vendor/group.setting` format:
 
 ```php title="app/catalog/Config/CatalogConfig.php"
 <?php
@@ -33,12 +33,10 @@ declare(strict_types=1);
 namespace App\Catalog\Config;
 
 use Markommerce\Config\Attributes\Config;
-use Markommerce\Scope\Attributes\Scoped;
 
 class CatalogConfig
 {
     #[Config(key: 'catalog/display.items_per_page')]
-    #[Scoped(axes: ['channel'])]
     public int $itemsPerPage = 24;
 
     #[Config(key: 'catalog/display.welcome_message')]
@@ -50,6 +48,8 @@ class CatalogConfig
 ```
 
 Config classes are discovered automatically at boot --- no manual registration is needed. The framework scans each module's `src/` directory for classes with `#[Config]` properties.
+
+To add per-scope overrides (locale, market, channel) to a property, install `markommerce/config-scope` and add `#[Scoped]` from `markommerce/scope`. See [markommerce/config-scope](/docs/packages/config-scope/) for details.
 
 **Constraints on config classes:**
 
@@ -83,7 +83,7 @@ Add `config:generate` to your `composer install` scripts and CI pipeline so prox
 
 ### Reading config values
 
-Inject `ConfigResolver` and call `get()` with the config class name. The resolver returns a typed proxy instance (`CatalogConfig_Resolved`) whose properties call back into the resolver on each access, observing the active `ScopeContext`:
+Inject `ConfigResolver` and call `get()` with the config class name. The resolver returns a typed proxy instance (`CatalogConfig_Resolved`) whose properties call back into the resolver on each access:
 
 ```php
 <?php
@@ -109,11 +109,11 @@ class CatalogController
 
 The proxy is a real PHP object typed as `CatalogConfig`, so static analysis tools and IDE autocompletion work without any special plugins.
 
-**Per-request caching:** The module wires `CachingConfigResolver` as the concrete implementation behind `ConfigResolver`. Resolved values are cached for the lifetime of the HTTP request (keyed by config key plus active scope axes). `ConfigCacheResetMiddleware` clears the cache at the start of each request, registered as global middleware at priority 10.
+**Per-request caching:** The module wires `CachingConfigResolver` as the concrete implementation behind `ConfigResolver`. Resolved values are cached for the lifetime of the HTTP request. `ConfigCacheResetMiddleware` clears the cache at the start of each request, registered as global middleware at priority 10.
 
 ### Writing config values
 
-Inject `ConfigWriterInterface` to write global values or per-scope overrides. The writer validates the key against the registry and applies an optimistic-locking retry loop (up to 3 attempts). `StaleConfigWriteException` is thrown when all retries are exhausted due to concurrent writes.
+Inject `ConfigWriterInterface` to write global values. The writer validates the key against the registry and applies an optimistic-locking retry loop (up to 3 attempts). `StaleConfigWriteException` is thrown when all retries are exhausted due to concurrent writes.
 
 ```php
 <?php
@@ -121,7 +121,6 @@ Inject `ConfigWriterInterface` to write global values or per-scope overrides. Th
 declare(strict_types=1);
 
 use Markommerce\Config\Contracts\ConfigWriterInterface;
-use Markommerce\Scope\Signature\ScopeSignature;
 
 class MerchantSettingsService
 {
@@ -132,33 +131,21 @@ class MerchantSettingsService
         $this->configWriter->setGlobal('catalog/display.items_per_page', $value);
     }
 
-    public function setMobileItemsPerPage(int $value): void
+    public function resetItemsPerPage(): void
     {
-        $this->configWriter->setOverride(
-            'catalog/display.items_per_page',
-            new ScopeSignature(['channel' => 'mobile']),
-            $value,
-        );
-    }
-
-    public function resetMobileItemsPerPage(): void
-    {
-        $this->configWriter->unsetOverride(
-            'catalog/display.items_per_page',
-            new ScopeSignature(['channel' => 'mobile']),
-        );
+        $this->configWriter->unsetGlobal('catalog/display.items_per_page');
     }
 }
 ```
 
-`ConfigWriterInterface` exposes four methods:
+`ConfigWriterInterface` exposes two methods:
 
 | Method | Description |
 |---|---|
 | `setGlobal(string $key, mixed $value): void` | Write a value that applies when no scope override matches. |
 | `unsetGlobal(string $key): void` | Remove the global value, reverting to the declared default. |
-| `setOverride(string $key, ScopeSignature $signature, mixed $value): void` | Write a scoped override. Throws `AxisNotDeclaredException` if the signature references an axis not declared on the property's `#[Scoped]` attribute. |
-| `unsetOverride(string $key, ScopeSignature $signature): void` | Remove a scoped override. |
+
+For writing per-scope overrides (locale, market, channel), install `markommerce/config-scope` and use `ScopedConfigWriterInterface`. See [markommerce/config-scope](/docs/packages/config-scope/) for details.
 
 ### Secret values
 
@@ -180,15 +167,14 @@ export MARKOMMERCE_CONFIG_SECRET_KEY=$(cat .secret_key | base64 --decode)
 
 The module throws `SecretCipherException::notConfigured()` at boot if the env var is missing or empty and at least one secret property is declared.
 
-### Override resolution
+### Value resolution
 
 When `ConfigResolver` reads a value, it follows this precedence:
 
-1. **Scoped override** --- the most specific override matching the active `ScopeContext` (using `markommerce/scope`'s walk-up hierarchy).
-2. **Global value** --- a value written without a scope signature.
-3. **Declared default** --- the PHP default value on the property.
+1. **Global value** --- a value written via `ConfigWriterInterface::setGlobal()`.
+2. **Declared default** --- the PHP default value on the property.
 
-Only axes declared in `#[Scoped]` on the property participate in resolution. A property without `#[Scoped]` never considers scope overrides, even if the active context has axes set.
+For scope-aware resolution with per-axis fallback, install `markommerce/config-scope`. With that package installed, `ScopedConfigResolver` (a Preference that replaces `ConfigResolver`) adds a third precedence level above global values: scoped overrides written via `ScopedConfigWriterInterface::setOverride()`.
 
 ### Customizing config classes with Preferences
 
@@ -219,10 +205,10 @@ Run `config:generate` after adding a Preference. The generator produces proxy cl
 
 | Command | Description |
 |---|---|
-| `config:list` | List all registered config keys, their source class, declared axes, and whether each is a secret. |
-| `config:get <key>` | Print the resolved value for a key (prints `***` for secrets). Accepts `--scope=axis=value,axis2=value2` to resolve at a specific scope. |
-| `config:set <key> <value>` | Write a global value. Accepts `--scope=axis=value,axis2=value2` to write a scoped override instead. |
-| `config:unset <key>` | Remove a global value. Accepts `--scope=axis=value,axis2=value2` to remove a scoped override instead. |
+| `config:list` | List all registered config keys, their source class, and whether each is a secret. |
+| `config:get <key>` | Print the resolved value for a key (prints `***` for secrets). |
+| `config:set <key> <value>` | Write a global value. |
+| `config:unset <key>` | Remove a global value. |
 | `config:generate` | Scan all registered config classes and write typed proxy files to `var/generated/config/`. |
 
 ```bash
@@ -232,24 +218,20 @@ php marko config:list
 # List in JSON format
 php marko config:list --format=json
 
-# Read a single key (current scope context)
+# Read a single key
 php marko config:get catalog/display.items_per_page
-
-# Read at a specific scope
-php marko config:get catalog/display.items_per_page --scope=channel=mobile
 
 # Set a global value
 php marko config:set catalog/display.items_per_page 12
 
-# Set a scoped override
-php marko config:set catalog/display.items_per_page 8 --scope=channel=mobile
-
-# Remove a scoped override
-php marko config:unset catalog/display.items_per_page --scope=channel=mobile
+# Remove a global value
+php marko config:unset catalog/display.items_per_page
 
 # Generate proxy classes after changing a config class
 php marko config:generate
 ```
+
+For scope-specific `config:get --scope` and `config:set --scope` commands, install `markommerce/config-scope`.
 
 ## Testing
 
@@ -294,8 +276,8 @@ Resolves a typed config proxy. The module binds this as a singleton wrapping `Ca
 |---|---|---|
 | `setGlobal(string $key, mixed $value): void` | `ConfigNotFoundException`, `StaleConfigWriteException` | Write a global (non-scoped) value. |
 | `unsetGlobal(string $key): void` | `ConfigNotFoundException`, `StaleConfigWriteException` | Remove the global value. |
-| `setOverride(string $key, ScopeSignature $signature, mixed $value): void` | `ConfigNotFoundException`, `AxisNotDeclaredException`, `StaleConfigWriteException` | Write a scoped override. |
-| `unsetOverride(string $key, ScopeSignature $signature): void` | `ConfigNotFoundException`, `AxisNotDeclaredException`, `StaleConfigWriteException` | Remove a scoped override. |
+
+For per-scope overrides, see `ScopedConfigWriterInterface` in [markommerce/config-scope](/docs/packages/config-scope/).
 
 ### `ConfigStorageInterface`
 
@@ -333,7 +315,6 @@ Value object describing a single config property.
 | `$key` | `string` | The config key string (e.g. `catalog/display.items_per_page`). |
 | `$configClass` | `class-string` | The config class that declares this property. |
 | `$field` | `string` | The PHP property name. |
-| `$axes` | `list<string>` | Scope axes declared on the property's `#[Scoped]` attribute (empty if not scoped). |
 | `$type` | `string` | The PHP type name of the property (e.g. `int`, `string`, `bool`). |
 | `$defaultValue` | `mixed` | The declared PHP default value. |
 | `$secret` | `bool` | Whether the value is stored encrypted. |
@@ -346,7 +327,6 @@ Value object representing a persisted config row.
 |---|---|---|
 | `$key` | `string` | The config key. |
 | `$value` | `mixed` | The global value (raw JSONB-decoded), or `null` if not set. |
-| `$overrides` | `array<string, mixed>` | Map of serialized scope signature to raw value. |
 | `$version` | `int` | Optimistic-lock version counter. Starts at 0 for rows that have never been saved. |
 | `$updatedAt` | `?DateTimeImmutable` | Timestamp of the last write, or `null` for unsaved rows. |
 
@@ -357,7 +337,6 @@ Value object representing a persisted config row.
 | `ConfigNotFoundException` | A config key or class+field combination is not in the registry. |
 | `ProxyNotGeneratedException` | `ConfigResolver::get()` was called but the proxy class for the requested config class does not exist. Run `config:generate`. |
 | `StaleConfigWriteException` | All 3 optimistic-lock retry attempts failed due to concurrent writes. |
-| `AxisNotDeclaredException` | `setOverride()` or `unsetOverride()` was called with a scope signature axis that is not declared on the target property's `#[Scoped]` attribute. |
 | `InvalidConfigClassException` | A config class violates the declared constraints (required constructor, `readonly` property, union type, unsupported Preference). |
 | `SecretCipherException` | The `MARKOMMERCE_CONFIG_SECRET_KEY` env var is missing, the key is the wrong length, the sodium extension is unavailable, or a ciphertext has been tampered with. |
 | `InvalidConfigValueException` | A stored value cannot be cast to the declared property type. |
@@ -366,4 +345,4 @@ Value object representing a persisted config row.
 ## Related Packages
 
 - [markommerce/config-pgsql](/docs/packages/config-pgsql/) --- PostgreSQL storage driver
-- [markommerce/scope](/docs/packages/scope/) --- Scope axes and `ScopeContext` used for per-scope overrides
+- [markommerce/config-scope](/docs/packages/config-scope/) --- Scope-aware config resolution: per-locale, per-market, per-channel overrides

@@ -5,12 +5,9 @@ declare(strict_types=1);
 namespace Markommerce\Config\Registry;
 
 use Markommerce\Config\Attributes\Config;
-use Markommerce\Config\Exceptions\AxisNotDeclaredException;
 use Markommerce\Config\Exceptions\ConfigKeyConflictException;
 use Markommerce\Config\Exceptions\InvalidConfigClassException;
 use Markommerce\Config\ValueObjects\ConfigDefinition;
-use Markommerce\Scope\Attributes\Scoped;
-use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use ReflectionClass;
 use ReflectionIntersectionType;
 use ReflectionNamedType;
@@ -23,11 +20,10 @@ class ConfigRegistryBuilder
     /**
      * @param list<class-string> $configClasses
      *
-     * @throws ConfigKeyConflictException|AxisNotDeclaredException|InvalidConfigClassException
+     * @throws ConfigKeyConflictException|InvalidConfigClassException
      */
     public function build(
         array $configClasses,
-        ScopeRegistryInterface $scopeRegistry,
     ): ConfigRegistry {
         /** @var list<ConfigDefinition> $definitions */
         $definitions = [];
@@ -59,8 +55,6 @@ class ConfigRegistryBuilder
 
                 $defaultValue = $property->hasDefaultValue() ? $property->getDefaultValue() : null;
 
-                $axes = $this->resolveAxes($reflection->getName(), $field, $property, $scopeRegistry);
-
                 if (isset($seenKeys[$key])) {
                     throw ConfigKeyConflictException::forKey($key, $seenKeys[$key], $configClass);
                 }
@@ -71,7 +65,6 @@ class ConfigRegistryBuilder
                     key: $key,
                     configClass: $configClass,
                     field: $field,
-                    axes: $axes,
                     type: $type,
                     defaultValue: $defaultValue,
                     secret: $secret,
@@ -155,36 +148,5 @@ class ConfigRegistryBuilder
         if (!$property->hasDefaultValue() && !$isNullable) {
             throw InvalidConfigClassException::propertyMissingDefaultOrNullability($configClass, $field);
         }
-    }
-
-    /**
-     * @param class-string $configClass
-     *
-     * @return list<string>
-     * @throws AxisNotDeclaredException
-     */
-    private function resolveAxes(
-        string $configClass,
-        string $field,
-        ReflectionProperty $property,
-        ScopeRegistryInterface $scopeRegistry,
-    ): array {
-        $scopedAttributes = $property->getAttributes(Scoped::class);
-
-        if (count($scopedAttributes) === 0) {
-            return [];
-        }
-
-        /** @var Scoped $scopedAttr */
-        $scopedAttr = $scopedAttributes[0]->newInstance();
-        $axes = $scopedAttr->axes;
-
-        foreach ($axes as $axis) {
-            if (!$scopeRegistry->hasAxis($axis)) {
-                throw AxisNotDeclaredException::forAxisOnProperty($configClass, $field, $axis);
-            }
-        }
-
-        return $axes;
     }
 }

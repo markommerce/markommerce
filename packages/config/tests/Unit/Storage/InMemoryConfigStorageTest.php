@@ -13,7 +13,7 @@ it('returns null from load when the key is not stored', function (): void {
 
 it('returns the row from load after a compareAndSave with expectedVersion 0', function (): void {
     $storage = new InMemoryConfigStorage();
-    $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, overrides: [], version: 0);
+    $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, version: 0);
 
     $storage->compareAndSave('markommerce/catalog.grid_page_size', $row, 0);
 
@@ -25,7 +25,7 @@ it('returns the row from load after a compareAndSave with expectedVersion 0', fu
 
 it('bumps version by one on each successful compareAndSave', function (): void {
     $storage = new InMemoryConfigStorage();
-    $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, overrides: [], version: 0);
+    $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, version: 0);
 
     $storage->compareAndSave('markommerce/catalog.grid_page_size', $row, 0);
     $loaded1 = $storage->load('markommerce/catalog.grid_page_size');
@@ -38,7 +38,7 @@ it('bumps version by one on each successful compareAndSave', function (): void {
 
 it('returns false from compareAndSave when expectedVersion does not match the stored version', function (): void {
     $storage = new InMemoryConfigStorage();
-    $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, overrides: [], version: 0);
+    $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, version: 0);
 
     $storage->compareAndSave('markommerce/catalog.grid_page_size', $row, 0);
 
@@ -48,7 +48,7 @@ it('returns false from compareAndSave when expectedVersion does not match the st
 
 it('leaves the stored row unchanged after a failed compareAndSave', function (): void {
     $storage = new InMemoryConfigStorage();
-    $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, overrides: [], version: 0);
+    $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, version: 0);
 
     $storage->compareAndSave('markommerce/catalog.grid_page_size', $row, 0);
 
@@ -61,8 +61,8 @@ it('leaves the stored row unchanged after a failed compareAndSave', function ():
 
 it('returns multiple rows from loadMany in a single call', function (): void {
     $storage = new InMemoryConfigStorage();
-    $row1 = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, overrides: [], version: 0);
-    $row2 = new ConfigRow(key: 'markommerce/catalog.list_page_size', value: 10, overrides: [], version: 0);
+    $row1 = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, version: 0);
+    $row2 = new ConfigRow(key: 'markommerce/catalog.list_page_size', value: 10, version: 0);
 
     $storage->compareAndSave('markommerce/catalog.grid_page_size', $row1, 0);
     $storage->compareAndSave('markommerce/catalog.list_page_size', $row2, 0);
@@ -76,7 +76,7 @@ it('returns multiple rows from loadMany in a single call', function (): void {
 
 it('omits keys absent from storage in the loadMany result map', function (): void {
     $storage = new InMemoryConfigStorage();
-    $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, overrides: [], version: 0);
+    $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, version: 0);
 
     $storage->compareAndSave('markommerce/catalog.grid_page_size', $row, 0);
 
@@ -86,28 +86,52 @@ it('omits keys absent from storage in the loadMany result map', function (): voi
         ->and(array_key_exists('markommerce/catalog.missing_key', $result))->toBeFalse();
 });
 
-it('deletes the row when compareAndSave persists a row with null value and empty overrides', function (): void {
-    $storage = new InMemoryConfigStorage();
-    $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, overrides: [], version: 0);
-
-    $storage->compareAndSave('markommerce/catalog.grid_page_size', $row, 0);
-
-    $emptyRow = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: null, overrides: [], version: 0);
-    $result = $storage->compareAndSave('markommerce/catalog.grid_page_size', $emptyRow, 1);
-
-    expect($result)->toBeTrue()
-        ->and($storage->load('markommerce/catalog.grid_page_size'))->toBeNull();
-});
-
 it(
-    'returns true from compareAndSave as a no-op when persisting an empty row against an absent key with expectedVersion 0',
+    'treats InMemoryConfigStorage compareAndSave as empty-row when value is null regardless of any pre-existing state',
     function (): void {
         $storage = new InMemoryConfigStorage();
-        $emptyRow = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: null, overrides: [], version: 0);
 
-        $result = $storage->compareAndSave('markommerce/catalog.grid_page_size', $emptyRow, 0);
+        // Store a row with a value first
+        $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, version: 0);
+        $storage->compareAndSave('markommerce/catalog.grid_page_size', $row, 0);
+
+        // Now compareAndSave with null value — should be treated as empty regardless of prior state
+        $nullRow = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: null, version: 0);
+        $result = $storage->compareAndSave('markommerce/catalog.grid_page_size', $nullRow, 1);
 
         expect($result)->toBeTrue()
             ->and($storage->load('markommerce/catalog.grid_page_size'))->toBeNull();
+    },
+);
+
+it(
+    'deletes the existing in-memory row when compareAndSave is called with value=null and the stored version matches',
+    function (): void {
+        $storage = new InMemoryConfigStorage();
+        $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 20, version: 0);
+
+        $storage->compareAndSave('markommerce/catalog.grid_page_size', $row, 0);
+
+        $nullRow = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: null, version: 0);
+        $result = $storage->compareAndSave('markommerce/catalog.grid_page_size', $nullRow, 1);
+
+        expect($result)->toBeTrue()
+            ->and($storage->load('markommerce/catalog.grid_page_size'))->toBeNull();
+    },
+);
+
+it(
+    'persists a new row with value set, version 1, when compareAndSave is called with expectedVersion=0 and a non-null value',
+    function (): void {
+        $storage = new InMemoryConfigStorage();
+        $row = new ConfigRow(key: 'markommerce/catalog.grid_page_size', value: 42, version: 0);
+
+        $result = $storage->compareAndSave('markommerce/catalog.grid_page_size', $row, 0);
+
+        expect($result)->toBeTrue();
+        $loaded = $storage->load('markommerce/catalog.grid_page_size');
+        expect($loaded)->not->toBeNull()
+            ->and($loaded->value)->toBe(42)
+            ->and($loaded->version)->toBe(1);
     },
 );

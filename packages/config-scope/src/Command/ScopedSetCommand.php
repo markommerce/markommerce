@@ -1,0 +1,151 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Markommerce\ConfigScope\Command;
+
+use BackedEnum;
+use Marko\Core\Attributes\Preference;
+use Marko\Core\Command\CommandInterface;
+use Marko\Core\Command\Input;
+use Marko\Core\Command\Output;
+use Markommerce\Config\Command\SetCommand;
+use Markommerce\Config\Exceptions\ConfigNotFoundException;
+use Markommerce\Config\Exceptions\StaleConfigWriteException;
+use Markommerce\Config\Registry\ConfigRegistry;
+use Markommerce\ConfigScope\Contracts\ScopedConfigWriterInterface;
+use Markommerce\ConfigScope\Exceptions\AxisNotDeclaredException;
+use Markommerce\Scope\Exceptions\InvalidSignatureException;
+use Markommerce\Scope\Signature\ScopeSignature;
+
+/** @noinspection PhpUnused */
+#[Preference(replaces: SetCommand::class)]
+readonly class ScopedSetCommand implements CommandInterface
+{
+    public function __construct(
+        private ConfigRegistry $registry,
+        private ScopedConfigWriterInterface $writer,
+    ) {}
+
+    /**
+     * @throws ConfigNotFoundException|StaleConfigWriteException|AxisNotDeclaredException|InvalidSignatureException
+     */
+    public function execute(
+        Input $input,
+        Output $output,
+    ): int {
+        $key = $input->getArgument(0);
+        $rawValue = $input->getArgument(1);
+
+        if ($key === null || $rawValue === null) {
+            $output->writeLine('Usage: config:set <key> <value>');
+
+            return 1;
+        }
+
+        try {
+            $definition = $this->registry->byKey($key);
+        } catch (ConfigNotFoundException $e) {
+            $output->writeLine($e->getMessage());
+
+            return 1;
+        }
+
+        $parsed = $this->parseValue($rawValue, $definition->type);
+
+        if ($parsed === null && $rawValue !== 'null') {
+            $output->writeLine(
+                "Cannot parse value '$rawValue' as type '$definition->type'.",
+            );
+
+            return 1;
+        }
+
+        $scopeOption = $input->getOption('scope');
+
+        try {
+            if ($scopeOption !== null) {
+                $signature = $this->parseScopeSignature($scopeOption);
+                $this->writer->setOverride($key, $signature, $parsed);
+            } else {
+                $this->writer->setGlobal($key, $parsed);
+            }
+        } catch (StaleConfigWriteException | AxisNotDeclaredException $e) {
+            $output->writeLine($e->getMessage());
+
+            return 1;
+        }
+
+        $output->writeLine("Config '$key' set successfully.");
+
+        return 0;
+    }
+
+    /**
+     * @throws InvalidSignatureException
+     */
+    private function parseScopeSignature(string $scopeOption): ScopeSignature
+    {
+        $pairs = explode(',', $scopeOption);
+        $axisValues = [];
+
+        foreach ($pairs as $pair) {
+            $segments = explode('=', $pair, 2);
+            $axisValues[$segments[0]] = $segments[1] ?? '';
+        }
+
+        return new ScopeSignature($axisValues);
+    }
+
+    private function parseValue(
+        string $raw,
+        string $type,
+    ): mixed {
+        return match (true) {
+            $type === 'string' => $raw,
+            $type === 'int' => $this->parseInt($raw),
+            $type === 'float' => $this->parseFloat($raw),
+            $type === 'bool' => $this->parseBool($raw),
+            $type === 'array' => $this->parseArray($raw),
+            is_subclass_of($type, BackedEnum::class) => $type::tryFrom($raw),
+            default => $raw,
+        };
+    }
+
+    private function parseInt(string $raw): ?int
+    {
+        $result = filter_var($raw, FILTER_VALIDATE_INT);
+
+        return $result !== false ? $result : null;
+    }
+
+    private function parseFloat(string $raw): ?float
+    {
+        $result = filter_var($raw, FILTER_VALIDATE_FLOAT);
+
+        return $result !== false ? $result : null;
+    }
+
+    private function parseBool(string $raw): ?bool
+    {
+        return match (strtolower($raw)) {
+            'true', '1', 'yes' => true,
+            'false', '0', 'no' => false,
+            default => null,
+        };
+    }
+
+    /**
+     * @return array<mixed>|null
+     */
+    private function parseArray(string $raw): ?array
+    {
+        $decoded = json_decode($raw, true);
+
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        return $decoded;
+    }
+}

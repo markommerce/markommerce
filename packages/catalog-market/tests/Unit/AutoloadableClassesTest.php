@@ -1,16 +1,23 @@
 <?php
 
 declare(strict_types=1);
+use Markommerce\CatalogMarket\Contracts\CategoryTreeMarketAssignmentRepositoryInterface;
+use Markommerce\CatalogMarket\Entity\CategoryTreeMarketAssignment;
+use Markommerce\CatalogMarket\Exceptions\TreeHasMarketAssignmentsException;
+use Markommerce\CatalogMarket\Plugins\CategoryTreeServiceDeletePlugin;
+use Markommerce\CatalogMarket\Repositories\CategoryTreeMarketAssignmentRepository;
+use Markommerce\CatalogMarket\Services\CategoryTreeMarketAssignmentService;
+use Markommerce\CatalogMarket\Services\CategoryTreeMarketResolver;
 
 it('moves all src classes to Markommerce\\CatalogMarket\\ namespace and they are autoloadable', function (): void {
     $classes = [
-        \Markommerce\CatalogMarket\Contracts\CategoryTreeMarketAssignmentRepositoryInterface::class,
-        \Markommerce\CatalogMarket\Entity\CategoryTreeMarketAssignment::class,
-        \Markommerce\CatalogMarket\Exceptions\TreeHasMarketAssignmentsException::class,
-        \Markommerce\CatalogMarket\Plugins\CategoryTreeServiceDeletePlugin::class,
-        \Markommerce\CatalogMarket\Repositories\CategoryTreeMarketAssignmentRepository::class,
-        \Markommerce\CatalogMarket\Services\CategoryTreeMarketAssignmentService::class,
-        \Markommerce\CatalogMarket\Services\CategoryTreeMarketResolver::class,
+        CategoryTreeMarketAssignmentRepositoryInterface::class,
+        CategoryTreeMarketAssignment::class,
+        TreeHasMarketAssignmentsException::class,
+        CategoryTreeServiceDeletePlugin::class,
+        CategoryTreeMarketAssignmentRepository::class,
+        CategoryTreeMarketAssignmentService::class,
+        CategoryTreeMarketResolver::class,
     ];
 
     foreach ($classes as $class) {

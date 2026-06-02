@@ -1,9 +1,9 @@
 ---
 title: markommerce/config-pgsql
-description: PostgreSQL storage driver for markommerce/config — JSONB persistence with optimistic locking and per-scope overrides.
+description: PostgreSQL storage driver for markommerce/config — JSONB persistence with optimistic locking.
 ---
 
-PostgreSQL storage driver for `markommerce/config` --- persists configuration values in a `config_values` JSONB table with optimistic locking and per-scope overrides. Implements `ConfigStorageInterface` using a `config_key`, `value` (JSONB), `overrides` (JSONB map), `version`, and `updated_at` row shape. Installing this package provides the persistence layer that `markommerce/config` requires in production.
+PostgreSQL storage driver for `markommerce/config` --- persists configuration values in a `config_values` JSONB table with optimistic locking. Implements `ConfigStorageInterface` using a `config_key`, `value` (JSONB), `version`, and `updated_at` row shape. Installing this package provides the persistence layer that `markommerce/config` requires in production.
 
 ## Installation
 
@@ -33,7 +33,7 @@ If you store secret config values (properties with `secret: true`), also set:
 
 ## Running the Migration
 
-`markommerce/config-pgsql` ships a `ConfigValuesTableEmitter` that generates the DDL for the `config_values` table and its GIN index. Run Marko's migrate command to apply it:
+`markommerce/config-pgsql` ships a `ConfigValuesTableEmitter` that generates the DDL for the `config_values` table. Run Marko's migrate command to apply it:
 
 ```bash
 php marko db:migrate
@@ -45,16 +45,10 @@ This creates the following schema (idempotent --- safe to run multiple times):
 CREATE TABLE IF NOT EXISTS "config_values" (
     config_key   VARCHAR(255) PRIMARY KEY,
     value        JSONB,
-    overrides    JSONB        NOT NULL DEFAULT '{}'::jsonb,
     version      INTEGER      NOT NULL DEFAULT 0,
     updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
-
-CREATE INDEX IF NOT EXISTS "config_values_overrides_gin"
-    ON "config_values" USING GIN (overrides);
 ```
-
-The GIN index on `overrides` accelerates queries that look up individual scope-signature keys within the JSONB map.
 
 ## Storage Behavior
 
@@ -66,7 +60,6 @@ One row exists per config key. The columns map to the `ConfigRow` value object:
 |---|---|---|
 | `config_key` | `VARCHAR(255)` | Primary key --- the dot-separated config key string. |
 | `value` | `JSONB` | Global value. `NULL` when no global value has been written. |
-| `overrides` | `JSONB` | Map of serialized scope signature (e.g. `channel:mobile`) to raw value. Empty object by default. |
 | `version` | `INTEGER` | Optimistic-lock counter. Starts at 0, incremented on every successful write. |
 | `updated_at` | `TIMESTAMPTZ` | Timestamp of the last write. |
 
@@ -96,7 +89,7 @@ Implements `ConfigStorageInterface`.
 
 | Method | Description |
 |---|---|
-| `createStatements(string $tableName = 'config_values'): list<string>` | Return the ordered list of SQL statements that create the table and GIN index. All statements use `IF NOT EXISTS` and are safe to run multiple times. |
+| `createStatements(string $tableName = 'config_values'): list<string>` | Return the list of SQL statements that create the table. All statements use `IF NOT EXISTS` and are safe to run multiple times. |
 
 ## Related Packages
 

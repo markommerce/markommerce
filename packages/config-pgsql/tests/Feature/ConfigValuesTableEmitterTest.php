@@ -34,7 +34,6 @@ beforeEach(function (): void {
     $tableName = configValuesTableName();
 
     // DROP IF EXISTS first (crash resilience from previous failed runs)
-    $conn->execute(sprintf('DROP INDEX IF EXISTS "%s_overrides_gin"', $tableName));
     $conn->execute(sprintf('DROP TABLE IF EXISTS "%s"', $tableName));
 
     $this->conn = $conn;
@@ -46,7 +45,6 @@ afterEach(function (): void {
     if (isset($this->conn) && isset($this->tableName)) {
         $conn = $this->conn;
         $tableName = $this->tableName;
-        $conn->execute(sprintf('DROP INDEX IF EXISTS "%s_overrides_gin"', $tableName));
         $conn->execute(sprintf('DROP TABLE IF EXISTS "%s"', $tableName));
     }
 });
@@ -118,33 +116,6 @@ it('creates the value column as JSONB and nullable', function (): void {
         ->and(strtolower($rows[0]['is_nullable']))->toBe('yes');
 })->group('integration-destructive');
 
-it('creates the overrides column as JSONB defaulting to empty object', function (): void {
-    /** @var PostgresTestConnection $conn */
-    $conn = $this->conn;
-    $tableName = $this->tableName;
-
-    /** @var ConfigValuesTableEmitter $emitter */
-    $emitter = $this->emitter;
-    $statements = $emitter->createStatements($tableName);
-
-    foreach ($statements as $sql) {
-        $conn->execute($sql);
-    }
-
-    $rows = $conn->query(
-        "SELECT column_name, data_type, is_nullable, column_default
-         FROM information_schema.columns
-         WHERE table_name = ?
-           AND column_name = 'overrides'",
-        [$tableName],
-    );
-
-    expect($rows)->toHaveCount(1)
-        ->and(strtolower($rows[0]['data_type']))->toBe('jsonb')
-        ->and(strtolower($rows[0]['is_nullable']))->toBe('no')
-        ->and($rows[0]['column_default'])->toContain("'{}'");
-})->group('integration-destructive');
-
 it('creates the version column as integer defaulting to 0', function (): void {
     /** @var PostgresTestConnection $conn */
     $conn = $this->conn;
@@ -198,7 +169,40 @@ it('creates the updated_at column as timestamptz', function (): void {
         ->and(strtolower($rows[0]['is_nullable']))->toBe('no');
 })->group('integration-destructive');
 
-it('creates a GIN index on the overrides column', function (): void {
+it(
+    'emits a CREATE TABLE config_values statement with config_key, value, version, and updated_at columns and no overrides column',
+    function (): void {
+        /** @var PostgresTestConnection $conn */
+        $conn = $this->conn;
+        $tableName = $this->tableName;
+
+        /** @var ConfigValuesTableEmitter $emitter */
+        $emitter = $this->emitter;
+        $statements = $emitter->createStatements($tableName);
+
+        foreach ($statements as $sql) {
+            $conn->execute($sql);
+        }
+
+        $columns = $conn->query(
+            'SELECT column_name
+             FROM information_schema.columns
+             WHERE table_name = ?
+             ORDER BY ordinal_position',
+            [$tableName],
+        );
+
+        $columnNames = array_column($columns, 'column_name');
+
+        expect($columnNames)->toContain('config_key')
+            ->and($columnNames)->toContain('value')
+            ->and($columnNames)->toContain('version')
+            ->and($columnNames)->toContain('updated_at')
+            ->and($columnNames)->not->toContain('overrides');
+    },
+)->group('integration-destructive');
+
+it('emits no CREATE INDEX statement for a GIN index on overrides', function (): void {
     /** @var PostgresTestConnection $conn */
     $conn = $this->conn;
     $tableName = $this->tableName;
@@ -211,20 +215,26 @@ it('creates a GIN index on the overrides column', function (): void {
         $conn->execute($sql);
     }
 
-    $rows = $conn->query(
-        'SELECT indexname, indexdef
+    $indexRows = $conn->query(
+        'SELECT indexname
          FROM pg_indexes
          WHERE tablename = ?
            AND indexname = ?',
         [$tableName, $tableName . '_overrides_gin'],
     );
 
-    expect($rows)->toHaveCount(1)
-        ->and(strtolower($rows[0]['indexdef']))->toContain('using gin')
-        ->and(strtolower($rows[0]['indexdef']))->toContain('overrides');
+    expect($indexRows)->toHaveCount(0);
 })->group('integration-destructive');
 
-it('is idempotent across multiple runs (no duplicate index / table errors)', function (): void {
+it('returns a list with exactly one statement from ConfigValuesTableEmitter createStatements (down from two)', function (): void {
+    /** @var ConfigValuesTableEmitter $emitter */
+    $emitter = $this->emitter;
+    $statements = $emitter->createStatements($this->tableName);
+
+    expect($statements)->toHaveCount(1);
+})->group('integration-destructive');
+
+it('is idempotent across multiple runs (no duplicate table errors)', function (): void {
     /** @var PostgresTestConnection $conn */
     $conn = $this->conn;
     $tableName = $this->tableName;
@@ -242,7 +252,7 @@ it('is idempotent across multiple runs (no duplicate index / table errors)', fun
         $conn->execute($sql);
     }
 
-    // Verify table and index exist exactly once
+    // Verify table exists exactly once
     $tableRows = $conn->query(
         'SELECT table_name
          FROM information_schema.tables
@@ -250,14 +260,5 @@ it('is idempotent across multiple runs (no duplicate index / table errors)', fun
         [$tableName],
     );
 
-    $indexRows = $conn->query(
-        'SELECT COUNT(*) AS cnt
-         FROM pg_indexes
-         WHERE tablename = ?
-           AND indexname = ?',
-        [$tableName, $tableName . '_overrides_gin'],
-    );
-
-    expect($tableRows)->toHaveCount(1)
-        ->and((int) $indexRows[0]['cnt'])->toBe(1);
+    expect($tableRows)->toHaveCount(1);
 })->group('integration-destructive');

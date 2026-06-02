@@ -6,10 +6,10 @@ namespace Markommerce\CatalogStorefrontScope\Component;
 
 use Marko\Core\Attributes\Preference;
 use Marko\Database\Exceptions\RepositoryException;
-use Markommerce\CatalogStorefront\Component\ProductGridComponent;
-use Markommerce\CatalogStorefront\Data\ProductGridData;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
+use Markommerce\CatalogStorefront\Component\ProductGridComponent;
+use Markommerce\CatalogStorefront\Data\ProductGridData;
 use Markommerce\Scope\Exceptions\ScopeContextException;
 use Markommerce\Scope\Exceptions\UnknownAxisException;
 use Markommerce\Scope\Exceptions\UnknownScopeException;
