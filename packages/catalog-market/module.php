@@ -5,10 +5,11 @@ declare(strict_types=1);
 /**
  * catalog-market module manifest.
  *
- * The boot closure currently registers no scoped fields — Product does not yet have
- * price/visibility columns. See FEATURES.md tier 3 for the planned end state.
+ * Registers Product.priceAmount on the market axis so per-market base prices
+ * fall back to the global product price when no market override is set.
  */
 
+use Markommerce\Catalog\Entity\Product;
 use Markommerce\CatalogMarket\Contracts\CategoryTreeMarketAssignmentRepositoryInterface;
 use Markommerce\CatalogMarket\Repositories\CategoryTreeMarketAssignmentRepository;
 use Markommerce\Scope\Metadata\ScopedFieldRegistry;
@@ -23,6 +24,10 @@ return [
         CategoryTreeMarketAssignmentRepositoryInterface::class => CategoryTreeMarketAssignmentRepository::class,
     ],
     'boot' => function (ScopedFieldRegistry $scopedFieldRegistry): void {
-        // Placeholder: no scoped fields registered yet.
+        $scopedFieldRegistry->register(
+            entityClass: Product::class,
+            property: 'priceAmount',
+            axes: ['market'],
+        );
     },
 ];

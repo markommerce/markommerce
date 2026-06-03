@@ -7,8 +7,9 @@ use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
-it('still boots an empty ScopedFieldRegistry when the boot closure runs (no-op field registration preserved)', function (): void {
-    $fakeScopeRegistry = new class () implements ScopeRegistryInterface
+function makeBootClosureTestFakeScopeRegistry(): ScopeRegistryInterface
+{
+    return new class () implements ScopeRegistryInterface
     {
         public function hasAxis(string $name): bool
         {
@@ -34,14 +35,29 @@ it('still boots an empty ScopedFieldRegistry when the boot closure runs (no-op f
             return ScopeHierarchy::fromPaths(['default']);
         }
     };
+}
 
-    $registry = new ScopedFieldRegistry(scopeRegistry: $fakeScopeRegistry);
+it('registers the product price amount on the market axis', function (): void {
+    $registry = new ScopedFieldRegistry(scopeRegistry: makeBootClosureTestFakeScopeRegistry());
     $module = require dirname(__DIR__, 2) . '/module.php';
-
-    expect($module)->toHaveKey('boot');
-    expect($module['boot'])->toBeCallable();
 
     $module['boot']($registry);
 
-    expect($registry->hasScopedProperties(Product::class))->toBeFalse();
+    expect($registry->axesForProperty(Product::class, 'priceAmount'))->toBe(['market']);
+});
+
+it('boot closure has a callable boot key typed on ScopedFieldRegistry', function (): void {
+    $module = require dirname(__DIR__, 2) . '/module.php';
+
+    expect($module)->toHaveKey('boot')
+        ->and($module['boot'])->toBeCallable();
+
+    $reflection = new ReflectionFunction($module['boot']);
+    $parameters = $reflection->getParameters();
+
+    expect($parameters)->toHaveCount(1);
+
+    $type = $parameters[0]->getType();
+    expect($type)->not->toBeNull()
+        ->and((string) $type)->toBe(ScopedFieldRegistry::class);
 });

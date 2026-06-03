@@ -22,4 +22,7 @@ class Product extends Entity
 
     #[Column(type: 'text', nullable: true)]
     public ?string $description = null;
+
+    #[Column(name: 'price_amount', type: 'decimal(20,4)', nullable: true)]
+    public ?string $priceAmount = null;
 }

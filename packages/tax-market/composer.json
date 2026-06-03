@@ -1,0 +1,36 @@
+{
+    "name": "markommerce/tax-market",
+    "description": "Market bridge for Markommerce tax — registers the tax-mode config key on the market axis for per-market overrides",
+    "license": "MIT",
+    "type": "marko-module",
+    "require": {
+        "php": "^8.5",
+        "markommerce/tax": "self.version",
+        "markommerce/config-scope": "self.version",
+        "markommerce/market": "self.version"
+    },
+    "require-dev": {
+        "marko/testing": "self.version",
+        "pestphp/pest": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Markommerce\\TaxMarket\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Markommerce\\TaxMarket\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "marko": {
+            "module": true
+        }
+    }
+}

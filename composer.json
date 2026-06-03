@@ -28,12 +28,19 @@
         "markommerce/config-scope": "self.version",
         "markommerce/config-scope-pgsql": "self.version",
         "markommerce/core": "self.version",
+        "markommerce/currency": "self.version",
+        "markommerce/currency-market": "self.version",
         "markommerce/frontend": "self.version",
         "markommerce/layout": "self.version",
         "markommerce/locale": "self.version",
         "markommerce/market": "self.version",
+        "markommerce/money": "self.version",
+        "markommerce/money-intl": "self.version",
+        "markommerce/pricing": "self.version",
         "markommerce/scope": "self.version",
         "markommerce/scope-pgsql": "self.version",
+        "markommerce/tax": "self.version",
+        "markommerce/tax-market": "self.version",
         "markommerce/theme-blank": "self.version"
     },
     "autoload-dev": {
@@ -48,10 +55,17 @@
             "Markommerce\\ConfigLocale\\Tests\\": "packages/config-locale/tests/",
             "Markommerce\\ConfigMarket\\Tests\\": "packages/config-market/tests/",
             "Markommerce\\ConfigScope\\Tests\\": "packages/config-scope/tests/",
+            "Markommerce\\Currency\\Tests\\": "packages/currency/tests/",
+            "Markommerce\\CurrencyMarket\\Tests\\": "packages/currency-market/tests/",
             "Markommerce\\Layout\\Tests\\": "packages/layout/tests/",
             "Markommerce\\Locale\\Tests\\": "packages/locale/tests/",
             "Markommerce\\Market\\Tests\\": "packages/market/tests/",
-            "Markommerce\\Scope\\Tests\\": "packages/scope/tests/"
+            "Markommerce\\Money\\Tests\\": "packages/money/tests/",
+            "Markommerce\\MoneyIntl\\Tests\\": "packages/money-intl/tests/",
+            "Markommerce\\Pricing\\Tests\\": "packages/pricing/tests/",
+            "Markommerce\\Scope\\Tests\\": "packages/scope/tests/",
+            "Markommerce\\Tax\\Tests\\": "packages/tax/tests/",
+            "Markommerce\\TaxMarket\\Tests\\": "packages/tax-market/tests/"
         }
     },
     "require-dev": {

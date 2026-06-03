@@ -1,9 +1,9 @@
 ---
 title: markommerce/catalog-market
-description: Market integration for catalog entities — category tree assignment per market, active-tree resolution, a deletion guard plugin, and a ScopedFieldRegistry hook for future market-scoped fields.
+description: Market integration for catalog entities — category tree assignment per market, active-tree resolution, a deletion guard plugin, and per-market product price overrides via ScopedFieldRegistry.
 ---
 
-Market integration for catalog entities. `markommerce/catalog-market` is the single Tier 3 package a merchant installs to get full market behaviour for the catalog: per-market category tree assignment and resolution, a `#[Before]` plugin that guards against deleting trees still serving a market, and a **placeholder** `ScopedFieldRegistry` boot closure that reserves the hook for future market-scoped fields (price, visibility) once those columns land on `Product`.
+Market integration for catalog entities. `markommerce/catalog-market` is the single Tier 3 package a merchant installs to get full market behaviour for the catalog: per-market category tree assignment and resolution, a `#[Before]` plugin that guards against deleting trees still serving a market, and a `ScopedFieldRegistry` boot hook that registers `Product.priceAmount` on the `market` axis for per-market base price overrides.
 
 ## Installation
 
@@ -81,15 +81,16 @@ try {
 
 The plugin is declared with `#[Plugin(target: CategoryTreeServiceInterface::class)]` and wired automatically when the module is loaded. No manual wiring is needed.
 
-## Placeholder Status
+## Per-market price overrides
 
-The `boot` closure in `module.php` is type-hinted on `ScopedFieldRegistry` but does not register any fields yet:
+`catalog-market` registers `Product.priceAmount` on the `market` axis at boot, enabling per-market base price overrides that fall back to the global product price when no override is set:
 
 ```php title="packages/catalog-market/module.php"
 <?php
 
 declare(strict_types=1);
 
+use Markommerce\Catalog\Entity\Product;
 use Markommerce\CatalogMarket\Contracts\CategoryTreeMarketAssignmentRepositoryInterface;
 use Markommerce\CatalogMarket\Repositories\CategoryTreeMarketAssignmentRepository;
 use Markommerce\Scope\Metadata\ScopedFieldRegistry;
@@ -104,25 +105,31 @@ return [
         CategoryTreeMarketAssignmentRepositoryInterface::class => CategoryTreeMarketAssignmentRepository::class,
     ],
     'boot' => function (ScopedFieldRegistry $scopedFieldRegistry): void {
-        // Placeholder: no scoped fields registered yet.
+        $scopedFieldRegistry->register(
+            entityClass: Product::class,
+            property: 'priceAmount',
+            axes: ['market'],
+        );
     },
 ];
 ```
 
-The planned fields are `price` and `visibility` on `Product`. Once those columns are added to the `catalog_products` table, this bridge will register them as market-scoped via `ScopedFieldRegistry`.
+With this registration in place, `ScopeResolver::resolved($product, 'priceAmount')` returns the market-scoped amount when a `ProductScopedOverrides` companion is attached to the product, and falls back to the global `Product.priceAmount` otherwise. Use [markommerce/pricing](/docs/packages/pricing/) to resolve the full `Money` value (amount + currency) for a product.
 
-## Tier 3 Wiring Diagram
+## Wiring Diagram
 
 ```
 markommerce/catalog
-  CategoryTreeServiceInterface  ←── #[Plugin(Before: deleteTree)]  CategoryTreeServiceDeletePlugin
-  CategoryTreeRepositoryInterface ←── used by CategoryTreeMarketResolver
+  CategoryTreeServiceInterface     ←── #[Plugin(Before: deleteTree)]  CategoryTreeServiceDeletePlugin
+  CategoryTreeRepositoryInterface  ←── used by CategoryTreeMarketResolver
+  Product.priceAmount              ←── registered on market axis by boot closure
 
 markommerce/catalog-market
   CategoryTreeMarketAssignmentService  ──► CategoryTreeMarketAssignmentRepositoryInterface
   CategoryTreeMarketResolver           ──► CategoryTreeMarketAssignmentRepositoryInterface
                                        ──► CategoryTreeRepositoryInterface (catalog)
   CategoryTreeServiceDeletePlugin      ──► CategoryTreeMarketAssignmentRepositoryInterface
+  boot closure                         ──► ScopedFieldRegistry (registers Product.priceAmount)
 
 markommerce/market
   config/scope.php  ──► market axis available in ScopeContext
@@ -185,7 +192,8 @@ Table: `catalog_category_tree_market_assignments`
 
 ## Related Packages
 
-- [markommerce/catalog](/docs/packages/catalog/) --- Provides `CategoryTree`, `CategoryTreeServiceInterface`, and `CategoryTreeRepositoryInterface`
+- [markommerce/catalog](/docs/packages/catalog/) --- Provides `CategoryTree`, `CategoryTreeServiceInterface`, `CategoryTreeRepositoryInterface`, and the `Product.priceAmount` column
 - [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- Provides the `scopes` column on catalog entities; required by this package
 - [markommerce/market](/docs/packages/market/) --- Declares the `market` axis; required by this package
 - [markommerce/scope](/docs/packages/scope/) --- `ScopedFieldRegistry` and resolution engine
+- [markommerce/pricing](/docs/packages/pricing/) --- Resolves a product's effective price as a `Money` value using the market-scoped `priceAmount` registered by this package
