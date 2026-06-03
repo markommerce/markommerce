@@ -15,12 +15,14 @@ readonly class ProductGridData extends ExtensibleData
      * @param list<Product> $products
      * @param array<int, string> $resolvedNames
      * @param array<int, string|null> $resolvedDescs
+     * @param array<int, string|null> $formattedPrices
      */
     public function __construct(
         public Category $category,
         public array $products,
         public array $resolvedNames,
         public array $resolvedDescs,
+        public array $formattedPrices = [],
         ExtensionBag $extensions = new ExtensionBag(),
     ) {
         parent::__construct($extensions);

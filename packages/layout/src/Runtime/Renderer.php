@@ -388,9 +388,13 @@ class Renderer implements RendererInterface
         array $slotHtml,
     ): string {
         foreach ($slotHtml as $slotName => $content) {
-            $html = preg_replace(
+            // Use a callback so the slot content is inserted verbatim. Passing
+            // $content as a preg_replace replacement string would interpret any
+            // `$N`/`${N}`/`\N` sequences in it as backreferences — e.g. a rendered
+            // price like "$325.46" would lose "$32" as a (non-existent) group 32.
+            $html = preg_replace_callback(
                 '/\{slot ' . preg_quote($slotName, '/') . '\}.*?\{\/slot\}/s',
-                $content,
+                static fn (): string => $content,
                 $html,
             ) ?? $html;
         }

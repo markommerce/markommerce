@@ -16,8 +16,14 @@ use Markommerce\Catalog\Tests\Support\FakeProductRepository;
 use Markommerce\CatalogScope\Entity\ProductScopedOverrides;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefrontScope\Component\ScopedProductGridComponent;
+use Markommerce\Money\Money;
+use Markommerce\MoneyIntl\MoneyFormatter;
+use Markommerce\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Pricing\PriceContext;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Scope\Exceptions\UnknownAxisException;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
@@ -26,6 +32,50 @@ use Markommerce\Scope\Resolution\ScopeWalker;
 use Markommerce\Scope\Resolver\ScopeResolver;
 use Markommerce\Scope\Signature\ScopeSignatureValidator;
 use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
+
+// ─── Price helpers ────────────────────────────────────────────────────────────
+
+function scopedGridMakeMoneyFormatter(): MoneyFormatter
+{
+    $registry = new class () implements ScopeRegistryInterface
+    {
+        public function hasAxis(string $name): bool
+        {
+            return false;
+        }
+
+        public function getAxis(string $name): ScopeAxis
+        {
+            throw UnknownAxisException::forAxis($name);
+        }
+
+        /** @return list<string> */
+        public function listAxes(): array
+        {
+            return [];
+        }
+
+        public function getHierarchy(string $axisName): ScopeHierarchy
+        {
+            throw UnknownAxisException::forAxis($axisName);
+        }
+    };
+
+    $scopeContext = new ScopeContext($registry);
+
+    return new MoneyFormatter($scopeContext);
+}
+
+function scopedGridMakeNoPriceResolver(): PriceResolverInterface
+{
+    return new class () implements PriceResolverInterface
+    {
+        public function resolve(PriceContext $context): Money
+        {
+            throw PriceUnavailableException::forContext($context);
+        }
+    };
+}
 
 // ─── Scope helpers ────────────────────────────────────────────────────────────
 
@@ -43,7 +93,10 @@ function scopedGridMakeRegistry(
         private array $builtAxes;
 
         /** @param array<string, list<string>> $axes @param array<string, string> $defaults */
-        public function __construct(array $axes, array $defaults = [])
+        public function __construct(
+            array $axes,
+            array $defaults = [],
+        )
         {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
@@ -115,6 +168,8 @@ function scopedGridBuildComponent(
     return new ScopedProductGridComponent(
         categoryAssignmentService: $service,
         scopeResolver: $scopeResolver,
+        priceResolver: scopedGridMakeNoPriceResolver(),
+        moneyFormatter: scopedGridMakeMoneyFormatter(),
     );
 }
 
@@ -148,38 +203,48 @@ it('accepts CategoryAssignmentService and ScopeResolver in its constructor (no d
     expect($paramNames)->not->toContain('categoryRepository');
     expect($paramNames)->toContain('categoryAssignmentService');
     expect($paramNames)->toContain('scopeResolver');
-    expect($params)->toHaveCount(2);
+    expect($paramNames)->toContain('priceResolver');
+    expect($paramNames)->toContain('moneyFormatter');
+    expect($params)->toHaveCount(4);
 });
 
-it('returns a ProductGridData populated by parent::data() then overwrites resolvedNames with values from ScopeResolver::resolved', function (): void {
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-
-    $category = new Category();
-    $category->name = 'Shoes';
-    $categoryRepository->save($category);
-
-    $product = new Product();
-    $product->sku = 'SHOE-001';
-    $product->name = 'Running Shoes';
-    $productRepository->save($product);
-
-    $service = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $service->assign($product->id, $category->id);
-
-    [$resolver, $context] = scopedGridMakeResolver();
-    $context->in('locale', 'global.de');
-
-    $overrides = new ProductScopedOverrides();
-    $overrides->setOverride('locale:global.de', 'name', 'Laufschuhe');
-    $product->attachCompanion($overrides);
-
-    $component = scopedGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository, $resolver);
-    $data = $component->data($category);
-
-    expect($data->resolvedNames[$product->id])->toBe('Laufschuhe');
-});
+it(
+    'returns a ProductGridData populated by parent::data() then overwrites resolvedNames with values from ScopeResolver::resolved',
+    function (): void {
+        $categoryRepository = new FakeCategoryRepository();
+        $productRepository = new FakeProductRepository();
+        $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+    
+        $category = new Category();
+        $category->name = 'Shoes';
+        $categoryRepository->save($category);
+    
+        $product = new Product();
+        $product->sku = 'SHOE-001';
+        $product->name = 'Running Shoes';
+        $productRepository->save($product);
+    
+        $service = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
+        $service->assign($product->id, $category->id);
+    
+        [$resolver, $context] = scopedGridMakeResolver();
+        $context->in('locale', 'global.de');
+    
+        $overrides = new ProductScopedOverrides();
+        $overrides->setOverride('locale:global.de', 'name', 'Laufschuhe');
+        $product->attachCompanion($overrides);
+    
+        $component = scopedGridBuildComponent(
+            $categoryRepository,
+            $productRepository,
+            $assignmentRepository,
+            $resolver
+        );
+        $data = $component->data($category);
+    
+        expect($data->resolvedNames[$product->id])->toBe('Laufschuhe');
+    }
+);
 
 it('returns a ProductGridData with resolvedDescs overwritten from ScopeResolver::resolved', function (): void {
     $categoryRepository = new FakeCategoryRepository();
@@ -212,109 +277,136 @@ it('returns a ProductGridData with resolvedDescs overwritten from ScopeResolver:
     expect($data->resolvedDescs[$product->id])->toBe('Tolle Laufschuhe');
 });
 
-it('falls back to the raw product name when ScopeResolver::resolved returns the raw value (no override set)', function (): void {
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-
-    $category = new Category();
-    $category->name = 'Shoes';
-    $categoryRepository->save($category);
-
-    $product = new Product();
-    $product->sku = 'SHOE-001';
-    $product->name = 'Running Shoes';
-    $productRepository->save($product);
-
-    $service = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $service->assign($product->id, $category->id);
-
-    // No companion attached, no override set — resolver falls back to raw value
+it(
+    'falls back to the raw product name when ScopeResolver::resolved returns the raw value (no override set)',
+    function (): void {
+        $categoryRepository = new FakeCategoryRepository();
+        $productRepository = new FakeProductRepository();
+        $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+    
+        $category = new Category();
+        $category->name = 'Shoes';
+        $categoryRepository->save($category);
+    
+        $product = new Product();
+        $product->sku = 'SHOE-001';
+        $product->name = 'Running Shoes';
+        $productRepository->save($product);
+    
+        $service = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
+        $service->assign($product->id, $category->id);
+    
+        // No companion attached, no override set — resolver falls back to raw value
     [$resolver, $context] = scopedGridMakeResolver();
-    $context->in('locale', 'global.de');
-
-    $component = scopedGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository, $resolver);
-    $data = $component->data($category);
-
-    expect($data->resolvedNames[$product->id])->toBe('Running Shoes');
-});
-
-it('returns a scoped value for resolvedNames when a locale override is set on the ProductScopedOverrides companion and the active locale context matches', function (): void {
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-
-    $category = new Category();
-    $category->name = 'Chaussures';
-    $categoryRepository->save($category);
-
-    $product = new Product();
-    $product->sku = 'SHOE-002';
-    $product->name = 'Running Shoes';
-    $productRepository->save($product);
-
-    $service = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $service->assign($product->id, $category->id);
-
-    [$resolver, $context] = scopedGridMakeResolver();
-    $context->in('locale', 'global.fr');
-
-    $overrides = new ProductScopedOverrides();
-    $overrides->setOverride('locale:global.fr', 'name', 'Chaussures de course');
-    $product->attachCompanion($overrides);
-
-    $component = scopedGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository, $resolver);
-    $data = $component->data($category);
-
-    expect($data->resolvedNames[$product->id])->toBe('Chaussures de course');
-});
-
-it('is resolved by the container as the preferred binding for ProductGridComponent when catalog-storefront-scope is installed (verifies #[Preference] discovery)', function (): void {
-    $manifest = new ModuleManifest(
-        name: 'markommerce/catalog-storefront-scope',
-        version: '1.0.0',
-        path: dirname(__DIR__, 3),
-    );
-
-    $discovery = new PreferenceDiscovery();
-    $records = $discovery->discoverInModule($manifest);
-
-    $scopedGridRecord = array_find(
-        $records,
-        fn ($r) => $r->replaces === ProductGridComponent::class,
-    );
-
-    expect($scopedGridRecord)->not->toBeNull();
-    expect($scopedGridRecord->replacement)->toBe(ScopedProductGridComponent::class);
-
-    $registry = new PreferenceRegistry();
-    $registry->register(
-        original: $scopedGridRecord->replaces,
-        replacement: $scopedGridRecord->replacement,
-    );
-
-    $container = new Container($registry);
-
-    // Bind services required to wire ScopedProductGridComponent
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-    [$scopeResolver] = scopedGridMakeResolver();
-
-    $container->bind(
-        CategoryAssignmentService::class,
-        fn () => new CategoryAssignmentService(
-            $productRepository,
+        $context->in('locale', 'global.de');
+    
+        $component = scopedGridBuildComponent(
             $categoryRepository,
+            $productRepository,
             $assignmentRepository,
-        ),
-    );
-    $container->bind(
-        ScopeResolver::class,
-        fn () => $scopeResolver,
-    );
+            $resolver
+        );
+        $data = $component->data($category);
+    
+        expect($data->resolvedNames[$product->id])->toBe('Running Shoes');
+    }
+);
 
-    $instance = $container->get(ProductGridComponent::class);
+it(
+    'returns a scoped value for resolvedNames when a locale override is set on the ProductScopedOverrides companion and the active locale context matches',
+    function (): void {
+        $categoryRepository = new FakeCategoryRepository();
+        $productRepository = new FakeProductRepository();
+        $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+    
+        $category = new Category();
+        $category->name = 'Chaussures';
+        $categoryRepository->save($category);
+    
+        $product = new Product();
+        $product->sku = 'SHOE-002';
+        $product->name = 'Running Shoes';
+        $productRepository->save($product);
+    
+        $service = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
+        $service->assign($product->id, $category->id);
+    
+        [$resolver, $context] = scopedGridMakeResolver();
+        $context->in('locale', 'global.fr');
+    
+        $overrides = new ProductScopedOverrides();
+        $overrides->setOverride('locale:global.fr', 'name', 'Chaussures de course');
+        $product->attachCompanion($overrides);
+    
+        $component = scopedGridBuildComponent(
+            $categoryRepository,
+            $productRepository,
+            $assignmentRepository,
+            $resolver
+        );
+        $data = $component->data($category);
+    
+        expect($data->resolvedNames[$product->id])->toBe('Chaussures de course');
+    }
+);
 
-    expect($instance)->toBeInstanceOf(ScopedProductGridComponent::class);
-});
+it(
+    'is resolved by the container as the preferred binding for ProductGridComponent when catalog-storefront-scope is installed (verifies #[Preference] discovery)',
+    function (): void {
+        $manifest = new ModuleManifest(
+            name: 'markommerce/catalog-storefront-scope',
+            version: '1.0.0',
+            path: dirname(__DIR__, 3),
+        );
+    
+        $discovery = new PreferenceDiscovery();
+        $records = $discovery->discoverInModule($manifest);
+    
+        $scopedGridRecord = array_find(
+            $records,
+            fn ($r) => $r->replaces === ProductGridComponent::class,
+        );
+    
+        expect($scopedGridRecord)->not->toBeNull();
+        expect($scopedGridRecord->replacement)->toBe(ScopedProductGridComponent::class);
+    
+        $registry = new PreferenceRegistry();
+        $registry->register(
+            original: $scopedGridRecord->replaces,
+            replacement: $scopedGridRecord->replacement,
+        );
+    
+        $container = new Container($registry);
+    
+        // Bind services required to wire ScopedProductGridComponent
+    $categoryRepository = new FakeCategoryRepository();
+        $productRepository = new FakeProductRepository();
+        $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+        [$scopeResolver] = scopedGridMakeResolver();
+    
+        $container->bind(
+            CategoryAssignmentService::class,
+            fn () => new CategoryAssignmentService(
+                $productRepository,
+                $categoryRepository,
+                $assignmentRepository,
+            ),
+        );
+        $container->bind(
+            ScopeResolver::class,
+            fn () => $scopeResolver,
+        );
+        $container->bind(
+            PriceResolverInterface::class,
+            fn () => scopedGridMakeNoPriceResolver(),
+        );
+        $container->bind(
+            MoneyFormatter::class,
+            fn () => scopedGridMakeMoneyFormatter(),
+        );
+    
+        $instance = $container->get(ProductGridComponent::class);
+    
+        expect($instance)->toBeInstanceOf(ScopedProductGridComponent::class);
+    }
+);

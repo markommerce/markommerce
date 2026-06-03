@@ -35,8 +35,63 @@ use Markommerce\Layout\Compiler\ValidationPhase;
 use Markommerce\Layout\Discovery\LayoutDiscovery;
 use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
 use Markommerce\Layout\Runtime\Renderer;
+use Markommerce\Money\Money;
+use Markommerce\MoneyIntl\MoneyFormatter;
+use Markommerce\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Pricing\PriceContext;
+use Markommerce\Scope\Axis\ScopeAxis;
+use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Scope\Exceptions\UnknownAxisException;
+use Markommerce\Scope\Hierarchy\ScopeHierarchy;
+use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function catalogControllerMakeScopeContext(): ScopeContext
+{
+    $registry = new class () implements ScopeRegistryInterface
+    {
+        public function hasAxis(string $name): bool
+        {
+            return false;
+        }
+
+        public function getAxis(string $name): ScopeAxis
+        {
+            throw UnknownAxisException::forAxis($name);
+        }
+
+        /** @return list<string> */
+        public function listAxes(): array
+        {
+            return [];
+        }
+
+        public function getHierarchy(string $axisName): ScopeHierarchy
+        {
+            throw UnknownAxisException::forAxis($axisName);
+        }
+    };
+
+    return new ScopeContext($registry);
+}
+
+function catalogControllerMakeMoneyFormatter(): MoneyFormatter
+{
+    return new MoneyFormatter(catalogControllerMakeScopeContext());
+}
+
+function catalogControllerMakeNoPricePriceResolver(): PriceResolverInterface
+{
+    return new class () implements PriceResolverInterface
+    {
+        public function resolve(PriceContext $context): Money
+        {
+            throw PriceUnavailableException::forContext($context);
+        }
+    };
+}
 
 function catalogControllerTestCleanup(string $dir): void
 {
@@ -219,9 +274,12 @@ function catalogControllerTestBuildRouter(
     $container->instance(CategoryController::class, new CategoryController($categoryRepository));
     $container->instance(CategoryAssignmentService::class, $assignmentService);
 
-    $productGridComponent = new ProductGridComponent($assignmentService);
+    $priceResolver = catalogControllerMakeNoPricePriceResolver();
+    $moneyFormatter = catalogControllerMakeMoneyFormatter();
+
+    $productGridComponent = new ProductGridComponent($assignmentService, $priceResolver, $moneyFormatter);
     $container->instance(ProductGridComponent::class, $productGridComponent);
-    $container->instance(ProductCard::class, new ProductCard());
+    $container->instance(ProductCard::class, new ProductCard($priceResolver, $moneyFormatter));
     $container->instance(StockBadge::class, new StockBadge());
 
     $categoryDataProvider = new CategoryDataProvider($categoryRepository);

@@ -483,6 +483,62 @@ it('inlines sub-slot HTML into a parent template slot placeholder', function ():
     expect($html)->not->toContain('{slot child_slot}');
 });
 
+it('preserves dollar-sign sequences in inlined slot content (no preg backreference corruption)', function (): void {
+    $parentComp = new RT_ParentComponent();
+    $childComp = new RT_SimpleComponent();
+    $container = new FakeContainer();
+    $container->bind(RT_ParentComponent::class, $parentComp);
+    $container->bind(RT_SimpleComponent::class, $childComp);
+
+    $view = new class () extends FakeView
+    {
+        public function renderToString(
+            string $template,
+            array $data = [],
+        ): string {
+            $base = parent::renderToString($template, $data);
+            if (isset($data['_slots']['child_slot'])) {
+                $base = str_replace('</div>', '{slot child_slot}{/slot}</div>', $base);
+            }
+
+            return $base;
+        }
+    };
+
+    $tree = new PreparedTree(
+        handleKey: 'storefront',
+        template: null,
+        slots: [
+            'content' => [
+                new PreparedPlace(
+                    component: RT_ParentComponent::class,
+                    name: 'parent_place',
+                    props: ['title' => 'Parent'],
+                    slots: [
+                        'child_slot' => [
+                            new PreparedPlace(
+                                component: RT_SimpleComponent::class,
+                                name: 'child_place',
+                                // A formatted price renders into the child HTML as "$325.46".
+                                // The old preg_replace replacement ate "$32" as a backreference.
+                                props: ['title' => '$325.46'],
+                                slots: [],
+                            ),
+                        ],
+                    ],
+                ),
+            ],
+        ],
+        context: [],
+    );
+
+    $renderer = new Renderer($view, $container);
+    $html = $renderer->render($tree, makeRendererRequest(), []);
+
+    expect($html)->toContain('$325.46');
+    expect($html)->not->toContain('5.46<');
+});
+
 it('iterates a repeat slot rendering children once per item', function (): void {
     $itemComp = new RT_ItemComponent();
     $container = new FakeContainer();

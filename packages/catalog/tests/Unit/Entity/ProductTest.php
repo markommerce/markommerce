@@ -85,3 +85,39 @@ it('has no Markommerce\\Scope namespace imports in the Product class file', func
 
     expect($contents)->not->toContain('Markommerce\\Scope');
 });
+
+it('stores a product price amount as a decimal string', function (): void {
+    $product = new Product();
+    $product->priceAmount = '19.9900';
+
+    expect($product->priceAmount)->toBe('19.9900');
+});
+
+it('allows a product to have no price amount set', function (): void {
+    $product = new Product();
+
+    expect($product->priceAmount)->toBeNull();
+});
+
+it('preserves price amount precision without floating point drift', function (): void {
+    $product = new Product();
+    $product->priceAmount = '9.9999';
+
+    expect($product->priceAmount)->toBe('9.9999');
+    expect($product->priceAmount)->not->toBe(10.0);
+    expect(is_string($product->priceAmount))->toBeTrue();
+});
+
+it('maps the price amount property to the price_amount column', function (): void {
+    $reflection = new ReflectionClass(Product::class);
+    $property = $reflection->getProperty('priceAmount');
+    $attributes = $property->getAttributes(Column::class);
+
+    expect($attributes)->toHaveCount(1);
+
+    $column = $attributes[0]->newInstance();
+
+    expect($column->name)->toBe('price_amount')
+        ->and($column->type)->toBe('decimal(20,4)')
+        ->and($column->nullable)->toBeTrue();
+});

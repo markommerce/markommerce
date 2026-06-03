@@ -31,7 +31,7 @@ it('ships a docs page at docs/src/content/docs/packages/market.md with axis decl
     expect($content)->toContain('config/scope.php');
 });
 
-it('ships a docs page at docs/src/content/docs/packages/catalog-market.md that documents placeholder status and the resolver, assignment service, and delete plugin', function (): void {
+it('ships a docs page at docs/src/content/docs/packages/catalog-market.md that documents the market-scoped priceAmount registration and the resolver, assignment service, and delete plugin', function (): void {
     $file = __DIR__ . '/../../../docs/src/content/docs/packages/catalog-market.md';
 
     expect(file_exists($file))->toBeTrue();
@@ -55,8 +55,8 @@ it('ships a docs page at docs/src/content/docs/packages/catalog-market.md that d
     expect($content)->toContain('composer require markommerce/catalog-market');
     expect($content)->toContain('## Related Packages');
 
-    // Placeholder status documented
-    expect($content)->toContain('placeholder');
+    // Market-scoped Product.priceAmount registration documented
+    expect($content)->toContain('priceAmount');
 
     // Three key services documented
     expect($content)->toContain('CategoryTreeMarketResolver');
@@ -120,6 +120,6 @@ it('tests/Unit/Docs/CatalogMarketExtractPagesTest.php exists and all its asserti
     expect($content)->toContain('CategoryTreeMarketAssignmentService');
     expect($content)->toContain('CategoryTreeServiceDeletePlugin');
 
-    // Test file must assert catalog-market.md documents placeholder status
-    expect($content)->toContain('placeholder');
+    // Test file must assert catalog-market.md documents the market-scoped priceAmount registration
+    expect($content)->toContain('priceAmount');
 });

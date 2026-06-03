@@ -10,6 +10,8 @@ use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
+use Markommerce\MoneyIntl\MoneyFormatter;
+use Markommerce\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Scope\Exceptions\ScopeContextException;
 use Markommerce\Scope\Exceptions\UnknownAxisException;
 use Markommerce\Scope\Exceptions\UnknownScopeException;
@@ -21,8 +23,10 @@ class ScopedProductGridComponent extends ProductGridComponent
     public function __construct(
         CategoryAssignmentService $categoryAssignmentService,
         private ScopeResolver $scopeResolver,
+        PriceResolverInterface $priceResolver,
+        MoneyFormatter $moneyFormatter,
     ) {
-        parent::__construct($categoryAssignmentService);
+        parent::__construct($categoryAssignmentService, $priceResolver, $moneyFormatter);
     }
 
     /**
@@ -49,6 +53,7 @@ class ScopedProductGridComponent extends ProductGridComponent
             products: $data->products,
             resolvedNames: $resolvedNames,
             resolvedDescs: $resolvedDescs,
+            formattedPrices: $data->formattedPrices,
             extensions: $data->extensions,
         );
     }

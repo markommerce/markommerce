@@ -23,6 +23,17 @@ use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Data\ProductCardData;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
 use Markommerce\Layout\ExtensionBag;
+use Markommerce\Money\Currency;
+use Markommerce\Money\Money;
+use Markommerce\MoneyIntl\MoneyFormatter;
+use Markommerce\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Pricing\PriceContext;
+use Markommerce\Scope\Axis\ScopeAxis;
+use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Scope\Exceptions\UnknownAxisException;
+use Markommerce\Scope\Hierarchy\ScopeHierarchy;
+use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -61,10 +72,74 @@ function productGridBuildLatte(): Engine
     return $engine;
 }
 
+function makeGridScopeContextStub(?string $locale): ScopeContext
+{
+    $registry = new class () implements ScopeRegistryInterface
+    {
+        public function hasAxis(string $name): bool
+        {
+            return false;
+        }
+
+        public function getAxis(string $name): ScopeAxis
+        {
+            throw UnknownAxisException::forAxis($name);
+        }
+
+        /** @return list<string> */
+        public function listAxes(): array
+        {
+            return [];
+        }
+
+        public function getHierarchy(string $axisName): ScopeHierarchy
+        {
+            throw UnknownAxisException::forAxis($axisName);
+        }
+    };
+
+    return new class ($locale, $registry) extends ScopeContext
+    {
+        public function __construct(
+            private readonly ?string $activeLocale,
+            ScopeRegistryInterface $registry,
+        ) {
+            parent::__construct($registry);
+        }
+
+        public function get(string $axis): ?string
+        {
+            if ($axis === 'locale') {
+                return $this->activeLocale;
+            }
+
+            return null;
+        }
+    };
+}
+
+function makeGridMoneyFormatter(?string $locale = null): MoneyFormatter
+{
+    return new MoneyFormatter(makeGridScopeContextStub($locale));
+}
+
+function makeGridNoPricePriceResolver(): PriceResolverInterface
+{
+    return new class () implements PriceResolverInterface
+    {
+        public function resolve(PriceContext $context): Money
+        {
+            throw PriceUnavailableException::forContext($context);
+        }
+    };
+}
+
 function productGridBuildComponent(
     FakeCategoryRepository $categoryRepository,
     FakeProductRepository $productRepository,
     FakeProductCategoryAssignmentRepository $assignmentRepository,
+    ?PriceResolverInterface $priceResolver = null,
+    ?MoneyFormatter $moneyFormatter = null,
 ): ProductGridComponent {
     $service = new CategoryAssignmentService(
         $productRepository,
@@ -72,28 +147,36 @@ function productGridBuildComponent(
         $assignmentRepository,
     );
 
-    return new ProductGridComponent($service);
+    return new ProductGridComponent(
+        $service,
+        $priceResolver ?? makeGridNoPricePriceResolver(),
+        $moneyFormatter ?? makeGridMoneyFormatter(),
+    );
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-it('takes only CategoryAssignmentService in its constructor (no ScopeResolver, no direct repository)', function (): void {
-    $reflection = new ReflectionClass(ProductGridComponent::class);
-    $constructor = $reflection->getConstructor();
-
-    expect($constructor)->not->toBeNull();
-
-    $params = $constructor->getParameters();
-    $paramNames = array_map(fn ($p) => $p->getName(), $params);
-    $paramTypes = array_map(fn ($p) => $p->getType()?->getName(), $params);
-
-    expect($params)->toHaveCount(1);
-    expect($paramNames)->toContain('categoryAssignmentService');
-    expect($paramNames)->not->toContain('categoryRepository');
-    expect($paramNames)->not->toContain('scopeResolver');
-
-    expect($paramTypes)->toContain(CategoryAssignmentService::class);
-});
+it(
+    'takes only CategoryAssignmentService in its constructor (no ScopeResolver, no direct repository)',
+    function (): void {
+        $reflection = new ReflectionClass(ProductGridComponent::class);
+        $constructor = $reflection->getConstructor();
+    
+        expect($constructor)->not->toBeNull();
+    
+        $params = $constructor->getParameters();
+        $paramNames = array_map(fn ($p) => $p->getName(), $params);
+        $paramTypes = array_map(fn ($p) => $p->getType()?->getName(), $params);
+    
+        expect($paramNames)->toContain('categoryAssignmentService');
+        expect($paramNames)->not->toContain('categoryRepository');
+        expect($paramNames)->not->toContain('scopeResolver');
+    
+        expect($paramTypes)->toContain(CategoryAssignmentService::class);
+        expect($paramTypes)->toContain(PriceResolverInterface::class);
+        expect($paramTypes)->toContain(MoneyFormatter::class);
+    }
+);
 
 it('has no Markommerce\\Scope imports in the ProductGridComponent class file', function (): void {
     $source = file_get_contents(dirname(__DIR__, 3) . '/src/Component/ProductGridComponent.php');
@@ -124,29 +207,36 @@ it('returns a ProductGridData with the raw product name in resolvedNames keyed b
     expect($data->resolvedNames[$product->id])->toBe('Running Shoes');
 });
 
-it('returns a ProductGridData with the raw product description in resolvedDescs keyed by product id', function (): void {
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-
-    $category = new Category();
-    $category->name = 'Shoes';
-    $categoryRepository->save($category);
-
-    $product = new Product();
-    $product->sku = 'SHOE-001';
-    $product->name = 'Running Shoes';
-    $product->description = 'Great running shoes';
-    $productRepository->save($product);
-
-    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $assignmentService->assign($product->id, $category->id);
-
-    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category);
-
-    expect($data->resolvedDescs[$product->id])->toBe('Great running shoes');
-});
+it(
+    'returns a ProductGridData with the raw product description in resolvedDescs keyed by product id',
+    function (): void {
+        $categoryRepository = new FakeCategoryRepository();
+        $productRepository = new FakeProductRepository();
+        $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+    
+        $category = new Category();
+        $category->name = 'Shoes';
+        $categoryRepository->save($category);
+    
+        $product = new Product();
+        $product->sku = 'SHOE-001';
+        $product->name = 'Running Shoes';
+        $product->description = 'Great running shoes';
+        $productRepository->save($product);
+    
+        $assignmentService = new CategoryAssignmentService(
+            $productRepository,
+            $categoryRepository,
+            $assignmentRepository
+        );
+        $assignmentService->assign($product->id, $category->id);
+    
+        $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
+        $data = $component->data($category);
+    
+        expect($data->resolvedDescs[$product->id])->toBe('Great running shoes');
+    }
+);
 
 it('returns an empty products list when the category has no id', function (): void {
     $categoryRepository = new FakeCategoryRepository();
@@ -208,7 +298,11 @@ it('skips products with null id when building the resolved maps', function (): v
 
     $assignmentService->assign($productWithId->id, $category->id);
 
-    $component = new ProductGridComponent($assignmentService);
+    $component = new ProductGridComponent(
+        $assignmentService,
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter()
+    );
     $data = $component->data($category);
 
     // Only the product with a real id appears in the maps
@@ -375,6 +469,7 @@ it('renders the product card template with a placeholder image for the product S
         'resolvedName' => $data->resolvedName,
         'resolvedDesc' => $data->resolvedDesc,
         'inStock' => $data->inStock,
+        'formattedPrice' => $data->formattedPrice,
         'extensions' => $data->extensions,
     ]);
 
@@ -404,4 +499,97 @@ it('renders a muted empty state when the category has no products', function ():
 
     expect($output)->toContain('No products found');
     expect($output)->toContain('muted');
+});
+
+it('exposes formatted prices keyed by product id from the product grid', function (): void {
+    $categoryRepository = new FakeCategoryRepository();
+    $productRepository = new FakeProductRepository();
+    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+
+    $category = new Category();
+    $category->name = 'Shoes';
+    $categoryRepository->save($category);
+
+    $pricedProduct = new Product();
+    $pricedProduct->sku = 'SHOE-001';
+    $pricedProduct->name = 'Running Shoes';
+    $pricedProduct->priceAmount = '49.99';
+    $productRepository->save($pricedProduct);
+
+    $unpricedProduct = new Product();
+    $unpricedProduct->sku = 'GHOST-001';
+    $unpricedProduct->name = 'No Price Item';
+    $productRepository->save($unpricedProduct);
+
+    $usd = new Currency(code: 'USD', scale: 2, symbol: '$', name: 'US Dollar');
+    $pricedMoney = Money::of('49.99', $usd);
+
+    $priceResolver = new class ($pricedProduct->id, $pricedMoney) implements PriceResolverInterface
+    {
+        public function __construct(
+            private readonly int $pricedProductId,
+            private readonly Money $money,
+        ) {}
+
+        public function resolve(PriceContext $context): Money
+        {
+            if ($context->product->id === $this->pricedProductId) {
+                return $this->money;
+            }
+
+            throw PriceUnavailableException::forContext($context);
+        }
+    };
+
+    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
+    $assignmentService->assign($pricedProduct->id, $category->id);
+    $assignmentService->assign($unpricedProduct->id, $category->id);
+
+    $component = new ProductGridComponent($assignmentService, $priceResolver, makeGridMoneyFormatter('en_US'));
+    $data = $component->data($category);
+
+    expect($data->formattedPrices)->toHaveKey($pricedProduct->id)
+        ->and($data->formattedPrices[$pricedProduct->id])->toContain('$')
+        ->and($data->formattedPrices[$pricedProduct->id])->toContain('49.99')
+        ->and($data->formattedPrices)->toHaveKey($unpricedProduct->id)
+        ->and($data->formattedPrices[$unpricedProduct->id])->toBeNull();
+});
+
+it('renders the price for each card in the product grid', function (): void {
+    $categoryRepository = new FakeCategoryRepository();
+    $productRepository = new FakeProductRepository();
+    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+
+    $category = new Category();
+    $category->name = 'Electronics';
+    $categoryRepository->save($category);
+
+    $product = new Product();
+    $product->sku = 'ELEC-001';
+    $product->name = 'Laptop';
+    $product->priceAmount = '999.99';
+    $productRepository->save($product);
+
+    $usd = new Currency(code: 'USD', scale: 2, symbol: '$', name: 'US Dollar');
+    $money = Money::of('999.99', $usd);
+
+    $priceResolver = new class ($money) implements PriceResolverInterface
+    {
+        public function __construct(private readonly Money $money) {}
+
+        public function resolve(PriceContext $context): Money
+        {
+            return $this->money;
+        }
+    };
+
+    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
+    $assignmentService->assign($product->id, $category->id);
+
+    $component = new ProductGridComponent($assignmentService, $priceResolver, makeGridMoneyFormatter('en_US'));
+    $data = $component->data($category);
+
+    expect($data->formattedPrices)->toHaveKey($product->id)
+        ->and($data->formattedPrices[$product->id])->toContain('$')
+        ->and($data->formattedPrices[$product->id])->toContain('999.99');
 });

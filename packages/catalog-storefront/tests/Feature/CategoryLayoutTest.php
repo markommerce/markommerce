@@ -39,8 +39,63 @@ use Markommerce\Layout\Layout;
 use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
 use Markommerce\Layout\Runtime\Renderer;
 use Markommerce\Layout\Slot;
+use Markommerce\Money\Money;
+use Markommerce\MoneyIntl\MoneyFormatter;
+use Markommerce\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Pricing\PriceContext;
+use Markommerce\Scope\Axis\ScopeAxis;
+use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Scope\Exceptions\UnknownAxisException;
+use Markommerce\Scope\Hierarchy\ScopeHierarchy;
+use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function catalogLayoutMakeScopeContext(): ScopeContext
+{
+    $registry = new class () implements ScopeRegistryInterface
+    {
+        public function hasAxis(string $name): bool
+        {
+            return false;
+        }
+
+        public function getAxis(string $name): ScopeAxis
+        {
+            throw UnknownAxisException::forAxis($name);
+        }
+
+        /** @return list<string> */
+        public function listAxes(): array
+        {
+            return [];
+        }
+
+        public function getHierarchy(string $axisName): ScopeHierarchy
+        {
+            throw UnknownAxisException::forAxis($axisName);
+        }
+    };
+
+    return new ScopeContext($registry);
+}
+
+function catalogLayoutMakeMoneyFormatter(): MoneyFormatter
+{
+    return new MoneyFormatter(catalogLayoutMakeScopeContext());
+}
+
+function catalogLayoutMakeNoPricePriceResolver(): PriceResolverInterface
+{
+    return new class () implements PriceResolverInterface
+    {
+        public function resolve(PriceContext $context): Money
+        {
+            throw PriceUnavailableException::forContext($context);
+        }
+    };
+}
 
 function catalogLayoutLoadLayoutFile(): Layout
 {
@@ -224,7 +279,11 @@ it('returns a typed ProductGridData DTO from the grid component data method', fu
         $assignmentRepository,
     );
 
-    $component = new ProductGridComponent($assignmentService);
+    $component = new ProductGridComponent(
+        $assignmentService,
+        catalogLayoutMakeNoPricePriceResolver(),
+        catalogLayoutMakeMoneyFormatter()
+    );
     $data = $component->data($category);
 
     expect($data)->toBeInstanceOf(ProductGridData::class);
@@ -315,8 +374,12 @@ it('renders the category page with a grid of product cards', function (): void {
     $container->instance(CategoryController::class, new CategoryController($categoryRepository));
     $container->instance(CategoryAssignmentService::class, $assignmentService);
 
-    $productGridComponent = new ProductGridComponent($assignmentService);
+    $priceResolver = catalogLayoutMakeNoPricePriceResolver();
+    $moneyFormatter = catalogLayoutMakeMoneyFormatter();
+
+    $productGridComponent = new ProductGridComponent($assignmentService, $priceResolver, $moneyFormatter);
     $container->instance(ProductGridComponent::class, $productGridComponent);
+    $container->instance(ProductCard::class, new ProductCard($priceResolver, $moneyFormatter));
 
     // Register CategoryDataProvider that uses the fake repository
     $categoryDataProvider = new CategoryDataProvider($categoryRepository);

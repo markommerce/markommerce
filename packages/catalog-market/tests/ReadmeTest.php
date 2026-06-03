@@ -20,20 +20,22 @@ it('ships a README that follows the project package README standards', function 
         ->toContain('markommerce.dev/docs/packages/catalog-market');
 });
 
-it('markommerce/catalog-market README declares its placeholder status with a Placeholder status section', function (): void {
+it('markommerce/catalog-market README documents the active market-scoped priceAmount registration', function (): void {
     $readmePath = dirname(__DIR__) . '/README.md';
     $content = file_get_contents($readmePath);
 
     expect($content)
-        ->toContain('## Placeholder Status')
-        ->toContain('empty boot closure')
-        ->toContain('price')
-        ->toContain('visibility');
+        ->toContain('priceAmount')
+        ->toContain('market')
+        ->toContain('Product');
 });
 
-it('markommerce/catalog-market README cross-links to FEATURES.md for the planned end state', function (): void {
+it('markommerce/catalog-market README documents per-market price override and fallback behavior', function (): void {
     $readmePath = dirname(__DIR__) . '/README.md';
     $content = file_get_contents($readmePath);
 
-    expect($content)->toContain('FEATURES.md');
+    expect($content)
+        ->toContain('ScopeResolver')
+        ->toContain('ProductScopedOverrides')
+        ->toContain('setOverride');
 });

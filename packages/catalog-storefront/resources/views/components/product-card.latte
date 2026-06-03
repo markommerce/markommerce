@@ -5,6 +5,9 @@
             alt="{$resolvedName}"
             width="400" height="400" loading="lazy">
         <mk-heading level="3" size="md">{$resolvedName}</mk-heading>
+        {if $formattedPrice}
+            <mk-text class="catalog-product-card__price">{$formattedPrice}</mk-text>
+        {/if}
         {if $resolvedDesc}
             <mk-text variant="small">{$resolvedDesc}</mk-text>
         {/if}

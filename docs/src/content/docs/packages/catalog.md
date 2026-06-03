@@ -313,6 +313,7 @@ Table: `catalog_products`
 | `$sku` | `string` | `sku` (unique, length 64) | Globally unique; enforced at DB and service level |
 | `$name` | `string` | `name` (length 255) | |
 | `$description` | `?string` | `description` (text, nullable) | |
+| `$priceAmount` | `?string` | `price_amount` (`decimal(20,4)`, nullable) | Global base price amount as a decimal string. Currency is resolved separately via `CurrencyResolver`. Per-market overrides are registered by [markommerce/catalog-market](/docs/packages/catalog-market/). |
 
 Scoped override support is not built into this entity. Install [markommerce/catalog-scope](/docs/packages/catalog-scope/) to add a `scopes` column and `HasScopesInterface` support via a companion entity.
 
@@ -496,6 +497,7 @@ All exceptions extend `MarkoException` and carry a `message`, `context`, and `su
 - [markommerce/catalog-storefront](/docs/packages/catalog-storefront/) --- Storefront route, layout definition, product grid and card components for `markommerce/catalog`
 - [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- Adds `HasScopesInterface` support to `Product` and `Category` via companion entities; required if you want scoped overrides on catalog entities
 - [markommerce/catalog-locale](/docs/packages/catalog-locale/) --- Bridge that registers `name` and `description` as locale-scoped on `Product` and `Category`
-- [markommerce/catalog-market](/docs/packages/catalog-market/) --- Per-market category tree assignment, resolution, and deletion guard plugin; also provides the ScopedFieldRegistry hook for future market-scoped catalog fields
+- [markommerce/catalog-market](/docs/packages/catalog-market/) --- Per-market category tree assignment, resolution, deletion guard plugin, and per-market `priceAmount` override registration
+- [markommerce/pricing](/docs/packages/pricing/) --- Resolves a product's effective price as a `Money` value object using `Product.priceAmount` and the active currency
 - [markommerce/scope](/docs/packages/scope/) --- Scoped attribute resolution engine
 - [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver required to persist and query scoped overrides

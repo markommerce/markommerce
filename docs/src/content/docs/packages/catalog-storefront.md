@@ -3,7 +3,7 @@ title: markommerce/catalog-storefront
 description: Public storefront for markommerce/catalog --- HTTP controllers, Latte templates, layout glue, and theme integration.
 ---
 
-Public storefront for `markommerce/catalog`. `markommerce/catalog-storefront` provides the `CategoryController`, layout definition, `ProductGridComponent`, `ProductCard`, `StockBadge`, and Latte templates that turn the catalog domain into a browsable storefront. Installing the package is enough to get a working product grid at `GET /catalog/category/{id}` --- no manual wiring required. To add locale-aware name and description resolution, install [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-scope/).
+Public storefront for `markommerce/catalog`. `markommerce/catalog-storefront` provides the `CategoryController`, layout definition, `ProductGridComponent`, `ProductCard`, `StockBadge`, and Latte templates that turn the catalog domain into a browsable storefront. Installing the package is enough to get a working product grid at `GET /catalog/category/{id}` --- no manual wiring required. The product card resolves and displays a locale-formatted price using [markommerce/pricing](/docs/packages/pricing/) and [markommerce/money-intl](/docs/packages/money-intl/); when a product has no price the card omits the price element. To add locale-aware name and description resolution, install [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-scope/).
 
 ## Installation
 
@@ -11,7 +11,7 @@ Public storefront for `markommerce/catalog`. `markommerce/catalog-storefront` pr
 composer require markommerce/catalog-storefront
 ```
 
-`markommerce/catalog` is declared as a Composer dependency and installed automatically. The package registers its module bindings and layout definition via `module.php`. No manual service binding is required.
+`markommerce/catalog`, `markommerce/pricing`, and `markommerce/money-intl` are declared as Composer dependencies and installed automatically. The package registers its module bindings and layout definition via `module.php`. No manual service binding is required.
 
 ## Usage
 
@@ -116,21 +116,21 @@ The layout definition extends `OneColumnLayout` from `markommerce/theme-blank`. 
 
 ### `ProductGridComponent`
 
-A placement-agnostic component that resolves products for a category and builds `ProductGridData`. Its `data(Category $category)` method loads the products assigned to the category and populates `resolvedNames` and `resolvedDescs` with the raw entity values.
+A placement-agnostic component that resolves products for a category and builds `ProductGridData`. Its `data(Category $category)` method loads the products assigned to the category, populates `resolvedNames` and `resolvedDescs` with the raw entity values, and resolves a locale-formatted price for each product via `PriceResolverInterface` and `MoneyFormatter`. Products without a price receive a `null` entry in `formattedPrices`.
 
 When [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-scope/) is installed, its `ScopedProductGridComponent` Preference replaces this component and resolves locale-aware names and descriptions via `ScopeResolver`.
 
 | Method | Return type | Description |
 |---|---|---|
-| `data(Category $category)` | `ProductGridData` | Load products for the category; return a `ProductGridData` DTO with raw name and description values. |
+| `data(Category $category)` | `ProductGridData` | Load products for the category; return a `ProductGridData` DTO with raw name and description values and a formatted price map. |
 
 ### `ProductCard`
 
-The per-item component rendered inside the `products` repeat slot. Its `data(Product $product)` method returns a `ProductCardData` DTO.
+The per-item component rendered inside the `products` repeat slot. Its `data(Product $product)` method returns a `ProductCardData` DTO. The component injects `PriceResolverInterface` and `MoneyFormatter` to resolve and locale-format the product's price; a `null` `formattedPrice` is returned when the product has no price or the resolver throws `PriceUnavailableException`.
 
 | Method | Return type | Description |
 |---|---|---|
-| `data(Product $product)` | `ProductCardData` | Build per-product display data including resolved name, description, and stock status. |
+| `data(Product $product)` | `ProductCardData` | Build per-product display data including resolved name, description, stock status, and locale-formatted price (nullable). |
 
 ### `StockBadge`
 
@@ -150,6 +150,7 @@ DTO returned by `ProductGridComponent::data()`. Extends `ExtensibleData`.
 | `$products` | `list<Product>` | All products assigned to the category |
 | `$resolvedNames` | `array<int, string>` | Display name keyed by product ID (raw value; scope-resolved when `catalog-storefront-scope` is installed) |
 | `$resolvedDescs` | `array<int, string\|null>` | Display description keyed by product ID (raw value; scope-resolved when `catalog-storefront-scope` is installed) |
+| `$formattedPrices` | `array<int, string\|null>` | Locale-formatted price string keyed by product ID; `null` when the product has no price |
 | `$extensions` | `ExtensionBag` | Typed extension attributes (third-party use) |
 
 ### `ProductCardData`
@@ -162,6 +163,7 @@ DTO returned by `ProductCard::data()`. Extends `ExtensibleData`.
 | `$resolvedName` | `string` | Display name (raw value; scope-resolved when `catalog-storefront-scope` is installed) |
 | `$resolvedDesc` | `string` | Display description, defaults to empty string when the product has no description (raw value; scope-resolved when `catalog-storefront-scope` is installed) |
 | `$inStock` | `bool` | Whether the product is currently in stock |
+| `$formattedPrice` | `?string` | Locale-formatted price string; `null` when the product has no price |
 | `$extensions` | `ExtensionBag` | Typed extension attributes (third-party use) |
 
 Both `ProductGridData` and `ProductCardData` extend `ExtensibleData`, allowing third-party modules to attach typed extension attributes via `withExtension()` without subclassing the DTO. See [markommerce/layout](/docs/packages/layout/) for details on the extension attribute pattern.
@@ -170,6 +172,8 @@ Both `ProductGridData` and `ProductCardData` extend `ExtensibleData`, allowing t
 
 - [markommerce/catalog](/docs/packages/catalog/) --- Provides `Product`, `Category`, and the repository and service layer consumed by this package
 - [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-scope/) --- Adds locale-aware rendering; Preference-replaces `ProductGridComponent` with `ScopedProductGridComponent`
+- [markommerce/pricing](/docs/packages/pricing/) --- Resolves a product's effective price as a `Money` value object; used by `ProductGridComponent` and `ProductCard` to build formatted price strings
+- [markommerce/money-intl](/docs/packages/money-intl/) --- Provides `MoneyFormatter`, which locale-formats `Money` values into display strings
 - [markommerce/layout](/docs/packages/layout/) --- Layout resolution, typed component data DTOs, and extension operations used by the category page
 - [markommerce/theme-blank](/docs/packages/theme-blank/) --- Provides `OneColumnLayout` extended by the category layout definition
 - [markommerce/frontend](/docs/packages/frontend/) --- Frontend asset pipeline consumed by the storefront templates

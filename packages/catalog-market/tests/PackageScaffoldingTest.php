@@ -50,7 +50,7 @@ it('declares require entries for markommerce/catalog-scope and markommerce/marke
         ->and($module['require'])->toHaveKey('markommerce/catalog');
 });
 
-it('ships an empty-but-callable boot closure typed on ScopedFieldRegistry', function (): void {
+it('ships a callable boot closure typed on ScopedFieldRegistry', function (): void {
     $module = require dirname(__DIR__) . '/module.php';
 
     expect($module)->toHaveKey('boot')
@@ -75,7 +75,7 @@ it('registers the package in the root composer.json require block and adds Marko
         ->and($rootComposer['autoload-dev']['psr-4']['Markommerce\\CatalogMarket\\Tests\\'])->toBe('packages/catalog-market/tests/');
 });
 
-it('registers no scoped fields when the boot closure runs against a fresh ScopedFieldRegistry', function (): void {
+it('registers Product.priceAmount on the market axis when the boot closure runs against a fresh ScopedFieldRegistry', function (): void {
     $fakeScopeRegistry = new class () implements ScopeRegistryInterface
     {
         public function hasAxis(string $name): bool
@@ -107,5 +107,6 @@ it('registers no scoped fields when the boot closure runs against a fresh Scoped
     $boot = (require dirname(__DIR__) . '/module.php')['boot'];
     $boot($registry);
 
-    expect($registry->hasScopedProperties(Product::class))->toBeFalse();
+    expect($registry->hasScopedProperties(Product::class))->toBeTrue()
+        ->and($registry->axesForProperty(Product::class, 'priceAmount'))->toBe(['market']);
 });
