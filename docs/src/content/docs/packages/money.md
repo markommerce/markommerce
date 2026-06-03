@@ -30,7 +30,7 @@ echo $jpy->scale;  // 0 — yen has no sub-unit
 
 ### CurrencyRegistryInterface
 
-The registry resolves an ISO 4217 code string into a `Currency` instance. The default implementation ships USD, EUR, GBP, JPY, PLN, and CHF out of the box. Swap it with your own via a Marko Preference bound to `CurrencyRegistryInterface::class`:
+The registry resolves an ISO 4217 code string into a `Currency` instance. The default implementation ships the full set of circulating ISO 4217 currencies (~156 — excluding precious-metal, fund/bond, and test codes), loaded from a bundled static dataset (no `ext-intl` runtime dependency). Minor units follow the official ISO 4217 standard (e.g. JPY scale 0, BHD/IQD scale 3). Swap it with your own via a Marko Preference bound to `CurrencyRegistryInterface::class`:
 
 ```php
 use Markommerce\Money\DefaultCurrencyRegistry;
@@ -120,7 +120,7 @@ Readonly value object. The constructor validates and uppercases `$code`.
 | `has(string $code)` | `bool` | --- | Return `true` when the code is registered. |
 | `all()` | `array<string, Currency>` | --- | Return all registered currencies keyed by code. |
 
-`DefaultCurrencyRegistry` ships USD, EUR, GBP, JPY, PLN, and CHF. Extend or replace it via Marko Preferences.
+`DefaultCurrencyRegistry` ships all circulating ISO 4217 currencies (~156) from a bundled static dataset, with official ISO 4217 minor units. Extend or replace it via Marko Preferences.
 
 ### `Money`
 

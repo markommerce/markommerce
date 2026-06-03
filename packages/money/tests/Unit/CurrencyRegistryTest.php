@@ -52,6 +52,28 @@ it('returns all seeded currencies keyed by code', function (): void {
     }
 });
 
+it('resolves circulating iso 4217 currencies beyond the core majors', function (): void {
+    $registry = new DefaultCurrencyRegistry();
+
+    foreach (['SEK', 'AUD', 'CAD', 'BRL', 'INR', 'ZAR'] as $code) {
+        expect($registry->has($code))->toBeTrue()
+            ->and($registry->get($code)->code)->toBe($code);
+    }
+});
+
+it('seeds three decimal currencies like BHD with a scale of three', function (): void {
+    $registry = new DefaultCurrencyRegistry();
+
+    expect($registry->get('BHD')->scale)->toBe(3)
+        ->and($registry->get('IQD')->scale)->toBe(3);
+});
+
+it('registers the full circulating iso 4217 set', function (): void {
+    $registry = new DefaultCurrencyRegistry();
+
+    expect(count($registry->all()))->toBeGreaterThan(100);
+});
+
 it('binds the default registry to the interface in module.php', function (): void {
     $module = require dirname(__DIR__, 2) . '/module.php';
 
