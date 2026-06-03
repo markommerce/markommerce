@@ -42,8 +42,7 @@ class MoneyFormatter
     public function formatFor(
         Money $money,
         string $locale,
-    ): string
-    {
+    ): string {
         $formatter = new NumberFormatter($locale, NumberFormatter::CURRENCY);
 
         // The canonical amount is Money->amount() (decimal string). We cast to float only

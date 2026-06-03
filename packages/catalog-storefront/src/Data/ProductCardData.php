@@ -15,6 +15,7 @@ readonly class ProductCardData extends ExtensibleData
         public string $resolvedName,
         public string $resolvedDesc,
         public bool $inStock,
+        public ?string $formattedPrice = null,
         ExtensionBag $extensions = new ExtensionBag(),
     ) {
         parent::__construct($extensions);

@@ -38,8 +38,63 @@ use Markommerce\Layout\Compiler\ValidationPhase;
 use Markommerce\Layout\Discovery\LayoutDiscovery;
 use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
 use Markommerce\Layout\Runtime\Renderer;
+use Markommerce\Money\Money;
+use Markommerce\MoneyIntl\MoneyFormatter;
+use Markommerce\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Pricing\PriceContext;
+use Markommerce\Scope\Axis\ScopeAxis;
+use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Scope\Exceptions\UnknownAxisException;
+use Markommerce\Scope\Hierarchy\ScopeHierarchy;
+use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function tier1MakeScopeContext(): ScopeContext
+{
+    $registry = new class () implements ScopeRegistryInterface
+    {
+        public function hasAxis(string $name): bool
+        {
+            return false;
+        }
+
+        public function getAxis(string $name): ScopeAxis
+        {
+            throw UnknownAxisException::forAxis($name);
+        }
+
+        /** @return list<string> */
+        public function listAxes(): array
+        {
+            return [];
+        }
+
+        public function getHierarchy(string $axisName): ScopeHierarchy
+        {
+            throw UnknownAxisException::forAxis($axisName);
+        }
+    };
+
+    return new ScopeContext($registry);
+}
+
+function tier1MakeMoneyFormatter(): MoneyFormatter
+{
+    return new MoneyFormatter(tier1MakeScopeContext());
+}
+
+function tier1MakeNoPricePriceResolver(): PriceResolverInterface
+{
+    return new class () implements PriceResolverInterface
+    {
+        public function resolve(PriceContext $context): Money
+        {
+            throw PriceUnavailableException::forContext($context);
+        }
+    };
+}
 
 /**
  * Paths to the Tier 1 packages, resolved relative to the test file location.
@@ -279,12 +334,18 @@ class TrackingContainer implements ContainerInterface
         $this->inner->singleton($id);
     }
 
-    public function instance(string $id, object $instance): void
+    public function instance(
+        string $id,
+        object $instance,
+    ): void
     {
         $this->inner->instance($id, $instance);
     }
 
-    public function bind(string $interface, string|Closure $implementation): void
+    public function bind(
+        string $interface,
+        string|Closure $implementation,
+    ): void
     {
         $this->inner->bind($interface, $implementation);
     }
@@ -338,9 +399,12 @@ function buildTier1Container(
     $categoryController = new CategoryController($categoryRepository);
     $inner->instance(CategoryController::class, $categoryController);
 
-    $productGridComponent = new ProductGridComponent($assignmentService);
+    $priceResolver = tier1MakeNoPricePriceResolver();
+    $moneyFormatter = tier1MakeMoneyFormatter();
+
+    $productGridComponent = new ProductGridComponent($assignmentService, $priceResolver, $moneyFormatter);
     $inner->instance(ProductGridComponent::class, $productGridComponent);
-    $inner->instance(ProductCard::class, new ProductCard());
+    $inner->instance(ProductCard::class, new ProductCard($priceResolver, $moneyFormatter));
     $inner->instance(StockBadge::class, new StockBadge());
 
     $categoryDataProvider = new CategoryDataProvider($categoryRepository);

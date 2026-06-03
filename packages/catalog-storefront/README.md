@@ -8,7 +8,7 @@ Public storefront for `markommerce/catalog` --- HTTP controllers, Latte template
 composer require markommerce/catalog-storefront
 ```
 
-`markommerce/catalog` is declared as a dependency and installed automatically. To add locale-aware rendering, also install `markommerce/catalog-storefront-scope`.
+`markommerce/catalog`, `markommerce/pricing`, and `markommerce/money-intl` are declared as dependencies and installed automatically. To add locale-aware rendering, also install `markommerce/catalog-storefront-scope`.
 
 ## Quick Example
 
@@ -32,6 +32,7 @@ $data = $productGridComponent->data($category);
 // $data->products — list of Product entities in the category
 // $data->resolvedNames — map of product id => display name
 // $data->resolvedDescs — map of product id => display description
+// $data->formattedPrices — map of product id => locale-formatted price string (null when no price)
 ```
 
 ## Storefront Route
@@ -56,8 +57,8 @@ use Markommerce\Layout\LayoutDefinition;
 
 | Component | Description |
 |-----------|-------------|
-| `ProductGridComponent` | Resolves products for a category and builds `ProductGridData` |
-| `ProductCard` | Renders a single product card (name, description, stock badge) |
+| `ProductGridComponent` | Resolves products for a category, builds `ProductGridData` including a formatted price map |
+| `ProductCard` | Renders a single product card (name, description, price, stock badge) |
 | `StockBadge` | Displays stock status for a product |
 
 `ProductGridData` fields:
@@ -68,6 +69,7 @@ use Markommerce\Layout\LayoutDefinition;
 | `products` | `list<Product>` | Products assigned to the category |
 | `resolvedNames` | `array<int, string>` | Display name per product id |
 | `resolvedDescs` | `array<int, string\|null>` | Display description per product id |
+| `formattedPrices` | `array<int, string\|null>` | Locale-formatted price per product id; `null` when no price |
 
 For locale-aware name and description resolution, install `markommerce/catalog-storefront-scope`. That package Preference-replaces `ProductGridComponent` with `ScopedProductGridComponent`, which resolves field values through `ScopeResolver`.
 

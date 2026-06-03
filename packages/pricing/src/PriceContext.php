@@ -27,8 +27,7 @@ readonly class PriceContext
     public static function forProduct(
         Product $product,
         ?string $market = null,
-    ): self
-    {
+    ): self {
         return new self($product, $market);
     }
 }

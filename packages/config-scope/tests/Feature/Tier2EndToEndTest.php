@@ -16,8 +16,10 @@ use Marko\Core\Module\ModuleRepository;
 use Marko\Core\Module\ModuleRepositoryInterface;
 use Marko\Core\Path\ProjectPaths;
 use Marko\Database\Connection\ConnectionInterface;
+use Markommerce\Config\Cache\CachingConfigResolver;
 use Markommerce\Config\Command\SetCommand;
 use Markommerce\Config\ConfigResolver;
+use Markommerce\Config\Contracts\ConfigCacheInterface;
 use Markommerce\Config\Contracts\ConfigStorageInterface;
 use Markommerce\Config\Contracts\ConfigWriterInterface;
 use Markommerce\Config\Contracts\SecretCipherInterface;
@@ -31,6 +33,7 @@ use Markommerce\ConfigScope\PgSql\PgsqlScopedConfigStorage;
 use Markommerce\ConfigScope\PgSql\Schema\ConfigValueOverridesTableEmitter;
 use Markommerce\ConfigScope\ScopedConfigResolver;
 use Markommerce\ConfigScope\ScopedConfigWriter;
+use Markommerce\ConfigScope\Tests\Feature\Fixtures\TranslatableSiteConfig;
 use Markommerce\ConfigScope\Tests\Feature\Helpers\PostgresTestConnection;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Metadata\ScopedFieldRegistry;
@@ -216,8 +219,8 @@ function buildTier2ConfigScopeContainer(
     $preferenceDiscovery = new PreferenceDiscovery();
 
     $configResolverClasses = [
-        \Markommerce\Config\ConfigResolver::class,
-        \Markommerce\Config\Cache\CachingConfigResolver::class,
+        ConfigResolver::class,
+        CachingConfigResolver::class,
     ];
 
     foreach ($manifests as $manifest) {
@@ -301,14 +304,14 @@ function buildTier2ConfigScopeContainer(
     // We override the binding so ConfigWriterInterface resolves to ScopedConfigWriter directly,
     // which is what the Preference system achieves in a full app bootstrap.
     $container->bind(
-        \Markommerce\Config\Contracts\ConfigWriterInterface::class,
-        \Markommerce\ConfigScope\ScopedConfigWriter::class,
+        ConfigWriterInterface::class,
+        ScopedConfigWriter::class,
     );
 
     // Bind ScopedConfigWriterInterface so tests can resolve it directly
     $container->bind(
-        \Markommerce\ConfigScope\Contracts\ScopedConfigWriterInterface::class,
-        \Markommerce\ConfigScope\ScopedConfigWriter::class,
+        ScopedConfigWriterInterface::class,
+        ScopedConfigWriter::class,
     );
 
     return $container;
@@ -388,7 +391,7 @@ beforeEach(function (): void {
     copy($fixtureSource, $fixtureSrcDir . '/TranslatableSiteConfig.php');
 
     // Load the class (it won't be loaded twice if already loaded in a previous test)
-    if (!class_exists(\Markommerce\ConfigScope\Tests\Feature\Fixtures\TranslatableSiteConfig::class, false)) {
+    if (!class_exists(TranslatableSiteConfig::class, false)) {
         require $fixtureSource;
     }
 
@@ -461,7 +464,7 @@ it(
         $scopeContext->in('locale', 'de');
 
         $result = $resolver->resolved(
-            \Markommerce\ConfigScope\Tests\Feature\Fixtures\TranslatableSiteConfig::class,
+            TranslatableSiteConfig::class,
             'greeting',
         );
 
@@ -494,7 +497,7 @@ it(
         $scopeContext->in('locale', 'fr');
 
         $result = $resolver->resolved(
-            \Markommerce\ConfigScope\Tests\Feature\Fixtures\TranslatableSiteConfig::class,
+            TranslatableSiteConfig::class,
             'greeting',
         );
 
@@ -516,7 +519,7 @@ it(
 
         // No global, no override — should return the PHP default value from the class
         $result = $resolver->resolved(
-            \Markommerce\ConfigScope\Tests\Feature\Fixtures\TranslatableSiteConfig::class,
+            TranslatableSiteConfig::class,
             'greeting',
         );
 
@@ -547,7 +550,7 @@ it(
 
         // Confirm override is live
         expect($resolver->resolved(
-            \Markommerce\ConfigScope\Tests\Feature\Fixtures\TranslatableSiteConfig::class,
+            TranslatableSiteConfig::class,
             'greeting',
         ))->toBe('Hallo');
 
@@ -559,16 +562,16 @@ it(
         // next resolved() call re-fetches from storage.
         // Note: setAccessible() is deprecated since PHP 8.5 (no-op since 8.1) — omit it.
         $cacheProperty = new ReflectionProperty(
-            \Markommerce\Config\Cache\CachingConfigResolver::class,
+            CachingConfigResolver::class,
             'configCache',
         );
-        /** @var \Markommerce\Config\Contracts\ConfigCacheInterface $resolverCache */
+        /** @var ConfigCacheInterface $resolverCache */
         $resolverCache = $cacheProperty->getValue($resolver);
         $resolverCache->clear();
 
         // Now resolver should fall back to global
         expect($resolver->resolved(
-            \Markommerce\ConfigScope\Tests\Feature\Fixtures\TranslatableSiteConfig::class,
+            TranslatableSiteConfig::class,
             'greeting',
         ))->toBe('Global Hello');
     },
@@ -595,7 +598,7 @@ it(
         $scopeContext->in('market', 'eu');
 
         $result = $resolver->resolved(
-            \Markommerce\ConfigScope\Tests\Feature\Fixtures\TranslatableSiteConfig::class,
+            TranslatableSiteConfig::class,
             'tagline',
         );
 
@@ -613,7 +616,7 @@ it(
         // Verify no locale-scoped config fields were added by config-locale
         // (only our fixture class has locale-scoped fields)
         $hasScopedFields = $registry->hasScopedProperties(
-            \Markommerce\ConfigScope\Tests\Feature\Fixtures\TranslatableSiteConfig::class,
+            TranslatableSiteConfig::class,
         );
 
         // The fixture has scoped fields — they come from config-scope's boot, not config-locale
@@ -631,11 +634,11 @@ it(
         // config-market's boot is a placeholder — it registers no fields
         // Verify the registry only has what our fixture contributed
         $greetingAxes = $registry->axesForProperty(
-            \Markommerce\ConfigScope\Tests\Feature\Fixtures\TranslatableSiteConfig::class,
+            TranslatableSiteConfig::class,
             'greeting',
         );
         $taglineAxes = $registry->axesForProperty(
-            \Markommerce\ConfigScope\Tests\Feature\Fixtures\TranslatableSiteConfig::class,
+            TranslatableSiteConfig::class,
             'tagline',
         );
 

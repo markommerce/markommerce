@@ -9,6 +9,7 @@ use Marko\Core\Container\ContainerInterface;
 use Marko\Core\Module\DependencyResolver;
 use Marko\Core\Module\ModuleManifest;
 use Markommerce\ConfigScope\Contracts\ScopedConfigStorageInterface;
+use Markommerce\ConfigScope\Resolution\OverrideMatcher;
 use Markommerce\ConfigScope\Storage\InMemoryScopedConfigStorage;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Metadata\ScopedFieldRegistry;
@@ -151,7 +152,7 @@ it('resolves a per market tax mode override when one is set', function (): void 
     $registry = $container->get(ScopedFieldRegistry::class);
     $overrides = $storage->loadOverrides('tax/prices_include_tax');
 
-    $overrideMatcher = $container->get(\Markommerce\ConfigScope\Resolution\OverrideMatcher::class);
+    $overrideMatcher = $container->get(OverrideMatcher::class);
     $axes = $registry->axesForProperty(TaxConfig::class, 'pricesIncludeTax');
     $matched = $overrideMatcher->match($overrides, $axes, $scopeContext);
 
@@ -177,7 +178,7 @@ it('falls back to the global tax mode when no market override exists', function 
     $registry = $container->get(ScopedFieldRegistry::class);
     $overrides = $storage->loadOverrides('tax/prices_include_tax');
 
-    $overrideMatcher = $container->get(\Markommerce\ConfigScope\Resolution\OverrideMatcher::class);
+    $overrideMatcher = $container->get(OverrideMatcher::class);
     $axes = $registry->axesForProperty(TaxConfig::class, 'pricesIncludeTax');
     $matched = $overrideMatcher->match($overrides, $axes, $scopeContext);
 

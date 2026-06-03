@@ -14,6 +14,7 @@ use Markommerce\Currency\Config\CurrencyConfig;
 use Markommerce\Currency\CurrencyResolver;
 use Markommerce\Money\Currency;
 use Markommerce\Money\DefaultCurrencyRegistry;
+use Markommerce\Money\Exceptions\UnknownCurrencyException;
 
 function makeCurrencyConfigResolver(string $baseCode = 'USD'): ConfigResolver
 {
@@ -68,13 +69,16 @@ it('throws UnknownCurrencyException when the configured code is unknown', functi
     $resolver = new CurrencyResolver($configResolver, $currencyRegistry);
 
     expect(fn () => $resolver->base())
-        ->toThrow(\Markommerce\Money\Exceptions\UnknownCurrencyException::class);
+        ->toThrow(UnknownCurrencyException::class);
 });
 
 it('reads the base code through the injected config resolver', function (): void {
-    $fakeResolver = new class () extends ConfigResolver {
+    $fakeResolver = new class () extends ConfigResolver
+    {
         public bool $resolvedWasCalled = false;
+
         public string $lastClass = '';
+
         public string $lastField = '';
 
         public function __construct()
@@ -85,8 +89,7 @@ it('reads the base code through the injected config resolver', function (): void
         public function resolved(
             string $configClass,
             string $field,
-        ): mixed
-        {
+        ): mixed {
             $this->resolvedWasCalled = true;
             $this->lastClass = $configClass;
             $this->lastField = $field;

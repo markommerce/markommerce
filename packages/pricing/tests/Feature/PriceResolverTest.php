@@ -19,9 +19,12 @@ use Markommerce\Config\Registry\ConfigRegistryBuilder;
 use Markommerce\Config\Storage\InMemoryConfigStorage;
 use Markommerce\Config\ValueObjects\ConfigRow;
 use Markommerce\ConfigScope\Contracts\ScopedConfigStorageInterface;
+use Markommerce\ConfigScope\Resolution\OverrideMatcher;
+use Markommerce\ConfigScope\ScopedConfigResolver;
 use Markommerce\ConfigScope\Storage\InMemoryScopedConfigStorage;
 use Markommerce\Currency\Config\CurrencyConfig;
 use Markommerce\Currency\CurrencyResolver;
+use Markommerce\Money\Contracts\CurrencyRegistryInterface;
 use Markommerce\Money\DefaultCurrencyRegistry;
 use Markommerce\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Pricing\Exceptions\PriceUnavailableException;
@@ -241,26 +244,26 @@ it(
     'resolves the per market price amount from the product scoped overrides companion when a market is given in the context',
     function (): void {
         DefaultScopeGuard::reset();
-    
+
         $container = buildPricingContainer();
         bootPricing($container);
-    
+
         $product = new Product();
         $product->sku = 'SKU-002';
         $product->priceAmount = '29.99';
-    
+
         $overrides = new ProductScopedOverrides();
         $overrides->setOverride('market:us', 'priceAmount', '19.99');
         $product->attachCompanion($overrides);
-    
+
         $context = PriceContext::forProduct($product, 'us');
         $resolver = buildPriceResolver($container);
-    
+
         $money = $resolver->resolve($context);
-    
+
         expect($money->amount())->toBe('19.99')
             ->and($money->currency()->code)->toBe('USD');
-    }
+    },
 );
 
 it('uses the per market currency override when one is configured', function (): void {
@@ -284,7 +287,7 @@ it('uses the per market currency override when one is configured', function (): 
     $configStorage = new InMemoryConfigStorage();
 
     // Build a ScopedConfigResolver that honours the active ScopeContext
-    $scopedConfigResolver = new Markommerce\ConfigScope\ScopedConfigResolver(
+    $scopedConfigResolver = new ScopedConfigResolver(
         configRegistry: $configRegistry,
         configStorage: $configStorage,
         valueCaster: new ValueCaster(),
@@ -292,7 +295,7 @@ it('uses the per market currency override when one is configured', function (): 
         proxyLocator: new ProxyLocator(),
         preferenceRegistry: new PreferenceRegistry(),
         scopedConfigStorage: $scopedStorage,
-        overrideMatcher: $container->get(Markommerce\ConfigScope\Resolution\OverrideMatcher::class),
+        overrideMatcher: $container->get(OverrideMatcher::class),
         scopeContext: $container->get(ScopeContext::class),
         scopedFieldRegistry: $container->get(ScopedFieldRegistry::class),
     );
@@ -383,8 +386,8 @@ it('binds the base resolver to the price resolver interface', function (): void 
     // Wire up dependencies so the container can auto-resolve PriceResolver
     $container->bind(ConfigResolver::class, fn () => buildPlainConfigResolver());
     $container->bind(
-        \Markommerce\Money\Contracts\CurrencyRegistryInterface::class,
-        \Markommerce\Money\DefaultCurrencyRegistry::class,
+        CurrencyRegistryInterface::class,
+        DefaultCurrencyRegistry::class,
     );
 
     $resolver = $container->get(PriceResolverInterface::class);

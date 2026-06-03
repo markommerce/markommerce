@@ -54,9 +54,12 @@ it('resolves the inclusive mode when prices include tax', function (): void {
 });
 
 it('reads the tax mode through the injected config resolver', function (): void {
-    $fakeResolver = new class () extends ConfigResolver {
+    $fakeResolver = new class () extends ConfigResolver
+    {
         public bool $resolvedWasCalled = false;
+
         public string $lastClass = '';
+
         public string $lastField = '';
 
         public function __construct()
@@ -67,8 +70,7 @@ it('reads the tax mode through the injected config resolver', function (): void 
         public function resolved(
             string $configClass,
             string $field,
-        ): mixed
-        {
+        ): mixed {
             $this->resolvedWasCalled = true;
             $this->lastClass = $configClass;
             $this->lastField = $field;

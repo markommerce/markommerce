@@ -74,6 +74,7 @@ class CatalogSeeder implements SeederInterface
             $product->sku = 'SKU-' . str_pad((string) $n, 6, '0', STR_PAD_LEFT);
             $product->name = "Product $n";
             $product->description = "Description for product $n";
+            $product->priceAmount = sprintf('%d.%02d', random_int(1, 999), random_int(0, 99));
 
             $entities[] = $product;
         }

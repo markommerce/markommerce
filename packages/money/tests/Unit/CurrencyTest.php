@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Markommerce\Money\Currency;
+use Markommerce\Money\Exceptions\InvalidCurrencyException;
 
 it('creates a currency with code scale symbol and name', function (): void {
     $currency = new Currency(code: 'USD', scale: 2, symbol: '$', name: 'US Dollar');
@@ -27,18 +28,18 @@ it('uppercases and accepts a valid three letter iso code', function (): void {
 
 it('throws InvalidCurrencyException when code is not three letters', function (): void {
     expect(fn () => new Currency(code: 'US', scale: 2, symbol: '$', name: 'US Dollar'))
-        ->toThrow(\Markommerce\Money\Exceptions\InvalidCurrencyException::class);
+        ->toThrow(InvalidCurrencyException::class);
 
     expect(fn () => new Currency(code: 'USDD', scale: 2, symbol: '$', name: 'US Dollar'))
-        ->toThrow(\Markommerce\Money\Exceptions\InvalidCurrencyException::class);
+        ->toThrow(InvalidCurrencyException::class);
 
     expect(fn () => new Currency(code: 'US1', scale: 2, symbol: '$', name: 'US Dollar'))
-        ->toThrow(\Markommerce\Money\Exceptions\InvalidCurrencyException::class);
+        ->toThrow(InvalidCurrencyException::class);
 });
 
 it('throws InvalidCurrencyException when scale is negative', function (): void {
     expect(fn () => new Currency(code: 'USD', scale: -1, symbol: '$', name: 'US Dollar'))
-        ->toThrow(\Markommerce\Money\Exceptions\InvalidCurrencyException::class);
+        ->toThrow(InvalidCurrencyException::class);
 });
 
 it('treats two currencies with the same code as equal via an equals method', function (): void {

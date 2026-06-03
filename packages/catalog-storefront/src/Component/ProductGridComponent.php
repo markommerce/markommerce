@@ -9,11 +9,17 @@ use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
 use Markommerce\Layout\ExtensionBag;
+use Markommerce\MoneyIntl\MoneyFormatter;
+use Markommerce\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Pricing\PriceContext;
 
 class ProductGridComponent
 {
     public function __construct(
         private CategoryAssignmentService $categoryAssignmentService,
+        private PriceResolverInterface $priceResolver,
+        private MoneyFormatter $moneyFormatter,
     ) {}
 
     /**
@@ -28,6 +34,7 @@ class ProductGridComponent
 
         $resolvedNames = [];
         $resolvedDescs = [];
+        $formattedPrices = [];
 
         foreach ($products as $product) {
             if ($product->id === null) {
@@ -36,6 +43,13 @@ class ProductGridComponent
 
             $resolvedNames[$product->id] = $product->name;
             $resolvedDescs[$product->id] = $product->description;
+
+            try {
+                $money = $this->priceResolver->resolve(PriceContext::forProduct($product));
+                $formattedPrices[$product->id] = $this->moneyFormatter->format($money);
+            } catch (PriceUnavailableException) {
+                $formattedPrices[$product->id] = null;
+            }
         }
 
         return new ProductGridData(
@@ -43,6 +57,7 @@ class ProductGridComponent
             products: $products,
             resolvedNames: $resolvedNames,
             resolvedDescs: $resolvedDescs,
+            formattedPrices: $formattedPrices,
             extensions: new ExtensionBag(),
         );
     }

@@ -11,7 +11,6 @@ use Marko\Core\Module\ModuleManifest;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\CatalogScope\Entity\ProductScopedOverrides;
 use Markommerce\Scope\Context\ScopeContext;
-use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Resolver\ScopeResolver;
 use Markommerce\Scope\Storage\DefaultScopeGuard;
 

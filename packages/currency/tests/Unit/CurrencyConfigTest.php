@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Markommerce\Config\Attributes\Config;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
 use Markommerce\Currency\Config\CurrencyConfig;
 

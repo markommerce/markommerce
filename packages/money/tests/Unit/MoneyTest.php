@@ -3,9 +3,10 @@
 declare(strict_types=1);
 
 use Markommerce\Money\Currency;
+use Markommerce\Money\Exceptions\CurrencyMismatchException;
+use Markommerce\Money\Exceptions\DivisionByZeroException;
 use Markommerce\Money\Money;
 use Markommerce\Money\RoundingMode;
-use Markommerce\Money\Exceptions\CurrencyMismatchException;
 
 function usd(): Currency
 {
@@ -78,7 +79,7 @@ it('throws when dividing by zero', function (): void {
     $money = Money::of('10.00', usd());
 
     expect(fn () => $money->divide('0', RoundingMode::HalfUp))
-        ->toThrow(\Markommerce\Money\Exceptions\DivisionByZeroException::class);
+        ->toThrow(DivisionByZeroException::class);
 });
 
 it('allocates an amount across ratios without losing minor units', function (): void {

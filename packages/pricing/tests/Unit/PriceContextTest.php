@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Markommerce\Catalog\Entity\Product;
+use Markommerce\Money\Money;
+use Markommerce\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Pricing\PriceContext;
 
 it('builds a price context for a product', function (): void {
@@ -35,12 +37,12 @@ it('exposes the product and market as readonly properties', function (): void {
 });
 
 it('defines a price resolver contract returning money', function (): void {
-    $interface = Markommerce\Pricing\Contracts\PriceResolverInterface::class;
+    $interface = PriceResolverInterface::class;
 
     expect(interface_exists($interface))->toBeTrue();
 
     $reflection = new ReflectionClass($interface);
     $method = $reflection->getMethod('resolve');
 
-    expect($method->getReturnType()?->getName())->toBe(Markommerce\Money\Money::class);
+    expect($method->getReturnType()?->getName())->toBe(Money::class);
 });

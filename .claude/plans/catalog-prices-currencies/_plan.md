@@ -6,6 +6,9 @@
 ## Status
 completed
 
+## Follow-up (added after initial 001–013 completion)
+Tasks 014–015 extend the shipped pricing feature into demo data and the storefront UI. Tasks 001–013 are committed (64bd8ac); 014–015 follow in a second commit.
+
 ## Objective
 Add money, currency, tax-mode, and an extensible pricing pipeline to markommerce so products carry a price that is exactly represented, market-scopable, and rendered correctly per locale — while single-market shops pull zero scoping overhead.
 
@@ -37,12 +40,13 @@ none
 - `catalog-market`: register `Product.priceAmount` on the `market` axis.
 - `pricing` package: `PriceResolverInterface` (single method `resolve(): Money`) + `PriceContext` VO + base resolver that returns the scope-resolved stored amount assembled into `Money`. Plugin seam designed (not implemented) for sale/tier/group prices. Tax mode is NOT carried on the price result — it is resolved independently via `TaxModeResolver`.
 - End-to-end feature tests for Tier-1 (global currency/tax) and Tier-3 (per-market price + currency + tax-mode overrides). Each new package ships its own README, authored within that package's task.
+- **Follow-up:** catalog seeder assigns random `priceAmount`s to seeded products (task 014); catalog-storefront product card displays the resolved, locale-formatted price (task 015, base/global-currency storefront).
 
 ### Out of Scope
 - Actual tax-rate computation / tax tables (only the inclusive/exclusive *mode* flag and seam).
 - Sale / tier / quantity / customer-group prices (the resolver Plugin seam is designed but no concrete plugins built).
 - Multi-currency display conversion / exchange rates.
-- Storefront template wiring of the rendered price (formatter + resolver are delivered ready; theme integration is a follow-up).
+- Per-market *scoped* price display in `catalog-storefront-scope` (requires loading products with `ProductScopedOverrides` companions under an active market scope). Task 015 covers only the base/global-currency storefront card.
 - Admin UI for editing prices.
 
 ## Success Criteria
@@ -71,6 +75,8 @@ none
 | 011 | `pricing` scaffold: `PriceContext` + `PriceResolverInterface` | 002, 009 | completed |
 | 012 | base `PriceResolver` (amount → Money via currency) + pricing README | 011, 004, 010 | completed |
 | 013 | End-to-end feature tests (Tier-1 + Tier-3) | 012, 005, 007, 008 | completed |
+| 014 | catalog seeder: assign random prices to seeded products | 009 | completed |
+| 015 | catalog-storefront: show formatted price on the product card | 012, 008, 014 | completed |
 
 (Per-package READMEs are folded into each package's terminal task: money→003, currency→004, currency-market→005, tax→006, tax-market→007, money-intl→008, pricing→012.)
 

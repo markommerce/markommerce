@@ -12,8 +12,7 @@ class CurrencyMismatchException extends MarkoException
     public static function forMismatch(
         Currency $expected,
         Currency $actual,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Cannot mix '$expected->code' and '$actual->code' currencies in a single operation.",
             context: 'Performing arithmetic or comparison on two Money instances — both must share the same currency.',

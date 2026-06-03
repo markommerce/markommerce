@@ -36,7 +36,9 @@ function makeCatalogSeeder(
         productRepository: $productRepository ?? new FakeProductRepository(),
         categoryRepository: $sharedCategoryRepository,
         assignmentRepository: $assignmentRepository ?? new FakeProductCategoryAssignmentRepository(),
-        categoryTreeService: $categoryTreeService ?? makeSeederCategoryTreeService(categoryRepository: $sharedCategoryRepository),
+        categoryTreeService: $categoryTreeService ?? makeSeederCategoryTreeService(
+            categoryRepository: $sharedCategoryRepository
+        ),
         categoryTreeNodeRepository: $categoryTreeNodeRepository ?? new FakeCategoryTreeNodeRepository(),
     );
 }
@@ -134,4 +136,66 @@ it('has no Markommerce\\Scope namespace imports in CatalogSeeder.php', function 
     $contents = file_get_contents($file);
 
     expect($contents)->not->toContain('Markommerce\\Scope');
+});
+
+it('assigns a non null price amount to every seeded product', function (): void {
+    $productRepository = new FakeProductRepository();
+    $seeder = makeCatalogSeeder(productRepository: $productRepository);
+
+    $seeder->run();
+
+    $products = array_values($productRepository->products);
+
+    expect($products)->not->toBeEmpty();
+
+    foreach ($products as $product) {
+        expect($product->priceAmount)->not->toBeNull();
+    }
+});
+
+it('assigns price amounts as decimal strings not floats', function (): void {
+    $productRepository = new FakeProductRepository();
+    $seeder = makeCatalogSeeder(productRepository: $productRepository);
+
+    $seeder->run();
+
+    $products = array_values($productRepository->products);
+
+    foreach ($products as $product) {
+        expect($product->priceAmount)->toBeString();
+        expect(is_float($product->priceAmount))->toBeFalse();
+    }
+});
+
+it('assigns price amounts within the expected range', function (): void {
+    $productRepository = new FakeProductRepository();
+    $seeder = makeCatalogSeeder(productRepository: $productRepository);
+
+    $seeder->run();
+
+    $products = array_values($productRepository->products);
+
+    foreach ($products as $product) {
+        expect($product->priceAmount)->toMatch('/^\d+\.\d{2}$/');
+
+        $value = (float) $product->priceAmount;
+
+        expect($value)->toBeGreaterThanOrEqual(1.00);
+        expect($value)->toBeLessThanOrEqual(999.99);
+    }
+});
+
+it('still seeds the configured number of products with prices', function (): void {
+    $productRepository = new FakeProductRepository();
+    $seeder = makeCatalogSeeder(productRepository: $productRepository);
+
+    $seeder->run();
+
+    $products = array_values($productRepository->products);
+
+    expect($products)->toHaveCount(5000);
+
+    $productsWithPrice = array_filter($products, fn ($p) => $p->priceAmount !== null);
+
+    expect($productsWithPrice)->toHaveCount(5000);
 });

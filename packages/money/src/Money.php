@@ -23,16 +23,14 @@ readonly class Money
     public static function of(
         string|int $amount,
         Currency $currency,
-    ): self
-    {
+    ): self {
         return new self(BigDecimal::of($amount), $currency);
     }
 
     public static function ofMinor(
         int $minor,
         Currency $currency,
-    ): self
-    {
+    ): self {
         $bigDecimal = BigDecimal::ofUnscaledValue($minor, $currency->scale);
 
         return new self($bigDecimal, $currency);
@@ -77,8 +75,7 @@ readonly class Money
     public function multiply(
         string|int $factor,
         RoundingMode $mode,
-    ): self
-    {
+    ): self {
         $result = $this->bigDecimal
             ->multipliedBy(BigDecimal::of($factor))
             ->toScale($this->currency->scale, $mode->toBrick());
@@ -92,8 +89,7 @@ readonly class Money
     public function divide(
         string|int $divisor,
         RoundingMode $mode,
-    ): self
-    {
+    ): self {
         try {
             $result = $this->bigDecimal->dividedBy(
                 BigDecimal::of($divisor),
