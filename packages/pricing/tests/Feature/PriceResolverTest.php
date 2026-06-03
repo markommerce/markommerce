@@ -13,6 +13,7 @@ use Markommerce\Catalog\Entity\Product;
 use Markommerce\CatalogScope\Entity\ProductScopedOverrides;
 use Markommerce\Config\Casting\ValueCaster;
 use Markommerce\Config\ConfigResolver;
+use Markommerce\Config\Contracts\ConfigResolverInterface;
 use Markommerce\Config\Encryption\NullSecretCipher;
 use Markommerce\Config\Proxy\ProxyLocator;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
@@ -385,6 +386,7 @@ it('binds the base resolver to the price resolver interface', function (): void 
 
     // Wire up dependencies so the container can auto-resolve PriceResolver
     $container->bind(ConfigResolver::class, fn () => buildPlainConfigResolver());
+    $container->bind(ConfigResolverInterface::class, fn () => buildPlainConfigResolver());
     $container->bind(
         CurrencyRegistryInterface::class,
         DefaultCurrencyRegistry::class,

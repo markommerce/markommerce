@@ -6,11 +6,12 @@ namespace Markommerce\Config\Cache;
 
 use Markommerce\Config\ConfigResolver;
 use Markommerce\Config\Contracts\ConfigCacheInterface;
+use Markommerce\Config\Contracts\ConfigResolverInterface;
 use Markommerce\Config\Exceptions\ConfigNotFoundException;
 use Markommerce\Config\Exceptions\InvalidConfigValueException;
 use Markommerce\Config\Registry\ConfigRegistry;
 
-class CachingConfigResolver
+class CachingConfigResolver implements ConfigResolverInterface
 {
     public function __construct(
         protected ConfigResolver $configResolver,

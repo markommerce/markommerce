@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Markommerce\Currency;
 
-use Markommerce\Config\ConfigResolver;
+use Markommerce\Config\Contracts\ConfigResolverInterface;
 use Markommerce\Config\Exceptions\ConfigNotFoundException;
 use Markommerce\Config\Exceptions\InvalidConfigValueException;
 use Markommerce\Config\Exceptions\SecretCipherException;
@@ -16,7 +16,7 @@ use Markommerce\Money\Exceptions\UnknownCurrencyException;
 class CurrencyResolver
 {
     public function __construct(
-        private ConfigResolver $configResolver,
+        private ConfigResolverInterface $configResolver,
         private CurrencyRegistryInterface $currencyRegistry,
     ) {}
 

@@ -6,6 +6,7 @@ namespace Markommerce\Config;
 
 use Marko\Core\Container\PreferenceRegistry;
 use Markommerce\Config\Casting\ValueCaster;
+use Markommerce\Config\Contracts\ConfigResolverInterface;
 use Markommerce\Config\Contracts\ConfigStorageInterface;
 use Markommerce\Config\Contracts\SecretCipherInterface;
 use Markommerce\Config\Exceptions\ConfigNotFoundException;
@@ -16,7 +17,7 @@ use Markommerce\Config\Exceptions\SecretCipherException;
 use Markommerce\Config\Proxy\ProxyLocator;
 use Markommerce\Config\Registry\ConfigRegistry;
 
-class ConfigResolver
+class ConfigResolver implements ConfigResolverInterface
 {
     public function __construct(
         protected ConfigRegistry $configRegistry,

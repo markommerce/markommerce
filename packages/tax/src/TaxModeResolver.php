@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Markommerce\Tax;
 
-use Markommerce\Config\ConfigResolver;
+use Markommerce\Config\Contracts\ConfigResolverInterface;
 use Markommerce\Config\Exceptions\ConfigNotFoundException;
 use Markommerce\Config\Exceptions\InvalidConfigValueException;
 use Markommerce\Config\Exceptions\SecretCipherException;
@@ -13,7 +13,7 @@ use Markommerce\Tax\Config\TaxConfig;
 class TaxModeResolver
 {
     public function __construct(
-        private ConfigResolver $configResolver,
+        private ConfigResolverInterface $configResolver,
     ) {}
 
     /**

@@ -12,6 +12,7 @@ use Markommerce\Config\Casting\ValueCaster;
 use Markommerce\Config\ConfigResolver;
 use Markommerce\Config\ConfigWriter;
 use Markommerce\Config\Contracts\ConfigCacheInterface;
+use Markommerce\Config\Contracts\ConfigResolverInterface;
 use Markommerce\Config\Contracts\ConfigStorageInterface;
 use Markommerce\Config\Contracts\ConfigWriterInterface;
 use Markommerce\Config\Contracts\SecretCipherInterface;
@@ -62,6 +63,8 @@ return [
                 $container->get(ConfigRegistry::class),
             );
         },
+        ConfigResolverInterface::class => static fn (ContainerInterface $container): ConfigResolverInterface
+            => $container->get(ConfigResolver::class),
     ],
     'singletons' => [
         ConfigRegistry::class,
