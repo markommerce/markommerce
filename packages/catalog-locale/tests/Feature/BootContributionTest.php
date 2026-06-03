@@ -9,6 +9,7 @@ use Marko\Core\Container\ContainerInterface;
 use Marko\Core\Module\DependencyResolver;
 use Marko\Core\Module\ModuleManifest;
 use Markommerce\Catalog\Entity\Category;
+use Markommerce\Catalog\Entity\CategoryTree;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 
@@ -187,7 +188,7 @@ it('does not register any field on entities other than Product and Category', fu
         ->and(array_keys($categoryProperties))->toBe(['name', 'description']);
 
     // A third-party entity class should have no scoped properties registered
-    $otherEntity = \Markommerce\Catalog\Entity\CategoryTree::class;
+    $otherEntity = CategoryTree::class;
     expect($registry->hasScopedProperties($otherEntity))->toBeFalse();
 });
 

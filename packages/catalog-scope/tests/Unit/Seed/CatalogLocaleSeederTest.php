@@ -3,8 +3,6 @@
 declare(strict_types=1);
 
 use Marko\Database\Seed\Seeder;
-use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
-use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;

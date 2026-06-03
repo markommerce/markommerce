@@ -30,7 +30,6 @@ readonly class ConfigListCommand implements CommandInterface
                 $rows[] = [
                     'key'    => $definition->key,
                     'source' => $definition->configClass,
-                    'axes'   => $definition->axes,
                     'secret' => $definition->secret,
                 ];
             }
@@ -47,14 +46,12 @@ readonly class ConfigListCommand implements CommandInterface
         }
 
         foreach ($definitions as $definition) {
-            $axes = empty($definition->axes) ? '(none)' : implode(', ', $definition->axes);
             $secret = $definition->secret ? ' [secret]' : '';
 
             $output->writeLine(sprintf(
-                '%s  %s  axes: %s%s',
+                '%s  %s%s',
                 $definition->key,
                 $definition->configClass,
-                $axes,
                 $secret,
             ));
         }

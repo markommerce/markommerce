@@ -81,11 +81,11 @@ it('asserts no file under packages/catalog-scope references Markommerce\\Catalog
 
         expect($contents)->not->toContain(
             'Markommerce\CatalogStorefront\\',
-            "File {$file->getPathname()} should not reference Markommerce\\CatalogStorefront\\"
+            "File {$file->getPathname()} should not reference Markommerce\\CatalogStorefront\\",
         );
         expect($contents)->not->toContain(
             'Markommerce\CatalogStorefrontScope\\',
-            "File {$file->getPathname()} should not reference Markommerce\\CatalogStorefrontScope\\"
+            "File {$file->getPathname()} should not reference Markommerce\\CatalogStorefrontScope\\",
         );
     }
 });
@@ -106,7 +106,7 @@ it('asserts no Markommerce\\CatalogScope\\Component namespace remains in package
 
         expect($contents)->not->toContain(
             'Markommerce\CatalogScope\Component',
-            "File {$file->getPathname()} should not reference Markommerce\\CatalogScope\\Component"
+            "File {$file->getPathname()} should not reference Markommerce\\CatalogScope\\Component",
         );
     }
 });

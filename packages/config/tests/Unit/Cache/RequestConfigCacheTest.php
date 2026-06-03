@@ -46,7 +46,7 @@ it(
     },
 );
 
-it('caches independently for the same config under different ScopeContext projections', function (): void {
+it('caches independently for the same config under different cache key projections', function (): void {
     $cache = new RequestConfigCache();
     $callCount = 0;
 

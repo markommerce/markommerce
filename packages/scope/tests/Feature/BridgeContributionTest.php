@@ -81,7 +81,7 @@ it(
     'it allows a synthetic bridge module\'s boot closure to register a property via ScopedFieldRegistry',
     function (): void {
         $container = buildScopeContainerWithAxes(['locale']);
-    
+
         $bridge = new ModuleManifest(
             name: 'acme/bridge',
             version: '1.0.0',
@@ -94,22 +94,22 @@ it(
                 );
             },
         );
-    
+
         $resolver = new DependencyResolver();
         $ordered = $resolver->resolve([scopeModuleManifest(), $bridge]);
-    
+
         runBootLoop($ordered, $container);
-    
+
         $registry = $container->get(ScopedFieldRegistry::class);
         expect($registry->axesForProperty(PlainEntity::class, 'title'))->toBe(['locale']);
-    }
+    },
 );
 
 it(
     'it exposes programmatically-registered properties through ScopeMetadataFactory after the bridge boot completes',
     function (): void {
         $container = buildScopeContainerWithAxes(['locale']);
-    
+
         $bridge = new ModuleManifest(
             name: 'acme/bridge',
             version: '1.0.0',
@@ -122,59 +122,59 @@ it(
                 );
             },
         );
-    
+
         $resolver = new DependencyResolver();
         $ordered = $resolver->resolve([scopeModuleManifest(), $bridge]);
-    
+
         runBootLoop($ordered, $container);
-    
+
         $factory = $container->get(ScopeMetadataFactory::class);
         $metadata = $factory->for(PlainEntity::class);
-    
+
         expect($metadata->isScoped('summary'))->toBeTrue()
             ->and($metadata->axesForProperty('summary'))->toBe(['locale'])
             ->and($metadata->isScoped('position'))->toBeFalse();
-    }
+    },
 );
 
 it(
     'it unions axes from a boot-time registration with axes discovered from a Scoped attribute on the same property',
     function (): void {
         $container = buildScopeContainerWithAxes(['locale', 'market']);
-    
+
         $bridge = new ModuleManifest(
             name: 'acme/bridge',
             version: '1.0.0',
             require: ['markommerce/scope' => '*'],
             boot: function (ScopedFieldRegistry $scopedFieldRegistry): void {
                 // Register 'title' under 'market' — the class already has #[Scoped(axes: ['locale'])] on it
-            $scopedFieldRegistry->register(
+                $scopedFieldRegistry->register(
                     entityClass: MixedEntity::class,
                     property: 'title',
                     axes: ['market'],
                 );
             },
         );
-    
+
         $resolver = new DependencyResolver();
         $ordered = $resolver->resolve([scopeModuleManifest(), $bridge]);
-    
+
         runBootLoop($ordered, $container);
-    
+
         $factory = $container->get(ScopeMetadataFactory::class);
         $metadata = $factory->for(MixedEntity::class);
-    
+
         $axes = $metadata->axesForProperty('title');
         expect($axes)->toContain('locale')
             ->and($axes)->toContain('market');
-    }
+    },
 );
 
 it(
     'it throws UnknownAxisException at boot when a registration references an axis that is not in ScopeRegistryInterface',
     function (): void {
         $container = buildScopeContainerWithAxes(['locale']);
-    
+
         $bridge = new ModuleManifest(
             name: 'acme/bridge',
             version: '1.0.0',
@@ -187,20 +187,20 @@ it(
                 );
             },
         );
-    
+
         $resolver = new DependencyResolver();
         $ordered = $resolver->resolve([scopeModuleManifest(), $bridge]);
-    
+
         expect(fn () => runBootLoop($ordered, $container))
             ->toThrow(UnknownAxisException::class);
-    }
+    },
 );
 
 it(
     'it throws UnknownEntityClassException at boot when a bridge registers against a class name that does not exist (simulates a typo in module.php)',
     function (): void {
         $container = buildScopeContainerWithAxes(['locale']);
-    
+
         $bridge = new ModuleManifest(
             name: 'acme/bridge',
             version: '1.0.0',
@@ -213,13 +213,13 @@ it(
                 );
             },
         );
-    
+
         $resolver = new DependencyResolver();
         $ordered = $resolver->resolve([scopeModuleManifest(), $bridge]);
-    
+
         expect(fn () => runBootLoop($ordered, $container))
             ->toThrow(UnknownEntityClassException::class);
-    }
+    },
 );
 
 it('it preserves boot-time registrations across multiple for calls on the same class', function (): void {
@@ -272,32 +272,32 @@ it(
             require: ['markommerce/scope' => '*'],
             boot: function (): void {},
         );
-    
+
         $resolver = new DependencyResolver();
         // Pass bridge first, scope second — resolver must reorder them
-    $ordered = $resolver->resolve([$bridge, scopeModuleManifest()]);
-    
+        $ordered = $resolver->resolve([$bridge, scopeModuleManifest()]);
+
         $names = array_map(fn (ModuleManifest $m) => $m->name, $ordered);
-    
+
         $scopePosition = array_search('markommerce/scope', $names, true);
         $bridgePosition = array_search('acme/bridge', $names, true);
-    
+
         expect($scopePosition)->toBeInt()
             ->and($bridgePosition)->toBeInt();
-    
+
         /** @var int $scopePosition */
         /** @var int $bridgePosition */
         expect($scopePosition)->toBeLessThan($bridgePosition);
-    }
+    },
 );
 
 it(
     'it auto-injects ScopedFieldRegistry into a bridge boot closure that type-hints it directly (verifies container call() behaviour bridges in P2 will rely on)',
     function (): void {
         $container = buildScopeContainerWithAxes(['locale']);
-    
+
         $injectedRegistry = null;
-    
+
         $bridge = new ModuleManifest(
             name: 'acme/bridge',
             version: '1.0.0',
@@ -311,18 +311,18 @@ it(
                 );
             },
         );
-    
+
         $resolver = new DependencyResolver();
         $ordered = $resolver->resolve([scopeModuleManifest(), $bridge]);
-    
+
         runBootLoop($ordered, $container);
-    
+
         $expectedRegistry = $container->get(ScopedFieldRegistry::class);
-    
+
         expect($injectedRegistry)->not->toBeNull()
             ->and($injectedRegistry)->toBe($expectedRegistry);
-    
+
         /** @var ScopedFieldRegistry $injectedRegistry */
         expect($injectedRegistry->axesForProperty(PlainEntity::class, 'title'))->toBe(['locale']);
-    }
+    },
 );

@@ -2,17 +2,14 @@
 
 declare(strict_types=1);
 
-use Marko\Database\Attributes\Table;
 use Marko\Database\Connection\ConnectionInterface;
 use Marko\Database\Connection\StatementInterface;
 use Marko\Database\Entity\EntityHydrator;
 use Marko\Database\Entity\EntityMetadataFactory;
-use Marko\Database\Repository\Repository;
 use Marko\Database\Entity\SchemaBuilder;
 use Marko\Database\Schema\SchemaRegistry;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
-use Markommerce\Catalog\Repositories\CategoryRepository;
 use Markommerce\Catalog\Repositories\ProductRepository;
 use Markommerce\CatalogScope\Entity\CategoryScopedOverrides;
 use Markommerce\CatalogScope\Entity\ProductScopedOverrides;

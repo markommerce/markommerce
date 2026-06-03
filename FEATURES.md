@@ -71,7 +71,7 @@ HTML storefront, a theme, merchant-editable settings.
 | | Packages |
 |---|---|
 | **Current** | `catalog` ⇒ also forces `scope`, `scope-pgsql`*, `layout`, `frontend`, `theme-blank`; plus `config` + `config-pgsql` for settings (which also pull `scope`) |
-| **Desired** | `catalog` + `🆕 catalog-storefront` + `config` + `config-pgsql` + `layout` + `frontend` + `theme-blank` |
+| **Desired** | `catalog` + `🆕 catalog-storefront` + `config` + `config-pgsql` (no longer emits an `overrides` JSONB column) + `layout` + `frontend` + `theme-blank` |
 | **Removes** | `scope`, `scope-pgsql`, and the per-market tree machinery currently bundled in `catalog` |
 
 \* `scope-pgsql` isn't a direct require but is needed at runtime today because catalog's persisted fields go through scope.
@@ -87,7 +87,7 @@ register locale-scoped fields against catalog and config without merchant config
 | | Packages added on top of Tier 1 |
 |---|---|
 | **Current** | (none — already pulled in via Tier 1 today) |
-| **Desired (headless)** | `scope` + `scope-pgsql` + `catalog-scope` + `🆕 config-scope` + `locale` + `catalog-locale` + `🆕 config-locale` |
+| **Desired (headless)** | `scope` + `scope-pgsql` + `catalog-scope` + `config-scope` + `config-scope-pgsql` + `locale` + `catalog-locale` + `config-locale` |
 | **Desired (storefront)** | headless stack + `catalog-storefront-scope` (locale-aware storefront rendering via Preference) |
 
 ### Tier 3 — Multi-market international
@@ -102,7 +102,7 @@ fields by market; per-market category trees with active-tree resolution.
 | | Packages added on top of Tier 2 |
 |---|---|
 | **Current** | (none — multi-market trees already ship inside `catalog`) |
-| **Desired** | `🆕 market` + `🆕 catalog-market` + `🆕 config-market` |
+| **Desired** | `🆕 market` + `catalog-market` + `config-market` |
 
 ---
 
@@ -123,9 +123,9 @@ fields by market; per-market category trees with active-tree resolution.
 
 **Package count, Desired state:**
 - Tier 1: 7 packages
-- Tier 2 headless: 14 packages (+ `scope`, `scope-pgsql`, `catalog-scope`, `🆕 config-scope`, `locale`, `catalog-locale`, `🆕 config-locale`)
-- Tier 2 storefront: 15 packages (headless + `catalog-storefront-scope` for locale-aware storefront rendering)
-- Tier 3: 17 packages (+ `🆕 market`, `🆕 catalog-market`, `🆕 config-market`)
+- Tier 2 headless: 15 packages (+ `scope`, `scope-pgsql`, `catalog-scope`, `config-scope`, `config-scope-pgsql`, `locale`, `catalog-locale`, `config-locale`)
+- Tier 2 storefront: 16 packages (headless + `catalog-storefront-scope` for locale-aware storefront rendering)
+- Tier 3: 18 packages (+ `🆕 market`, `catalog-market`, `config-market`)
 
 **Package count today:** every merchant installs essentially the Tier 3 set, whether they use it or not.
 
@@ -139,7 +139,8 @@ fields by market; per-market category trees with active-tree resolution.
 |---|---|---|
 | `markommerce/catalog-storefront` | HTTP controllers, route registration, Latte views, theme integration for the public shop | `catalog`, `layout`, `frontend` |
 | `markommerce/catalog-scope` | Machinery: substitutes catalog entities with scope-aware decorators; axis-agnostic | `catalog`, `scope` |
-| `🆕 markommerce/config-scope` | Machinery: adds per-scope override resolution on top of plain config | `config`, `scope` |
+| `markommerce/config-scope` | Machinery: adds per-scope override resolution on top of plain config | `config`, `scope` |
+| `🆕 markommerce/config-scope-pgsql` | PostgreSQL driver for `config-scope`: stores per-scope config override rows | `config-scope`, `config-pgsql` |
 | `markommerce/catalog-market` | Market integration for catalog: per-market category trees, resolver, deletion guard plugin, and ScopedFieldRegistry hook for market-scoped fields | `catalog`, `catalog-scope`, `market` |
 
 ### Storefront extensions
@@ -166,8 +167,8 @@ with the `ScopedFieldRegistry`. Installing the bridge IS the configuration.
 |---|---|---|
 | `🆕 markommerce/catalog-locale` | `Product.name`, `Product.description`, `Category.name` scoped by `locale` | `catalog-scope`, `locale` |
 | `🆕 markommerce/catalog-market` | `Product.price`, `Product.visibility` scoped by `market` | `catalog-scope`, `market` |
-| `🆕 markommerce/config-locale` | Translatable settings get per-locale overrides | `config-scope`, `locale` |
-| `🆕 markommerce/config-market` | Market-varying settings get per-market overrides | `config-scope`, `market` |
+| `markommerce/config-locale` | Translatable settings get per-locale overrides | `config-scope`, `locale` |
+| `markommerce/config-market` | Market-varying settings get per-market overrides | `config-scope`, `market` |
 
 ---
 
@@ -202,7 +203,7 @@ no external consumers to deprecate against).
 | **P2** | Decouple `catalog` from `scope`; create `catalog-scope`, `locale`, `catalog-locale` | `completed` | `catalog-scope-decouple` | `Product` and `Category` become plain entities (no `#[Scoped]`, no `HasScopes` trait, no `Markommerce\Scope\…` imports). Multi-language behaviour shifts to the new bridge stack. Tier 2 reachable through the new architecture. |
 | **P3** | Extract `catalog-storefront` from `catalog`; create `catalog-storefront-scope` | `completed` | `catalog-storefront-extract` | Move controllers, route registration, Latte templates, and asset wiring out of `catalog`. Tier 1 reachable. Headless catalog consumers stop pulling layout/frontend/theme. `catalog-storefront-scope` adds Preference-based locale-aware grid rendering for storefront merchants. |
 | **P4** | Create `market`, `catalog-market`; extract `catalog-market-category-trees` | `completed` | `catalog-market-extract` | Tier 3 reachable. `CategoryTreeMarketAssignment`, the per-market resolver, and multi-tree CRUD move out of `catalog`. Catalog keeps a single default tree. Note: `catalog-market` ships as a no-op placeholder today; `Product.price` and `Product.visibility` field registrations are deferred until those columns exist on `Product`. |
-| **P5** | Decouple `config` from `scope`; create `config-scope`, `config-locale`, `config-market` | `pending` | tbd | Mirrors P2 for config. `config` becomes a plain key-value store; per-scope overlays come from `config-scope` + bridges. |
+| **P5** | Decouple `config` from `scope`; create `config-scope`, `config-locale`, `config-market` | `completed` | `config-scope-decouple` | Mirrors P2 for config. `config` becomes a plain key-value store; per-scope overlays come from `config-scope` + bridges. `config-pgsql` no longer emits an `overrides` JSONB column. |
 
 ### Decisions locked in for all phases
 

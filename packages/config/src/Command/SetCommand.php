@@ -10,11 +10,9 @@ use Marko\Core\Command\CommandInterface;
 use Marko\Core\Command\Input;
 use Marko\Core\Command\Output;
 use Markommerce\Config\Contracts\ConfigWriterInterface;
-use Markommerce\Config\Exceptions\AxisNotDeclaredException;
 use Markommerce\Config\Exceptions\ConfigNotFoundException;
 use Markommerce\Config\Exceptions\StaleConfigWriteException;
 use Markommerce\Config\Registry\ConfigRegistry;
-use Markommerce\Scope\Signature\ScopeSignature;
 
 /** @noinspection PhpUnused */
 #[Command(name: 'config:set', description: 'Set a config value globally or for a specific scope')]
@@ -26,7 +24,7 @@ readonly class SetCommand implements CommandInterface
     ) {}
 
     /**
-     * @throws ConfigNotFoundException|StaleConfigWriteException|AxisNotDeclaredException
+     * @throws ConfigNotFoundException|StaleConfigWriteException
      */
     public function execute(
         Input $input,
@@ -36,7 +34,7 @@ readonly class SetCommand implements CommandInterface
         $rawValue = $input->getArgument(1);
 
         if ($key === null || $rawValue === null) {
-            $output->writeLine('Usage: config:set <key> <value> [--scope=axis=value,...]');
+            $output->writeLine('Usage: config:set <key> <value>');
 
             return 1;
         }
@@ -59,34 +57,10 @@ readonly class SetCommand implements CommandInterface
             return 1;
         }
 
-        $scopeOption = $input->getOption('scope');
-
         try {
-            if ($scopeOption === null) {
-                $this->writer->setGlobal($key, $parsed);
-            } else {
-                $signature = $this->parseScope($scopeOption);
-                if ($signature === null) {
-                    $output->writeLine(
-                        "Invalid --scope format '$scopeOption'. Expected: axis=value,axis2=value2",
-                    );
-
-                    return 1;
-                }
-
-                $this->writer->setOverride($key, $signature, $parsed);
-            }
+            $this->writer->setGlobal($key, $parsed);
         } catch (StaleConfigWriteException $e) {
             $output->writeLine($e->getMessage());
-
-            return 1;
-        } catch (AxisNotDeclaredException $e) {
-            $definition = $this->registry->byKey($key);
-            $declared = implode(', ', $definition->axes);
-            $output->writeLine($e->getMessage());
-            $output->writeLine(
-                "Declared axes for '$key': " . ($declared !== '' ? $declared : '(none)'),
-            );
 
             return 1;
         }
@@ -146,24 +120,5 @@ readonly class SetCommand implements CommandInterface
         }
 
         return $decoded;
-    }
-
-    private function parseScope(string $scopeOption): ?ScopeSignature
-    {
-        $pairs = explode(',', $scopeOption);
-
-        /** @var array<string, string> $axisValues */
-        $axisValues = [];
-
-        foreach ($pairs as $pair) {
-            $parts = explode('=', $pair, 2);
-            if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
-                return null;
-            }
-
-            $axisValues[$parts[0]] = $parts[1];
-        }
-
-        return new ScopeSignature($axisValues);
     }
 }

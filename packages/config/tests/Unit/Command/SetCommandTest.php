@@ -13,9 +13,7 @@ use Markommerce\Config\Exceptions\StaleConfigWriteException;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
 use Markommerce\Config\Storage\InMemoryConfigStorage;
-use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
 use Markommerce\Config\ValueObjects\ConfigRow;
-use Markommerce\Scope\Attributes\Scoped;
 
 // --- Fixture config classes ---
 
@@ -61,13 +59,6 @@ class SetCommandEnumConfig
     public SetCommandColor $enumVal = SetCommandColor::Red;
 }
 
-class SetCommandScopedConfig
-{
-    #[Config(key: 'cli/set.scoped_val')]
-    #[Scoped(axes: ['store', 'website'])]
-    public string $scopedVal = 'default';
-}
-
 // --- Helpers ---
 
 function buildSetCommandRegistry(): ConfigRegistry
@@ -82,9 +73,7 @@ function buildSetCommandRegistry(): ConfigRegistry
             SetCommandBoolConfig::class,
             SetCommandArrayConfig::class,
             SetCommandEnumConfig::class,
-            SetCommandScopedConfig::class,
         ],
-        new FakeScopeRegistry(['store', 'website']),
     );
 }
 
@@ -122,7 +111,7 @@ function captureSetOutput(SetCommand $command, Input $input): array
 
 // --- Tests ---
 
-it('sets a global value via config:set when no --scope flag is provided', function (): void {
+it('sets a global value via the SetCommand without parsing any scope option', function (): void {
     $storage = new InMemoryConfigStorage();
     $command = buildSetCommand($storage);
 
@@ -136,19 +125,19 @@ it('sets a global value via config:set when no --scope flag is provided', functi
         ->and($row->value)->toBe('hello-world');
 });
 
-it('sets a scoped override via config:set when --scope flag is provided', function (): void {
+it('ignores any --scope option passed to SetCommand execute and treats the call as a global write (descoped command no longer reads the option)', function (): void {
     $storage = new InMemoryConfigStorage();
     $command = buildSetCommand($storage);
 
-    $input = makeSetInput('cli/set.scoped_val', 'store-value', '--scope=store=1');
+    // Pass --scope option — must be silently ignored and treated as a global write
+    $input = makeSetInput('cli/set.string_val', 'store-value', '--scope=store=1');
     $result = captureSetOutput($command, $input);
 
     expect($result['exitCode'])->toBe(0);
 
-    $row = $storage->load('cli/set.scoped_val');
+    $row = $storage->load('cli/set.string_val');
     expect($row)->not->toBeNull()
-        ->and($row->overrides)->toHaveKey('store:1')
-        ->and($row->overrides['store:1'])->toBe('store-value');
+        ->and($row->value)->toBe('store-value');
 });
 
 it('parses the shell <value> argument according to the property\'s declared type', function (
@@ -268,18 +257,4 @@ it('exits non-zero on StaleConfigWriteException without retrying', function (): 
 
     // Writer made exactly 3 attempts (its own retry count), CLI did NOT add more
     expect($storage->attempts)->toBe(3);
-});
-
-it('exits non-zero on AxisNotDeclaredException citing declared axes', function (): void {
-    $storage = new InMemoryConfigStorage();
-    $command = buildSetCommand($storage);
-
-    // cli/set.string_val has no axes declared, but we pass --scope=store=1
-    $input = makeSetInput('cli/set.string_val', 'some-value', '--scope=store=1');
-    $result = captureSetOutput($command, $input);
-
-    expect($result['exitCode'])->toBe(1)
-        ->and($result['output'])->toContain('store')
-        // Must cite declared axes (which is empty for string_val)
-        ->and($result['output'])->toContain('(none)');
 });

@@ -1,19 +1,25 @@
 <?php
 
 declare(strict_types=1);
+use Markommerce\Catalog\Entity\Product;
+use Markommerce\Scope\Axis\ScopeAxis;
+use Markommerce\Scope\Hierarchy\ScopeHierarchy;
+use Markommerce\Scope\Metadata\ScopedFieldRegistry;
+use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 it('still boots an empty ScopedFieldRegistry when the boot closure runs (no-op field registration preserved)', function (): void {
-    $fakeScopeRegistry = new class implements \Markommerce\Scope\Registry\ScopeRegistryInterface {
+    $fakeScopeRegistry = new class () implements ScopeRegistryInterface
+    {
         public function hasAxis(string $name): bool
         {
             return true;
         }
 
-        public function getAxis(string $name): \Markommerce\Scope\Axis\ScopeAxis
+        public function getAxis(string $name): ScopeAxis
         {
-            return new \Markommerce\Scope\Axis\ScopeAxis(
+            return new ScopeAxis(
                 name: $name,
-                hierarchy: \Markommerce\Scope\Hierarchy\ScopeHierarchy::fromPaths(['default']),
+                hierarchy: ScopeHierarchy::fromPaths(['default']),
                 default: 'default',
             );
         }
@@ -23,13 +29,13 @@ it('still boots an empty ScopedFieldRegistry when the boot closure runs (no-op f
             return [];
         }
 
-        public function getHierarchy(string $axisName): \Markommerce\Scope\Hierarchy\ScopeHierarchy
+        public function getHierarchy(string $axisName): ScopeHierarchy
         {
-            return \Markommerce\Scope\Hierarchy\ScopeHierarchy::fromPaths(['default']);
+            return ScopeHierarchy::fromPaths(['default']);
         }
     };
 
-    $registry = new \Markommerce\Scope\Metadata\ScopedFieldRegistry(scopeRegistry: $fakeScopeRegistry);
+    $registry = new ScopedFieldRegistry(scopeRegistry: $fakeScopeRegistry);
     $module = require dirname(__DIR__, 2) . '/module.php';
 
     expect($module)->toHaveKey('boot');
@@ -37,5 +43,5 @@ it('still boots an empty ScopedFieldRegistry when the boot closure runs (no-op f
 
     $module['boot']($registry);
 
-    expect($registry->hasScopedProperties(\Markommerce\Catalog\Entity\Product::class))->toBeFalse();
+    expect($registry->hasScopedProperties(Product::class))->toBeFalse();
 });

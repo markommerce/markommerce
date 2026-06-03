@@ -1,6 +1,6 @@
 # markommerce/config-pgsql
 
-PgSQL (PostgreSQL) storage driver for `markommerce/config` --- persists configuration values in a `config_values` JSONB table with optimistic locking and per-scope overrides.
+PgSQL (PostgreSQL) storage driver for `markommerce/config` --- persists configuration values in a `config_values` JSONB table with optimistic locking.
 
 ## Installation
 

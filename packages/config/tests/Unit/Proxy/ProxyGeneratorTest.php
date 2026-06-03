@@ -6,7 +6,6 @@ use Markommerce\Config\Exceptions\InvalidConfigClassException;
 use Markommerce\Config\Proxy\ProxyGenerator;
 use Markommerce\Config\Proxy\ProxyWriter;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
-use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
 use Markommerce\Config\Tests\Fixtures\Proxy\Color;
 use Markommerce\Config\Tests\Fixtures\Proxy\EnumPropConfig;
 use Markommerce\Config\Tests\Fixtures\Proxy\ReadonlyPropConfig;
@@ -19,7 +18,7 @@ use Markommerce\Config\ValueObjects\ConfigDefinition;
 function buildProxyDefinitions(string $configClass): array
 {
     $builder = new ConfigRegistryBuilder();
-    $registry = $builder->build([$configClass], new FakeScopeRegistry());
+    $registry = $builder->build([$configClass]);
 
     return $registry->all();
 }
@@ -106,7 +105,6 @@ it('throws InvalidConfigClassException when a property is readonly', function ()
         key: 'proxy/readonly.value',
         configClass: ReadonlyPropConfig::class,
         field: 'value',
-        axes: [],
         type: 'string',
         defaultValue: null,
         secret: false,
@@ -123,7 +121,6 @@ it('throws InvalidConfigClassException when a property has a union type', functi
         key: 'proxy/union.value',
         configClass: UnionTypePropConfig::class,
         field: 'value',
-        axes: [],
         type: 'int|string',
         defaultValue: 42,
         secret: false,
@@ -142,7 +139,6 @@ it(
             key: 'proxy/ctor.value',
             configClass: RequiredConstructorProxyConfig::class,
             field: 'value',
-            axes: [],
             type: 'int',
             defaultValue: 1,
             secret: false,

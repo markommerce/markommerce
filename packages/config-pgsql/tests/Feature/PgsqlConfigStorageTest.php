@@ -11,6 +11,8 @@ use Markommerce\Config\PgSql\PgsqlConfigStorage;
 use Markommerce\Config\PgSql\Schema\ConfigValuesTableEmitter;
 use Markommerce\Config\PgSql\Tests\Feature\Helpers\PostgresTestConnection;
 use Markommerce\Config\ValueObjects\ConfigRow;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -25,12 +27,11 @@ function configStorageTableName(): string
     return $name;
 }
 
-function makeRow(string $key, mixed $value = null, array $overrides = [], int $version = 0): ConfigRow
+function makeRow(string $key, mixed $value = null, int $version = 0): ConfigRow
 {
     return new ConfigRow(
         key: $key,
         value: $value,
-        overrides: $overrides,
         version: $version,
     );
 }
@@ -66,23 +67,6 @@ it('returns null from load when the config_key row does not exist', function ():
     $storage = $this->storage;
 
     expect($storage->load('markommerce/catalog.missing_key'))->toBeNull();
-})->group('integration-destructive');
-
-it('returns a hydrated ConfigRow with decoded value and overrides from load when the row exists', function (): void {
-    /** @var PgsqlConfigStorage $storage */
-    $storage = $this->storage;
-    $key = 'markommerce/catalog.grid_page_size';
-
-    $storage->compareAndSave($key, makeRow($key, 20, ['channel:web' => 30]), 0);
-
-    $loaded = $storage->load($key);
-
-    expect($loaded)->not->toBeNull()
-        ->and($loaded->key)->toBe($key)
-        ->and($loaded->value)->toBe(20)
-        ->and($loaded->overrides)->toBe(['channel:web' => 30])
-        ->and($loaded->version)->toBe(1)
-        ->and($loaded->updatedAt)->toBeInstanceOf(DateTimeImmutable::class);
 })->group('integration-destructive');
 
 it('returns an empty array from loadMany when no requested keys exist', function (): void {
@@ -180,20 +164,6 @@ it('returns false from compareAndSave when the stored version does not match exp
         ->and($loaded->version)->toBe(1);
 })->group('integration-destructive');
 
-it('deletes the row when compareAndSave persists a row with null value and empty overrides', function (): void {
-    /** @var PgsqlConfigStorage $storage */
-    $storage = $this->storage;
-    $key = 'markommerce/catalog.grid_page_size';
-
-    $storage->compareAndSave($key, makeRow($key, 20), 0);
-
-    $emptyRow = makeRow($key, null, []);
-    $result = $storage->compareAndSave($key, $emptyRow, 1);
-
-    expect($result)->toBeTrue();
-    expect($storage->load($key))->toBeNull();
-})->group('integration-destructive');
-
 it('sets updated_at to NOW() on every successful compareAndSave', function (): void {
     /** @var PgsqlConfigStorage $storage */
     $storage = $this->storage;
@@ -247,7 +217,7 @@ it(
         $storage = $this->storage;
         $key = 'markommerce/catalog.absent_key';
 
-        $emptyRow = makeRow($key, null, []);
+        $emptyRow = makeRow($key, null);
         $result = $storage->compareAndSave($key, $emptyRow, 0);
 
         expect($result)->toBeTrue();
@@ -267,44 +237,6 @@ it(
 
         expect($result)->toBeFalse();
         expect($storage->load($key))->toBeNull();
-    },
-)->group('integration-destructive');
-
-it(
-    'serializes a concurrent empty-mutation (delete) and non-empty mutation (override-add) to the same key without losing the non-empty mutation',
-    function (): void {
-        /** @var PostgresTestConnection $conn */
-        $connA = new PostgresTestConnection();
-        $connB = new PostgresTestConnection();
-        $tableName = $this->tableName;
-
-        $storageA = new PgsqlConfigStorage($connA, $tableName);
-        $storageB = new PgsqlConfigStorage($connB, $tableName);
-
-        $key = 'markommerce/catalog.serialize_test';
-
-        // First, insert a row so both can claim expectedVersion 1
-        $this->storage->compareAndSave($key, makeRow($key, 'initial'), 0);
-
-        // A tries to delete (empty row), B tries to update with a new value
-        $deleteRow = makeRow($key, null, []);
-        $updateRow = makeRow($key, 'updated', ['channel:web' => 'override']);
-
-        $resultA = $storageA->compareAndSave($key, $deleteRow, 1);
-        $resultB = $storageB->compareAndSave($key, $updateRow, 1);
-
-        // Exactly one must succeed
-        expect($resultA xor $resultB)->toBeTrue();
-
-        // If B succeeded (update), we must see the updated value
-        if ($resultB) {
-            $loaded = $this->storage->load($key);
-            expect($loaded)->not->toBeNull()
-                ->and($loaded->value)->toBe('updated');
-        } else {
-            // A succeeded (delete), B failed — row is gone
-            expect($this->storage->load($key))->toBeNull();
-        }
     },
 )->group('integration-destructive');
 
@@ -334,3 +266,79 @@ it(
         expect($loaded->version)->toBe(1);
     },
 )->group('integration-destructive');
+
+it('persists a global value via PgsqlConfigStorage compareAndSave with no overrides serialization', function (): void {
+    /** @var PgsqlConfigStorage $storage */
+    $storage = $this->storage;
+    $key = 'markommerce/catalog.global_value';
+
+    $row = makeRow($key, 'test_value');
+    $result = $storage->compareAndSave($key, $row, 0);
+
+    expect($result)->toBeTrue();
+
+    $loaded = $storage->load($key);
+
+    expect($loaded)->not->toBeNull()
+        ->and($loaded->key)->toBe($key)
+        ->and($loaded->value)->toBe('test_value')
+        ->and($loaded->version)->toBe(1);
+})->group('integration-destructive');
+
+it('loads a global value via PgsqlConfigStorage load and hydrates ConfigRow with key, value, version, updatedAt only', function (): void {
+    /** @var PgsqlConfigStorage $storage */
+    $storage = $this->storage;
+    $key = 'markommerce/catalog.hydration_test';
+
+    $storage->compareAndSave($key, makeRow($key, ['nested' => true]), 0);
+
+    $loaded = $storage->load($key);
+
+    expect($loaded)->not->toBeNull()
+        ->and($loaded)->toBeInstanceOf(ConfigRow::class)
+        ->and($loaded->key)->toBe($key)
+        ->and($loaded->value)->toBe(['nested' => true])
+        ->and($loaded->version)->toBe(1)
+        ->and($loaded->updatedAt)->toBeInstanceOf(DateTimeImmutable::class);
+})->group('integration-destructive');
+
+it('deletes the row from PgsqlConfigStorage compareAndSave when the new row has value=null and the version matches', function (): void {
+    /** @var PgsqlConfigStorage $storage */
+    $storage = $this->storage;
+    $key = 'markommerce/catalog.delete_test';
+
+    $storage->compareAndSave($key, makeRow($key, 'to_delete'), 0);
+
+    $emptyRow = makeRow($key, null);
+    $result = $storage->compareAndSave($key, $emptyRow, 1);
+
+    expect($result)->toBeTrue();
+    expect($storage->load($key))->toBeNull();
+})->group('integration-destructive');
+
+it('does not reference overrides or _overrides_gin in any SQL statement issued by PgsqlConfigStorage', function (): void {
+    $source = file_get_contents(
+        dirname(__DIR__, 2) . '/src/PgsqlConfigStorage.php',
+    );
+
+    expect($source)->toBeString()
+        ->and($source)->not->toContain('overrides')
+        ->and($source)->not->toContain('_overrides_gin');
+})->group('integration-destructive');
+
+it('does not import Markommerce\Scope\... namespaces from any file under packages/config-pgsql/src after task completes', function (): void {
+    $srcDir = dirname(__DIR__, 2) . '/src';
+    $phpFiles = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($srcDir),
+    );
+
+    foreach ($phpFiles as $file) {
+        if ($file->getExtension() !== 'php') {
+            continue;
+        }
+
+        $contents = file_get_contents($file->getPathname());
+
+        expect($contents)->not->toContain('Markommerce\\Scope\\');
+    }
+})->group('integration-destructive');

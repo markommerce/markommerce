@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
+use Markommerce\Catalog\Entity\Product;
 use Markommerce\CatalogStorefront\Component\ProductCard;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Component\StockBadge;
 use Markommerce\CatalogStorefront\Context\CategoryDataProvider;
 use Markommerce\CatalogStorefront\Context\CategoryToken;
 use Markommerce\CatalogStorefront\Controller\CategoryController;
-use Markommerce\Catalog\Entity\Product;
 use Markommerce\CatalogStorefront\Iteration\ProductIteration;
 use Markommerce\Layout\Layout;
 use Markommerce\Layout\Place;

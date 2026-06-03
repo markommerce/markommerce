@@ -13,7 +13,6 @@ use Markommerce\Config\Proxy\ProxyLocator;
 use Markommerce\Config\Proxy\ProxyWriter;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
-use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
 use Markommerce\Config\Tests\Fixtures\Proxy\BaseConfig;
 use Markommerce\Config\Tests\Fixtures\Proxy\ExtendedConfig;
 use Markommerce\Config\Tests\Fixtures\Proxy\ReadonlyPropConfig;
@@ -39,7 +38,7 @@ function makeGenerateRegistry(array $classes): ConfigRegistry
 {
     $builder = new ConfigRegistryBuilder();
 
-    return $builder->build($classes, new FakeScopeRegistry());
+    return $builder->build($classes);
 }
 
 function makeGenerateCommand(ConfigRegistry $registry, string $targetDir, ?PreferenceRegistry $preferenceRegistry = null): GenerateCommand
@@ -181,7 +180,6 @@ it('exits non-zero when ProxyGenerator throws InvalidConfigClassException', func
         key: 'generate/readonly.value',
         configClass: ReadonlyPropConfig::class,
         field: 'value',
-        axes: [],
         type: 'string',
         defaultValue: null,
         secret: false,

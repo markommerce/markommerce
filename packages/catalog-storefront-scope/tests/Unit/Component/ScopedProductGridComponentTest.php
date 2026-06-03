@@ -7,15 +7,15 @@ use Marko\Core\Container\Container;
 use Marko\Core\Container\PreferenceDiscovery;
 use Marko\Core\Container\PreferenceRegistry;
 use Marko\Core\Module\ModuleManifest;
-use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
-use Markommerce\CatalogStorefrontScope\Component\ScopedProductGridComponent;
 use Markommerce\CatalogScope\Entity\ProductScopedOverrides;
+use Markommerce\CatalogStorefront\Component\ProductGridComponent;
+use Markommerce\CatalogStorefrontScope\Component\ScopedProductGridComponent;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
@@ -302,15 +302,15 @@ it('is resolved by the container as the preferred binding for ProductGridCompone
     [$scopeResolver] = scopedGridMakeResolver();
 
     $container->bind(
-        \Markommerce\Catalog\Services\CategoryAssignmentService::class,
-        fn () => new \Markommerce\Catalog\Services\CategoryAssignmentService(
+        CategoryAssignmentService::class,
+        fn () => new CategoryAssignmentService(
             $productRepository,
             $categoryRepository,
             $assignmentRepository,
         ),
     );
     $container->bind(
-        \Markommerce\Scope\Resolver\ScopeResolver::class,
+        ScopeResolver::class,
         fn () => $scopeResolver,
     );
 

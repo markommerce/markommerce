@@ -11,15 +11,11 @@ use Markommerce\Config\Exceptions\ProxyNotGeneratedException;
 use Markommerce\Config\Proxy\ProxyAutoloader;
 use Markommerce\Config\Proxy\ProxyLocator;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
-use Markommerce\Config\Resolution\OverrideMatcher;
 use Markommerce\Config\Storage\InMemoryConfigStorage;
-use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
 use Markommerce\Config\Tests\Unit\Resolver\Fixtures\ExtendedSampleConfig;
 use Markommerce\Config\Tests\Unit\Resolver\Fixtures\SampleConfig;
 use Markommerce\Config\Tests\Unit\Resolver\Fixtures\UnrelatedConfig;
 use Markommerce\Config\ValueObjects\ConfigRow;
-use Markommerce\Scope\Context\ScopeContext;
-use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 
 // Register the autoloader for generated fixture proxies
 $fixturesGeneratedDir = __DIR__ . '/Fixtures/Generated';
@@ -33,24 +29,18 @@ function makeGetTestResolver(
     ?InMemoryConfigStorage $storage = null,
     ?PreferenceRegistry $preferenceRegistry = null,
 ): ConfigResolver {
-    $fakeScopeRegistry = new FakeScopeRegistry();
     $builder = new ConfigRegistryBuilder();
-    $registry = $builder->build($configClasses, $fakeScopeRegistry);
+    $registry = $builder->build($configClasses);
     $storage ??= new InMemoryConfigStorage();
-    $enumerator = new SignatureCandidateEnumerator($fakeScopeRegistry);
-    $overrideMatcher = new OverrideMatcher($enumerator);
     $valueCaster = new ValueCaster();
     $secretCipher = new NullSecretCipher();
     $proxyLocator = new ProxyLocator();
     $preferenceRegistry ??= new PreferenceRegistry();
-    $scopeContext = new ScopeContext($fakeScopeRegistry);
 
     return new ConfigResolver(
         configRegistry: $registry,
         configStorage: $storage,
-        overrideMatcher: $overrideMatcher,
         valueCaster: $valueCaster,
-        scopeContext: $scopeContext,
         secretCipher: $secretCipher,
         proxyLocator: $proxyLocator,
         preferenceRegistry: $preferenceRegistry,
@@ -131,7 +121,6 @@ it(
         $storage->compareAndSave('test/greeting', new ConfigRow(
             key: 'test/greeting',
             value: 'Stored greeting',
-            overrides: [],
             version: 0,
         ), 0);
 

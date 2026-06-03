@@ -8,8 +8,6 @@ use Markommerce\Config\Attributes\Config;
 use Markommerce\Config\Command\ConfigListCommand;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
-use Markommerce\Config\Tests\Fakes\FakeScopeRegistry;
-use Markommerce\Scope\Attributes\Scoped;
 
 // --- Fixture config classes ---
 
@@ -19,10 +17,9 @@ class ListGlobalConfig
     public string $name = 'default';
 }
 
-class ListScopedConfig
+class ListAnotherConfig
 {
     #[Config(key: 'catalog/general.description')]
-    #[Scoped(axes: ['store', 'website'])]
     public string $description = 'desc';
 }
 
@@ -39,8 +36,7 @@ function makeListRegistry(): ConfigRegistry
     $builder = new ConfigRegistryBuilder();
 
     return $builder->build(
-        [ListGlobalConfig::class, ListScopedConfig::class, ListSecretConfig::class],
-        new FakeScopeRegistry(['store', 'website']),
+        [ListGlobalConfig::class, ListAnotherConfig::class, ListSecretConfig::class],
     );
 }
 
@@ -75,15 +71,11 @@ it('lists every registered config key as JSON when --format=json is given', func
         ->and($keys)->toContain('catalog/general.description')
         ->and($keys)->toContain('payment/stripe.api_key');
 
-    $descEntry = array_values(array_filter($decoded, fn ($r) => $r['key'] === 'catalog/general.description'))[0];
-    expect($descEntry['axes'])->toBe(['store', 'website'])
-        ->and($descEntry['source'])->toBe(ListScopedConfig::class);
-
     $secretEntry = array_values(array_filter($decoded, fn ($r) => $r['key'] === 'payment/stripe.api_key'))[0];
     expect($secretEntry['secret'])->toBeTrue();
 });
 
-it('lists every registered config key with its source class and axes in human-readable output', function (): void {
+it('lists every registered config key with its source class in human-readable output', function (): void {
     $registry = makeListRegistry();
 
     $result = runListCommand($registry);
@@ -92,8 +84,7 @@ it('lists every registered config key with its source class and axes in human-re
         ->toContain('catalog/general.name')
         ->toContain(ListGlobalConfig::class)
         ->toContain('catalog/general.description')
-        ->toContain(ListScopedConfig::class)
-        ->toContain('store, website')
+        ->toContain(ListAnotherConfig::class)
         ->toContain('payment/stripe.api_key')
         ->toContain(ListSecretConfig::class);
 });
