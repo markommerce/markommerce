@@ -360,13 +360,7 @@ it('throws a clear error when the compiled artifact is missing', function (): vo
 it('is declared as a global middleware in module.php', function (): void {
     $module = require __DIR__ . '/../../../module.php';
 
-    $entry = array_find(
-        $module['globalMiddleware'] ?? [],
-        fn (array $e) => ($e['class'] ?? '') === MarkommerceLayoutMiddleware::class,
-    );
-
-    expect($entry)->not->toBeNull();
-    expect($entry['priority'])->toBe(30);
+    expect($module['globalMiddleware'] ?? [])->toContain(MarkommerceLayoutMiddleware::class);
 });
 
 // =============================================================================

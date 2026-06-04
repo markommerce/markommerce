@@ -7,6 +7,7 @@ use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
 use Marko\Core\Path\ProjectPaths;
 use Marko\View\Latte\LatteView;
+use Marko\View\Latte\LatteViewConfig;
 use Marko\View\ModuleTemplateResolver;
 use Marko\View\ViewConfig;
 use Marko\Vite\Vite;
@@ -91,11 +92,12 @@ function themeBlankTestBuildView(ConfigRepository $config, string $themeBlankPat
     ]);
 
     $viewConfig = new ViewConfig($config);
+    $latteViewConfig = new LatteViewConfig($config);
     $templateResolver = new ModuleTemplateResolver($moduleRepository, $viewConfig);
     $paths = new ProjectPaths($basePath);
     $vite = new Vite($config, $paths);
     $viteExtension = new ViteExtension($vite, $config);
-    $engineFactory = new MarkommerceLatteEngineFactory($viewConfig, $viteExtension);
+    $engineFactory = new MarkommerceLatteEngineFactory($viewConfig, $latteViewConfig, $viteExtension);
     $engine = $engineFactory->create();
 
     return new LatteView($engine, $templateResolver);

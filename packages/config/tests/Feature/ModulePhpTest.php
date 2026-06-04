@@ -354,12 +354,7 @@ it(
 
         $middleware = $moduleArray['globalMiddleware'] ?? [];
 
-        $found = array_any(
-            $middleware,
-            fn ($entry) => isset($entry['class']) && $entry['class'] === ConfigCacheResetMiddleware::class,
-        );
-
-        expect($found)->toBeTrue();
+        expect($middleware)->toContain(ConfigCacheResetMiddleware::class);
     },
 )->group('integration-destructive');
 

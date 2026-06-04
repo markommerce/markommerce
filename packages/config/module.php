@@ -29,6 +29,12 @@ use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Registry\ConfigRegistryBuilder;
 
 return [
+    'sequence' => [
+        // ConfigCacheResetMiddleware must run after scope resolution so config
+        // reads resolve against the request's scope context. Soft ordering —
+        // only enforced when markommerce/scope is also installed.
+        'after' => ['markommerce/scope'],
+    ],
     'bindings' => [
         ConfigWriterInterface::class => ConfigWriter::class,
         SecretCipherInterface::class => static function (ContainerInterface $container): SecretCipherInterface {
@@ -128,6 +134,6 @@ return [
         }
     },
     'globalMiddleware' => [
-        ['class' => ConfigCacheResetMiddleware::class, 'priority' => 10],
+        ConfigCacheResetMiddleware::class,
     ],
 ];

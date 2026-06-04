@@ -57,7 +57,7 @@ return [
         ScopeResolutionMiddleware::class,
     ],
     'globalMiddleware' => [
-        ['class' => ScopeResolutionMiddleware::class, 'priority' => 5],
+        ScopeResolutionMiddleware::class,
     ],
     'boot' => function (ContainerInterface $container): void {
         $registry = $container->get(ScopeRegistryInterface::class);
