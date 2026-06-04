@@ -46,16 +46,11 @@ it('module.php registers ScopeResolutionMiddleware as a singleton', function ():
     expect($module['singletons'])->toContain(ScopeResolutionMiddleware::class);
 });
 
-it('module.php declares ScopeResolutionMiddleware as a globalMiddleware entry with priority 5', function (): void {
+it('module.php declares ScopeResolutionMiddleware as a globalMiddleware class-string', function (): void {
     $module = require dirname(__DIR__, 2) . '/module.php';
 
     expect($module)->toHaveKey('globalMiddleware');
-
-    $entries = $module['globalMiddleware'];
-    $found = array_find($entries, fn (array $entry): bool => $entry['class'] === ScopeResolutionMiddleware::class);
-
-    expect($found)->not->toBeNull()
-        ->and($found['priority'])->toBe(5);
+    expect($module['globalMiddleware'])->toContain(ScopeResolutionMiddleware::class);
 });
 
 it(

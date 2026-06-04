@@ -7,6 +7,7 @@ use Marko\Config\ConfigRepository;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
 use Marko\View\Latte\LatteEngineFactory;
+use Marko\View\Latte\LatteViewConfig;
 use Marko\View\Latte\ModuleLoader;
 use Marko\View\ModuleTemplateResolver;
 use Marko\View\ViewConfig;
@@ -52,8 +53,9 @@ function productCardBuildLatte(): Engine
     ]);
 
     $viewConfig = new ViewConfig($config);
+    $latteViewConfig = new LatteViewConfig($config);
     $templateResolver = new ModuleTemplateResolver($moduleRepository, $viewConfig);
-    $engine = (new LatteEngineFactory($viewConfig))->create();
+    $engine = (new LatteEngineFactory($viewConfig, $latteViewConfig))->create();
     $engine->setLoader(new ModuleLoader($templateResolver));
 
     return $engine;

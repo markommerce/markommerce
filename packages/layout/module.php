@@ -21,6 +21,12 @@ use Markommerce\Layout\Runtime\Renderer;
 use Markommerce\Layout\Runtime\RendererInterface;
 
 return [
+    'sequence' => [
+        // Layout middleware reads resolved config (which is scope-aware), so it
+        // must run after the config module's cache-reset middleware. Soft
+        // ordering — only enforced when markommerce/config is also installed.
+        'after' => ['markommerce/config'],
+    ],
     'bindings' => [
         ArtifactReaderInterface::class => function (ContainerInterface $container): ArtifactReader {
             $path = $container->get(ProjectPaths::class)->base . '/var/cache/markommerce/layouts.php';
@@ -52,7 +58,7 @@ return [
         MarkommerceLayoutMiddleware::class => MarkommerceLayoutMiddleware::class,
     ],
     'globalMiddleware' => [
-        ['class' => CompileIfStaleMiddleware::class, 'priority' => 28],
-        ['class' => MarkommerceLayoutMiddleware::class, 'priority' => 30],
+        CompileIfStaleMiddleware::class,
+        MarkommerceLayoutMiddleware::class,
     ],
 ];

@@ -9,6 +9,7 @@ use Marko\Core\Attributes\Preference;
 use Marko\Core\Path\ProjectPaths;
 use Marko\View\Latte\Extensions\SlotExtension;
 use Marko\View\Latte\LatteEngineFactory;
+use Marko\View\Latte\LatteViewConfig;
 use Marko\View\ViewConfig;
 use Marko\Vite\Vite;
 use Markommerce\Frontend\View\Latte\MarkommerceLatteEngineFactory;
@@ -66,10 +67,11 @@ it(
         ]);
 
         $viewConfig = new ViewConfig($config);
+        $latteViewConfig = new LatteViewConfig($config);
         $paths = new ProjectPaths(sys_get_temp_dir());
         $vite = new Vite($config, $paths);
         $viteExtension = new ViteExtension($vite, $config);
-        $factory = new MarkommerceLatteEngineFactory($viewConfig, $viteExtension);
+        $factory = new MarkommerceLatteEngineFactory($viewConfig, $latteViewConfig, $viteExtension);
 
         $engine = $factory->create();
 
@@ -135,10 +137,11 @@ it('the Latte engine reports the vite function as registered after the module bo
     ]);
 
     $viewConfig = new ViewConfig($config);
+    $latteViewConfig = new LatteViewConfig($config);
     $paths = new ProjectPaths(sys_get_temp_dir());
     $vite = new Vite($config, $paths);
     $viteExtension = new ViteExtension($vite, $config);
-    $factory = new MarkommerceLatteEngineFactory($viewConfig, $viteExtension);
+    $factory = new MarkommerceLatteEngineFactory($viewConfig, $latteViewConfig, $viteExtension);
 
     $engine = $factory->create();
 
