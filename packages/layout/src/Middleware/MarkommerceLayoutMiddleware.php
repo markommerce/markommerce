@@ -86,7 +86,23 @@ class MarkommerceLayoutMiddleware implements MiddlewareInterface
 
         $html = $this->renderer->render($tree, $request, $matched->parameters);
 
-        return Response::html($html);
+        // Preserve any headers the controller set (e.g. Link: canonical), merging
+        // them with the default HTML content-type header.
+        $controllerHeaders = array_filter(
+            $controllerResponse->headers(),
+            static fn (string $name): bool => strtolower($name) !== 'content-type',
+            ARRAY_FILTER_USE_KEY,
+        );
+
+        if ($controllerHeaders === []) {
+            return Response::html($html);
+        }
+
+        return new Response(
+            body: $html,
+            statusCode: 200,
+            headers: array_merge(['Content-Type' => 'text/html; charset=utf-8'], $controllerHeaders),
+        );
     }
 
     /**

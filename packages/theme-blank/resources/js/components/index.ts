@@ -26,3 +26,5 @@ import './mk-spinner';
 import './mk-skeleton';
 import './mk-modal';
 import './mk-drawer';
+import './mk-load-more';
+import './mk-infinite-scroll';

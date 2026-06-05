@@ -21,4 +21,7 @@ class ProductCategoryAssignment extends Entity
 
     #[Column(name: 'category_id', references: 'catalog_categories', onDelete: 'CASCADE')]
     public ?int $categoryId = null;
+
+    #[Column(name: 'position', type: 'integer', nullable: false)]
+    public int $position = 0;
 }

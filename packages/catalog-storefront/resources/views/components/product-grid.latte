@@ -1,10 +1,49 @@
 <mk-stack gap="5">
     <mk-heading size="2xl"><h1>{$category->name}</h1></mk-heading>
+    {var $paginationUrls = $pageLinkUrls ?? []}
+    {var $mode = isset($presentation) ? $presentation->value : 'numbered'}
+    {if ($paginationUrls) && ($mode === 'load_more' || $mode === 'infinite') && ($previousPageUrl ?? null) !== null}
+        <button type="button" class="catalog-pagination__load-previous" data-role="load-previous">Load previous</button>
+    {/if}
     {if count($products) > 0}
-        <mk-grid min="14rem" gap="4">
+        <mk-grid class="catalog-product-grid" min="14rem" gap="4">
             {slot products}{/slot}
         </mk-grid>
     {else}
         <mk-text variant="muted">No products found in this category.</mk-text>
+    {/if}
+
+    {if count($paginationUrls) > 0}
+        {if $mode === 'load_more'}
+            <mk-load-more data-next="{$nextPageUrl|noescape}"{if ($previousPageUrl ?? null) !== null} data-prev="{$previousPageUrl|noescape}"{/if}{if ($canonicalPageUrl ?? null) !== null} data-canonical="{$canonicalPageUrl|noescape}"{/if} data-grid=".catalog-product-grid">
+                <button type="button" data-role="load-more">Load more</button>
+                {include 'catalog-storefront::components/product-pagination',
+                    pageLinkUrls: $paginationUrls,
+                    currentPage: $currentPage,
+                    totalPages: $totalPages,
+                    hasPrevious: $hasPrevious ?? false,
+                    hasNext: $hasNext ?? false,
+                    nextPageUrl: $nextPageUrl ?? null}
+            </mk-load-more>
+        {elseif $mode === 'infinite'}
+            <mk-infinite-scroll data-next="{$nextPageUrl|noescape}"{if ($previousPageUrl ?? null) !== null} data-prev="{$previousPageUrl|noescape}"{/if}{if ($canonicalPageUrl ?? null) !== null} data-canonical="{$canonicalPageUrl|noescape}"{/if} data-grid=".catalog-product-grid">
+                {* numbered pagination stays in the DOM (crawlable + no-JS fallback); pagination.css hides it once the element upgrades (:defined). *}
+                {include 'catalog-storefront::components/product-pagination',
+                    pageLinkUrls: $paginationUrls,
+                    currentPage: $currentPage,
+                    totalPages: $totalPages,
+                    hasPrevious: $hasPrevious ?? false,
+                    hasNext: $hasNext ?? false,
+                    nextPageUrl: $nextPageUrl ?? null}
+            </mk-infinite-scroll>
+        {else}
+            {include 'catalog-storefront::components/product-pagination',
+                pageLinkUrls: $paginationUrls,
+                currentPage: $currentPage,
+                totalPages: $totalPages,
+                hasPrevious: $hasPrevious ?? false,
+                hasNext: $hasNext ?? false,
+                nextPageUrl: $nextPageUrl ?? null}
+        {/if}
     {/if}
 </mk-stack>

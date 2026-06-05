@@ -75,6 +75,26 @@ it('declares a composite unique index over product_id and category_id', function
         ->and($index->unique)->toBeTrue();
 });
 
+it('exposes a position property defaulting to zero on a new assignment', function (): void {
+    $assignment = new ProductCategoryAssignment();
+
+    expect($assignment->position)->toBe(0);
+});
+
+it('maps the position property to the position column', function (): void {
+    $reflection = new ReflectionClass(ProductCategoryAssignment::class);
+    $property = $reflection->getProperty('position');
+    $attributes = $property->getAttributes(Column::class);
+
+    expect($attributes)->toHaveCount(1);
+
+    $column = $attributes[0]->newInstance();
+
+    expect($column->name)->toBe('position')
+        ->and($column->type)->toBe('integer')
+        ->and($column->nullable)->toBeFalse();
+});
+
 it('does not implement HasScopesInterface', function (): void {
     $hasScopesInterface = 'Markommerce\\Scope\\Storage\\HasScopesInterface';
     $assignment = new ProductCategoryAssignment();

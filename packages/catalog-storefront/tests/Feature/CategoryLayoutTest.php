@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Marko\Core\Container\ContainerInterface;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
+use Marko\Database\Entity\EntityCollection;
 use Marko\Routing\Http\Request;
 use Marko\Routing\Http\Response;
 use Marko\Routing\RouteCollection;
@@ -15,6 +16,8 @@ use Marko\View\ViewInterface;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
+use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
+use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
@@ -25,6 +28,11 @@ use Markommerce\CatalogStorefront\Component\StockBadge;
 use Markommerce\CatalogStorefront\Context\CategoryDataProvider;
 use Markommerce\CatalogStorefront\Controller\CategoryController;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
+use Markommerce\Config\Contracts\ConfigResolverInterface;
+use Markommerce\Criteria\Page\Page;
+use Markommerce\Criteria\Position\PositionCodec;
+use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
+use Markommerce\Criteria\Strategy\OffsetPage;
 use Markommerce\Layout\Cache\ArtifactReaderInterface;
 use Markommerce\Layout\Cache\PreparedPlace;
 use Markommerce\Layout\Cache\PreparedRepeatSlot;
@@ -93,6 +101,79 @@ function catalogLayoutMakeNoPricePriceResolver(): PriceResolverInterface
         public function resolve(PriceContext $context): Money
         {
             throw PriceUnavailableException::forContext($context);
+        }
+    };
+}
+
+/**
+ * @param array<string, mixed> $overrides
+ */
+function catalogLayoutMakeConfigResolver(array $overrides = []): ConfigResolverInterface
+{
+    $defaults = [
+        'defaultPageSize'  => 24,
+        'allowedPageSizes' => [12, 24, 48, 96],
+        'maxPageSize'      => 96,
+        'strategy'         => 'offset',
+        'presentation'     => 'numbered',
+        'countMode'        => 'exact',
+        'maxPageDepth'     => 100,
+        'defaultSort'      => 'position',
+        'allowedSorts'     => ['position', 'name', 'sku', 'price'],
+        'viewAllThreshold' => 0,
+        'countCacheTtl'    => 0,
+    ];
+
+    $values = array_merge($defaults, $overrides);
+
+    return new class ($values) implements ConfigResolverInterface {
+        /** @param array<string, mixed> $values */
+        public function __construct(private readonly array $values) {}
+
+        public function resolved(string $configClass, string $field): mixed
+        {
+            return $this->values[$field] ?? null;
+        }
+    };
+}
+
+function catalogLayoutMakePaginationOptionsResolver(): PaginationOptionsResolver
+{
+    return new PaginationOptionsResolver(catalogLayoutMakeConfigResolver());
+}
+
+/**
+ * Build a CategoryAssignmentService that delegates paginatedProductsInCategory
+ * to the in-memory fake repositories (wraps productsInCategory result in an OffsetPage).
+ */
+function catalogLayoutMakeAssignmentService(
+    FakeProductRepository $productRepository,
+    FakeCategoryRepository $categoryRepository,
+    FakeProductCategoryAssignmentRepository $assignmentRepository,
+): CategoryAssignmentService {
+    $positionCodec = new PositionCodec();
+
+    return new class (
+        $productRepository,
+        $categoryRepository,
+        $assignmentRepository,
+        $positionCodec,
+        new KeysetPaginationStrategy($positionCodec),
+    ) extends CategoryAssignmentService {
+        public function paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $options): Page
+        {
+            $products = $this->productsInCategory($categoryId);
+
+            return new OffsetPage(
+                items: new EntityCollection($products),
+                size: $options->pageRequest->size,
+                nextPosition: null,
+                previousPosition: null,
+                currentPage: $options->page,
+                totalPages: 1,
+                totalItems: count($products),
+                positionCodec: new PositionCodec(),
+            );
         }
     };
 }
@@ -273,7 +354,7 @@ it('returns a typed ProductGridData DTO from the grid component data method', fu
     $category->name = 'Test';
     $categoryRepository->save($category);
 
-    $assignmentService = new CategoryAssignmentService(
+    $assignmentService = catalogLayoutMakeAssignmentService(
         $productRepository,
         $categoryRepository,
         $assignmentRepository,
@@ -281,10 +362,11 @@ it('returns a typed ProductGridData DTO from the grid component data method', fu
 
     $component = new ProductGridComponent(
         $assignmentService,
+        catalogLayoutMakePaginationOptionsResolver(),
         catalogLayoutMakeNoPricePriceResolver(),
-        catalogLayoutMakeMoneyFormatter()
+        catalogLayoutMakeMoneyFormatter(),
     );
-    $data = $component->data($category);
+    $data = $component->data($category, 1, 0, '');
 
     expect($data)->toBeInstanceOf(ProductGridData::class);
     expect($data->products)->toBeArray();
@@ -295,22 +377,31 @@ it('loads the category via a context provider instead of inside the component', 
     $reflection = new ReflectionClass(CategoryDataProvider::class);
     expect($reflection->implementsInterface(ContextProvider::class))->toBeTrue();
 
-    // ProductGridComponent's data() method must not accept an int $id (category fetching moved out)
+    // ProductGridComponent's data() method must accept a Category object (not just a raw int ID)
     $gridReflection = new ReflectionClass(ProductGridComponent::class);
     $dataMethod = $gridReflection->getMethod('data');
     $params = $dataMethod->getParameters();
 
+    $paramNames = array_map(fn ($p) => $p->getName(), $params);
     $paramTypes = array_map(fn ($p) => $p->getType()?->getName(), $params);
-    // Should NOT accept plain int — should accept Category object
-    expect($paramTypes)->not->toContain('int');
+    // Must accept Category object
     expect($paramTypes)->toContain(Category::class);
+    // The first param is 'category' (not 'id')
+    expect($paramNames[0])->toBe('category');
+    // Should accept pagination params from the layout query string
+    expect($paramNames)->toContain('page');
+    expect($paramNames)->toContain('size');
+    expect($paramNames)->toContain('sort');
 });
 
 it('returns 404 from the controller when the category does not exist', function (): void {
     $categoryRepository = new FakeCategoryRepository();
 
     $controller = new CategoryController($categoryRepository);
-    $response = $controller->show(9999);
+    $request = new Request(
+        server: ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/9999'],
+    );
+    $response = $controller->show(9999, $request);
 
     expect($response->statusCode())->toBe(404);
 });
@@ -352,7 +443,7 @@ it('renders the category page with a grid of product cards', function (): void {
     $product->name = 'Test Product';
     $productRepository->save($product);
 
-    $assignmentService = new CategoryAssignmentService(
+    $assignmentService = catalogLayoutMakeAssignmentService(
         $productRepository,
         $categoryRepository,
         $assignmentRepository,
@@ -377,7 +468,12 @@ it('renders the category page with a grid of product cards', function (): void {
     $priceResolver = catalogLayoutMakeNoPricePriceResolver();
     $moneyFormatter = catalogLayoutMakeMoneyFormatter();
 
-    $productGridComponent = new ProductGridComponent($assignmentService, $priceResolver, $moneyFormatter);
+    $productGridComponent = new ProductGridComponent(
+        $assignmentService,
+        catalogLayoutMakePaginationOptionsResolver(),
+        $priceResolver,
+        $moneyFormatter,
+    );
     $container->instance(ProductGridComponent::class, $productGridComponent);
     $container->instance(ProductCard::class, new ProductCard($priceResolver, $moneyFormatter));
 
@@ -390,7 +486,7 @@ it('renders the category page with a grid of product cards', function (): void {
     $controllerCallable = function (Request $request) use ($container): Response {
         $controller = $container->get(CategoryController::class);
 
-        return $controller->show((int) explode('/', $request->path())[3]);
+        return $controller->show((int) explode('/', $request->path())[3], $request);
     };
 
     $request = new Request([

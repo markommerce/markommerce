@@ -15,15 +15,20 @@ composer require markommerce/catalog-storefront
 
 ## Usage
 
-### Storefront route
+### Storefront routes
 
-The module registers the following route automatically via `CategoryController`:
+The module registers the following routes automatically via `CategoryController`:
 
 ```
 GET /catalog/category/{id}
+GET /catalog/category/{id}/page
 ```
 
-`CategoryController` performs a category lookup by `id` and returns a `404` response when the category does not exist. The page is rendered by `markommerce/layout` --- `CategoryController` carries no `#[Layout]` attribute; placement is declared entirely in the layout definition file.
+`CategoryController::show()` performs a category lookup by `id`, resolves pagination options from the `page`, `size`, and `sort` query parameters, and returns a `404` when the category does not exist. Page numbers exceeding `maxPageDepth` return `410 Gone`. The response includes a `Link: <url>; rel="canonical"` header that normalises redundant query parameters and points small categories (below `viewAllThreshold`) to their `?view=all` URL.
+
+`CategoryController::pageFragment()` at `GET /catalog/category/{id}/page` is a server-rendered fragment endpoint consumed by the `load_more` and `infinite` presentation modes. It accepts the same `page`, `size`, and `sort` parameters and also returns `410 Gone` when the page depth cap is exceeded.
+
+Both routes are rendered by `markommerce/layout` --- `CategoryController` carries no `#[Layout]` attribute; placement is declared entirely in the layout definition files.
 
 ### Layout definition
 
@@ -64,7 +69,12 @@ return new Layout(
             new Place(
                 component: ProductGridComponent::class,
                 name: 'catalog.product_grid',
-                props: ['category' => Source::context(CategoryToken::class)],
+                props: [
+                    'category' => Source::context(CategoryToken::class),
+                    'page' => Source::query('page', 1, 'int'),
+                    'size' => Source::query('size', 0, 'int'),
+                    'sort' => Source::query('sort', '', 'string'),
+                ],
                 slots: [
                     'products' => Slot::repeat(
                         dataKey: 'products',
@@ -112,17 +122,18 @@ The layout definition extends `OneColumnLayout` from `markommerce/theme-blank`. 
 
 | Method | Route | Description |
 |---|---|---|
-| `show(int $id)` | `GET /catalog/category/{id}` | Resolve the category by `id` and render the product grid page. Returns `404` when the category does not exist. |
+| `show(int $id, Request $request)` | `GET /catalog/category/{id}` | Resolve the category by `id`, resolve pagination from `page`/`size`/`sort` query params, and render the product grid page. Returns `404` when the category does not exist; `410` when the page number exceeds `maxPageDepth`. Sets a `Link: rel=canonical` response header. |
+| `pageFragment(int $id, Request $request)` | `GET /catalog/category/{id}/page` | Server-rendered page fragment for `load_more` and `infinite` presentation modes. Returns `404` for unknown categories; `410` for depth cap violations. |
 
 ### `ProductGridComponent`
 
-A placement-agnostic component that resolves products for a category and builds `ProductGridData`. Its `data(Category $category)` method loads the products assigned to the category, populates `resolvedNames` and `resolvedDescs` with the raw entity values, and resolves a locale-formatted price for each product via `PriceResolverInterface` and `MoneyFormatter`. Products without a price receive a `null` entry in `formattedPrices`.
+A placement-agnostic component that resolves a paginated product page for a category and builds `ProductGridData`. Its `data()` method delegates to `PaginationOptionsResolver` to translate request parameters into a `ResolvedPaginationOptions`, then calls `CategoryAssignmentService::paginatedProductsInCategory()`. It populates `resolvedNames` and `resolvedDescs` with the raw entity values, resolves a locale-formatted price for each product via `PriceResolverInterface` and `MoneyFormatter`, and fills the pagination fields (`currentPage`, `totalPages`, `hasNext`, `hasPrevious`, `pageLinkUrls`, `nextPageUrl`) from the returned `Page`. Products without a price receive a `null` entry in `formattedPrices`.
 
 When [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-scope/) is installed, its `ScopedProductGridComponent` Preference replaces this component and resolves locale-aware names and descriptions via `ScopeResolver`.
 
 | Method | Return type | Description |
 |---|---|---|
-| `data(Category $category)` | `ProductGridData` | Load products for the category; return a `ProductGridData` DTO with raw name and description values and a formatted price map. |
+| `data(Category $category, int $page, int $size, string $sort)` | `ProductGridData` | Load a paginated product page for the category; return a `ProductGridData` DTO with raw name and description values, a formatted price map, and pagination metadata. |
 
 ### `ProductCard`
 
@@ -147,10 +158,17 @@ DTO returned by `ProductGridComponent::data()`. Extends `ExtensibleData`.
 | Property | Type | Description |
 |---|---|---|
 | `$category` | `Category` | The resolved category entity |
-| `$products` | `list<Product>` | All products assigned to the category |
+| `$products` | `list<Product>` | Products for the current page |
 | `$resolvedNames` | `array<int, string>` | Display name keyed by product ID (raw value; scope-resolved when `catalog-storefront-scope` is installed) |
 | `$resolvedDescs` | `array<int, string\|null>` | Display description keyed by product ID (raw value; scope-resolved when `catalog-storefront-scope` is installed) |
 | `$formattedPrices` | `array<int, string\|null>` | Locale-formatted price string keyed by product ID; `null` when the product has no price |
+| `$presentation` | `PaginationPresentation` | Active storefront presentation mode (`numbered`, `load_more`, or `infinite`) |
+| `$currentPage` | `?int` | Current page number (1-based); `null` when the offset strategy is not active |
+| `$totalPages` | `?int` | Total page count; `null` when the offset strategy is not active |
+| `$hasNext` | `bool` | Whether a next page exists |
+| `$hasPrevious` | `bool` | Whether a previous page exists |
+| `$pageLinkUrls` | `list<string>` | Crawlable numbered page URLs (e.g. `['?page=1', '?page=2', ...]`); populated only for `numbered` presentation |
+| `$nextPageUrl` | `?string` | URL for the next page; a `?page=N` query string for offset or a `?position=TOKEN` for keyset; `null` on the last page |
 | `$extensions` | `ExtensionBag` | Typed extension attributes (third-party use) |
 
 ### `ProductCardData`
@@ -170,7 +188,8 @@ Both `ProductGridData` and `ProductCardData` extend `ExtensibleData`, allowing t
 
 ## Related Packages
 
-- [markommerce/catalog](/docs/packages/catalog/) --- Provides `Product`, `Category`, and the repository and service layer consumed by this package
+- [markommerce/catalog](/docs/packages/catalog/) --- Provides `Product`, `Category`, the repository and service layer, and `PaginationOptionsResolver` consumed by this package
+- [markommerce/criteria](/docs/packages/criteria/) --- Pagination engine; `ProductGridComponent` works with the `Page` and `RandomAccessPageInterface` types it defines
 - [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-scope/) --- Adds locale-aware rendering; Preference-replaces `ProductGridComponent` with `ScopedProductGridComponent`
 - [markommerce/pricing](/docs/packages/pricing/) --- Resolves a product's effective price as a `Money` value object; used by `ProductGridComponent` and `ProductCard` to build formatted price strings
 - [markommerce/money-intl](/docs/packages/money-intl/) --- Provides `MoneyFormatter`, which locale-formats `Money` values into display strings

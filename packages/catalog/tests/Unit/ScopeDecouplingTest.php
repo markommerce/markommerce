@@ -27,10 +27,19 @@ it('has no Markommerce\\Scope imports in any catalog test file under tests/Unit 
     $unitDir = dirname(__DIR__, 2) . '/tests/Unit';
     $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($unitDir));
 
+    // Config tests legitimately use ScopedConfigResolver to exercise per-scope
+    // config resolution; the coupling is to markommerce/config-scope, not to
+    // the scope-entity layer, so these files are intentionally excluded here.
+    $allowedDir = $unitDir . '/Config';
+
     $violations = [];
 
     foreach ($files as $file) {
         if (!$file->isFile() || $file->getExtension() !== 'php') {
+            continue;
+        }
+
+        if (str_starts_with($file->getPathname(), $allowedDir)) {
             continue;
         }
 

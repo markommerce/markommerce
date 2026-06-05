@@ -6,7 +6,9 @@
     "require": {
         "php": "^8.5",
         "marko/core": "self.version",
-        "marko/database": "self.version"
+        "marko/database": "self.version",
+        "markommerce/config": "self.version",
+        "markommerce/criteria": "self.version"
     },
     "require-dev": {
         "marko/testing": "self.version",

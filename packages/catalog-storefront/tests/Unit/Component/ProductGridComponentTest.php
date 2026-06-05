@@ -6,6 +6,7 @@ use Latte\Engine;
 use Marko\Config\ConfigRepository;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
+use Marko\Database\Entity\EntityCollection;
 use Marko\View\Latte\LatteEngineFactory;
 use Marko\View\Latte\LatteViewConfig;
 use Marko\View\Latte\ModuleLoader;
@@ -16,6 +17,11 @@ use Markommerce\Catalog\Contracts\ProductCategoryAssignmentRepositoryInterface;
 use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
+use Markommerce\Catalog\Pagination\CountMode;
+use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
+use Markommerce\Catalog\Pagination\PaginationPresentation;
+use Markommerce\Catalog\Pagination\PaginationStrategyKind;
+use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
@@ -23,6 +29,15 @@ use Markommerce\Catalog\Tests\Support\FakeProductRepository;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Data\ProductCardData;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
+use Markommerce\Config\Contracts\ConfigResolverInterface;
+use Markommerce\Criteria\Page\Page;
+use Markommerce\Criteria\Page\PageRequest;
+use Markommerce\Criteria\Position\PositionCodec;
+use Markommerce\Criteria\Sort\Sort;
+use Markommerce\Criteria\Sort\SortDirection;
+use Markommerce\Criteria\Sort\SortField;
+use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
+use Markommerce\Criteria\Strategy\OffsetPage;
 use Markommerce\Layout\ExtensionBag;
 use Markommerce\Money\Currency;
 use Markommerce\Money\Money;
@@ -136,21 +151,149 @@ function makeGridNoPricePriceResolver(): PriceResolverInterface
     };
 }
 
+function productGridMakeAssignmentService(
+    FakeProductRepository $productRepository,
+    FakeCategoryRepository $categoryRepository,
+    FakeProductCategoryAssignmentRepository $assignmentRepository,
+): CategoryAssignmentService {
+    $positionCodec = new PositionCodec();
+
+    return new CategoryAssignmentService(
+        productRepository: $productRepository,
+        categoryRepository: $categoryRepository,
+        productCategoryAssignmentRepository: $assignmentRepository,
+        positionCodec: $positionCodec,
+        keysetPaginationStrategy: new KeysetPaginationStrategy($positionCodec),
+    );
+}
+
+/**
+ * @param array<string, mixed> $overrides
+ */
+function productGridMakeConfigResolver(array $overrides = []): ConfigResolverInterface
+{
+    $defaults = [
+        'defaultPageSize'  => 24,
+        'allowedPageSizes' => [12, 24, 48, 96],
+        'maxPageSize'      => 96,
+        'strategy'         => 'offset',
+        'presentation'     => 'numbered',
+        'countMode'        => 'exact',
+        'maxPageDepth'     => 100,
+        'defaultSort'      => 'position',
+        'allowedSorts'     => ['position', 'name', 'sku', 'price'],
+        'viewAllThreshold' => 0,
+        'countCacheTtl'    => 0,
+    ];
+
+    $values = array_merge($defaults, $overrides);
+
+    return new class ($values) implements ConfigResolverInterface {
+        /** @param array<string, mixed> $values */
+        public function __construct(private readonly array $values) {}
+
+        public function resolved(string $configClass, string $field): mixed
+        {
+            return $this->values[$field] ?? null;
+        }
+    };
+}
+
+/**
+ * @param array<string, mixed> $overrides
+ */
+function productGridMakePaginationOptionsResolver(array $overrides = []): PaginationOptionsResolver
+{
+    return new PaginationOptionsResolver(productGridMakeConfigResolver($overrides));
+}
+
+/**
+ * Build a fake OffsetPage for unit tests.
+ *
+ * @param list<Product> $products
+ */
+function productGridMakeFakeOffsetPage(
+    array $products,
+    int $currentPage = 1,
+    int $totalPages = 1,
+    ?string $nextPosition = null,
+    ?string $previousPosition = null,
+): OffsetPage {
+    return new OffsetPage(
+        items: new EntityCollection($products),
+        size: 24,
+        nextPosition: $nextPosition,
+        previousPosition: $previousPosition,
+        currentPage: $currentPage,
+        totalPages: $totalPages,
+        totalItems: $totalPages * 24,
+        positionCodec: new PositionCodec(),
+    );
+}
+
+/**
+ * Build a fake CategoryAssignmentService that returns a controlled OffsetPage.
+ */
+function productGridMakeFakeService(
+    OffsetPage $page,
+): CategoryAssignmentService {
+    $positionCodec = new PositionCodec();
+    $productRepository = new FakeProductRepository();
+    $categoryRepository = new FakeCategoryRepository();
+    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+
+    return new class (
+        $productRepository,
+        $categoryRepository,
+        $assignmentRepository,
+        $positionCodec,
+        new KeysetPaginationStrategy($positionCodec),
+        $page,
+    ) extends CategoryAssignmentService {
+        public function __construct(
+            ProductRepositoryInterface $productRepository,
+            CategoryRepositoryInterface $categoryRepository,
+            ProductCategoryAssignmentRepositoryInterface $assignmentRepository,
+            PositionCodec $positionCodec,
+            KeysetPaginationStrategy $keysetPaginationStrategy,
+            private readonly OffsetPage $fakePage,
+        ) {
+            parent::__construct(
+                $productRepository,
+                $categoryRepository,
+                $assignmentRepository,
+                $positionCodec,
+                $keysetPaginationStrategy,
+            );
+        }
+
+        public function paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $options): Page
+        {
+            return $this->fakePage;
+        }
+    };
+}
+
 function productGridBuildComponent(
     FakeCategoryRepository $categoryRepository,
     FakeProductRepository $productRepository,
     FakeProductCategoryAssignmentRepository $assignmentRepository,
     ?PriceResolverInterface $priceResolver = null,
     ?MoneyFormatter $moneyFormatter = null,
+    ?OffsetPage $fakePage = null,
 ): ProductGridComponent {
-    $service = new CategoryAssignmentService(
-        $productRepository,
-        $categoryRepository,
-        $assignmentRepository,
-    );
+    if ($fakePage !== null) {
+        $service = productGridMakeFakeService($fakePage);
+    } else {
+        // Build a fake page from data already in the repositories
+        $products = array_values($productRepository->products);
+        $page = productGridMakeFakeOffsetPage($products);
+        $service = productGridMakeFakeService($page);
+    }
 
     return new ProductGridComponent(
         $service,
+        productGridMakePaginationOptionsResolver(),
         $priceResolver ?? makeGridNoPricePriceResolver(),
         $moneyFormatter ?? makeGridMoneyFormatter(),
     );
@@ -163,17 +306,17 @@ it(
     function (): void {
         $reflection = new ReflectionClass(ProductGridComponent::class);
         $constructor = $reflection->getConstructor();
-    
+
         expect($constructor)->not->toBeNull();
-    
+
         $params = $constructor->getParameters();
         $paramNames = array_map(fn ($p) => $p->getName(), $params);
         $paramTypes = array_map(fn ($p) => $p->getType()?->getName(), $params);
-    
+
         expect($paramNames)->toContain('categoryAssignmentService');
         expect($paramNames)->not->toContain('categoryRepository');
         expect($paramNames)->not->toContain('scopeResolver');
-    
+
         expect($paramTypes)->toContain(CategoryAssignmentService::class);
         expect($paramTypes)->toContain(PriceResolverInterface::class);
         expect($paramTypes)->toContain(MoneyFormatter::class);
@@ -200,11 +343,15 @@ it('returns a ProductGridData with the raw product name in resolvedNames keyed b
     $product->name = 'Running Shoes';
     $productRepository->save($product);
 
-    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $assignmentService->assign($product->id, $category->id);
+    $fakePage = productGridMakeFakeOffsetPage([$product]);
 
-    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category);
+    $component = productGridBuildComponent(
+        $categoryRepository,
+        $productRepository,
+        $assignmentRepository,
+        fakePage: $fakePage,
+    );
+    $data = $component->data($category, 1, 0, '');
 
     expect($data->resolvedNames[$product->id])->toBe('Running Shoes');
 });
@@ -215,27 +362,27 @@ it(
         $categoryRepository = new FakeCategoryRepository();
         $productRepository = new FakeProductRepository();
         $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-    
+
         $category = new Category();
         $category->name = 'Shoes';
         $categoryRepository->save($category);
-    
+
         $product = new Product();
         $product->sku = 'SHOE-001';
         $product->name = 'Running Shoes';
         $product->description = 'Great running shoes';
         $productRepository->save($product);
-    
-        $assignmentService = new CategoryAssignmentService(
-            $productRepository,
+
+        $fakePage = productGridMakeFakeOffsetPage([$product]);
+
+        $component = productGridBuildComponent(
             $categoryRepository,
-            $assignmentRepository
+            $productRepository,
+            $assignmentRepository,
+            fakePage: $fakePage,
         );
-        $assignmentService->assign($product->id, $category->id);
-    
-        $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-        $data = $component->data($category);
-    
+        $data = $component->data($category, 1, 0, '');
+
         expect($data->resolvedDescs[$product->id])->toBe('Great running shoes');
     }
 );
@@ -249,8 +396,14 @@ it('returns an empty products list when the category has no id', function (): vo
     $category->name = 'Unsaved Category';
     // intentionally NOT saving — category has no id
 
-    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category);
+    $fakePage = productGridMakeFakeOffsetPage([]);
+    $component = productGridBuildComponent(
+        $categoryRepository,
+        $productRepository,
+        $assignmentRepository,
+        fakePage: $fakePage,
+    );
+    $data = $component->data($category, 1, 0, '');
 
     expect($data->products)->toBeEmpty();
     expect($data->resolvedNames)->toBeEmpty();
@@ -276,36 +429,16 @@ it('skips products with null id when building the resolved maps', function (): v
     $nullIdProduct->name = 'Ghost Product';
     // id is not set — remains null
 
-    // Use an anonymous subclass of CategoryAssignmentService to inject a null-id product
-    $assignmentService = new class ($productRepository, $categoryRepository, $assignmentRepository, $nullIdProduct) extends CategoryAssignmentService
-    {
-        public function __construct(
-            ProductRepositoryInterface $productRepository,
-            CategoryRepositoryInterface $categoryRepository,
-            ProductCategoryAssignmentRepositoryInterface $assignmentRepository,
-            private Product $extraNullIdProduct,
-        ) {
-            parent::__construct($productRepository, $categoryRepository, $assignmentRepository);
-        }
-
-        /** @return list<Product> */
-        public function productsInCategory(int $categoryId): array
-        {
-            $products = parent::productsInCategory($categoryId);
-            $products[] = $this->extraNullIdProduct;
-
-            return $products;
-        }
-    };
-
-    $assignmentService->assign($productWithId->id, $category->id);
+    $fakePage = productGridMakeFakeOffsetPage([$productWithId, $nullIdProduct]);
+    $positionCodec = new PositionCodec();
 
     $component = new ProductGridComponent(
-        $assignmentService,
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(),
         makeGridNoPricePriceResolver(),
-        makeGridMoneyFormatter()
+        makeGridMoneyFormatter(),
     );
-    $data = $component->data($category);
+    $data = $component->data($category, 1, 0, '');
 
     // Only the product with a real id appears in the maps
     expect($data->resolvedNames)->toHaveKey($productWithId->id);
@@ -329,11 +462,15 @@ it('returns a typed ProductGridData DTO from data() for an existing category', f
     $product->name = 'Running Shoes';
     $productRepository->save($product);
 
-    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $assignmentService->assign($product->id, $category->id);
+    $fakePage = productGridMakeFakeOffsetPage([$product]);
 
-    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category);
+    $component = productGridBuildComponent(
+        $categoryRepository,
+        $productRepository,
+        $assignmentRepository,
+        fakePage: $fakePage,
+    );
+    $data = $component->data($category, 1, 0, '');
 
     expect($data)->toBeInstanceOf(ProductGridData::class);
     expect($data->products)->toHaveCount(1);
@@ -349,8 +486,14 @@ it('returns an empty products list from data() when the category has no assigned
     $category->name = 'Empty Category';
     $categoryRepository->save($category);
 
-    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category);
+    $fakePage = productGridMakeFakeOffsetPage([]);
+    $component = productGridBuildComponent(
+        $categoryRepository,
+        $productRepository,
+        $assignmentRepository,
+        fakePage: $fakePage,
+    );
+    $data = $component->data($category, 1, 0, '');
 
     expect($data)->toBeInstanceOf(ProductGridData::class);
     expect($data->products)->toBeEmpty();
@@ -367,8 +510,14 @@ it('renders the category name as the page heading via mk-heading', function (): 
     $category->name = 'Featured Products';
     $categoryRepository->save($category);
 
-    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category);
+    $fakePage = productGridMakeFakeOffsetPage([]);
+    $component = productGridBuildComponent(
+        $categoryRepository,
+        $productRepository,
+        $assignmentRepository,
+        fakePage: $fakePage,
+    );
+    $data = $component->data($category, 1, 0, '');
 
     $engine = productGridBuildLatte();
     $output = $engine->renderToString('catalog-storefront::components/product-grid', [
@@ -396,11 +545,14 @@ it('renders products inside an mk-grid element', function (): void {
     $product->name = 'Laptop';
     $productRepository->save($product);
 
-    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $assignmentService->assign($product->id, $category->id);
-
-    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category);
+    $fakePage = productGridMakeFakeOffsetPage([$product]);
+    $component = productGridBuildComponent(
+        $categoryRepository,
+        $productRepository,
+        $assignmentRepository,
+        fakePage: $fakePage,
+    );
+    $data = $component->data($category, 1, 0, '');
 
     $engine = productGridBuildLatte();
     $output = $engine->renderToString('catalog-storefront::components/product-grid', [
@@ -432,12 +584,14 @@ it('renders a product grid container with a products slot placeholder when produ
     $product2->name = 'Black Jeans';
     $productRepository->save($product2);
 
-    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $assignmentService->assign($product1->id, $category->id);
-    $assignmentService->assign($product2->id, $category->id);
-
-    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category);
+    $fakePage = productGridMakeFakeOffsetPage([$product1, $product2]);
+    $component = productGridBuildComponent(
+        $categoryRepository,
+        $productRepository,
+        $assignmentRepository,
+        fakePage: $fakePage,
+    );
+    $data = $component->data($category, 1, 0, '');
 
     $engine = productGridBuildLatte();
     $output = $engine->renderToString('catalog-storefront::components/product-grid', [
@@ -488,8 +642,14 @@ it('renders a muted empty state when the category has no products', function ():
     $category->name = 'Empty Category';
     $categoryRepository->save($category);
 
-    $component = productGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository);
-    $data = $component->data($category);
+    $fakePage = productGridMakeFakeOffsetPage([]);
+    $component = productGridBuildComponent(
+        $categoryRepository,
+        $productRepository,
+        $assignmentRepository,
+        fakePage: $fakePage,
+    );
+    $data = $component->data($category, 1, 0, '');
 
     $engine = productGridBuildLatte();
     $output = $engine->renderToString('catalog-storefront::components/product-grid', [
@@ -543,12 +703,15 @@ it('exposes formatted prices keyed by product id from the product grid', functio
         }
     };
 
-    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $assignmentService->assign($pricedProduct->id, $category->id);
-    $assignmentService->assign($unpricedProduct->id, $category->id);
+    $fakePage = productGridMakeFakeOffsetPage([$pricedProduct, $unpricedProduct]);
 
-    $component = new ProductGridComponent($assignmentService, $priceResolver, makeGridMoneyFormatter('en_US'));
-    $data = $component->data($category);
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(),
+        $priceResolver,
+        makeGridMoneyFormatter('en_US'),
+    );
+    $data = $component->data($category, 1, 0, '');
 
     expect($data->formattedPrices)->toHaveKey($pricedProduct->id)
         ->and($data->formattedPrices[$pricedProduct->id])->toContain('$')
@@ -585,13 +748,260 @@ it('renders the price for each card in the product grid', function (): void {
         }
     };
 
-    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $assignmentService->assign($product->id, $category->id);
+    $fakePage = productGridMakeFakeOffsetPage([$product]);
 
-    $component = new ProductGridComponent($assignmentService, $priceResolver, makeGridMoneyFormatter('en_US'));
-    $data = $component->data($category);
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(),
+        $priceResolver,
+        makeGridMoneyFormatter('en_US'),
+    );
+    $data = $component->data($category, 1, 0, '');
 
     expect($data->formattedPrices)->toHaveKey($product->id)
         ->and($data->formattedPrices[$product->id])->toContain('$')
         ->and($data->formattedPrices[$product->id])->toContain('999.99');
+});
+
+// ─── New pagination requirements ──────────────────────────────────────────────
+
+it('reads the requested page from the query string defaulting to page 1', function (): void {
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Test';
+
+    $product = new Product();
+    $product->id = 1;
+    $product->sku = 'P-001';
+    $product->name = 'Product One';
+
+    $fakePage = productGridMakeFakeOffsetPage([$product], currentPage: 1, totalPages: 3);
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+    );
+
+    // Called with page=1 (the layout default) — currentPage should be 1
+    $data = $component->data($category, 1, 0, '');
+
+    expect($data->currentPage)->toBe(1);
+});
+
+it('fetches only the current page of products', function (): void {
+    $category = new Category();
+    $category->id = 5;
+    $category->name = 'Electronics';
+
+    // Only 2 products on page 2 of 3 total pages
+    $product1 = new Product();
+    $product1->id = 10;
+    $product1->sku = 'P-010';
+    $product1->name = 'Laptop';
+
+    $product2 = new Product();
+    $product2->id = 11;
+    $product2->sku = 'P-011';
+    $product2->name = 'Keyboard';
+
+    $fakePage = productGridMakeFakeOffsetPage([$product1, $product2], currentPage: 2, totalPages: 3);
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+    );
+
+    $data = $component->data($category, 2, 0, '');
+
+    // Only the 2 products on the current page are in the grid data
+    expect($data->products)->toHaveCount(2);
+    expect($data->currentPage)->toBe(2);
+    expect($data->totalPages)->toBe(3);
+});
+
+it('exposes the resolved presentation mode on the grid data', function (): void {
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Test';
+
+    $fakePage = productGridMakeFakeOffsetPage([], currentPage: 1, totalPages: 1);
+
+    // Load-more presentation config
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(['presentation' => 'load_more']),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+    );
+
+    $data = $component->data($category, 1, 0, '');
+
+    expect($data->presentation)->toBe(PaginationPresentation::LoadMore);
+});
+
+it('exposes crawlable page-link urls preserving size and sort params', function (): void {
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Test';
+
+    $fakePage = productGridMakeFakeOffsetPage([], currentPage: 2, totalPages: 4);
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(['allowedPageSizes' => [12, 24, 48, 96]]),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+    );
+
+    // size=12 (non-default) and sort='name' should be preserved
+    $data = $component->data($category, 2, 12, 'name');
+
+    expect($data->pageLinkUrls)->toHaveCount(4);
+    expect($data->pageLinkUrls[0])->toBe('?page=1&size=12&sort=name');
+    expect($data->pageLinkUrls[1])->toBe('?page=2&size=12&sort=name');
+    expect($data->pageLinkUrls[2])->toBe('?page=3&size=12&sort=name');
+    expect($data->pageLinkUrls[3])->toBe('?page=4&size=12&sort=name');
+});
+
+it('exposes a next-page url when more products exist', function (): void {
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Test';
+
+    // OffsetPage with a next position (hasNext = true)
+    $nextToken = (new PositionCodec())->encode(new \Markommerce\Criteria\Position\OffsetPosition(page: 2));
+    $fakePage = productGridMakeFakeOffsetPage([], currentPage: 1, totalPages: 2, nextPosition: $nextToken);
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+    );
+
+    $data = $component->data($category, 1, 0, '');
+
+    expect($data->hasNext)->toBeTrue();
+});
+
+it('exposes current and total pages for the random-access offset strategy', function (): void {
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Test';
+
+    $fakePage = productGridMakeFakeOffsetPage([], currentPage: 3, totalPages: 7);
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+    );
+
+    $data = $component->data($category, 3, 0, '');
+
+    expect($data->currentPage)->toBe(3);
+    expect($data->totalPages)->toBe(7);
+});
+
+it('resolves prices and names only for the products on the current page', function (): void {
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Test';
+
+    // Only 2 products on page 2 (not all 50 products in the category)
+    $product1 = new Product();
+    $product1->id = 25;
+    $product1->sku = 'P-025';
+    $product1->name = 'Page Two First';
+
+    $product2 = new Product();
+    $product2->id = 26;
+    $product2->sku = 'P-026';
+    $product2->name = 'Page Two Second';
+
+    // The fake page only contains these 2 products (not all 50)
+    $fakePage = productGridMakeFakeOffsetPage([$product1, $product2], currentPage: 2, totalPages: 3);
+
+    $priceCallCount = 0;
+    $priceResolver = new class ($priceCallCount) implements PriceResolverInterface
+    {
+        public function __construct(public int &$callCount) {}
+
+        public function resolve(PriceContext $context): Money
+        {
+            $this->callCount++;
+
+            throw PriceUnavailableException::forContext($context);
+        }
+    };
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(),
+        $priceResolver,
+        makeGridMoneyFormatter(),
+    );
+
+    $data = $component->data($category, 2, 0, '');
+
+    // Only 2 price resolution calls — one per product on the current page
+    expect($priceResolver->callCount)->toBe(2);
+    expect($data->resolvedNames)->toHaveKey(25);
+    expect($data->resolvedNames)->toHaveKey(26);
+    expect($data->resolvedNames)->toHaveCount(2);
+});
+
+// ─── previousPageUrl / canonicalPageUrl (backward + scroll-spy URLs) ─────────────
+
+function productGridDataForPage(int $currentPage, int $totalPages, int $size = 0, string $sort = ''): ProductGridData
+{
+    $categoryRepository = new FakeCategoryRepository();
+    $productRepository = new FakeProductRepository();
+    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+
+    $category = new Category();
+    $category->name = 'Shoes';
+    $categoryRepository->save($category);
+
+    $product = new Product();
+    $product->sku = 'SHOE-001';
+    $product->name = 'Running Shoes';
+    $productRepository->save($product);
+
+    $fakePage = productGridMakeFakeOffsetPage([$product], currentPage: $currentPage, totalPages: $totalPages);
+
+    $component = productGridBuildComponent(
+        $categoryRepository,
+        $productRepository,
+        $assignmentRepository,
+        fakePage: $fakePage,
+    );
+
+    return $component->data($category, $currentPage, $size, $sort);
+}
+
+it('leaves previousPageUrl null on the first page', function (): void {
+    expect(productGridDataForPage(1, 10)->previousPageUrl)->toBeNull();
+});
+
+it('sets previousPageUrl to the previous page fragment url when currentPage is greater than one', function (): void {
+    expect(productGridDataForPage(3, 10)->previousPageUrl)->toBe('/catalog/category/1/page?page=2');
+});
+
+it('preserves non-default size and sort in previousPageUrl', function (): void {
+    expect(productGridDataForPage(3, 10, 12, 'name')->previousPageUrl)
+        ->toBe('/catalog/category/1/page?page=2&size=12&sort=name');
+});
+
+it('canonicalizes the first page to the bare category url (no page=1)', function (): void {
+    expect(productGridDataForPage(1, 10)->canonicalPageUrl)->toBe('/catalog/category/1');
+});
+
+it('sets canonicalPageUrl to the full page url for pages after the first', function (): void {
+    expect(productGridDataForPage(3, 10)->canonicalPageUrl)->toBe('/catalog/category/1?page=3');
 });
