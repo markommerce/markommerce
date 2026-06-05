@@ -1,4 +1,4 @@
-<div class="catalog-product-grid-fragment"{if $nextPageUrl} data-next="{$nextPageUrl|noescape}"{/if}>
+<div class="catalog-product-grid-fragment"{if $nextPageUrl} data-next="{$nextPageUrl|noescape}"{/if}{if ($previousPageUrl ?? null) !== null} data-prev="{$previousPageUrl|noescape}"{/if}{if ($canonicalPageUrl ?? null) !== null} data-canonical="{$canonicalPageUrl|noescape}"{/if}>
     {if isset($_slots['products'])}
         {slot products}{/slot}
     {/if}

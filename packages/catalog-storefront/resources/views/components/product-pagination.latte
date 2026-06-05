@@ -1,32 +1,57 @@
 <nav class="catalog-pagination" aria-label="Pagination">
-    <mk-stack direction="row" gap="2" align="center">
-        {if $hasPrevious}
-            <a class="catalog-pagination__prev" href="{$pageLinkUrls[$currentPage - 2]}" rel="prev">
-                <mk-text>Previous</mk-text>
-            </a>
-        {/if}
-
-        {foreach $pageLinkUrls as $index => $url}
-            {var $pageNumber = $index + 1}
-            {if $pageNumber === $currentPage}
-                <a class="catalog-pagination__page catalog-pagination__page--current"
-                   href="{$url}"
-                   aria-current="page">
-                    <mk-text>{$pageNumber}</mk-text>
+    <ul class="catalog-pagination__list">
+        {* Previous — rendered as a disabled span on the first page so the layout stays stable. *}
+        <li class="catalog-pagination__item catalog-pagination__item--nav">
+            {if $hasPrevious}
+                <a class="catalog-pagination__link catalog-pagination__link--nav"
+                   href="{$pageLinkUrls[$currentPage - 2]}" rel="prev" aria-label="Previous page">
+                    <span aria-hidden="true">&lsaquo;</span> Prev
                 </a>
             {else}
-                <a class="catalog-pagination__page" href="{$url}">
-                    <mk-text>{$pageNumber}</mk-text>
-                </a>
+                <span class="catalog-pagination__link catalog-pagination__link--nav catalog-pagination__link--disabled"
+                      aria-hidden="true"><span aria-hidden="true">&lsaquo;</span> Prev</span>
+            {/if}
+        </li>
+
+        {* Windowed page numbers: always show first + last, plus a window around the current page;
+           collapse the gaps with an ellipsis. *}
+        {var $window = 2}
+        {var $previousShown = 0}
+        {foreach $pageLinkUrls as $index => $url}
+            {var $pageNumber = $index + 1}
+            {if $pageNumber === 1 || $pageNumber === $totalPages || ($pageNumber >= $currentPage - $window && $pageNumber <= $currentPage + $window)}
+                {if $pageNumber - $previousShown > 1}
+                    <li class="catalog-pagination__item catalog-pagination__item--gap" aria-hidden="true">
+                        <span class="catalog-pagination__gap">&hellip;</span>
+                    </li>
+                {/if}
+
+                <li class="catalog-pagination__item catalog-pagination__item--page">
+                    {if $pageNumber === $currentPage}
+                        <a class="catalog-pagination__link catalog-pagination__link--current"
+                           href="{$url}" aria-current="page">{$pageNumber}</a>
+                    {else}
+                        <a class="catalog-pagination__link" href="{$url}" aria-label="Page {$pageNumber}">{$pageNumber}</a>
+                    {/if}
+                </li>
+
+                {var $previousShown = $pageNumber}
             {/if}
         {/foreach}
 
-        {if $hasNext}
-            <a class="catalog-pagination__next" href="{$nextPageUrl}" rel="next">
-                <mk-text>Next</mk-text>
-            </a>
-        {/if}
+        {* Next — disabled span on the last page. *}
+        <li class="catalog-pagination__item catalog-pagination__item--nav">
+            {if $hasNext}
+                <a class="catalog-pagination__link catalog-pagination__link--nav"
+                   href="{$nextPageUrl}" rel="next" aria-label="Next page">
+                    Next <span aria-hidden="true">&rsaquo;</span>
+                </a>
+            {else}
+                <span class="catalog-pagination__link catalog-pagination__link--nav catalog-pagination__link--disabled"
+                      aria-hidden="true">Next <span aria-hidden="true">&rsaquo;</span></span>
+            {/if}
+        </li>
+    </ul>
 
-        <mk-text class="catalog-pagination__label" variant="muted">Page {$currentPage} of {$totalPages}</mk-text>
-    </mk-stack>
+    <p class="catalog-pagination__status" aria-live="polite">Page {$currentPage} of {$totalPages}</p>
 </nav>

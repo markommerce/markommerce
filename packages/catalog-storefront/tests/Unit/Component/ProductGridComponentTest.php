@@ -955,3 +955,53 @@ it('resolves prices and names only for the products on the current page', functi
     expect($data->resolvedNames)->toHaveKey(26);
     expect($data->resolvedNames)->toHaveCount(2);
 });
+
+// ─── previousPageUrl / canonicalPageUrl (backward + scroll-spy URLs) ─────────────
+
+function productGridDataForPage(int $currentPage, int $totalPages, int $size = 0, string $sort = ''): ProductGridData
+{
+    $categoryRepository = new FakeCategoryRepository();
+    $productRepository = new FakeProductRepository();
+    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
+
+    $category = new Category();
+    $category->name = 'Shoes';
+    $categoryRepository->save($category);
+
+    $product = new Product();
+    $product->sku = 'SHOE-001';
+    $product->name = 'Running Shoes';
+    $productRepository->save($product);
+
+    $fakePage = productGridMakeFakeOffsetPage([$product], currentPage: $currentPage, totalPages: $totalPages);
+
+    $component = productGridBuildComponent(
+        $categoryRepository,
+        $productRepository,
+        $assignmentRepository,
+        fakePage: $fakePage,
+    );
+
+    return $component->data($category, $currentPage, $size, $sort);
+}
+
+it('leaves previousPageUrl null on the first page', function (): void {
+    expect(productGridDataForPage(1, 10)->previousPageUrl)->toBeNull();
+});
+
+it('sets previousPageUrl to the previous page fragment url when currentPage is greater than one', function (): void {
+    expect(productGridDataForPage(3, 10)->previousPageUrl)->toBe('/catalog/category/1/page?page=2');
+});
+
+it('preserves non-default size and sort in previousPageUrl', function (): void {
+    expect(productGridDataForPage(3, 10, 12, 'name')->previousPageUrl)
+        ->toBe('/catalog/category/1/page?page=2&size=12&sort=name');
+});
+
+it('canonicalizes the first page to the bare category url (no page=1)', function (): void {
+    expect(productGridDataForPage(1, 10)->canonicalPageUrl)->toBe('/catalog/category/1');
+});
+
+it('sets canonicalPageUrl to the full page url for pages after the first', function (): void {
+    expect(productGridDataForPage(3, 10)->canonicalPageUrl)->toBe('/catalog/category/1?page=3');
+});

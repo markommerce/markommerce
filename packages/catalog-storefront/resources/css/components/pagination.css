@@ -1,0 +1,206 @@
+@layer components {
+    .catalog-pagination {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--mk-space-2, 0.5rem);
+        margin-block-start: var(--mk-space-4, 1.5rem);
+    }
+
+    .catalog-pagination__list {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: var(--mk-space-2, 0.5rem);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .catalog-pagination__item {
+        display: inline-flex;
+    }
+
+    /* Shared box for links and the ellipsis gap. */
+    .catalog-pagination__link,
+    .catalog-pagination__gap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2.5rem;
+        height: 2.5rem;
+        padding-inline: var(--mk-space-2, 0.5rem);
+        border-radius: var(--mk-radius-base, 0.5rem);
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        text-decoration: none;
+    }
+
+    .catalog-pagination__link {
+        color: var(--mk-color-fg, currentColor);
+        background: var(--mk-color-surface, transparent);
+        border: 1px solid var(--mk-color-border, currentColor);
+        transition:
+            background-color 120ms ease,
+            border-color 120ms ease,
+            color 120ms ease;
+    }
+
+    .catalog-pagination__link:hover {
+        background: color-mix(in srgb, var(--mk-color-primary, currentColor) 10%, var(--mk-color-surface, transparent));
+        border-color: var(--mk-color-primary, currentColor);
+        color: var(--mk-color-primary-hover, var(--mk-color-primary, currentColor));
+    }
+
+    .catalog-pagination__link:focus-visible {
+        outline: 2px solid var(--mk-color-focus-ring, currentColor);
+        outline-offset: 2px;
+    }
+
+    .catalog-pagination__link--current {
+        background: var(--mk-color-primary, currentColor);
+        border-color: var(--mk-color-primary, currentColor);
+        color: var(--mk-color-surface, #fff);
+        font-weight: 600;
+        cursor: default;
+    }
+
+    .catalog-pagination__link--current:hover {
+        background: var(--mk-color-primary, currentColor);
+        color: var(--mk-color-surface, #fff);
+    }
+
+    .catalog-pagination__link--nav {
+        gap: 0.25rem;
+        font-weight: 500;
+    }
+
+    /* Prev/Next rendered as spans at the boundaries. */
+    .catalog-pagination__link--disabled {
+        color: var(--mk-color-fg-muted, currentColor);
+        background: transparent;
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .catalog-pagination__gap {
+        color: var(--mk-color-fg-muted, currentColor);
+        border: 0;
+    }
+
+    .catalog-pagination__status {
+        margin: 0;
+        font-size: 0.875rem;
+        color: var(--mk-color-fg-muted, currentColor);
+    }
+
+    /* Compact on narrow viewports: keep Prev/Next + the status line, drop the
+       number buttons (the status conveys position). */
+    @media (max-width: 640px) {
+        .catalog-pagination__item--page,
+        .catalog-pagination__item--gap {
+            display: none;
+        }
+    }
+
+    /* ── Load-more / infinite-scroll enhancement ──────────────────────────────
+       The numbered pagination is rendered inside the enhancement element for
+       crawlers and the no-JS fallback. Once the custom element upgrades
+       (`:defined`, i.e. JS is active), hide the numbered bar — the button and
+       scroll take over. */
+    mk-load-more:defined .catalog-pagination,
+    mk-infinite-scroll:defined .catalog-pagination {
+        display: none;
+    }
+
+    mk-load-more,
+    mk-infinite-scroll {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-block-start: var(--mk-space-4, 1.5rem);
+    }
+
+    /* Infinite scroll auto-loads forward on scroll, so its injected "Load more"
+       fallback button is redundant — hide it (kept in the DOM, just not shown).
+       load_more mode keeps its button as the primary control. */
+    mk-infinite-scroll:defined button {
+        display: none;
+    }
+
+    /* Only style the element's own action button once it's enhanced, so a
+       no-JS render (which has no button) is unaffected. */
+    mk-load-more:defined button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 12rem;
+        height: 2.75rem;
+        padding-inline: var(--mk-space-4, 1.5rem);
+        border-radius: var(--mk-radius-base, 0.5rem);
+        border: 1px solid var(--mk-color-primary, currentColor);
+        background: var(--mk-color-primary, currentColor);
+        color: var(--mk-color-surface, #fff);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+            background-color 120ms ease,
+            border-color 120ms ease;
+    }
+
+    mk-load-more:defined button:hover {
+        background: var(--mk-color-primary-hover, var(--mk-color-primary, currentColor));
+        border-color: var(--mk-color-primary-hover, var(--mk-color-primary, currentColor));
+    }
+
+    mk-load-more:defined button:focus-visible {
+        outline: 2px solid var(--mk-color-focus-ring, currentColor);
+        outline-offset: 2px;
+    }
+
+    /* ── "Load previous" button ───────────────────────────────────────────────
+       Rendered as a sibling above the grid (outside the mk-* element), so it's
+       styled directly. Hidden until JS upgrades the pagination element — it only
+       works with JS; no-JS users navigate via the numbered links. A secondary
+       (outline) treatment distinguishes "go back" from the primary "Load more". */
+    .catalog-pagination__load-previous {
+        display: none;
+        align-self: center;
+        min-width: 12rem;
+        height: 2.75rem;
+        padding-inline: var(--mk-space-4, 1.5rem);
+        margin-block-end: var(--mk-space-4, 1.5rem);
+        border-radius: var(--mk-radius-base, 0.5rem);
+        border: 1px solid var(--mk-color-border, currentColor);
+        background: var(--mk-color-surface, transparent);
+        color: var(--mk-color-fg, currentColor);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+            background-color 120ms ease,
+            border-color 120ms ease,
+            color 120ms ease;
+    }
+
+    /* Reveal once any pagination custom element on the page is defined (JS active). */
+    body:has(mk-load-more:defined) .catalog-pagination__load-previous,
+    body:has(mk-infinite-scroll:defined) .catalog-pagination__load-previous {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .catalog-pagination__load-previous:hover {
+        background: color-mix(in srgb, var(--mk-color-primary, currentColor) 10%, var(--mk-color-surface, transparent));
+        border-color: var(--mk-color-primary, currentColor);
+        color: var(--mk-color-primary-hover, var(--mk-color-primary, currentColor));
+    }
+
+    .catalog-pagination__load-previous:focus-visible {
+        outline: 2px solid var(--mk-color-focus-ring, currentColor);
+        outline-offset: 2px;
+    }
+}

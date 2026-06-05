@@ -85,6 +85,8 @@ class ProductGridComponent
         $totalPages = null;
         $pageLinkUrls = [];
         $nextPageUrl = null;
+        $previousPageUrl = null;
+        $canonicalPageUrl = null;
 
         if ($page instanceof RandomAccessPageInterface) {
             $currentPage = $page->currentPage();
@@ -107,10 +109,55 @@ class ProductGridComponent
                     $params['sort'] = $sort;
                 }
 
-                $nextPageUrl = '?' . http_build_query($params);
+                // Load-more / infinite scroll fetch the chrome-less fragment
+                // endpoint, NOT the full category page.
+                $nextPageUrl = sprintf('/catalog/category/%d/page?%s', $id, http_build_query($params));
             }
+
+            if ($currentPage > 1) {
+                $params = ['page' => $currentPage - 1];
+
+                if ($size > 0) {
+                    $params['size'] = $size;
+                }
+
+                if ($sort !== '') {
+                    $params['sort'] = $sort;
+                }
+
+                $previousPageUrl = sprintf('/catalog/category/%d/page?%s', $id, http_build_query($params));
+            }
+
+            // Page 1 canonicalizes to the bare category URL (no ?page=1).
+            $canonicalParams = [];
+
+            if ($currentPage > 1) {
+                $canonicalParams['page'] = $currentPage;
+            }
+
+            if ($size > 0) {
+                $canonicalParams['size'] = $size;
+            }
+
+            if ($sort !== '') {
+                $canonicalParams['sort'] = $sort;
+            }
+
+            $canonicalPageUrl = $canonicalParams === []
+                ? sprintf('/catalog/category/%d', $id)
+                : sprintf('/catalog/category/%d?%s', $id, http_build_query($canonicalParams));
         } elseif ($page->nextPosition !== null) {
-            $nextPageUrl = '?position=' . $page->nextPosition;
+            $params = ['position' => $page->nextPosition];
+
+            if ($size > 0) {
+                $params['size'] = $size;
+            }
+
+            if ($sort !== '') {
+                $params['sort'] = $sort;
+            }
+
+            $nextPageUrl = sprintf('/catalog/category/%d/page?%s', $id, http_build_query($params));
         }
 
         return new ProductGridData(
@@ -126,6 +173,8 @@ class ProductGridComponent
             hasPrevious: $page->hasPrevious(),
             pageLinkUrls: $pageLinkUrls,
             nextPageUrl: $nextPageUrl,
+            previousPageUrl: $previousPageUrl,
+            canonicalPageUrl: $canonicalPageUrl,
             extensions: new ExtensionBag(),
         );
     }

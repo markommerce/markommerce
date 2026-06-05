@@ -1,20 +1,37 @@
 import { html } from 'lit';
 import { MkElement, registerBase } from '@markommerce/frontend';
+import { loadFragment, appendCards, prependCardsAnchored, ScrollSpy } from './pagination-loader';
 
 export class MkInfiniteScrollElement extends MkElement {
   #observer: IntersectionObserver | null = null;
   #sentinel: HTMLElement | null = null;
+  #scrollSpy: ScrollSpy | null = null;
+  #scroller: Element | undefined = undefined;
 
   override connectedCallback(): void {
     super.connectedCallback();
     this.#ensureFallbackButton();
+    this.#setupScrollSpy();
     this.#setupSentinel();
+    this.#bindLoadPrevious();
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
     this.#observer?.disconnect();
     this.#observer = null;
+    this.#scrollSpy?.stop();
+    this.#scrollSpy = null;
+  }
+
+  #getGrid(): Element | null {
+    const gridSelector = this.getAttribute('data-grid');
+    return gridSelector ? document.querySelector(gridSelector) : null;
+  }
+
+  #getLoadPreviousButton(): Element | null {
+    const grid = this.#getGrid();
+    return grid?.parentElement?.querySelector('[data-role="load-previous"]') ?? null;
   }
 
   #ensureFallbackButton(): void {
@@ -28,6 +45,23 @@ export class MkInfiniteScrollElement extends MkElement {
     btn.addEventListener('click', () => {
       void this.#loadNext();
     });
+  }
+
+  #setupScrollSpy(): void {
+    this.#scrollSpy = new ScrollSpy(this.#scroller, (url: string) => {
+      history.replaceState(null, '', url);
+    });
+
+    const canonical = this.getAttribute('data-canonical');
+    const grid = this.#getGrid();
+    if (canonical && grid) {
+      const firstCard = grid.firstElementChild;
+      if (firstCard) {
+        this.#scrollSpy.addBatch(canonical, firstCard);
+      }
+    }
+
+    this.#scrollSpy.start();
   }
 
   #setupSentinel(): void {
@@ -47,37 +81,38 @@ export class MkInfiniteScrollElement extends MkElement {
     this.#observer.observe(this.#sentinel);
   }
 
+  #bindLoadPrevious(): void {
+    const btn = this.#getLoadPreviousButton();
+    if (btn) {
+      btn.addEventListener('click', () => {
+        void this.#loadPrevious();
+      });
+    }
+  }
+
   async #loadNext(): Promise<void> {
     const nextUrl = this.getAttribute('data-next');
     if (!nextUrl) {
       return;
     }
-    const gridSelector = this.getAttribute('data-grid');
-    const grid = gridSelector ? document.querySelector(gridSelector) : null;
+    const grid = this.#getGrid();
 
     this.#observer?.disconnect();
 
-    const response = await fetch(nextUrl);
-    const htmlText = await response.text();
+    const result = await loadFragment(nextUrl);
 
-    const template = document.createElement('template');
-    template.innerHTML = htmlText;
-    const fragment = template.content.querySelector('.catalog-product-grid-fragment');
-    if (!fragment) {
-      return;
-    }
+    if (grid && result.cards.length > 0) {
+      const countBefore = grid.children.length;
+      appendCards(grid, result.cards);
+      const firstOfBatch = grid.children[countBefore];
 
-    if (grid) {
-      const cards = Array.from(fragment.childNodes);
-      for (const card of cards) {
-        grid.appendChild(card.cloneNode(true));
+      if (result.canonical && firstOfBatch && this.#scrollSpy) {
+        this.#scrollSpy.addBatch(result.canonical, firstOfBatch);
       }
     }
 
-    const nextNext = (fragment as HTMLElement).getAttribute('data-next');
-    if (nextNext) {
-      this.setAttribute('data-next', nextNext);
-      history.pushState(null, '', nextNext);
+    if (result.next) {
+      this.setAttribute('data-next', result.next);
       if (this.#sentinel) {
         this.#observer = new IntersectionObserver((entries) => {
           const entry = entries[0];
@@ -90,6 +125,33 @@ export class MkInfiniteScrollElement extends MkElement {
     } else {
       this.removeAttribute('data-next');
       this.remove();
+    }
+  }
+
+  async #loadPrevious(): Promise<void> {
+    // data-prev lives on the element, not on the (sibling) button.
+    const prevUrl = this.getAttribute('data-prev');
+    if (!prevUrl) {
+      return;
+    }
+    const grid = this.#getGrid();
+
+    const result = await loadFragment(prevUrl);
+
+    if (grid && result.cards.length > 0) {
+      prependCardsAnchored(grid, result.cards, this.#scroller);
+
+      const firstOfBatch = grid.firstElementChild;
+      if (result.canonical && firstOfBatch && this.#scrollSpy) {
+        this.#scrollSpy.addBatch(result.canonical, firstOfBatch);
+      }
+    }
+
+    if (result.prev) {
+      this.setAttribute('data-prev', result.prev);
+    } else {
+      this.removeAttribute('data-prev');
+      this.#getLoadPreviousButton()?.remove();
     }
   }
 

@@ -193,3 +193,63 @@ it('renders a page X of Y label', function (): void {
 
     expect($output)->toContain('Page 2 of 5');
 });
+
+// ─── Smart truncation (windowed page numbers) ──────────────────────────────────
+
+/**
+ * @return list<string>
+ */
+function paginationUrls(int $totalPages): array
+{
+    $urls = [];
+    for ($page = 1; $page <= $totalPages; $page++) {
+        $urls[] = "?page={$page}";
+    }
+
+    return $urls;
+}
+
+it('truncates distant pages with an ellipsis instead of listing them all', function (): void {
+    $output = paginationRender(
+        pageLinkUrls: paginationUrls(42),
+        currentPage: 7,
+        totalPages: 42,
+        hasPrevious: true,
+        hasNext: true,
+        nextPageUrl: '?page=8',
+    );
+
+    expect($output)->toContain('catalog-pagination__gap')
+        ->and($output)->not->toContain('href="?page=20"');
+});
+
+it('always shows the first and last page alongside the current window', function (): void {
+    $output = paginationRender(
+        pageLinkUrls: paginationUrls(42),
+        currentPage: 7,
+        totalPages: 42,
+        hasPrevious: true,
+        hasNext: true,
+        nextPageUrl: '?page=8',
+    );
+
+    expect($output)->toContain('href="?page=1"')
+        ->and($output)->toContain('href="?page=42"')
+        ->and($output)->toContain('href="?page=5"')
+        ->and($output)->toContain('href="?page=9"');
+    expect(substr_count($output, 'aria-current="page"'))->toBe(1);
+});
+
+it('renders a disabled previous control on the first page', function (): void {
+    $output = paginationRender(
+        pageLinkUrls: paginationUrls(42),
+        currentPage: 1,
+        totalPages: 42,
+        hasPrevious: false,
+        hasNext: true,
+        nextPageUrl: '?page=2',
+    );
+
+    expect($output)->toContain('catalog-pagination__link--disabled')
+        ->and($output)->not->toContain('rel="prev"');
+});

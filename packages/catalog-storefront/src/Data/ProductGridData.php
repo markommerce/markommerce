@@ -32,6 +32,8 @@ readonly class ProductGridData extends ExtensibleData
         public bool $hasPrevious = false,
         public array $pageLinkUrls = [],
         public ?string $nextPageUrl = null,
+        public ?string $previousPageUrl = null,
+        public ?string $canonicalPageUrl = null,
         ExtensionBag $extensions = new ExtensionBag(),
     ) {
         parent::__construct($extensions);

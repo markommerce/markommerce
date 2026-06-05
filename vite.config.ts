@@ -75,6 +75,7 @@ export default defineConfig(({ command }) => ({
       input: {
         frontendDemo: path.join(repoRoot, 'packages/frontend-demo/resources/js/main.ts'),
         themeBlankDemo: path.join(repoRoot, 'packages/theme-blank-demo/resources/js/main.ts'),
+        catalogStorefront: path.join(repoRoot, 'packages/catalog-storefront/resources/js/index.ts'),
       },
       output: {
         assetFileNames: 'assets/[name].[hash].[ext]',
