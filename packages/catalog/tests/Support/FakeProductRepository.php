@@ -7,6 +7,7 @@ namespace Markommerce\Catalog\Tests\Support;
 use Marko\Database\Entity\Entity;
 use Marko\Database\Entity\EntityCollection;
 use Marko\Database\Exceptions\RepositoryException;
+use Marko\Database\Repository\RepositoryQueryBuilder;
 use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
 use Markommerce\Catalog\Entity\Product;
 
@@ -124,6 +125,16 @@ class FakeProductRepository implements ProductRepositoryInterface
     public function findBySku(string $sku): ?Product
     {
         return array_find($this->products, fn (Product $p) => $p->sku === $sku);
+    }
+
+    /**
+     * Not supported in the in-memory fake — throws to prevent accidental usage.
+     *
+     * @throws RepositoryException
+     */
+    public function query(): RepositoryQueryBuilder
+    {
+        throw RepositoryException::queryBuilderNotConfigured(self::class);
     }
 
     /**

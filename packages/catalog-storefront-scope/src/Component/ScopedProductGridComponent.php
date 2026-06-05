@@ -7,6 +7,9 @@ namespace Markommerce\CatalogStorefrontScope\Component;
 use Marko\Core\Attributes\Preference;
 use Marko\Database\Exceptions\RepositoryException;
 use Markommerce\Catalog\Entity\Category;
+use Markommerce\Catalog\Exceptions\InvalidPaginationConfigException;
+use Markommerce\Catalog\Exceptions\PageDepthExceededException;
+use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
@@ -22,19 +25,25 @@ class ScopedProductGridComponent extends ProductGridComponent
 {
     public function __construct(
         CategoryAssignmentService $categoryAssignmentService,
+        PaginationOptionsResolver $paginationOptionsResolver,
         private ScopeResolver $scopeResolver,
         PriceResolverInterface $priceResolver,
         MoneyFormatter $moneyFormatter,
     ) {
-        parent::__construct($categoryAssignmentService, $priceResolver, $moneyFormatter);
+        parent::__construct($categoryAssignmentService, $paginationOptionsResolver, $priceResolver, $moneyFormatter);
     }
 
     /**
      * @throws RepositoryException|ScopeContextException|UnknownAxisException|UnknownScopeException
+     * @throws InvalidPaginationConfigException|PageDepthExceededException
      */
-    public function data(Category $category): ProductGridData
-    {
-        $data = parent::data($category);
+    public function data(
+        Category $category,
+        int $page,
+        int $size,
+        string $sort,
+    ): ProductGridData {
+        $data = parent::data($category, $page, $size, $sort);
 
         $resolvedNames = $data->resolvedNames;
         $resolvedDescs = $data->resolvedDescs;
@@ -54,6 +63,13 @@ class ScopedProductGridComponent extends ProductGridComponent
             resolvedNames: $resolvedNames,
             resolvedDescs: $resolvedDescs,
             formattedPrices: $data->formattedPrices,
+            presentation: $data->presentation,
+            currentPage: $data->currentPage,
+            totalPages: $data->totalPages,
+            hasNext: $data->hasNext,
+            hasPrevious: $data->hasPrevious,
+            pageLinkUrls: $data->pageLinkUrls,
+            nextPageUrl: $data->nextPageUrl,
             extensions: $data->extensions,
         );
     }

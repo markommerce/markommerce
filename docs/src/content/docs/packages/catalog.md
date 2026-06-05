@@ -73,11 +73,80 @@ $categoryAssignmentService->assign($product->id, $category->id);
 // Detach
 $categoryAssignmentService->detach($product->id, $category->id);
 
-// List products in a category
+// List products in a category (all at once, N+1 per-product lookup)
 $products = $categoryAssignmentService->productsInCategory($category->id);
 ```
 
 Both `assign()` and `productsInCategory()` throw `ProductNotFoundException` or `CategoryNotFoundException` when the referenced entity does not exist.
+
+### Paginated product listing
+
+For paginated output use `CategoryAssignmentService::paginatedProductsInCategory()`. It executes a single JOIN query against `catalog_products` and `catalog_product_category`, avoiding the per-product N+1 lookups of `productsInCategory()`. It accepts a `ResolvedPaginationOptions` value object produced by `PaginationOptionsResolver`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
+use Markommerce\Catalog\Services\CategoryAssignmentService;
+use Markommerce\Criteria\Contracts\RandomAccessPageInterface;
+
+// Resolve options from request parameters (null = use configured defaults).
+$options = $paginationOptionsResolver->resolve(page: 1, size: null, sort: null);
+
+$page = $categoryAssignmentService->paginatedProductsInCategory($category->id, $options);
+
+foreach ($page->items as $product) { /* ... */ }
+
+// With offset strategy the page implements RandomAccessPageInterface.
+if ($page instanceof RandomAccessPageInterface) {
+    echo $page->totalItems();  // total matching products
+    echo $page->totalPages();
+}
+```
+
+`PaginationOptionsResolver::resolve()` reads all values from `CatalogPaginationConfig` via the config system and validates the combination of strategy and presentation. It throws `InvalidPaginationConfigException` for invalid config values and `PageDepthExceededException` when the requested page number exceeds `maxPageDepth`.
+
+### Pagination configuration
+
+Pagination defaults are controlled through the `catalog/pagination` config scope. Publish or create `config/catalog/pagination.php` in your application to override any value:
+
+```php title="config/catalog/pagination.php"
+<?php
+
+declare(strict_types=1);
+
+return [
+    'defaultPageSize'  => 24,
+    'allowedPageSizes' => [12, 24, 48, 96],
+    'maxPageSize'      => 96,
+    'strategy'         => 'offset',    // 'offset' | 'keyset'
+    'presentation'     => 'numbered',  // 'numbered' | 'load_more' | 'infinite'
+    'countMode'        => 'exact',     // 'exact' | 'estimated'
+    'maxPageDepth'     => 100,
+    'defaultSort'      => 'position',
+    'allowedSorts'     => ['position', 'name', 'sku', 'price'],
+    'viewAllThreshold' => 0,           // 0 = disabled; N = show "view all" when total <= N
+    'countCacheTtl'    => 0,           // reserved; set to 0
+];
+```
+
+| Key | Default | Description |
+|---|---|---|
+| `defaultPageSize` | `24` | Page size used when no `size` parameter is supplied |
+| `allowedPageSizes` | `[12, 24, 48, 96]` | Page sizes accepted from requests; requests with unlisted sizes fall back to `defaultPageSize` |
+| `maxPageSize` | `96` | Hard upper bound; requests exceeding this fall back to `defaultPageSize` |
+| `strategy` | `offset` | Pagination engine: `offset` (random access, numbered pages) or `keyset` (cursor-based, sequential) |
+| `presentation` | `numbered` | Storefront UI mode: `numbered`, `load_more`, or `infinite`. `numbered` requires `strategy=offset` |
+| `countMode` | `exact` | How total rows are counted: `exact` (SELECT COUNT) or `estimated` (planner estimate with exact fallback) |
+| `maxPageDepth` | `100` | Requests for page numbers above this return a `410 Gone` response |
+| `defaultSort` | `position` | Sort column used when no `sort` parameter is supplied |
+| `allowedSorts` | `['position', 'name', 'sku', 'price']` | Sort keys accepted from requests |
+| `viewAllThreshold` | `0` | When `> 0`, categories with at most this many products expose a `?view=all` URL and the canonical points there |
+| `countCacheTtl` | `0` | Reserved for future use; leave as `0` |
+
+**Constraint:** `presentation=numbered` requires `strategy=offset`. Setting `numbered` with `strategy=keyset` throws `InvalidPaginationConfigException`.
 
 ### Working with category trees
 
@@ -338,6 +407,7 @@ Table: `catalog_product_category`
 | `$id` | `?int` | `id` | Primary key, auto-increment |
 | `$productId` | `?int` | `product_id` | FK → `catalog_products`, CASCADE on delete |
 | `$categoryId` | `?int` | `category_id` | FK → `catalog_categories`, CASCADE on delete |
+| `$position` | `int` | `position` (integer, not null) | Sort order within the category; default `0`. Used as the `position` sort key in paginated queries. |
 
 A unique index on `(product_id, category_id)` prevents duplicate assignments at the database level.
 
@@ -443,7 +513,8 @@ The primary contract for category tree lifecycle management. Implemented by `Cat
 |---|---|---|---|
 | `assign(int $productId, int $categoryId)` | `void` | `ProductNotFoundException`, `CategoryNotFoundException` | Assign a product to a category. No-op if already assigned. |
 | `detach(int $productId, int $categoryId)` | `void` | --- | Remove a product-category assignment. No-op if no assignment exists. |
-| `productsInCategory(int $categoryId)` | `list<Product>` | `CategoryNotFoundException` | Return all products assigned to the given category. |
+| `productsInCategory(int $categoryId)` | `list<Product>` | `CategoryNotFoundException` | Return all products assigned to the given category (N+1 per-product lookup). |
+| `paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $resolvedPaginationOptions)` | `Page<Product>` | `CategoryNotFoundException`, `RepositoryException` | Return a paginated page of products via a single JOIN query. The returned `Page` implements `RandomAccessPageInterface` when the offset strategy is active. |
 
 #### `CategoryTreeService`
 
@@ -464,6 +535,50 @@ The primary contract for category tree lifecycle management. Implemented by `Cat
 | Method | Return type | Throws | Description |
 |---|---|---|---|
 | `delete(int $categoryId)` | `void` | `CategoryNotFoundException`, `CategoryHasPlacementsException` | Delete a category. Throws when the category has active placements in any tree. |
+
+### Pagination
+
+#### `PaginationOptionsResolver`
+
+Translates raw HTTP request parameters into a `ResolvedPaginationOptions` value object. All config values are read from `CatalogPaginationConfig` via the config system.
+
+| Method | Return type | Throws | Description |
+|---|---|---|---|
+| `resolve(?int $page, ?int $size, ?string $sort)` | `ResolvedPaginationOptions` | `InvalidPaginationConfigException`, `PageDepthExceededException` | Resolve and validate pagination options. Pass `null` for any parameter to use the configured default. |
+
+#### `ResolvedPaginationOptions`
+
+Immutable value object produced by `PaginationOptionsResolver`.
+
+| Property | Type | Description |
+|---|---|---|
+| `$pageRequest` | `PageRequest` | Ready-to-use `PageRequest` for `paginatedProductsInCategory()` |
+| `$page` | `int` | Resolved page number (1-based) |
+| `$presentation` | `PaginationPresentation` | Active storefront presentation mode |
+| `$strategyKind` | `PaginationStrategyKind` | Active pagination strategy |
+| `$countMode` | `CountMode` | Active count mode |
+
+#### `PaginationPresentation` (enum)
+
+| Case | Value | Description |
+|---|---|---|
+| `Numbered` | `'numbered'` | Numbered page links; requires `strategy=offset` |
+| `LoadMore` | `'load_more'` | Load-more button appending to the existing list |
+| `Infinite` | `'infinite'` | Infinite scroll |
+
+#### `PaginationStrategyKind` (enum)
+
+| Case | Value | Description |
+|---|---|---|
+| `Offset` | `'offset'` | Classic LIMIT/OFFSET pagination; supports random access and numbered pages |
+| `Keyset` | `'keyset'` | Seek-based (cursor) pagination; sequential only |
+
+#### `CountMode` (enum)
+
+| Case | Value | Description |
+|---|---|---|
+| `Exact` | `'exact'` | `SELECT COUNT(*)` for accurate totals |
+| `Estimated` | `'estimated'` | Planner estimate with exact fallback |
 
 ### Enums
 
@@ -491,9 +606,12 @@ All exceptions extend `MarkoException` and carry a `message`, `context`, and `su
 | `CategoryTreeNodeNotFoundException` | `forId(int $id)` | A `CategoryTreeService` method cannot find the requested node |
 | `NodeNotInTreeException` | `forNodeAndTree(int $nodeId, int $expectedTreeId, int $actualTreeId)`, `forParentMismatch(int $nodeId, ?int $expectedParentNodeId, ?int $actualParentNodeId)` | A node is referenced against the wrong tree, or a sibling group contains a node with a mismatched parent |
 | `CircularNodeReferenceException` | `forNodeAndParent(int $nodeId, int $proposedParentId)` | `CategoryTreeService::moveNode()` detects that the proposed parent is a descendant of the node being moved |
+| `InvalidPaginationConfigException` | `forUnknownStrategy()`, `forUnknownPresentation()`, `forUnsupportedCountMode()`, `forInvalidSort()`, `forNumberedKeysetCombination()` | `PaginationOptionsResolver::resolve()` receives an invalid config value or an incompatible strategy+presentation combination |
+| `PageDepthExceededException` | `forDepth(int $page, int $max)` | `PaginationOptionsResolver::resolve()` is called with a page number exceeding `maxPageDepth` |
 
 ## Related Packages
 
+- [markommerce/criteria](/docs/packages/criteria/) --- Pagination engine used by `CategoryAssignmentService::paginatedProductsInCategory()`; provides `PaginationStrategyInterface`, `PageRequest`, and `Page`
 - [markommerce/catalog-storefront](/docs/packages/catalog-storefront/) --- Storefront route, layout definition, product grid and card components for `markommerce/catalog`
 - [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- Adds `HasScopesInterface` support to `Product` and `Category` via companion entities; required if you want scoped overrides on catalog entities
 - [markommerce/catalog-locale](/docs/packages/catalog-locale/) --- Bridge that registers `name` and `description` as locale-scoped on `Product` and `Category`

@@ -9,6 +9,24 @@ use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
+use Markommerce\Criteria\Position\PositionCodec;
+use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
+
+function makeService(
+    FakeProductRepository $productRepository,
+    FakeCategoryRepository $categoryRepository,
+    FakeProductCategoryAssignmentRepository $assignmentRepository,
+): CategoryAssignmentService {
+    $positionCodec = new PositionCodec();
+
+    return new CategoryAssignmentService(
+        productRepository: $productRepository,
+        categoryRepository: $categoryRepository,
+        productCategoryAssignmentRepository: $assignmentRepository,
+        positionCodec: $positionCodec,
+        keysetPaginationStrategy: new KeysetPaginationStrategy($positionCodec),
+    );
+}
 
 it('assigns a product to a category creating an assignment row', function (): void {
     $productRepository = new FakeProductRepository();
@@ -24,11 +42,7 @@ it('assigns a product to a category creating an assignment row', function (): vo
     $category->name = 'Test Category';
     $categoryRepository->save($category);
 
-    $service = new CategoryAssignmentService(
-        productRepository: $productRepository,
-        categoryRepository: $categoryRepository,
-        productCategoryAssignmentRepository: $assignmentRepository,
-    );
+    $service = makeService($productRepository, $categoryRepository, $assignmentRepository);
 
     $service->assign($product->id, $category->id);
 
@@ -52,11 +66,7 @@ it('does not create a duplicate assignment when the product is already in the ca
     $category->name = 'Test Category';
     $categoryRepository->save($category);
 
-    $service = new CategoryAssignmentService(
-        productRepository: $productRepository,
-        categoryRepository: $categoryRepository,
-        productCategoryAssignmentRepository: $assignmentRepository,
-    );
+    $service = makeService($productRepository, $categoryRepository, $assignmentRepository);
 
     $service->assign($product->id, $category->id);
     $service->assign($product->id, $category->id);
@@ -74,11 +84,7 @@ it('throws CategoryNotFoundException when assigning to a category that does not 
     $product->name = 'Test Product';
     $productRepository->save($product);
 
-    $service = new CategoryAssignmentService(
-        productRepository: $productRepository,
-        categoryRepository: $categoryRepository,
-        productCategoryAssignmentRepository: $assignmentRepository,
-    );
+    $service = makeService($productRepository, $categoryRepository, $assignmentRepository);
 
     expect(fn () => $service->assign($product->id, 999))
         ->toThrow(CategoryNotFoundException::class);
@@ -98,11 +104,7 @@ it('detaches a product from a category removing the assignment row', function ()
     $category->name = 'Test Category';
     $categoryRepository->save($category);
 
-    $service = new CategoryAssignmentService(
-        productRepository: $productRepository,
-        categoryRepository: $categoryRepository,
-        productCategoryAssignmentRepository: $assignmentRepository,
-    );
+    $service = makeService($productRepository, $categoryRepository, $assignmentRepository);
 
     $service->assign($product->id, $category->id);
     expect($assignmentRepository->assignments)->toHaveCount(1);
@@ -116,11 +118,7 @@ it('does nothing when detaching a product that is not assigned to the category',
     $categoryRepository = new FakeCategoryRepository();
     $assignmentRepository = new FakeProductCategoryAssignmentRepository();
 
-    $service = new CategoryAssignmentService(
-        productRepository: $productRepository,
-        categoryRepository: $categoryRepository,
-        productCategoryAssignmentRepository: $assignmentRepository,
-    );
+    $service = makeService($productRepository, $categoryRepository, $assignmentRepository);
 
     // Should not throw any exception
     $service->detach(1, 1);
@@ -147,11 +145,7 @@ it('lists every product assigned to a category', function (): void {
     $category->name = 'Test Category';
     $categoryRepository->save($category);
 
-    $service = new CategoryAssignmentService(
-        productRepository: $productRepository,
-        categoryRepository: $categoryRepository,
-        productCategoryAssignmentRepository: $assignmentRepository,
-    );
+    $service = makeService($productRepository, $categoryRepository, $assignmentRepository);
 
     $service->assign($product1->id, $category->id);
     $service->assign($product2->id, $category->id);
@@ -180,11 +174,7 @@ it('skips an assignment whose product no longer exists when listing a category',
     $category->name = 'Test Category';
     $categoryRepository->save($category);
 
-    $service = new CategoryAssignmentService(
-        productRepository: $productRepository,
-        categoryRepository: $categoryRepository,
-        productCategoryAssignmentRepository: $assignmentRepository,
-    );
+    $service = makeService($productRepository, $categoryRepository, $assignmentRepository);
 
     $service->assign($product->id, $category->id);
 
@@ -201,11 +191,7 @@ it('throws CategoryNotFoundException when listing products for a category that d
     $categoryRepository = new FakeCategoryRepository();
     $assignmentRepository = new FakeProductCategoryAssignmentRepository();
 
-    $service = new CategoryAssignmentService(
-        productRepository: $productRepository,
-        categoryRepository: $categoryRepository,
-        productCategoryAssignmentRepository: $assignmentRepository,
-    );
+    $service = makeService($productRepository, $categoryRepository, $assignmentRepository);
 
     expect(fn () => $service->productsInCategory(999))
         ->toThrow(CategoryNotFoundException::class);

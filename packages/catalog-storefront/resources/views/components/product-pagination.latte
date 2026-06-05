@@ -1,0 +1,32 @@
+<nav class="catalog-pagination" aria-label="Pagination">
+    <mk-stack direction="row" gap="2" align="center">
+        {if $hasPrevious}
+            <a class="catalog-pagination__prev" href="{$pageLinkUrls[$currentPage - 2]}" rel="prev">
+                <mk-text>Previous</mk-text>
+            </a>
+        {/if}
+
+        {foreach $pageLinkUrls as $index => $url}
+            {var $pageNumber = $index + 1}
+            {if $pageNumber === $currentPage}
+                <a class="catalog-pagination__page catalog-pagination__page--current"
+                   href="{$url}"
+                   aria-current="page">
+                    <mk-text>{$pageNumber}</mk-text>
+                </a>
+            {else}
+                <a class="catalog-pagination__page" href="{$url}">
+                    <mk-text>{$pageNumber}</mk-text>
+                </a>
+            {/if}
+        {/foreach}
+
+        {if $hasNext}
+            <a class="catalog-pagination__next" href="{$nextPageUrl}" rel="next">
+                <mk-text>Next</mk-text>
+            </a>
+        {/if}
+
+        <mk-text class="catalog-pagination__label" variant="muted">Page {$currentPage} of {$totalPages}</mk-text>
+    </mk-stack>
+</nav>

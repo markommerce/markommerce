@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Marko\Core\Container\ContainerInterface;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
+use Marko\Database\Entity\EntityCollection;
 use Marko\Routing\Attributes\Get;
 use Marko\Routing\Http\Request;
 use Marko\Routing\Http\Response;
@@ -17,6 +18,8 @@ use Marko\View\ViewInterface;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
+use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
+use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
@@ -26,6 +29,11 @@ use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Component\StockBadge;
 use Markommerce\CatalogStorefront\Context\CategoryDataProvider;
 use Markommerce\CatalogStorefront\Controller\CategoryController;
+use Markommerce\Config\Contracts\ConfigResolverInterface;
+use Markommerce\Criteria\Page\Page;
+use Markommerce\Criteria\Position\PositionCodec;
+use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
+use Markommerce\Criteria\Strategy\OffsetPage;
 use Markommerce\Layout\Cache\ArtifactReaderInterface;
 use Markommerce\Layout\Cache\PreparedTree;
 use Markommerce\Layout\Cache\PreparedTreeBuilder;
@@ -47,6 +55,79 @@ use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * @param array<string, mixed> $overrides
+ */
+function catalogControllerMakeConfigResolver(array $overrides = []): ConfigResolverInterface
+{
+    $defaults = [
+        'defaultPageSize'  => 24,
+        'allowedPageSizes' => [12, 24, 48, 96],
+        'maxPageSize'      => 96,
+        'strategy'         => 'offset',
+        'presentation'     => 'numbered',
+        'countMode'        => 'exact',
+        'maxPageDepth'     => 100,
+        'defaultSort'      => 'position',
+        'allowedSorts'     => ['position', 'name', 'sku', 'price'],
+        'viewAllThreshold' => 0,
+        'countCacheTtl'    => 0,
+    ];
+
+    $values = array_merge($defaults, $overrides);
+
+    return new class ($values) implements ConfigResolverInterface {
+        /** @param array<string, mixed> $values */
+        public function __construct(private readonly array $values) {}
+
+        public function resolved(string $configClass, string $field): mixed
+        {
+            return $this->values[$field] ?? null;
+        }
+    };
+}
+
+function catalogControllerMakePaginationOptionsResolver(): PaginationOptionsResolver
+{
+    return new PaginationOptionsResolver(catalogControllerMakeConfigResolver());
+}
+
+/**
+ * Build a CategoryAssignmentService that delegates paginatedProductsInCategory
+ * to the in-memory fake repositories (wraps productsInCategory result in an OffsetPage).
+ */
+function catalogControllerMakeAssignmentService(
+    FakeProductRepository $productRepository,
+    FakeCategoryRepository $categoryRepository,
+    FakeProductCategoryAssignmentRepository $assignmentRepository,
+): CategoryAssignmentService {
+    $positionCodec = new PositionCodec();
+
+    return new class (
+        $productRepository,
+        $categoryRepository,
+        $assignmentRepository,
+        $positionCodec,
+        new KeysetPaginationStrategy($positionCodec),
+    ) extends CategoryAssignmentService {
+        public function paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $options): Page
+        {
+            $products = $this->productsInCategory($categoryId);
+
+            return new OffsetPage(
+                items: new EntityCollection($products),
+                size: $options->pageRequest->size,
+                nextPosition: null,
+                previousPosition: null,
+                currentPage: $options->page,
+                totalPages: 1,
+                totalItems: count($products),
+                positionCodec: new PositionCodec(),
+            );
+        }
+    };
+}
 
 function catalogControllerMakeScopeContext(): ScopeContext
 {
@@ -262,7 +343,7 @@ function catalogControllerTestBuildRouter(
     }
     $matcher = new RouteMatcher($routes);
 
-    $assignmentService = new CategoryAssignmentService(
+    $assignmentService = catalogControllerMakeAssignmentService(
         $productRepository,
         $categoryRepository,
         $assignmentRepository,
@@ -277,7 +358,12 @@ function catalogControllerTestBuildRouter(
     $priceResolver = catalogControllerMakeNoPricePriceResolver();
     $moneyFormatter = catalogControllerMakeMoneyFormatter();
 
-    $productGridComponent = new ProductGridComponent($assignmentService, $priceResolver, $moneyFormatter);
+    $productGridComponent = new ProductGridComponent(
+        $assignmentService,
+        catalogControllerMakePaginationOptionsResolver(),
+        $priceResolver,
+        $moneyFormatter,
+    );
     $container->instance(ProductGridComponent::class, $productGridComponent);
     $container->instance(ProductCard::class, new ProductCard($priceResolver, $moneyFormatter));
     $container->instance(StockBadge::class, new StockBadge());
@@ -416,7 +502,7 @@ it('renders every assigned product as a product grid item in the response body',
     $product2->name = 'Hiking Boots';
     $productRepository->save($product2);
 
-    $assignmentService = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
+    $assignmentService = catalogControllerMakeAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
     $assignmentService->assign($product1->id, $category->id);
     $assignmentService->assign($product2->id, $category->id);
 

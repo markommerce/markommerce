@@ -1,0 +1,5 @@
+<div class="catalog-product-grid-fragment"{if $nextPageUrl} data-next="{$nextPageUrl|noescape}"{/if}>
+    {if isset($_slots['products'])}
+        {slot products}{/slot}
+    {/if}
+</div>

@@ -7,8 +7,11 @@ use Marko\Core\Container\Container;
 use Marko\Core\Container\PreferenceDiscovery;
 use Marko\Core\Container\PreferenceRegistry;
 use Marko\Core\Module\ModuleManifest;
+use Marko\Database\Entity\EntityCollection;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
+use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
+use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
@@ -16,6 +19,11 @@ use Markommerce\Catalog\Tests\Support\FakeProductRepository;
 use Markommerce\CatalogScope\Entity\ProductScopedOverrides;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefrontScope\Component\ScopedProductGridComponent;
+use Markommerce\Config\Contracts\ConfigResolverInterface;
+use Markommerce\Criteria\Page\Page;
+use Markommerce\Criteria\Position\PositionCodec;
+use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
+use Markommerce\Criteria\Strategy\OffsetPage;
 use Markommerce\Money\Money;
 use Markommerce\MoneyIntl\MoneyFormatter;
 use Markommerce\Pricing\Contracts\PriceResolverInterface;
@@ -149,6 +157,78 @@ function scopedGridMakeResolver(?ScopeRegistryInterface $registry = null): array
     return [$resolver, $context, $registry];
 }
 
+/**
+ * @param array<string, mixed> $overrides
+ */
+function scopedGridMakeConfigResolver(array $overrides = []): ConfigResolverInterface
+{
+    $defaults = [
+        'defaultPageSize'  => 24,
+        'allowedPageSizes' => [12, 24, 48, 96],
+        'maxPageSize'      => 96,
+        'strategy'         => 'offset',
+        'presentation'     => 'numbered',
+        'countMode'        => 'exact',
+        'maxPageDepth'     => 100,
+        'defaultSort'      => 'position',
+        'allowedSorts'     => ['position', 'name', 'sku', 'price'],
+        'viewAllThreshold' => 0,
+        'countCacheTtl'    => 0,
+    ];
+
+    $values = array_merge($defaults, $overrides);
+
+    return new class ($values) implements ConfigResolverInterface {
+        /** @param array<string, mixed> $values */
+        public function __construct(private readonly array $values) {}
+
+        public function resolved(string $configClass, string $field): mixed
+        {
+            return $this->values[$field] ?? null;
+        }
+    };
+}
+
+function scopedGridMakePaginationOptionsResolver(): PaginationOptionsResolver
+{
+    return new PaginationOptionsResolver(scopedGridMakeConfigResolver());
+}
+
+/**
+ * Build a CategoryAssignmentService that wraps paginatedProductsInCategory via productsInCategory.
+ */
+function scopedGridMakeAssignmentService(
+    FakeProductRepository $productRepository,
+    FakeCategoryRepository $categoryRepository,
+    FakeProductCategoryAssignmentRepository $assignmentRepository,
+): CategoryAssignmentService {
+    $positionCodec = new PositionCodec();
+
+    return new class (
+        $productRepository,
+        $categoryRepository,
+        $assignmentRepository,
+        $positionCodec,
+        new KeysetPaginationStrategy($positionCodec),
+    ) extends CategoryAssignmentService {
+        public function paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $options): Page
+        {
+            $products = $this->productsInCategory($categoryId);
+
+            return new OffsetPage(
+                items: new EntityCollection($products),
+                size: $options->pageRequest->size,
+                nextPosition: null,
+                previousPosition: null,
+                currentPage: $options->page,
+                totalPages: 1,
+                totalItems: count($products),
+                positionCodec: new PositionCodec(),
+            );
+        }
+    };
+}
+
 function scopedGridBuildComponent(
     FakeCategoryRepository $categoryRepository,
     FakeProductRepository $productRepository,
@@ -159,14 +239,11 @@ function scopedGridBuildComponent(
         [$scopeResolver] = scopedGridMakeResolver();
     }
 
-    $service = new CategoryAssignmentService(
-        $productRepository,
-        $categoryRepository,
-        $assignmentRepository,
-    );
+    $service = scopedGridMakeAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
 
     return new ScopedProductGridComponent(
         categoryAssignmentService: $service,
+        paginationOptionsResolver: scopedGridMakePaginationOptionsResolver(),
         scopeResolver: $scopeResolver,
         priceResolver: scopedGridMakeNoPriceResolver(),
         moneyFormatter: scopedGridMakeMoneyFormatter(),
@@ -202,10 +279,11 @@ it('accepts CategoryAssignmentService and ScopeResolver in its constructor (no d
 
     expect($paramNames)->not->toContain('categoryRepository');
     expect($paramNames)->toContain('categoryAssignmentService');
+    expect($paramNames)->toContain('paginationOptionsResolver');
     expect($paramNames)->toContain('scopeResolver');
     expect($paramNames)->toContain('priceResolver');
     expect($paramNames)->toContain('moneyFormatter');
-    expect($params)->toHaveCount(4);
+    expect($params)->toHaveCount(5);
 });
 
 it(
@@ -224,7 +302,7 @@ it(
         $product->name = 'Running Shoes';
         $productRepository->save($product);
     
-        $service = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
+        $service = scopedGridMakeAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
         $service->assign($product->id, $category->id);
     
         [$resolver, $context] = scopedGridMakeResolver();
@@ -240,7 +318,7 @@ it(
             $assignmentRepository,
             $resolver
         );
-        $data = $component->data($category);
+        $data = $component->data($category, 1, 0, '');
     
         expect($data->resolvedNames[$product->id])->toBe('Laufschuhe');
     }
@@ -261,7 +339,7 @@ it('returns a ProductGridData with resolvedDescs overwritten from ScopeResolver:
     $product->description = 'Great running shoes';
     $productRepository->save($product);
 
-    $service = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
+    $service = scopedGridMakeAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
     $service->assign($product->id, $category->id);
 
     [$resolver, $context] = scopedGridMakeResolver();
@@ -272,7 +350,7 @@ it('returns a ProductGridData with resolvedDescs overwritten from ScopeResolver:
     $product->attachCompanion($overrides);
 
     $component = scopedGridBuildComponent($categoryRepository, $productRepository, $assignmentRepository, $resolver);
-    $data = $component->data($category);
+    $data = $component->data($category, 1, 0, '');
 
     expect($data->resolvedDescs[$product->id])->toBe('Tolle Laufschuhe');
 });
@@ -293,7 +371,7 @@ it(
         $product->name = 'Running Shoes';
         $productRepository->save($product);
     
-        $service = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
+        $service = scopedGridMakeAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
         $service->assign($product->id, $category->id);
     
         // No companion attached, no override set — resolver falls back to raw value
@@ -306,7 +384,7 @@ it(
             $assignmentRepository,
             $resolver
         );
-        $data = $component->data($category);
+        $data = $component->data($category, 1, 0, '');
     
         expect($data->resolvedNames[$product->id])->toBe('Running Shoes');
     }
@@ -328,7 +406,7 @@ it(
         $product->name = 'Running Shoes';
         $productRepository->save($product);
     
-        $service = new CategoryAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
+        $service = scopedGridMakeAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
         $service->assign($product->id, $category->id);
     
         [$resolver, $context] = scopedGridMakeResolver();
@@ -344,7 +422,7 @@ it(
             $assignmentRepository,
             $resolver
         );
-        $data = $component->data($category);
+        $data = $component->data($category, 1, 0, '');
     
         expect($data->resolvedNames[$product->id])->toBe('Chaussures de course');
     }
@@ -386,11 +464,11 @@ it(
     
         $container->bind(
             CategoryAssignmentService::class,
-            fn () => new CategoryAssignmentService(
-                $productRepository,
-                $categoryRepository,
-                $assignmentRepository,
-            ),
+            fn () => scopedGridMakeAssignmentService($productRepository, $categoryRepository, $assignmentRepository),
+        );
+        $container->bind(
+            PaginationOptionsResolver::class,
+            fn () => scopedGridMakePaginationOptionsResolver(),
         );
         $container->bind(
             ScopeResolver::class,

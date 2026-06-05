@@ -7,4 +7,47 @@
     {else}
         <mk-text variant="muted">No products found in this category.</mk-text>
     {/if}
+
+    {var $paginationUrls = $pageLinkUrls ?? []}
+    {if count($paginationUrls) > 0}
+        {var $mode = isset($presentation) ? $presentation->value : 'numbered'}
+        {if $mode === 'load_more'}
+            <mk-load-more data-next="{$nextPageUrl|noescape}" data-grid="catalog-product-grid">
+                {include 'catalog-storefront::components/product-pagination',
+                    pageLinkUrls: $paginationUrls,
+                    currentPage: $currentPage,
+                    totalPages: $totalPages,
+                    hasPrevious: $hasPrevious ?? false,
+                    hasNext: $hasNext ?? false,
+                    nextPageUrl: $nextPageUrl ?? null}
+            </mk-load-more>
+        {elseif $mode === 'infinite'}
+            <mk-infinite-scroll data-next="{$nextPageUrl|noescape}" data-grid="catalog-product-grid">
+                <noscript>
+                    {include 'catalog-storefront::components/product-pagination',
+                        pageLinkUrls: $paginationUrls,
+                        currentPage: $currentPage,
+                        totalPages: $totalPages,
+                        hasPrevious: $hasPrevious ?? false,
+                        hasNext: $hasNext ?? false,
+                        nextPageUrl: $nextPageUrl ?? null}
+                </noscript>
+                {include 'catalog-storefront::components/product-pagination',
+                    pageLinkUrls: $paginationUrls,
+                    currentPage: $currentPage,
+                    totalPages: $totalPages,
+                    hasPrevious: $hasPrevious ?? false,
+                    hasNext: $hasNext ?? false,
+                    nextPageUrl: $nextPageUrl ?? null}
+            </mk-infinite-scroll>
+        {else}
+            {include 'catalog-storefront::components/product-pagination',
+                pageLinkUrls: $paginationUrls,
+                currentPage: $currentPage,
+                totalPages: $totalPages,
+                hasPrevious: $hasPrevious ?? false,
+                hasNext: $hasNext ?? false,
+                nextPageUrl: $nextPageUrl ?? null}
+        {/if}
+    {/if}
 </mk-stack>

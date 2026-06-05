@@ -9,6 +9,7 @@ use Marko\Core\Container\ContainerInterface;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
 use Marko\Core\Module\ModuleRepositoryInterface;
+use Marko\Database\Entity\EntityCollection;
 use Marko\Routing\Http\Request;
 use Marko\Routing\Http\Response;
 use Marko\Routing\RouteCollection;
@@ -20,6 +21,8 @@ use Marko\View\ViewInterface;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
+use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
+use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
@@ -29,6 +32,11 @@ use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Component\StockBadge;
 use Markommerce\CatalogStorefront\Context\CategoryDataProvider;
 use Markommerce\CatalogStorefront\Controller\CategoryController;
+use Markommerce\Config\Contracts\ConfigResolverInterface;
+use Markommerce\Criteria\Page\Page;
+use Markommerce\Criteria\Position\PositionCodec;
+use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
+use Markommerce\Criteria\Strategy\OffsetPage;
 use Markommerce\Layout\Cache\ArtifactReaderInterface;
 use Markommerce\Layout\Cache\PreparedTree;
 use Markommerce\Layout\Cache\PreparedTreeBuilder;
@@ -50,6 +58,79 @@ use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * @param array<string, mixed> $overrides
+ */
+function tier1MakeConfigResolver(array $overrides = []): ConfigResolverInterface
+{
+    $defaults = [
+        'defaultPageSize'  => 24,
+        'allowedPageSizes' => [12, 24, 48, 96],
+        'maxPageSize'      => 96,
+        'strategy'         => 'offset',
+        'presentation'     => 'numbered',
+        'countMode'        => 'exact',
+        'maxPageDepth'     => 100,
+        'defaultSort'      => 'position',
+        'allowedSorts'     => ['position', 'name', 'sku', 'price'],
+        'viewAllThreshold' => 0,
+        'countCacheTtl'    => 0,
+    ];
+
+    $values = array_merge($defaults, $overrides);
+
+    return new class ($values) implements ConfigResolverInterface {
+        /** @param array<string, mixed> $values */
+        public function __construct(private readonly array $values) {}
+
+        public function resolved(string $configClass, string $field): mixed
+        {
+            return $this->values[$field] ?? null;
+        }
+    };
+}
+
+function tier1MakePaginationOptionsResolver(): PaginationOptionsResolver
+{
+    return new PaginationOptionsResolver(tier1MakeConfigResolver());
+}
+
+/**
+ * Build a CategoryAssignmentService that delegates paginatedProductsInCategory
+ * to the in-memory fake repositories (wraps productsInCategory result in an OffsetPage).
+ */
+function tier1MakeAssignmentService(
+    FakeProductRepository $productRepository,
+    FakeCategoryRepository $categoryRepository,
+    FakeProductCategoryAssignmentRepository $assignmentRepository,
+): CategoryAssignmentService {
+    $positionCodec = new PositionCodec();
+
+    return new class (
+        $productRepository,
+        $categoryRepository,
+        $assignmentRepository,
+        $positionCodec,
+        new KeysetPaginationStrategy($positionCodec),
+    ) extends CategoryAssignmentService {
+        public function paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $options): Page
+        {
+            $products = $this->productsInCategory($categoryId);
+
+            return new OffsetPage(
+                items: new EntityCollection($products),
+                size: $options->pageRequest->size,
+                nextPosition: null,
+                previousPosition: null,
+                currentPage: $options->page,
+                totalPages: 1,
+                totalItems: count($products),
+                positionCodec: new PositionCodec(),
+            );
+        }
+    };
+}
 
 function tier1MakeScopeContext(): ScopeContext
 {
@@ -388,7 +469,7 @@ function buildTier1Container(
     // Catalog repository bindings (fakes)
     $inner->instance(CategoryRepositoryInterface::class, $categoryRepository);
 
-    $assignmentService = new CategoryAssignmentService(
+    $assignmentService = tier1MakeAssignmentService(
         $productRepository,
         $categoryRepository,
         $assignmentRepository,
@@ -402,7 +483,12 @@ function buildTier1Container(
     $priceResolver = tier1MakeNoPricePriceResolver();
     $moneyFormatter = tier1MakeMoneyFormatter();
 
-    $productGridComponent = new ProductGridComponent($assignmentService, $priceResolver, $moneyFormatter);
+    $productGridComponent = new ProductGridComponent(
+        $assignmentService,
+        tier1MakePaginationOptionsResolver(),
+        $priceResolver,
+        $moneyFormatter,
+    );
     $inner->instance(ProductGridComponent::class, $productGridComponent);
     $inner->instance(ProductCard::class, new ProductCard($priceResolver, $moneyFormatter));
     $inner->instance(StockBadge::class, new StockBadge());
@@ -563,7 +649,7 @@ it(
         $product->name = 'Tier1 Product';
         $productRepository->save($product);
 
-        $assignmentService = new CategoryAssignmentService(
+        $assignmentService = tier1MakeAssignmentService(
             $productRepository,
             $categoryRepository,
             $assignmentRepository,
@@ -638,7 +724,7 @@ it(
         $product->name = 'Scope-Free Product';
         $productRepository->save($product);
 
-        $assignmentService = new CategoryAssignmentService(
+        $assignmentService = tier1MakeAssignmentService(
             $productRepository,
             $categoryRepository,
             $assignmentRepository,

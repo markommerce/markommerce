@@ -32,7 +32,12 @@ return new Layout(
             new Place(
                 component: ProductGridComponent::class,
                 name: 'catalog.product_grid',
-                props: ['category' => Source::context(CategoryToken::class)],
+                props: [
+                    'category' => Source::context(CategoryToken::class),
+                    'page' => Source::query('page', 1, 'int'),
+                    'size' => Source::query('size', 0, 'int'),
+                    'sort' => Source::query('sort', '', 'string'),
+                ],
                 slots: [
                     'products' => Slot::repeat(
                         dataKey: 'products',

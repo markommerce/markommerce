@@ -130,17 +130,17 @@ it(
 );
 
 it(
-    'leaves packages/catalog/src with only Contracts, Entity, Enum, Exceptions, Repositories, and Services directories',
+    'leaves packages/catalog/src with only allowed directories',
     function (): void {
         $catalogSrc = dirname(__DIR__, 3) . '/catalog/src';
-    
-        $allowedDirs = ['Contracts', 'Entity', 'Enum', 'Exceptions', 'Repositories', 'Services'];
-    
+
+        $allowedDirs = ['Config', 'Contracts', 'Entity', 'Enum', 'Exceptions', 'Pagination', 'Repositories', 'Services'];
+
         $dirs = array_values(array_filter(
             scandir($catalogSrc),
             fn (string $entry): bool => $entry !== '.' && $entry !== '..' && is_dir($catalogSrc . '/' . $entry),
         ));
-    
+
         expect($dirs)->toBe($allowedDirs);
     }
 );
