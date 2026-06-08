@@ -15,7 +15,6 @@
         "markommerce/frontend": "self.version",
         "markommerce/layout": "self.version",
         "markommerce/money-intl": "self.version",
-        "markommerce/pricing": "self.version",
         "markommerce/theme-blank": "self.version"
     },
     "require-dev": {

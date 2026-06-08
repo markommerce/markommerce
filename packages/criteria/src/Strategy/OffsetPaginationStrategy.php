@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Markommerce\Criteria\Strategy;
 
 use Marko\Database\Entity\Entity;
+use Marko\Database\Entity\EntityCollection;
 use Marko\Database\Repository\RepositoryQueryBuilder;
 use Markommerce\Criteria\Contracts\CursorValueExtractorInterface;
 use Markommerce\Criteria\Contracts\PaginationStrategyInterface;
@@ -64,8 +65,8 @@ class OffsetPaginationStrategy implements PaginationStrategyInterface
             ? $this->positionCodec->encode(new OffsetPosition(page: $currentPage - 1))
             : null;
 
-        /** @var \Marko\Database\Entity\EntityCollection<Entity> $itemsCollection */
-        $itemsCollection = new \Marko\Database\Entity\EntityCollection($items);
+        /** @var EntityCollection<Entity> $itemsCollection */
+        $itemsCollection = new EntityCollection($items);
 
         return new OffsetPage(
             items: $itemsCollection,

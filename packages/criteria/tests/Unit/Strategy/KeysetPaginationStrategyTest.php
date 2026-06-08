@@ -25,6 +25,7 @@ use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
 class KeysetTestEntity extends Entity
 {
     public string $name = '';
+
     public int $id = 0;
 }
 
@@ -32,7 +33,9 @@ class FakeKeysetQueryBuilder extends RepositoryQueryBuilder
 {
     /** @var list<array{column: string, direction: string}> */
     public array $orderByCalls = [];
+
     public ?int $appliedLimit = null;
+
     /** @var list<array{expression: string, bindings: array<mixed>}> */
     public array $whereRawCalls = [];
 

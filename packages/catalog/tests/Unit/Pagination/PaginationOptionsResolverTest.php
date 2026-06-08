@@ -7,7 +7,6 @@ use Markommerce\Catalog\Exceptions\InvalidPaginationConfigException;
 use Markommerce\Catalog\Exceptions\PageDepthExceededException;
 use Markommerce\Catalog\Pagination\CountMode;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
-use Markommerce\Catalog\Pagination\PaginationPresentation;
 use Markommerce\Catalog\Pagination\PaginationStrategyKind;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Config\Contracts\ConfigResolverInterface;
@@ -38,7 +37,8 @@ function makePaginationConfigResolver(array $overrides = []): ConfigResolverInte
 
     $values = array_merge($defaults, $overrides);
 
-    return new class ($values) implements ConfigResolverInterface {
+    return new class ($values) implements ConfigResolverInterface
+    {
         /** @param array<string, mixed> $values */
         public function __construct(private array $values) {}
 

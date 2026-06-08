@@ -9,15 +9,14 @@ use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Exceptions\InvalidPaginationConfigException;
 use Markommerce\Catalog\Exceptions\PageDepthExceededException;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
-use Markommerce\Catalog\Pagination\PaginationPresentation;
+use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
 use Markommerce\Criteria\Contracts\RandomAccessPageInterface;
 use Markommerce\Layout\ExtensionBag;
 use Markommerce\MoneyIntl\MoneyFormatter;
-use Markommerce\Pricing\Contracts\PriceResolverInterface;
-use Markommerce\Pricing\Exceptions\PriceUnavailableException;
-use Markommerce\Pricing\PriceContext;
 
 class ProductGridComponent
 {
@@ -29,9 +28,7 @@ class ProductGridComponent
     ) {}
 
     /**
-     * @throws RepositoryException
-     * @throws InvalidPaginationConfigException
-     * @throws PageDepthExceededException
+     * @throws RepositoryException|InvalidPaginationConfigException|PageDepthExceededException
      */
     public function data(
         Category $category,

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Markommerce\CatalogStorefront\Component;
 
 use Markommerce\Catalog\Entity\Product;
+use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\CatalogStorefront\Data\ProductCardData;
 use Markommerce\Layout\ExtensionBag;
 use Markommerce\MoneyIntl\MoneyFormatter;
-use Markommerce\Pricing\Contracts\PriceResolverInterface;
-use Markommerce\Pricing\Exceptions\PriceUnavailableException;
-use Markommerce\Pricing\PriceContext;
 
 class ProductCard
 {

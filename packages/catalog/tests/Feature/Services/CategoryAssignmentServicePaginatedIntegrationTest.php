@@ -8,6 +8,7 @@ require_once __DIR__ . '/../Helpers/PostgresTestConnection.php';
 
 use Marko\Database\Entity\EntityHydrator;
 use Marko\Database\Entity\EntityMetadataFactory;
+use Marko\Database\PgSql\Query\PgSqlQueryBuilderFactory;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Exceptions\CategoryNotFoundException;
@@ -22,13 +23,11 @@ use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Feature\Helpers\PostgresTestConnection;
 use Markommerce\Criteria\Page\Page;
 use Markommerce\Criteria\Page\PageRequest;
-use Markommerce\Criteria\Position\OffsetPosition;
 use Markommerce\Criteria\Position\PositionCodec;
 use Markommerce\Criteria\Sort\Sort;
 use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Criteria\Sort\SortField;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
-use Marko\Database\PgSql\Query\PgSqlQueryBuilderFactory;
 
 // ─── Schema helpers ───────────────────────────────────────────────────────────
 
@@ -108,18 +107,18 @@ function makeAssignmentService(PostgresTestConnection $conn): CategoryAssignment
 function insertProduct(PostgresTestConnection $conn, string $name, string $sku, ?string $priceAmount = null): int
 {
     $conn->execute(
-        "INSERT INTO catalog_products (name, sku, price_amount) VALUES (?, ?, ?)",
+        'INSERT INTO catalog_products (name, sku, price_amount) VALUES (?, ?, ?)',
         [$name, $sku, $priceAmount],
     );
-    $result = $conn->query("SELECT id FROM catalog_products WHERE sku = ? LIMIT 1", [$sku]);
+    $result = $conn->query('SELECT id FROM catalog_products WHERE sku = ? LIMIT 1', [$sku]);
 
     return (int) $result[0]['id'];
 }
 
 function insertCategory(PostgresTestConnection $conn, string $name): int
 {
-    $conn->execute("INSERT INTO catalog_categories (name) VALUES (?)", [$name]);
-    $result = $conn->query("SELECT id FROM catalog_categories WHERE name = ? LIMIT 1", [$name]);
+    $conn->execute('INSERT INTO catalog_categories (name) VALUES (?)', [$name]);
+    $result = $conn->query('SELECT id FROM catalog_categories WHERE name = ? LIMIT 1', [$name]);
 
     return (int) $result[0]['id'];
 }
@@ -127,7 +126,7 @@ function insertCategory(PostgresTestConnection $conn, string $name): int
 function assignProductToCategory(PostgresTestConnection $conn, int $productId, int $categoryId, int $position = 0): void
 {
     $conn->execute(
-        "INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, ?)",
+        'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, ?)',
         [$productId, $categoryId, $position],
     );
 }
@@ -191,7 +190,8 @@ it('fetches the products in a single join query without per-product lookups', fu
     $keysetStrategy = new KeysetPaginationStrategy($positionCodec);
 
     $queryCount = 0;
-    $spyConn = new class ($this->conn, $queryCount) extends PostgresTestConnection {
+    $spyConn = new class ($this->conn, $queryCount) extends PostgresTestConnection
+    {
         public function __construct(
             private PostgresTestConnection $wrapped,
             public int &$queryCount,

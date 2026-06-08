@@ -13,8 +13,7 @@ readonly class PageRequest
         public int $size,
         public Sort $sort,
         public ?string $position,
-    ) {
-    }
+    ) {}
 
     /**
      * @throws InvalidPageSizeException

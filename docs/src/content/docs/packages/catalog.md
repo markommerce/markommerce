@@ -342,6 +342,123 @@ try {
 
 The catalog storefront route, layout definition, `ProductGridComponent`, `ProductCard`, `StockBadge`, and Latte templates are provided by [markommerce/catalog-storefront](/docs/packages/catalog-storefront/). Install that package to add the `GET /catalog/category/{id}` route and the full product grid UI to your application.
 
+### Pricing
+
+`markommerce/catalog` ships with a full batch pricing pipeline. The pipeline resolves a `Money` value for each product in a set using a chain of `PriceContributorInterface` implementations and a shared `PriceBatch` carrier, keeping the design N+1-free by design.
+
+#### Resolving a single product price
+
+Inject `PriceResolverInterface` and call `resolve()` with a `PriceContext`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Catalog\Pricing\PriceContext;
+
+try {
+    $money = $priceResolver->resolve(PriceContext::forProduct($product));
+} catch (PriceUnavailableException $e) {
+    // No priceAmount set on the product
+}
+
+echo $money->amount();           // e.g. "29.99"
+echo $money->currency()->code;   // e.g. "USD"
+```
+
+#### Resolving prices for a batch of products
+
+Inject `BatchPriceResolverInterface` to resolve prices for multiple products in one pass. Only keys with a non-null resolved amount are returned:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Catalog\Pricing\Contracts\BatchPriceResolverInterface;
+
+// $products is array<array-key, Product>
+$prices = $batchPriceResolver->resolve($products);
+// Returns array<array-key, Money> — only keyed entries with a resolved amount
+```
+
+#### Implementing a PriceContributor
+
+Custom pricing rules (sale prices, tier prices, customer-group discounts) are implemented as `PriceContributorInterface`. Contributors **must** load data set-wise (one query for the full batch, not one per product) and call `setAmount()` for each key:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Catalog\Pricing\Contracts\PriceContributorInterface;
+use Markommerce\Catalog\Pricing\PriceBatch;
+
+class SalePriceContributor implements PriceContributorInterface
+{
+    public function contribute(PriceBatch $batch): void
+    {
+        // Load sale prices for all products in one query
+        $productIds = array_keys($batch->products());
+        $salePrices = $this->salePriceRepository->findForProducts($productIds);
+
+        foreach ($salePrices as $productId => $salePrice) {
+            $batch->setAmount($productId, $salePrice);
+        }
+    }
+}
+```
+
+Register contributors in your `module.php` boot closure via `PriceContributorRegistry::register()`. The `$priority` parameter controls contributor order --- lower values run first:
+
+```php title="module.php"
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Catalog\Pricing\PriceContributorRegistry;
+
+return [
+    'boot' => function (PriceContributorRegistry $priceContributorRegistry, SalePriceContributor $salePriceContributor): void {
+        $priceContributorRegistry->register($salePriceContributor, priority: 10);
+    },
+];
+```
+
+The base `BasePriceContributor` (priority `0`) always runs first and seeds the batch with each product's `priceAmount` via `ProductBasePriceProviderInterface`. Subsequent contributors can overwrite any entry.
+
+#### Layering pricing rules via Plugins
+
+For concerns that need to wrap rather than replace the resolved value (e.g. applying a promotional discount after all contributors have run), decorate `PriceResolverInterface` with a Marko `#[Plugin]`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Marko\Core\Attributes\Plugin;
+use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Catalog\Pricing\PriceContext;
+use Markommerce\Money\Money;
+
+#[Plugin(plugs: PriceResolverInterface::class, method: 'resolve')]
+class PromotionalDiscountPlugin
+{
+    public function aroundResolve(
+        PriceResolverInterface $subject,
+        callable $proceed,
+        PriceContext $context,
+    ): Money {
+        $money = $proceed($context);
+        // apply discount logic and return the modified Money
+        return $money;
+    }
+}
+```
+
 ### Seeder
 
 The `catalog` seeder populates 5 sample categories and 5 000 sample products, distributes products across categories, ensures a default category tree exists, and places all categories as root nodes of that tree:
@@ -367,6 +484,11 @@ php artisan db:seed --seeder=catalog-locale
 | `ProductCategoryAssignmentRepositoryInterface` | `ProductCategoryAssignmentRepository` |
 | `CategoryTreeRepositoryInterface` | `CategoryTreeRepository` |
 | `CategoryTreeNodeRepositoryInterface` | `CategoryTreeNodeRepository` |
+| `BatchPriceResolverInterface` | `BatchPriceResolver` |
+| `PriceResolverInterface` | `PriceResolver` |
+| `ProductBasePriceProviderInterface` | `RawProductBasePriceProvider` |
+
+`PriceContributorRegistry` is registered as a singleton. `BasePriceContributor` is registered with priority `0` at boot.
 
 ## API Reference
 
@@ -609,6 +731,80 @@ All exceptions extend `MarkoException` and carry a `message`, `context`, and `su
 | `InvalidPaginationConfigException` | `forUnknownStrategy()`, `forUnknownPresentation()`, `forUnsupportedCountMode()`, `forInvalidSort()`, `forNumberedKeysetCombination()` | `PaginationOptionsResolver::resolve()` receives an invalid config value or an incompatible strategy+presentation combination |
 | `PageDepthExceededException` | `forDepth(int $page, int $max)` | `PaginationOptionsResolver::resolve()` is called with a page number exceeding `maxPageDepth` |
 
+### Pricing
+
+#### `PriceContext`
+
+Readonly value object. Constructed via the static factory only.
+
+| Property | Type | Description |
+|---|---|---|
+| `$product` | `Product` | The product being priced. Must carry `ProductScopedOverrides` for market-scoped resolution. |
+| `$market` | `?string` | Optional market identifier passed through to plugins; not used directly by the batch pipeline. |
+
+| Method | Return type | Description |
+|---|---|---|
+| `PriceContext::forProduct(Product $product, ?string $market = null)` | `PriceContext` | Construct a price context for a product, optionally scoped to a market. |
+
+#### `PriceResolverInterface`
+
+| Method | Return type | Throws | Description |
+|---|---|---|---|
+| `resolve(PriceContext $context)` | `Money` | `PriceUnavailableException` | Resolve the effective price for the given context as a `Money` value. Delegates to `BatchPriceResolverInterface` internally. |
+
+Default implementation: `PriceResolver`.
+
+#### `BatchPriceResolverInterface`
+
+| Method | Return type | Description |
+|---|---|---|
+| `resolve(array $products)` | `array<array-key, Money>` | Run the full contributor pipeline over a `array<array-key, Product>` map. Returns only keys with a non-null resolved amount. |
+
+Default implementation: `BatchPriceResolver`. Runs all contributors registered in `PriceContributorRegistry` in priority order, then converts surviving amounts to `Money` objects using the base currency from `CurrencyResolver`.
+
+#### `PriceContributorInterface`
+
+| Method | Return type | Description |
+|---|---|---|
+| `contribute(PriceBatch $batch)` | `void` | Seed or overwrite amounts in the batch. Must be set-wise (no per-product queries). |
+
+#### `PriceBatch`
+
+Carrier passed to every contributor in sequence.
+
+| Method | Return type | Throws | Description |
+|---|---|---|---|
+| `PriceBatch::of(array $products, Currency $currency)` | `PriceBatch` | --- | Static factory. |
+| `products()` | `array<array-key, Product>` | --- | The full product map for this batch. |
+| `currency()` | `Currency` | --- | The active currency for this batch. |
+| `amount(int\|string $key)` | `?string` | --- | Current decimal amount for a key, or `null` if not yet set. |
+| `setAmount(int\|string $key, ?string $amount)` | `void` | `InvalidBatchKeyException` | Set the decimal amount for a product key. Throws when the key is not in the batch. |
+| `keys()` | `list<array-key>` | --- | All product keys in this batch. |
+
+#### `PriceContributorRegistry`
+
+Singleton that holds all registered contributors. Used by `BatchPriceResolver` at resolution time.
+
+| Method | Return type | Description |
+|---|---|---|
+| `register(PriceContributorInterface $priceContributor, int $priority = 0)` | `void` | Register a contributor. Lower priority values run first. |
+| `all()` | `list<PriceContributorInterface>` | Return all contributors sorted by priority (ascending). |
+
+#### `ProductBasePriceProviderInterface`
+
+| Method | Return type | Description |
+|---|---|---|
+| `amountsFor(array $products)` | `array<array-key, ?string>` | Return raw decimal amounts keyed by the same keys as the input `array<array-key, Product>` map. |
+
+Default implementation: `RawProductBasePriceProvider` --- reads `Product::$priceAmount` directly. Overridden by [markommerce/catalog-market](/docs/packages/catalog-market/) with `ScopedProductBasePriceProvider`, which resolves the market-scoped amount via `ScopeResolver`.
+
+#### Pricing Exceptions
+
+| Exception | Named constructor | When thrown |
+|---|---|---|
+| `PriceUnavailableException` | `forContext(PriceContext $context)` | `PriceResolver::resolve()` finds no resolved amount for the product. Includes SKU and market in the context message. |
+| `InvalidBatchKeyException` | `forKey(int\|string $key)` | `PriceBatch::setAmount()` is called with a key not present in the batch's product map. |
+
 ## Related Packages
 
 - [markommerce/criteria](/docs/packages/criteria/) --- Pagination engine used by `CategoryAssignmentService::paginatedProductsInCategory()`; provides `PaginationStrategyInterface`, `PageRequest`, and `Page`
@@ -616,6 +812,6 @@ All exceptions extend `MarkoException` and carry a `message`, `context`, and `su
 - [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- Adds `HasScopesInterface` support to `Product` and `Category` via companion entities; required if you want scoped overrides on catalog entities
 - [markommerce/catalog-locale](/docs/packages/catalog-locale/) --- Bridge that registers `name` and `description` as locale-scoped on `Product` and `Category`
 - [markommerce/catalog-market](/docs/packages/catalog-market/) --- Per-market category tree assignment, resolution, deletion guard plugin, and per-market `priceAmount` override registration
-- [markommerce/pricing](/docs/packages/pricing/) --- Resolves a product's effective price as a `Money` value object using `Product.priceAmount` and the active currency
+- [markommerce/catalog-price-index](/docs/packages/catalog-price-index/) --- Denormalized price index table for fast sorting and filtering; populated by the `BatchPriceResolverInterface` pipeline built into this package
 - [markommerce/scope](/docs/packages/scope/) --- Scoped attribute resolution engine
 - [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver required to persist and query scoped overrides

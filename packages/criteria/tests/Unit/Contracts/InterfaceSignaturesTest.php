@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+use Marko\Database\Repository\RepositoryQueryBuilder;
 use Markommerce\Criteria\Contracts\CursorValueExtractorInterface;
 use Markommerce\Criteria\Contracts\PaginationStrategyInterface;
 use Markommerce\Criteria\Contracts\RandomAccessPageInterface;
 use Markommerce\Criteria\Contracts\RowCounterInterface;
-use Marko\Database\Repository\RepositoryQueryBuilder;
 use Markommerce\Criteria\Page\Page;
 use Markommerce\Criteria\Page\PageRequest;
 use Markommerce\Criteria\Sort\Sort;

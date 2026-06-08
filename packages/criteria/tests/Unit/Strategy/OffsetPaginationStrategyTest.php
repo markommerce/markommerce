@@ -28,7 +28,9 @@ class FakeOffsetQueryBuilder extends RepositoryQueryBuilder
 {
     /** @var list<array{column: string, direction: string}> */
     public array $orderByCalls = [];
+
     public ?int $appliedLimit = null;
+
     public ?int $appliedOffset = null;
 
     public function __construct(

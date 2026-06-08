@@ -7,6 +7,10 @@ use Markommerce\Catalog\Contracts\CategoryTreeNodeRepositoryInterface;
 use Markommerce\Catalog\Contracts\CategoryTreeRepositoryInterface;
 use Markommerce\Catalog\Contracts\ProductCategoryAssignmentRepositoryInterface;
 use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
+use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Catalog\Pricing\Contracts\ProductBasePriceProviderInterface;
+use Markommerce\Catalog\Pricing\PriceResolver;
+use Markommerce\Catalog\Pricing\RawProductBasePriceProvider;
 use Markommerce\Catalog\Repositories\CategoryRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeNodeRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeRepository;
@@ -71,6 +75,22 @@ it('module.php binds CategoryTreeNodeRepositoryInterface to CategoryTreeNodeRepo
     expect($module['bindings'])->toHaveKey(CategoryTreeNodeRepositoryInterface::class);
     expect($module['bindings'][CategoryTreeNodeRepositoryInterface::class])
         ->toBe(CategoryTreeNodeRepository::class);
+});
+
+it('binds the raw base price provider to the base price provider interface', function (): void {
+    $module = readCatalogModule();
+
+    expect($module['bindings'])->toHaveKey(ProductBasePriceProviderInterface::class);
+    expect($module['bindings'][ProductBasePriceProviderInterface::class])
+        ->toBe(RawProductBasePriceProvider::class);
+});
+
+it('binds the base resolver to the price resolver interface', function (): void {
+    $module = readCatalogModule();
+
+    expect($module['bindings'])->toHaveKey(PriceResolverInterface::class);
+    expect($module['bindings'][PriceResolverInterface::class])
+        ->toBe(PriceResolver::class);
 });
 
 it('module.php preserves the existing pre-tree bindings (ProductRepositoryInterface, CategoryRepositoryInterface, ProductCategoryAssignmentRepositoryInterface)', function (): void {

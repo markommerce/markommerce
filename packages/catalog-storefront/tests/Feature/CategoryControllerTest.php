@@ -20,6 +20,9 @@ use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
+use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
@@ -45,9 +48,6 @@ use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
 use Markommerce\Layout\Runtime\Renderer;
 use Markommerce\Money\Money;
 use Markommerce\MoneyIntl\MoneyFormatter;
-use Markommerce\Pricing\Contracts\PriceResolverInterface;
-use Markommerce\Pricing\Exceptions\PriceUnavailableException;
-use Markommerce\Pricing\PriceContext;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Exceptions\UnknownAxisException;
@@ -77,7 +77,8 @@ function catalogControllerMakeConfigResolver(array $overrides = []): ConfigResol
 
     $values = array_merge($defaults, $overrides);
 
-    return new class ($values) implements ConfigResolverInterface {
+    return new class ($values) implements ConfigResolverInterface
+    {
         /** @param array<string, mixed> $values */
         public function __construct(private readonly array $values) {}
 
@@ -110,7 +111,8 @@ function catalogControllerMakeAssignmentService(
         $assignmentRepository,
         $positionCodec,
         new KeysetPaginationStrategy($positionCodec),
-    ) extends CategoryAssignmentService {
+    ) extends CategoryAssignmentService
+    {
         public function paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $options): Page
         {
             $products = $this->productsInCategory($categoryId);

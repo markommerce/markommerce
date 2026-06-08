@@ -17,11 +17,12 @@ use Markommerce\Catalog\Contracts\ProductCategoryAssignmentRepositoryInterface;
 use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
-use Markommerce\Catalog\Pagination\CountMode;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pagination\PaginationPresentation;
-use Markommerce\Catalog\Pagination\PaginationStrategyKind;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
+use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
@@ -31,20 +32,15 @@ use Markommerce\CatalogStorefront\Data\ProductCardData;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
 use Markommerce\Config\Contracts\ConfigResolverInterface;
 use Markommerce\Criteria\Page\Page;
-use Markommerce\Criteria\Page\PageRequest;
+use Markommerce\Criteria\Position\OffsetPosition;
 use Markommerce\Criteria\Position\PositionCodec;
 use Markommerce\Criteria\Sort\Sort;
-use Markommerce\Criteria\Sort\SortDirection;
-use Markommerce\Criteria\Sort\SortField;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
 use Markommerce\Criteria\Strategy\OffsetPage;
 use Markommerce\Layout\ExtensionBag;
 use Markommerce\Money\Currency;
 use Markommerce\Money\Money;
 use Markommerce\MoneyIntl\MoneyFormatter;
-use Markommerce\Pricing\Contracts\PriceResolverInterface;
-use Markommerce\Pricing\Exceptions\PriceUnavailableException;
-use Markommerce\Pricing\PriceContext;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Exceptions\UnknownAxisException;
@@ -188,7 +184,8 @@ function productGridMakeConfigResolver(array $overrides = []): ConfigResolverInt
 
     $values = array_merge($defaults, $overrides);
 
-    return new class ($values) implements ConfigResolverInterface {
+    return new class ($values) implements ConfigResolverInterface
+    {
         /** @param array<string, mixed> $values */
         public function __construct(private readonly array $values) {}
 
@@ -249,7 +246,8 @@ function productGridMakeFakeService(
         $positionCodec,
         new KeysetPaginationStrategy($positionCodec),
         $page,
-    ) extends CategoryAssignmentService {
+    ) extends CategoryAssignmentService
+    {
         public function __construct(
             ProductRepositoryInterface $productRepository,
             CategoryRepositoryInterface $categoryRepository,
@@ -320,7 +318,7 @@ it(
         expect($paramTypes)->toContain(CategoryAssignmentService::class);
         expect($paramTypes)->toContain(PriceResolverInterface::class);
         expect($paramTypes)->toContain(MoneyFormatter::class);
-    }
+    },
 );
 
 it('has no Markommerce\\Scope imports in the ProductGridComponent class file', function (): void {
@@ -384,7 +382,7 @@ it(
         $data = $component->data($category, 1, 0, '');
 
         expect($data->resolvedDescs[$product->id])->toBe('Great running shoes');
-    }
+    },
 );
 
 it('returns an empty products list when the category has no id', function (): void {
@@ -873,7 +871,7 @@ it('exposes a next-page url when more products exist', function (): void {
     $category->name = 'Test';
 
     // OffsetPage with a next position (hasNext = true)
-    $nextToken = (new PositionCodec())->encode(new \Markommerce\Criteria\Position\OffsetPosition(page: 2));
+    $nextToken = (new PositionCodec())->encode(new OffsetPosition(page: 2));
     $fakePage = productGridMakeFakeOffsetPage([], currentPage: 1, totalPages: 2, nextPosition: $nextToken);
 
     $component = new ProductGridComponent(

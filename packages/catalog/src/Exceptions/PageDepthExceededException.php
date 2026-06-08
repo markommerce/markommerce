@@ -11,8 +11,7 @@ class PageDepthExceededException extends MarkoException
     public static function forDepth(
         int $requested,
         int $maxDepth,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Requested page $requested exceeds the maximum allowed page depth of $maxDepth",
             context: 'While resolving pagination page number',

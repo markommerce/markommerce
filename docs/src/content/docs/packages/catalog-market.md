@@ -83,7 +83,7 @@ The plugin is declared with `#[Plugin(target: CategoryTreeServiceInterface::clas
 
 ## Per-market price overrides
 
-`catalog-market` registers `Product.priceAmount` on the `market` axis at boot, enabling per-market base price overrides that fall back to the global product price when no override is set:
+`catalog-market` registers `Product.priceAmount` on the `market` axis at boot and overrides `ProductBasePriceProviderInterface` with `ScopedProductBasePriceProvider`, enabling per-market base price overrides that fall back to the global product price when no override is set:
 
 ```php title="packages/catalog-market/module.php"
 <?php
@@ -114,7 +114,9 @@ return [
 ];
 ```
 
-With this registration in place, `ScopeResolver::resolved($product, 'priceAmount')` returns the market-scoped amount when a `ProductScopedOverrides` companion is attached to the product, and falls back to the global `Product.priceAmount` otherwise. Use [markommerce/pricing](/docs/packages/pricing/) to resolve the full `Money` value (amount + currency) for a product.
+With this registration in place, `ScopeResolver::resolved($product, 'priceAmount')` returns the market-scoped amount when a `ProductScopedOverrides` companion is attached to the product, and falls back to the global `Product.priceAmount` otherwise. Use the `PriceResolverInterface` from [markommerce/catalog](/docs/packages/catalog/) to resolve the full `Money` value (amount + currency) for a product.
+
+The `#[Preference]`-based `ScopedProductBasePriceProvider` replaces the default `RawProductBasePriceProvider` when this package is installed. It calls `ScopeResolver::resolved($product, 'priceAmount')` for each product in the batch, returning the market-aware decimal amount (or `null` when no amount is set).
 
 ## Wiring Diagram
 
@@ -162,6 +164,16 @@ Intercept: `#[Before(method: 'deleteTree')]`
 
 Throws `TreeHasMarketAssignmentsException` when the tree has one or more active market assignments. The exception's `context` includes the market identifiers that must be unassigned before deletion.
 
+### Pricing
+
+#### `ScopedProductBasePriceProvider`
+
+Replaces (via `#[Preference]`) `RawProductBasePriceProvider` from `markommerce/catalog`. Implements `ProductBasePriceProviderInterface`.
+
+| Method | Return type | Description |
+|--------|-------------|-------------|
+| `amountsFor(array $products)` | `array<array-key, ?string>` | Return the market-scoped decimal amount for each product. Uses `ScopeResolver::resolved($product, 'priceAmount')`, which falls back to the global `priceAmount` when no market override exists. |
+
 ### Repository Interface
 
 #### `CategoryTreeMarketAssignmentRepositoryInterface`
@@ -192,8 +204,8 @@ Table: `catalog_category_tree_market_assignments`
 
 ## Related Packages
 
-- [markommerce/catalog](/docs/packages/catalog/) --- Provides `CategoryTree`, `CategoryTreeServiceInterface`, `CategoryTreeRepositoryInterface`, and the `Product.priceAmount` column
+- [markommerce/catalog](/docs/packages/catalog/) --- Provides `CategoryTree`, `CategoryTreeServiceInterface`, `CategoryTreeRepositoryInterface`, `Product.priceAmount`, and the `BatchPriceResolverInterface` pipeline and `ProductBasePriceProviderInterface` that this package overrides with `ScopedProductBasePriceProvider`
 - [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- Provides the `scopes` column on catalog entities; required by this package
 - [markommerce/market](/docs/packages/market/) --- Declares the `market` axis; required by this package
 - [markommerce/scope](/docs/packages/scope/) --- `ScopedFieldRegistry` and resolution engine
-- [markommerce/pricing](/docs/packages/pricing/) --- Resolves a product's effective price as a `Money` value using the market-scoped `priceAmount` registered by this package
+- [markommerce/catalog-price-index](/docs/packages/catalog-price-index/) --- Price index that writes market-scoped amounts; pair with `markommerce/catalog-price-index-market` to enable per-market index passes

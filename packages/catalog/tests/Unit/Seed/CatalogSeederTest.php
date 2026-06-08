@@ -37,7 +37,7 @@ function makeCatalogSeeder(
         categoryRepository: $sharedCategoryRepository,
         assignmentRepository: $assignmentRepository ?? new FakeProductCategoryAssignmentRepository(),
         categoryTreeService: $categoryTreeService ?? makeSeederCategoryTreeService(
-            categoryRepository: $sharedCategoryRepository
+            categoryRepository: $sharedCategoryRepository,
         ),
         categoryTreeNodeRepository: $categoryTreeNodeRepository ?? new FakeCategoryTreeNodeRepository(),
     );

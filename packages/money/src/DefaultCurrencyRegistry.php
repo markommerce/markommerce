@@ -20,7 +20,7 @@ class DefaultCurrencyRegistry implements CurrencyRegistryInterface
     public function __construct(?string $dataFile = null)
     {
         /** @var array<string, array{scale: int, symbol: string, name: string}> $data */
-        $data = require ($dataFile ?? self::DATA_FILE);
+        $data = require($dataFile ?? self::DATA_FILE);
         $this->data = $data;
     }
 

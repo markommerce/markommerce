@@ -104,7 +104,8 @@ it('registers the max page depth default', function (): void {
 
 it('applies a per-market scope override to a scoped pagination field via an in-memory scoped resolver', function (): void {
     // Build a minimal in-memory scope registry with a 'market' axis
-    $scopeRegistry = new class (['market' => ['global', 'de', 'fr']]) implements ScopeRegistryInterface {
+    $scopeRegistry = new class (['market' => ['global', 'de', 'fr']]) implements ScopeRegistryInterface
+    {
         /** @var array<string, ScopeAxis> */
         private array $builtAxes;
 
