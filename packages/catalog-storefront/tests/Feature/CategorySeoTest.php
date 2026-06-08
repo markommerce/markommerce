@@ -19,10 +19,15 @@ use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
+use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
+use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
+use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
 use Markommerce\CatalogStorefront\Component\ProductCard;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Component\StockBadge;
@@ -33,6 +38,7 @@ use Markommerce\Criteria\Page\Page;
 use Markommerce\Criteria\Position\PositionCodec;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
 use Markommerce\Criteria\Strategy\OffsetPage;
+use Markommerce\Currency\CurrencyResolver;
 use Markommerce\Layout\Cache\ArtifactReaderInterface;
 use Markommerce\Layout\Cache\PreparedTree;
 use Markommerce\Layout\Cache\PreparedTreeBuilder;
@@ -42,11 +48,9 @@ use Markommerce\Layout\Compiler\ValidationPhase;
 use Markommerce\Layout\Discovery\LayoutDiscovery;
 use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
 use Markommerce\Layout\Runtime\Renderer;
+use Markommerce\Money\Currency;
 use Markommerce\Money\Money;
 use Markommerce\MoneyIntl\MoneyFormatter;
-use Markommerce\Pricing\Contracts\PriceResolverInterface;
-use Markommerce\Pricing\Exceptions\PriceUnavailableException;
-use Markommerce\Pricing\PriceContext;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Exceptions\UnknownAxisException;
@@ -54,6 +58,41 @@ use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function catalogSeoMakeEmptyPriceIndexRepository(): ProductPriceIndexRepositoryInterface
+{
+    return new class () implements ProductPriceIndexRepositoryInterface
+    {
+        public function upsertMany(array $entries): void {}
+
+        public function findByProductId(int $productId): ?ProductPriceIndexEntry
+        {
+            return null;
+        }
+
+        public function findByProductIds(array $productIds): array
+        {
+            return [];
+        }
+
+        public function truncate(): void {}
+    };
+}
+
+function catalogSeoMakeCurrencyResolver(): CurrencyResolver
+{
+    $currency = new Currency(code: 'USD', scale: 2, symbol: '$', name: 'US Dollar');
+
+    return new class ($currency) extends CurrencyResolver
+    {
+        public function __construct(private readonly Currency $currency) {}
+
+        public function base(): Currency
+        {
+            return $this->currency;
+        }
+    };
+}
 
 /**
  * @param array<string, mixed> $overrides
@@ -76,7 +115,8 @@ function catalogSeoMakeConfigResolver(array $overrides = []): ConfigResolverInte
 
     $values = array_merge($defaults, $overrides);
 
-    return new class ($values) implements ConfigResolverInterface {
+    return new class ($values) implements ConfigResolverInterface
+    {
         /** @param array<string, mixed> $values */
         public function __construct(private readonly array $values) {}
 
@@ -157,7 +197,8 @@ function catalogSeoMakeAssignmentService(
         $positionCodec,
         new KeysetPaginationStrategy($positionCodec),
         $totalItems,
-    ) extends CategoryAssignmentService {
+    ) extends CategoryAssignmentService
+    {
         public function __construct(
             FakeProductRepository $productRepository,
             FakeCategoryRepository $categoryRepository,
@@ -343,6 +384,8 @@ function catalogSeoBuildRouter(
         $paginationOptionsResolver,
         $priceResolver,
         $moneyFormatter,
+        catalogSeoMakeEmptyPriceIndexRepository(),
+        catalogSeoMakeCurrencyResolver(),
     );
     $container->instance(ProductGridComponent::class, $productGridComponent);
     $container->instance(ProductCard::class, new ProductCard($priceResolver, $moneyFormatter));

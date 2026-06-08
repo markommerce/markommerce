@@ -23,10 +23,15 @@ use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
+use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
+use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
+use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
 use Markommerce\CatalogStorefront\Component\ProductCard;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Component\StockBadge;
@@ -37,6 +42,7 @@ use Markommerce\Criteria\Page\Page;
 use Markommerce\Criteria\Position\PositionCodec;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
 use Markommerce\Criteria\Strategy\OffsetPage;
+use Markommerce\Currency\CurrencyResolver;
 use Markommerce\Layout\Cache\ArtifactReaderInterface;
 use Markommerce\Layout\Cache\PreparedTree;
 use Markommerce\Layout\Cache\PreparedTreeBuilder;
@@ -46,11 +52,9 @@ use Markommerce\Layout\Compiler\ValidationPhase;
 use Markommerce\Layout\Discovery\LayoutDiscovery;
 use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
 use Markommerce\Layout\Runtime\Renderer;
+use Markommerce\Money\Currency;
 use Markommerce\Money\Money;
 use Markommerce\MoneyIntl\MoneyFormatter;
-use Markommerce\Pricing\Contracts\PriceResolverInterface;
-use Markommerce\Pricing\Exceptions\PriceUnavailableException;
-use Markommerce\Pricing\PriceContext;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Exceptions\UnknownAxisException;
@@ -58,6 +62,41 @@ use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function tier1MakeEmptyPriceIndexRepository(): ProductPriceIndexRepositoryInterface
+{
+    return new class () implements ProductPriceIndexRepositoryInterface
+    {
+        public function upsertMany(array $entries): void {}
+
+        public function findByProductId(int $productId): ?ProductPriceIndexEntry
+        {
+            return null;
+        }
+
+        public function findByProductIds(array $productIds): array
+        {
+            return [];
+        }
+
+        public function truncate(): void {}
+    };
+}
+
+function tier1MakeCurrencyResolver(): CurrencyResolver
+{
+    $currency = new Currency(code: 'USD', scale: 2, symbol: '$', name: 'US Dollar');
+
+    return new class ($currency) extends CurrencyResolver
+    {
+        public function __construct(private readonly Currency $currency) {}
+
+        public function base(): Currency
+        {
+            return $this->currency;
+        }
+    };
+}
 
 /**
  * @param array<string, mixed> $overrides
@@ -80,7 +119,8 @@ function tier1MakeConfigResolver(array $overrides = []): ConfigResolverInterface
 
     $values = array_merge($defaults, $overrides);
 
-    return new class ($values) implements ConfigResolverInterface {
+    return new class ($values) implements ConfigResolverInterface
+    {
         /** @param array<string, mixed> $values */
         public function __construct(private readonly array $values) {}
 
@@ -113,7 +153,8 @@ function tier1MakeAssignmentService(
         $assignmentRepository,
         $positionCodec,
         new KeysetPaginationStrategy($positionCodec),
-    ) extends CategoryAssignmentService {
+    ) extends CategoryAssignmentService
+    {
         public function paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $options): Page
         {
             $products = $this->productsInCategory($categoryId);
@@ -418,16 +459,14 @@ class TrackingContainer implements ContainerInterface
     public function instance(
         string $id,
         object $instance,
-    ): void
-    {
+    ): void {
         $this->inner->instance($id, $instance);
     }
 
     public function bind(
         string $interface,
         string|Closure $implementation,
-    ): void
-    {
+    ): void {
         $this->inner->bind($interface, $implementation);
     }
 
@@ -488,6 +527,8 @@ function buildTier1Container(
         tier1MakePaginationOptionsResolver(),
         $priceResolver,
         $moneyFormatter,
+        tier1MakeEmptyPriceIndexRepository(),
+        tier1MakeCurrencyResolver(),
     );
     $inner->instance(ProductGridComponent::class, $productGridComponent);
     $inner->instance(ProductCard::class, new ProductCard($priceResolver, $moneyFormatter));

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Markommerce\Criteria\Strategy;
 
+use InvalidArgumentException;
 use Marko\Database\Entity\Entity;
 use Marko\Database\Entity\EntityCollection;
 use Marko\Database\Repository\RepositoryQueryBuilder;
@@ -37,8 +38,7 @@ class KeysetPaginationStrategy implements PaginationStrategyInterface
 
     /**
      * @return Page<Entity>
-     * @throws IncompatiblePositionException
-     * @throws MissingCursorValueExtractorException
+     * @throws IncompatiblePositionException|MissingCursorValueExtractorException
      */
     public function paginate(
         RepositoryQueryBuilder $query,
@@ -120,7 +120,7 @@ class KeysetPaginationStrategy implements PaginationStrategyInterface
         $safeColumns = array_map(
             static function (string $column): string {
                 if (preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $column) !== 1) {
-                    throw new \InvalidArgumentException(
+                    throw new InvalidArgumentException(
                         "Sort key column '$column' contains invalid characters for a SQL identifier",
                     );
                 }

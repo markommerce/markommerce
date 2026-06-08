@@ -203,7 +203,7 @@ function paginationUrls(int $totalPages): array
 {
     $urls = [];
     for ($page = 1; $page <= $totalPages; $page++) {
-        $urls[] = "?page={$page}";
+        $urls[] = "?page=$page";
     }
 
     return $urls;

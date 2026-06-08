@@ -78,7 +78,10 @@ class CategoryProductGridLayout
         return new Place(
             component: ProductCard::class,
             name: 'catalog.product_card' . $nameSuffix,
-            props: ['product' => Source::iterated(ProductIteration::class)],
+            props: [
+                'product' => Source::iterated(ProductIteration::class),
+                'formattedPrices' => Source::parentData('formattedPrices', 'array'),
+            ],
             slots: [
                 'badges' => [
                     new Place(

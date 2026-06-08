@@ -16,6 +16,8 @@ use Markommerce\Catalog\Pagination\CategoryProductRowCounter;
 use Markommerce\Catalog\Pagination\PaginationStrategyKind;
 use Markommerce\Catalog\Pagination\ProductCursorValueExtractor;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
+use Markommerce\Criteria\Exceptions\InvalidPageSizeException;
+use Markommerce\Criteria\Exceptions\InvalidPositionTokenException;
 use Markommerce\Criteria\Page\Page;
 use Markommerce\Criteria\Page\PageRequest;
 use Markommerce\Criteria\Position\OffsetPosition;
@@ -162,8 +164,7 @@ class CategoryAssignmentService
      *
      * For page > 1 with offset strategy, encodes an OffsetPosition token.
      *
-     * @throws \Markommerce\Criteria\Exceptions\InvalidPositionTokenException
-     * @throws \Markommerce\Criteria\Exceptions\InvalidPageSizeException
+     * @throws InvalidPositionTokenException|InvalidPageSizeException
      */
     private function buildPageRequest(ResolvedPaginationOptions $options): PageRequest
     {

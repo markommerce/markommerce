@@ -10,6 +10,12 @@ use Marko\Core\Container\PreferenceRegistry;
 use Marko\Core\Module\DependencyResolver;
 use Marko\Core\Module\ModuleManifest;
 use Markommerce\Catalog\Entity\Product;
+use Markommerce\Catalog\Pricing\BasePriceContributor;
+use Markommerce\Catalog\Pricing\BatchPriceResolver;
+use Markommerce\Catalog\Pricing\Contracts\ProductBasePriceProviderInterface;
+use Markommerce\Catalog\Pricing\PriceContributorRegistry;
+use Markommerce\Catalog\Pricing\RawProductBasePriceProvider;
+use Markommerce\CatalogMarket\Pricing\ScopedProductBasePriceProvider;
 use Markommerce\CatalogScope\Entity\ProductScopedOverrides;
 use Markommerce\Config\Casting\ValueCaster;
 use Markommerce\Config\ConfigResolver;
@@ -26,13 +32,15 @@ use Markommerce\Currency\Config\CurrencyConfig;
 use Markommerce\Currency\CurrencyResolver;
 use Markommerce\Money\DefaultCurrencyRegistry;
 use Markommerce\MoneyIntl\MoneyFormatter;
-use Markommerce\Pricing\PriceContext;
-use Markommerce\Pricing\PriceResolver;
+use Markommerce\Catalog\Pricing\PriceContext;
+use Markommerce\Catalog\Pricing\PriceResolver;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Resolver\ScopeResolver;
 use Markommerce\Scope\Signature\ScopeSignature;
 use Markommerce\Scope\Storage\DefaultScopeGuard;
+
+// phpcs:disable SlevomatCodingStandard.Functions.UnusedParameter
 use Markommerce\Tax\Config\TaxConfig;
 use Markommerce\Tax\TaxMode;
 use Markommerce\Tax\TaxModeResolver;
@@ -342,6 +350,19 @@ function e2ePricingBuildScopedConfigResolver(
     );
 }
 
+/**
+ * Build a PriceResolver wired with a specific base-price provider and currency resolver.
+ * Mirrors a single-contributor pipeline (base price only) for end-to-end tests.
+ */
+function e2ePricingBuildPriceResolver(
+    ProductBasePriceProviderInterface $provider,
+    CurrencyResolver $currencyResolver,
+): PriceResolver {
+    $registry = new PriceContributorRegistry();
+    $registry->register(new BasePriceContributor($provider));
+    return new PriceResolver(new BatchPriceResolver($registry, $currencyResolver));
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 it('resolves and formats a product price for a single market shop using global currency', function (): void {
@@ -358,11 +379,7 @@ it('resolves and formats a product price for a single market shop using global c
     $currencyRegistry = new DefaultCurrencyRegistry();
     $currencyResolver = new CurrencyResolver($configResolver, $currencyRegistry);
 
-    $priceResolver = new PriceResolver(
-        scopeResolver: $container->get(ScopeResolver::class),
-        scopeContext: $container->get(ScopeContext::class),
-        currencyResolver: $currencyResolver,
-    );
+    $priceResolver = e2ePricingBuildPriceResolver(new RawProductBasePriceProvider(), $currencyResolver);
 
     $context = PriceContext::forProduct($product);
     $money = $priceResolver->resolve($context);
@@ -385,14 +402,10 @@ it('formats the price for the active locale in a single market shop', function (
     $currencyRegistry = new DefaultCurrencyRegistry();
     $currencyResolver = new CurrencyResolver($configResolver, $currencyRegistry);
 
-    $priceResolver = new PriceResolver(
-        scopeResolver: $container->get(ScopeResolver::class),
-        scopeContext: $container->get(ScopeContext::class),
-        currencyResolver: $currencyResolver,
-    );
-
     $scopeContext = $container->get(ScopeContext::class);
     $scopeContext->clearAll();
+
+    $priceResolver = e2ePricingBuildPriceResolver(new RawProductBasePriceProvider(), $currencyResolver);
 
     $context = PriceContext::forProduct($product);
     $money = $priceResolver->resolve($context);
@@ -452,13 +465,15 @@ it('resolves a per market price and currency for an international shop', functio
     $currencyRegistry = new DefaultCurrencyRegistry();
     $currencyResolver = new CurrencyResolver($scopedConfigResolver, $currencyRegistry);
 
-    $priceResolver = new PriceResolver(
-        scopeResolver: $container->get(ScopeResolver::class),
-        scopeContext: $scopeContext,
-        currencyResolver: $currencyResolver,
+    // Activate the US market scope before resolving
+    $scopeContext->in('market', 'us');
+
+    $priceResolver = e2ePricingBuildPriceResolver(
+        new ScopedProductBasePriceProvider($container->get(ScopeResolver::class)),
+        $currencyResolver,
     );
 
-    $context = PriceContext::forProduct($product, 'us');
+    $context = PriceContext::forProduct($product);
     $money = $priceResolver->resolve($context);
 
     expect($money->amount())->toBe('39.99')
@@ -526,14 +541,13 @@ it('falls back to global price currency and tax mode outside any market scope', 
     $currencyRegistry = new DefaultCurrencyRegistry();
     $currencyResolver = new CurrencyResolver($scopedConfigResolver, $currencyRegistry);
 
-    // Resolve WITHOUT a market context — no PriceContext market, no ScopeContext market active
-    $priceResolver = new PriceResolver(
-        scopeResolver: $container->get(ScopeResolver::class),
-        scopeContext: $scopeContext,
-        currencyResolver: $currencyResolver,
+    // Resolve WITHOUT a market context — ScopeContext has no market active
+    $priceResolver = e2ePricingBuildPriceResolver(
+        new ScopedProductBasePriceProvider($container->get(ScopeResolver::class)),
+        $currencyResolver,
     );
 
-    $context = PriceContext::forProduct($product); // no market
+    $context = PriceContext::forProduct($product);
     $money = $priceResolver->resolve($context);
 
     // Falls back to global EUR price and currency
@@ -547,7 +561,7 @@ it('falls back to global price currency and tax mode outside any market scope', 
     expect($mode)->toBe(TaxMode::Exclusive);
 });
 
-it('does not leak scope state between resolutions', function (): void {
+it('does not modify the ambient scope context during resolution', function (): void {
     DefaultScopeGuard::reset();
 
     $container = e2ePricingBuildTier3Container();
@@ -556,8 +570,8 @@ it('does not leak scope state between resolutions', function (): void {
     $scopeContext = $container->get(ScopeContext::class);
     $scopeContext->clearAll();
 
-    // Pre-set the market to 'default' (simulating an in-flight request context)
-    $scopeContext->in('market', 'default');
+    // Set the ambient market to 'us' — the caller controls scope, not PriceResolver
+    $scopeContext->in('market', 'us');
 
     $product = new Product();
     $product->sku = 'SKU-LEAK-001';
@@ -568,22 +582,19 @@ it('does not leak scope state between resolutions', function (): void {
     $product->attachCompanion($overrides);
 
     $configResolver = e2ePricingBuildPlainConfigResolver('EUR');
-    $currencyRegistry = new DefaultCurrencyRegistry();
-    $currencyResolver = new CurrencyResolver($configResolver, $currencyRegistry);
+    $currencyResolver = new CurrencyResolver($configResolver, new DefaultCurrencyRegistry());
 
-    $priceResolver = new PriceResolver(
-        scopeResolver: $container->get(ScopeResolver::class),
-        scopeContext: $scopeContext,
-        currencyResolver: $currencyResolver,
+    $priceResolver = e2ePricingBuildPriceResolver(
+        new ScopedProductBasePriceProvider($container->get(ScopeResolver::class)),
+        $currencyResolver,
     );
 
-    // Resolve with US market context
-    $context = PriceContext::forProduct($product, 'us');
+    $context = PriceContext::forProduct($product);
     $money = $priceResolver->resolve($context);
 
-    // Resolution uses the US market price
+    // Resolution reads the ambient US market price
     expect($money->amount())->toBe('7.99');
 
-    // After resolution the market scope must be restored to 'default', not leaked as 'us'
-    expect($scopeContext->get('market'))->toBe('default');
+    // PriceResolver must not mutate ScopeContext — market remains 'us'
+    expect($scopeContext->get('market'))->toBe('us');
 });

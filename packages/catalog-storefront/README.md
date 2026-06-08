@@ -8,7 +8,7 @@ Public storefront for `markommerce/catalog` --- HTTP controllers, Latte template
 composer require markommerce/catalog-storefront
 ```
 
-`markommerce/catalog`, `markommerce/pricing`, and `markommerce/money-intl` are declared as dependencies and installed automatically. To add locale-aware rendering, also install `markommerce/catalog-storefront-scope`.
+`markommerce/catalog`, `markommerce/catalog-price-index`, `markommerce/currency`, `markommerce/pricing`, and `markommerce/money-intl` are declared as dependencies and installed automatically. To add locale-aware rendering, also install `markommerce/catalog-storefront-scope`.
 
 ## Quick Example
 

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Markommerce\CatalogStorefront\Component;
 
 use Markommerce\Catalog\Entity\Product;
+use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\CatalogStorefront\Data\ProductCardData;
 use Markommerce\Layout\ExtensionBag;
 use Markommerce\MoneyIntl\MoneyFormatter;
-use Markommerce\Pricing\Contracts\PriceResolverInterface;
-use Markommerce\Pricing\Exceptions\PriceUnavailableException;
-use Markommerce\Pricing\PriceContext;
 
 class ProductCard
 {
@@ -19,15 +19,22 @@ class ProductCard
         private MoneyFormatter $moneyFormatter,
     ) {}
 
-    public function data(Product $product): ProductCardData
+    /**
+     * @param array<int, string|null>|null $formattedPrices Pre-computed prices keyed by product ID (from parent grid).
+     */
+    public function data(Product $product, ?array $formattedPrices = null): ProductCardData
     {
         $formattedPrice = null;
 
-        try {
-            $money = $this->priceResolver->resolve(PriceContext::forProduct($product));
-            $formattedPrice = $this->moneyFormatter->format($money);
-        } catch (PriceUnavailableException) {
-            $formattedPrice = null;
+        if ($formattedPrices !== null && $product->id !== null) {
+            $formattedPrice = $formattedPrices[$product->id] ?? null;
+        } else {
+            try {
+                $money = $this->priceResolver->resolve(PriceContext::forProduct($product));
+                $formattedPrice = $this->moneyFormatter->format($money);
+            } catch (PriceUnavailableException) {
+                $formattedPrice = null;
+            }
         }
 
         return new ProductCardData(

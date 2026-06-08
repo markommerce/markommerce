@@ -38,8 +38,7 @@ class InvalidPaginationConfigException extends MarkoException
     public static function forInvalidSort(
         string $sort,
         string $allowed,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Sort '$sort' is not in the allowed list",
             context: 'While resolving pagination sort from request',

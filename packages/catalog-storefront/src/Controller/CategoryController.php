@@ -29,8 +29,7 @@ class CategoryController
     public function show(
         int $id,
         Request $request,
-    ): Response
-    {
+    ): Response {
         $category = $this->categoryRepository->find($id);
 
         if ($category === null) {
@@ -127,8 +126,7 @@ class CategoryController
         int $categoryId,
         Request $request,
         ?ResolvedPaginationOptions $resolvedOptions,
-    ): bool
-    {
+    ): bool {
         if (!$this->viewAllEnabled()) {
             return false;
         }

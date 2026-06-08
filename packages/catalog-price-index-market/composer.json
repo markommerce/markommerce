@@ -1,0 +1,38 @@
+{
+    "name": "markommerce/catalog-price-index-market",
+    "description": "Market-axis bridge for the product price index — registers the index amount on the market axis and feeds the indexer the market list",
+    "license": "MIT",
+    "type": "marko-module",
+    "require": {
+        "php": "^8.5",
+        "marko/core": "self.version",
+        "markommerce/catalog-market": "self.version",
+        "markommerce/catalog-price-index": "self.version",
+        "markommerce/market": "self.version",
+        "markommerce/scope": "self.version"
+    },
+    "require-dev": {
+        "marko/testing": "self.version",
+        "pestphp/pest": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Markommerce\\CatalogPriceIndexMarket\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Markommerce\\CatalogPriceIndexMarket\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "marko": {
+            "module": true
+        }
+    }
+}

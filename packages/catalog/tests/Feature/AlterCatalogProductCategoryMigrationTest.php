@@ -34,16 +34,14 @@ it('the migration adds a non-null position column defaulting to zero', function 
         public function query(
             string $sql,
             array $bindings = [],
-        ): array
-        {
+        ): array {
             return [];
         }
 
         public function execute(
             string $sql,
             array $bindings = [],
-        ): int
-        {
+        ): int {
             $this->log[] = $sql;
 
             return 1;
@@ -76,16 +74,14 @@ it('the migration adds a non-null position column defaulting to zero', function 
         public function query(
             string $sql,
             array $bindings = [],
-        ): array
-        {
+        ): array {
             return [];
         }
 
         public function execute(
             string $sql,
             array $bindings = [],
-        ): int
-        {
+        ): int {
             $this->log[] = $sql;
 
             return 1;

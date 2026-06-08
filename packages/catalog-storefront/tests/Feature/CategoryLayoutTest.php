@@ -18,10 +18,15 @@ use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
+use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
+use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
+use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
+use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
 use Markommerce\CatalogStorefront\Component\ProductCard;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Component\StockBadge;
@@ -33,6 +38,7 @@ use Markommerce\Criteria\Page\Page;
 use Markommerce\Criteria\Position\PositionCodec;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
 use Markommerce\Criteria\Strategy\OffsetPage;
+use Markommerce\Currency\CurrencyResolver;
 use Markommerce\Layout\Cache\ArtifactReaderInterface;
 use Markommerce\Layout\Cache\PreparedPlace;
 use Markommerce\Layout\Cache\PreparedRepeatSlot;
@@ -47,11 +53,9 @@ use Markommerce\Layout\Layout;
 use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
 use Markommerce\Layout\Runtime\Renderer;
 use Markommerce\Layout\Slot;
+use Markommerce\Money\Currency;
 use Markommerce\Money\Money;
 use Markommerce\MoneyIntl\MoneyFormatter;
-use Markommerce\Pricing\Contracts\PriceResolverInterface;
-use Markommerce\Pricing\Exceptions\PriceUnavailableException;
-use Markommerce\Pricing\PriceContext;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Exceptions\UnknownAxisException;
@@ -59,6 +63,41 @@ use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function catalogLayoutMakeEmptyPriceIndexRepository(): ProductPriceIndexRepositoryInterface
+{
+    return new class () implements ProductPriceIndexRepositoryInterface
+    {
+        public function upsertMany(array $entries): void {}
+
+        public function findByProductId(int $productId): ?ProductPriceIndexEntry
+        {
+            return null;
+        }
+
+        public function findByProductIds(array $productIds): array
+        {
+            return [];
+        }
+
+        public function truncate(): void {}
+    };
+}
+
+function catalogLayoutMakeCurrencyResolver(): CurrencyResolver
+{
+    $currency = new Currency(code: 'USD', scale: 2, symbol: '$', name: 'US Dollar');
+
+    return new class ($currency) extends CurrencyResolver
+    {
+        public function __construct(private readonly Currency $currency) {}
+
+        public function base(): Currency
+        {
+            return $this->currency;
+        }
+    };
+}
 
 function catalogLayoutMakeScopeContext(): ScopeContext
 {
@@ -126,7 +165,8 @@ function catalogLayoutMakeConfigResolver(array $overrides = []): ConfigResolverI
 
     $values = array_merge($defaults, $overrides);
 
-    return new class ($values) implements ConfigResolverInterface {
+    return new class ($values) implements ConfigResolverInterface
+    {
         /** @param array<string, mixed> $values */
         public function __construct(private readonly array $values) {}
 
@@ -159,7 +199,8 @@ function catalogLayoutMakeAssignmentService(
         $assignmentRepository,
         $positionCodec,
         new KeysetPaginationStrategy($positionCodec),
-    ) extends CategoryAssignmentService {
+    ) extends CategoryAssignmentService
+    {
         public function paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $options): Page
         {
             $products = $this->productsInCategory($categoryId);
@@ -365,6 +406,8 @@ it('returns a typed ProductGridData DTO from the grid component data method', fu
         catalogLayoutMakePaginationOptionsResolver(),
         catalogLayoutMakeNoPricePriceResolver(),
         catalogLayoutMakeMoneyFormatter(),
+        catalogLayoutMakeEmptyPriceIndexRepository(),
+        catalogLayoutMakeCurrencyResolver(),
     );
     $data = $component->data($category, 1, 0, '');
 
@@ -473,6 +516,8 @@ it('renders the category page with a grid of product cards', function (): void {
         catalogLayoutMakePaginationOptionsResolver(),
         $priceResolver,
         $moneyFormatter,
+        catalogLayoutMakeEmptyPriceIndexRepository(),
+        catalogLayoutMakeCurrencyResolver(),
     );
     $container->instance(ProductGridComponent::class, $productGridComponent);
     $container->instance(ProductCard::class, new ProductCard($priceResolver, $moneyFormatter));

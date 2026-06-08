@@ -16,7 +16,9 @@ composer require markommerce/catalog-scope
 
 For the ready-made storefront category route, product grid, and Latte templates, see [markommerce/catalog-storefront](https://markommerce.dev/docs/packages/catalog-storefront/).
 
-For per-market category tree assignment and resolution, see [markommerce/catalog-market-category-trees](https://markommerce.dev/docs/packages/catalog-market-category-trees/).
+For per-market category tree assignment and resolution, see [markommerce/catalog-market-category-trees](https://markommerce.dev/docs/packages/catalog-market/).
+
+For a denormalized price index suitable for sorting and filtering, see [markommerce/catalog-price-index](https://markommerce.dev/docs/packages/catalog-price-index/).
 
 ## Quick Example
 

@@ -12,8 +12,7 @@ readonly class KeysetPosition
     public function __construct(
         public array $anchor,
         public int $id,
-    ) {
-    }
+    ) {}
 
     public function type(): string
     {
