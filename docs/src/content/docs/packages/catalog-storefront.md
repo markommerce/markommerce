@@ -11,7 +11,7 @@ Public storefront for `markommerce/catalog`. `markommerce/catalog-storefront` pr
 composer require markommerce/catalog-storefront
 ```
 
-`markommerce/catalog`, `markommerce/pricing`, and `markommerce/money-intl` are declared as Composer dependencies and installed automatically. The package registers its module bindings and layout definition via `module.php`. No manual service binding is required.
+`markommerce/catalog`, `markommerce/catalog-price-index`, `markommerce/currency`, `markommerce/pricing`, and `markommerce/money-intl` are declared as Composer dependencies and installed automatically. The package registers its module bindings and layout definition via `module.php`. No manual service binding is required.
 
 ## Usage
 
@@ -127,7 +127,9 @@ The layout definition extends `OneColumnLayout` from `markommerce/theme-blank`. 
 
 ### `ProductGridComponent`
 
-A placement-agnostic component that resolves a paginated product page for a category and builds `ProductGridData`. Its `data()` method delegates to `PaginationOptionsResolver` to translate request parameters into a `ResolvedPaginationOptions`, then calls `CategoryAssignmentService::paginatedProductsInCategory()`. It populates `resolvedNames` and `resolvedDescs` with the raw entity values, resolves a locale-formatted price for each product via `PriceResolverInterface` and `MoneyFormatter`, and fills the pagination fields (`currentPage`, `totalPages`, `hasNext`, `hasPrevious`, `pageLinkUrls`, `nextPageUrl`) from the returned `Page`. Products without a price receive a `null` entry in `formattedPrices`.
+A placement-agnostic component that resolves a paginated product page for a category and builds `ProductGridData`. Its `data()` method delegates to `PaginationOptionsResolver` to translate request parameters into a `ResolvedPaginationOptions`, then calls `CategoryAssignmentService::paginatedProductsInCategory()`. It populates `resolvedNames` and `resolvedDescs` with the raw entity values and fills the pagination fields (`currentPage`, `totalPages`, `hasNext`, `hasPrevious`, `pageLinkUrls`, `nextPageUrl`) from the returned `Page`.
+
+For prices, the component first batch-loads index entries for all product IDs on the current page via `ProductPriceIndexRepositoryInterface::findByProductIds()` --- one query per page regardless of page size. Products found in the index have their `amount` wrapped in a `Money` object using the base currency from `CurrencyResolver` and formatted by `MoneyFormatter`. Products not yet present in the index fall back to `PriceResolverInterface` per product. Products with no resolvable price receive a `null` entry in `formattedPrices`.
 
 When [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-scope/) is installed, its `ScopedProductGridComponent` Preference replaces this component and resolves locale-aware names and descriptions via `ScopeResolver`.
 
@@ -190,8 +192,10 @@ Both `ProductGridData` and `ProductCardData` extend `ExtensibleData`, allowing t
 
 - [markommerce/catalog](/docs/packages/catalog/) --- Provides `Product`, `Category`, the repository and service layer, and `PaginationOptionsResolver` consumed by this package
 - [markommerce/criteria](/docs/packages/criteria/) --- Pagination engine; `ProductGridComponent` works with the `Page` and `RandomAccessPageInterface` types it defines
+- [markommerce/catalog-price-index](/docs/packages/catalog-price-index/) --- Provides `ProductPriceIndexRepositoryInterface`; `ProductGridComponent` batch-loads prices from this index, falling back to `PriceResolverInterface` for products not yet indexed
+- [markommerce/currency](/docs/packages/currency/) --- Provides `CurrencyResolver`, used to determine the base currency when constructing `Money` values from index entries
 - [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-scope/) --- Adds locale-aware rendering; Preference-replaces `ProductGridComponent` with `ScopedProductGridComponent`
-- [markommerce/pricing](/docs/packages/pricing/) --- Resolves a product's effective price as a `Money` value object; used by `ProductGridComponent` and `ProductCard` to build formatted price strings
+- [markommerce/pricing](/docs/packages/pricing/) --- Resolves a product's effective price as a `Money` value object; used as a fallback by `ProductGridComponent` and by `ProductCard`
 - [markommerce/money-intl](/docs/packages/money-intl/) --- Provides `MoneyFormatter`, which locale-formats `Money` values into display strings
 - [markommerce/layout](/docs/packages/layout/) --- Layout resolution, typed component data DTOs, and extension operations used by the category page
 - [markommerce/theme-blank](/docs/packages/theme-blank/) --- Provides `OneColumnLayout` extended by the category layout definition

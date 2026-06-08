@@ -13,9 +13,12 @@ use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
 use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
+use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
 use Markommerce\Criteria\Contracts\RandomAccessPageInterface;
+use Markommerce\Currency\CurrencyResolver;
 use Markommerce\Layout\ExtensionBag;
+use Markommerce\Money\Money;
 use Markommerce\MoneyIntl\MoneyFormatter;
 
 class ProductGridComponent
@@ -25,6 +28,8 @@ class ProductGridComponent
         private PaginationOptionsResolver $paginationOptionsResolver,
         private PriceResolverInterface $priceResolver,
         private MoneyFormatter $moneyFormatter,
+        private ProductPriceIndexRepositoryInterface $productPriceIndexRepository,
+        private CurrencyResolver $currencyResolver,
     ) {}
 
     /**
@@ -62,6 +67,14 @@ class ProductGridComponent
         $resolvedDescs = [];
         $formattedPrices = [];
 
+        $productIds = array_values(array_filter(
+            array_map(fn ($p) => $p->id, $products),
+            fn ($id) => $id !== null,
+        ));
+
+        $indexEntries = $this->productPriceIndexRepository->findByProductIds($productIds);
+        $baseCurrency = $this->currencyResolver->base();
+
         foreach ($products as $product) {
             if ($product->id === null) {
                 continue;
@@ -70,11 +83,18 @@ class ProductGridComponent
             $resolvedNames[$product->id] = $product->name;
             $resolvedDescs[$product->id] = $product->description;
 
-            try {
-                $money = $this->priceResolver->resolve(PriceContext::forProduct($product));
+            $entry = $indexEntries[$product->id] ?? null;
+
+            if ($entry !== null && $entry->amount !== null) {
+                $money = Money::of($entry->amount, $baseCurrency);
                 $formattedPrices[$product->id] = $this->moneyFormatter->format($money);
-            } catch (PriceUnavailableException) {
-                $formattedPrices[$product->id] = null;
+            } else {
+                try {
+                    $money = $this->priceResolver->resolve(PriceContext::forProduct($product));
+                    $formattedPrices[$product->id] = $this->moneyFormatter->format($money);
+                } catch (PriceUnavailableException) {
+                    $formattedPrices[$product->id] = null;
+                }
             }
         }
 

@@ -12,6 +12,8 @@
         "marko/view": "self.version",
         "marko/view-latte": "self.version",
         "markommerce/catalog": "self.version",
+        "markommerce/catalog-price-index": "self.version",
+        "markommerce/currency": "self.version",
         "markommerce/frontend": "self.version",
         "markommerce/layout": "self.version",
         "markommerce/money-intl": "self.version",

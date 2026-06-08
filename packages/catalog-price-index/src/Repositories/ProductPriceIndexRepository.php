@@ -67,6 +67,36 @@ class ProductPriceIndexRepository extends Repository implements ProductPriceInde
     }
 
     /**
+     * @param list<int> $productIds
+     * @return array<int, ProductPriceIndexEntry> keyed by productId
+     * @throws RepositoryException
+     */
+    public function findByProductIds(array $productIds): array
+    {
+        if ($productIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($productIds), '?'));
+        $sql = sprintf(
+            'SELECT * FROM "catalog_product_price_index" WHERE product_id IN (%s)',
+            $placeholders,
+        );
+
+        $rows = $this->connection->query($sql, $productIds);
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            /** @var ProductPriceIndexEntry $entry */
+            $entry = $this->hydrator->hydrate(ProductPriceIndexEntry::class, $row, $this->metadata);
+            $result[$entry->productId] = $entry;
+        }
+
+        return $result;
+    }
+
+    /**
      * @throws RepositoryException
      */
     public function truncate(): void

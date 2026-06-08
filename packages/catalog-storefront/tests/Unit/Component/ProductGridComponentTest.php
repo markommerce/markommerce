@@ -27,6 +27,8 @@ use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
+use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
+use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Data\ProductCardData;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
@@ -37,6 +39,7 @@ use Markommerce\Criteria\Position\PositionCodec;
 use Markommerce\Criteria\Sort\Sort;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
 use Markommerce\Criteria\Strategy\OffsetPage;
+use Markommerce\Currency\CurrencyResolver;
 use Markommerce\Layout\ExtensionBag;
 use Markommerce\Money\Currency;
 use Markommerce\Money\Money;
@@ -272,6 +275,64 @@ function productGridMakeFakeService(
     };
 }
 
+class FakeProductPriceIndexRepository implements ProductPriceIndexRepositoryInterface
+{
+    /** @var array<int, ProductPriceIndexEntry> */
+    public array $entries = [];
+
+    public int $findByProductIdsCallCount = 0;
+
+    /** @param list<ProductPriceIndexEntry> $entries */
+    public function upsertMany(array $entries): void
+    {
+        foreach ($entries as $entry) {
+            $this->entries[$entry->productId] = $entry;
+        }
+    }
+
+    public function findByProductId(int $productId): ?ProductPriceIndexEntry
+    {
+        return $this->entries[$productId] ?? null;
+    }
+
+    /**
+     * @param list<int> $productIds
+     * @return array<int, ProductPriceIndexEntry> keyed by productId
+     */
+    public function findByProductIds(array $productIds): array
+    {
+        $this->findByProductIdsCallCount++;
+
+        return array_filter(
+            $this->entries,
+            fn (ProductPriceIndexEntry $entry) => in_array($entry->productId, $productIds, true),
+        );
+    }
+
+    public function truncate(): void
+    {
+        $this->entries = [];
+    }
+}
+
+function makeGridCurrencyResolver(string $currencyCode = 'USD'): CurrencyResolver
+{
+    $currency = new Currency(code: $currencyCode, scale: 2, symbol: '$', name: 'US Dollar');
+
+    return new class ($currency) extends CurrencyResolver
+    {
+        public function __construct(private readonly Currency $currency)
+        {
+            // Skip parent constructor — no deps needed in test
+        }
+
+        public function base(): Currency
+        {
+            return $this->currency;
+        }
+    };
+}
+
 function productGridBuildComponent(
     FakeCategoryRepository $categoryRepository,
     FakeProductRepository $productRepository,
@@ -279,6 +340,8 @@ function productGridBuildComponent(
     ?PriceResolverInterface $priceResolver = null,
     ?MoneyFormatter $moneyFormatter = null,
     ?OffsetPage $fakePage = null,
+    ?ProductPriceIndexRepositoryInterface $priceIndexRepository = null,
+    ?CurrencyResolver $currencyResolver = null,
 ): ProductGridComponent {
     if ($fakePage !== null) {
         $service = productGridMakeFakeService($fakePage);
@@ -294,6 +357,8 @@ function productGridBuildComponent(
         productGridMakePaginationOptionsResolver(),
         $priceResolver ?? makeGridNoPricePriceResolver(),
         $moneyFormatter ?? makeGridMoneyFormatter(),
+        $priceIndexRepository ?? new FakeProductPriceIndexRepository(),
+        $currencyResolver ?? makeGridCurrencyResolver(),
     );
 }
 
@@ -435,6 +500,8 @@ it('skips products with null id when building the resolved maps', function (): v
         productGridMakePaginationOptionsResolver(),
         makeGridNoPricePriceResolver(),
         makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
     );
     $data = $component->data($category, 1, 0, '');
 
@@ -708,6 +775,8 @@ it('exposes formatted prices keyed by product id from the product grid', functio
         productGridMakePaginationOptionsResolver(),
         $priceResolver,
         makeGridMoneyFormatter('en_US'),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
     );
     $data = $component->data($category, 1, 0, '');
 
@@ -753,6 +822,8 @@ it('renders the price for each card in the product grid', function (): void {
         productGridMakePaginationOptionsResolver(),
         $priceResolver,
         makeGridMoneyFormatter('en_US'),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
     );
     $data = $component->data($category, 1, 0, '');
 
@@ -780,6 +851,8 @@ it('reads the requested page from the query string defaulting to page 1', functi
         productGridMakePaginationOptionsResolver(),
         makeGridNoPricePriceResolver(),
         makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
     );
 
     // Called with page=1 (the layout default) — currentPage should be 1
@@ -811,6 +884,8 @@ it('fetches only the current page of products', function (): void {
         productGridMakePaginationOptionsResolver(),
         makeGridNoPricePriceResolver(),
         makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
     );
 
     $data = $component->data($category, 2, 0, '');
@@ -834,6 +909,8 @@ it('exposes the resolved presentation mode on the grid data', function (): void 
         productGridMakePaginationOptionsResolver(['presentation' => 'load_more']),
         makeGridNoPricePriceResolver(),
         makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
     );
 
     $data = $component->data($category, 1, 0, '');
@@ -853,6 +930,8 @@ it('exposes crawlable page-link urls preserving size and sort params', function 
         productGridMakePaginationOptionsResolver(['allowedPageSizes' => [12, 24, 48, 96]]),
         makeGridNoPricePriceResolver(),
         makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
     );
 
     // size=12 (non-default) and sort='name' should be preserved
@@ -879,6 +958,8 @@ it('exposes a next-page url when more products exist', function (): void {
         productGridMakePaginationOptionsResolver(),
         makeGridNoPricePriceResolver(),
         makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
     );
 
     $data = $component->data($category, 1, 0, '');
@@ -898,6 +979,8 @@ it('exposes current and total pages for the random-access offset strategy', func
         productGridMakePaginationOptionsResolver(),
         makeGridNoPricePriceResolver(),
         makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
     );
 
     $data = $component->data($category, 3, 0, '');
@@ -943,6 +1026,8 @@ it('resolves prices and names only for the products on the current page', functi
         productGridMakePaginationOptionsResolver(),
         $priceResolver,
         makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
     );
 
     $data = $component->data($category, 2, 0, '');
@@ -1002,4 +1087,171 @@ it('canonicalizes the first page to the bare category url (no page=1)', function
 
 it('sets canonicalPageUrl to the full page url for pages after the first', function (): void {
     expect(productGridDataForPage(3, 10)->canonicalPageUrl)->toBe('/catalog/category/1?page=3');
+});
+
+// ─── Price index batch lookup ─────────────────────────────────────────────────
+
+it('it loads all page prices in a single index query', function (): void {
+    $category = new Category();
+    $category->name = 'Shoes';
+
+    $categoryRepository = new FakeCategoryRepository();
+    $categoryRepository->save($category);
+
+    $product1 = new Product();
+    $product1->sku = 'SHOE-001';
+    $product1->name = 'Running Shoes';
+
+    $product2 = new Product();
+    $product2->sku = 'SHOE-002';
+    $product2->name = 'Trail Shoes';
+
+    $productRepository = new FakeProductRepository();
+    $productRepository->save($product1);
+    $productRepository->save($product2);
+
+    $usd = new Currency(code: 'USD', scale: 2, symbol: '$', name: 'US Dollar');
+
+    $entry1 = new ProductPriceIndexEntry();
+    $entry1->productId = $product1->id;
+    $entry1->amount = '49.99';
+    $entry1->currencyCode = 'USD';
+
+    $entry2 = new ProductPriceIndexEntry();
+    $entry2->productId = $product2->id;
+    $entry2->amount = '59.99';
+    $entry2->currencyCode = 'USD';
+
+    $priceIndexRepo = new FakeProductPriceIndexRepository();
+    $priceIndexRepo->entries[$product1->id] = $entry1;
+    $priceIndexRepo->entries[$product2->id] = $entry2;
+
+    $fakePage = productGridMakeFakeOffsetPage([$product1, $product2]);
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter('en_US'),
+        $priceIndexRepo,
+        makeGridCurrencyResolver('USD'),
+    );
+
+    $data = $component->data($category, 1, 0, '');
+
+    // Exactly one batch call — not two per-product calls
+    expect($priceIndexRepo->findByProductIdsCallCount)->toBe(1);
+
+    // Prices should be populated from the index
+    expect($data->formattedPrices)->toHaveKey($product1->id)
+        ->and($data->formattedPrices[$product1->id])->toContain('49.99')
+        ->and($data->formattedPrices)->toHaveKey($product2->id)
+        ->and($data->formattedPrices[$product2->id])->toContain('59.99');
+});
+
+it('it falls back to PriceResolver for products absent from the index', function (): void {
+    $category = new Category();
+    $category->name = 'Shoes';
+
+    $categoryRepository = new FakeCategoryRepository();
+    $categoryRepository->save($category);
+
+    $indexedProduct = new Product();
+    $indexedProduct->sku = 'SHOE-001';
+    $indexedProduct->name = 'Indexed Shoe';
+
+    $unindexedProduct = new Product();
+    $unindexedProduct->sku = 'SHOE-002';
+    $unindexedProduct->name = 'Unindexed Shoe';
+
+    $productRepository = new FakeProductRepository();
+    $productRepository->save($indexedProduct);
+    $productRepository->save($unindexedProduct);
+
+    $usd = new Currency(code: 'USD', scale: 2, symbol: '$', name: 'US Dollar');
+
+    // Only the first product is in the index
+    $entry = new ProductPriceIndexEntry();
+    $entry->productId = $indexedProduct->id;
+    $entry->amount = '29.99';
+    $entry->currencyCode = 'USD';
+
+    $priceIndexRepo = new FakeProductPriceIndexRepository();
+    $priceIndexRepo->entries[$indexedProduct->id] = $entry;
+
+    // Fallback resolver returns a price for the unindexed product only
+    $fallbackMoney = Money::of('15.00', $usd);
+    $priceResolver = new class ($unindexedProduct->id, $fallbackMoney) implements PriceResolverInterface
+    {
+        public function __construct(
+            private readonly int $targetId,
+            private readonly Money $money,
+        ) {}
+
+        public function resolve(PriceContext $context): Money
+        {
+            if ($context->product->id === $this->targetId) {
+                return $this->money;
+            }
+
+            throw PriceUnavailableException::forContext($context);
+        }
+    };
+
+    $fakePage = productGridMakeFakeOffsetPage([$indexedProduct, $unindexedProduct]);
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(),
+        $priceResolver,
+        makeGridMoneyFormatter('en_US'),
+        $priceIndexRepo,
+        makeGridCurrencyResolver('USD'),
+    );
+
+    $data = $component->data($category, 1, 0, '');
+
+    // Indexed product price comes from the index
+    expect($data->formattedPrices[$indexedProduct->id])->toContain('29.99');
+
+    // Unindexed product price comes from the fallback resolver
+    expect($data->formattedPrices[$unindexedProduct->id])->toContain('15.00');
+});
+
+it('it returns no formatted price when neither the index nor PriceResolver can resolve', function (): void {
+    $category = new Category();
+    $category->name = 'Shoes';
+
+    $categoryRepository = new FakeCategoryRepository();
+    $categoryRepository->save($category);
+
+    $product = new Product();
+    $product->sku = 'SHOE-NO-PRICE';
+    $product->name = 'No Price Shoe';
+
+    $productRepository = new FakeProductRepository();
+    $productRepository->save($product);
+
+    // Empty index — product not indexed
+    $priceIndexRepo = new FakeProductPriceIndexRepository();
+
+    // Resolver also cannot provide a price
+    $priceResolver = makeGridNoPricePriceResolver();
+
+    $fakePage = productGridMakeFakeOffsetPage([$product]);
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(),
+        $priceResolver,
+        makeGridMoneyFormatter('en_US'),
+        $priceIndexRepo,
+        makeGridCurrencyResolver('USD'),
+    );
+
+    $data = $component->data($category, 1, 0, '');
+
+    // No price available — should be null, not throw
+    expect($data->formattedPrices)->toHaveKey($product->id)
+        ->and($data->formattedPrices[$product->id])->toBeNull();
 });

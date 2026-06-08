@@ -12,8 +12,10 @@ use Markommerce\Catalog\Exceptions\PageDepthExceededException;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
+use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
+use Markommerce\Currency\CurrencyResolver;
 use Markommerce\MoneyIntl\MoneyFormatter;
 use Markommerce\Scope\Exceptions\ScopeContextException;
 use Markommerce\Scope\Exceptions\UnknownAxisException;
@@ -29,8 +31,17 @@ class ScopedProductGridComponent extends ProductGridComponent
         private ScopeResolver $scopeResolver,
         PriceResolverInterface $priceResolver,
         MoneyFormatter $moneyFormatter,
+        ProductPriceIndexRepositoryInterface $productPriceIndexRepository,
+        CurrencyResolver $currencyResolver,
     ) {
-        parent::__construct($categoryAssignmentService, $paginationOptionsResolver, $priceResolver, $moneyFormatter);
+        parent::__construct(
+            $categoryAssignmentService,
+            $paginationOptionsResolver,
+            $priceResolver,
+            $moneyFormatter,
+            $productPriceIndexRepository,
+            $currencyResolver,
+        );
     }
 
     /**

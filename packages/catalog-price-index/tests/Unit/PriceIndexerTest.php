@@ -152,6 +152,23 @@ class CountingIndexRepository implements ProductPriceIndexRepositoryInterface
         return array_find($this->stored, fn (ProductPriceIndexEntry $e): bool => $e->productId === $productId);
     }
 
+    /**
+     * @param list<int> $productIds
+     * @return array<int, ProductPriceIndexEntry> keyed by productId
+     */
+    public function findByProductIds(array $productIds): array
+    {
+        $result = [];
+
+        foreach ($this->stored as $entry) {
+            if (in_array($entry->productId, $productIds, true)) {
+                $result[$entry->productId] = $entry;
+            }
+        }
+
+        return $result;
+    }
+
     public function truncate(): void
     {
         $this->truncateCallCount++;

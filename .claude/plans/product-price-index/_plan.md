@@ -62,6 +62,7 @@ none
 | 009 | catalog-price-index: CLI `catalog:price-index:rebuild` | 008 | completed |
 | 010 | catalog-price-index-market: register `amount` on market axis + markets provider | 007, 008 | completed |
 | 011 | catalog-price-index: README | 007, 008, 009 | completed |
+| 012 | catalog-storefront: use indexed price on category page | 009 | completed |
 
 ## Architecture Notes
 - **Migration (001) is the serializing foundation** — everything else depends on it; keep it behavior-preserving (pure move + namespace + consumer + composer updates; pricing tests move with it). It runs first and alone.

@@ -207,3 +207,29 @@ it('inserts new index entries in a single bulk statement', function (): void {
         ->toContain('catalog_product_price_index')
         ->toContain('ON CONFLICT (product_id) DO UPDATE SET');
 });
+
+it('adds findByProductIds to the repository interface and implementation', function (): void {
+    $conn = new SpyConnection();
+    $conn->queryResults = [
+        [
+            ['id' => 1, 'product_id' => 7, 'amount' => '12.50', 'currency_code' => 'USD', 'scopes' => null],
+            ['id' => 2, 'product_id' => 9, 'amount' => '25.00', 'currency_code' => 'EUR', 'scopes' => null],
+        ],
+    ];
+    $repo = makeRepository($conn);
+
+    $result = $repo->findByProductIds([7, 9]);
+
+    expect($result)->toHaveCount(2)
+        ->and($result)->toHaveKey(7)
+        ->and($result)->toHaveKey(9)
+        ->and($result[7]->productId)->toBe(7)
+        ->and($result[7]->amount)->toBe('12.50')
+        ->and($result[9]->productId)->toBe(9)
+        ->and($result[9]->amount)->toBe('25.00');
+
+    // verify it issued a query with product_id IN (...)
+    expect($conn->queried)->toHaveCount(1)
+        ->and($conn->queried[0]['sql'])->toContain('product_id')
+        ->and($conn->queried[0]['sql'])->toContain('IN');
+});

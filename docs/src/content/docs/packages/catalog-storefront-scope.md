@@ -25,20 +25,35 @@ Both `markommerce/catalog-storefront` and `markommerce/catalog-scope` are declar
 declare(strict_types=1);
 
 use Marko\Core\Attributes\Preference;
-use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
+use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
+use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
+use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
+use Markommerce\Currency\CurrencyResolver;
+use Markommerce\MoneyIntl\MoneyFormatter;
 use Markommerce\Scope\Resolver\ScopeResolver;
 
 #[Preference(replaces: ProductGridComponent::class)]
 class ScopedProductGridComponent extends ProductGridComponent
 {
     public function __construct(
-        CategoryRepositoryInterface $categoryRepository,
         CategoryAssignmentService $categoryAssignmentService,
+        PaginationOptionsResolver $paginationOptionsResolver,
         private ScopeResolver $scopeResolver,
+        PriceResolverInterface $priceResolver,
+        MoneyFormatter $moneyFormatter,
+        ProductPriceIndexRepositoryInterface $productPriceIndexRepository,
+        CurrencyResolver $currencyResolver,
     ) {
-        parent::__construct($categoryRepository, $categoryAssignmentService);
+        parent::__construct(
+            $categoryAssignmentService,
+            $paginationOptionsResolver,
+            $priceResolver,
+            $moneyFormatter,
+            $productPriceIndexRepository,
+            $currencyResolver,
+        );
     }
 }
 ```

@@ -17,5 +17,13 @@ interface ProductPriceIndexRepositoryInterface
 
     public function findByProductId(int $productId): ?ProductPriceIndexEntry;
 
+    /**
+     * Find all index entries for the given product IDs, keyed by productId.
+     *
+     * @param list<int> $productIds
+     * @return array<int, ProductPriceIndexEntry> keyed by productId
+     */
+    public function findByProductIds(array $productIds): array;
+
     public function truncate(): void;
 }

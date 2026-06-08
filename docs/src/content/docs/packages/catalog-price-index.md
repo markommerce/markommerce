@@ -73,6 +73,31 @@ if ($entry !== null) {
 }
 ```
 
+### Reading multiple index entries in one query
+
+Use `findByProductIds()` to batch-load index entries for an entire page of products --- one query regardless of page size:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
+
+// $productIds is a list<int> of product IDs on the current page
+$entries = $productPriceIndexRepository->findByProductIds($productIds);
+// Returns array<int, ProductPriceIndexEntry>, keyed by productId
+
+foreach ($productIds as $id) {
+    $entry = $entries[$id] ?? null; // null when not yet indexed
+    if ($entry !== null) {
+        echo $entry->amount;
+    }
+}
+```
+
+Products absent from the returned map have not yet been indexed; fall back to `PriceResolverInterface` for those.
+
 ### Reading a market-scoped amount
 
 When `markommerce/catalog-price-index-market` is installed, the indexer writes per-market amounts into the `scopes` column. Read them back via `ScopeResolver` under an active market context:
@@ -152,6 +177,7 @@ There is no automatic invalidation, dirty-tracking, or observer in v1. Rebuild t
 |---|---|---|
 | `upsertMany(array $entries)` | `void` | Bulk-upsert index entries keyed on `product_id` in a single SQL statement. |
 | `findByProductId(int $productId)` | `?ProductPriceIndexEntry` | Look up the index entry for a specific product. Returns `null` when no entry exists. |
+| `findByProductIds(array $productIds)` | `array<int, ProductPriceIndexEntry>` | Look up index entries for a set of product IDs in a single query. Returns a map keyed by `productId`; missing entries are absent from the map. |
 | `truncate()` | `void` | Delete all rows from the index table. |
 
 ### `IndexedMarketsProviderInterface`
