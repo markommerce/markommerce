@@ -19,15 +19,22 @@ class ProductCard
         private MoneyFormatter $moneyFormatter,
     ) {}
 
-    public function data(Product $product): ProductCardData
+    /**
+     * @param array<int, string|null>|null $formattedPrices Pre-computed prices keyed by product ID (from parent grid).
+     */
+    public function data(Product $product, ?array $formattedPrices = null): ProductCardData
     {
         $formattedPrice = null;
 
-        try {
-            $money = $this->priceResolver->resolve(PriceContext::forProduct($product));
-            $formattedPrice = $this->moneyFormatter->format($money);
-        } catch (PriceUnavailableException) {
-            $formattedPrice = null;
+        if ($formattedPrices !== null && $product->id !== null) {
+            $formattedPrice = $formattedPrices[$product->id] ?? null;
+        } else {
+            try {
+                $money = $this->priceResolver->resolve(PriceContext::forProduct($product));
+                $formattedPrice = $this->moneyFormatter->format($money);
+            } catch (PriceUnavailableException) {
+                $formattedPrice = null;
+            }
         }
 
         return new ProductCardData(
