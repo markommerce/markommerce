@@ -34,8 +34,8 @@ class CatalogPaginationConfig
     public string $defaultSort = 'position';
 
     /** @var list<string> */
-    #[Config(key: 'catalog/pagination.allowedSorts')]
-    public array $allowedSorts = ['position', 'name', 'sku', 'price'];
+    #[Config(key: 'catalog/pagination.enabledSorts')]
+    public array $enabledSorts = [];
 
     #[Config(key: 'catalog/pagination.viewAllThreshold')]
     public int $viewAllThreshold = 0;

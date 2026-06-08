@@ -18,6 +18,7 @@ readonly class ProductGridData extends ExtensibleData
      * @param array<int, string|null> $resolvedDescs
      * @param array<int, string|null> $formattedPrices
      * @param list<string> $pageLinkUrls Crawlable numbered page URLs (e.g. ['?page=1&size=24', ...])
+     * @param list<array{key: string, label: string}> $sortOptions Available sort orders for the dropdown
      */
     public function __construct(
         public Category $category,
@@ -34,6 +35,8 @@ readonly class ProductGridData extends ExtensibleData
         public ?string $nextPageUrl = null,
         public ?string $previousPageUrl = null,
         public ?string $canonicalPageUrl = null,
+        public array $sortOptions = [],
+        public string $activeSort = '',
         ExtensionBag $extensions = new ExtensionBag(),
     ) {
         parent::__construct($extensions);

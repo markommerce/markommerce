@@ -126,7 +126,7 @@ return [
     'countMode'        => 'exact',     // 'exact' | 'estimated'
     'maxPageDepth'     => 100,
     'defaultSort'      => 'position',
-    'allowedSorts'     => ['position', 'name', 'sku', 'price'],
+    'enabledSorts'     => [],          // empty = all registered sort orders are available
     'viewAllThreshold' => 0,           // 0 = disabled; N = show "view all" when total <= N
     'countCacheTtl'    => 0,           // reserved; set to 0
 ];
@@ -141,12 +141,108 @@ return [
 | `presentation` | `numbered` | Storefront UI mode: `numbered`, `load_more`, or `infinite`. `numbered` requires `strategy=offset` |
 | `countMode` | `exact` | How total rows are counted: `exact` (SELECT COUNT) or `estimated` (planner estimate with exact fallback) |
 | `maxPageDepth` | `100` | Requests for page numbers above this return a `410 Gone` response |
-| `defaultSort` | `position` | Sort column used when no `sort` parameter is supplied |
-| `allowedSorts` | `['position', 'name', 'sku', 'price']` | Sort keys accepted from requests |
+| `defaultSort` | `position` | Sort order key used when no `sort` parameter is supplied; must be a registered key in `CategorySortOrderRegistry` |
+| `enabledSorts` | `[]` | Allowlist of sort-order keys accepted from requests. An empty array (the default) exposes every order registered in `CategorySortOrderRegistry`. Set to a non-empty list to restrict which orders the storefront exposes. |
 | `viewAllThreshold` | `0` | When `> 0`, categories with at most this many products expose a `?view=all` URL and the canonical points there |
 | `countCacheTtl` | `0` | Reserved for future use; leave as `0` |
 
+**Breaking change from `allowedSorts`:** The config key was renamed from `allowedSorts` (key `catalog/pagination.allowedSorts`) to `enabledSorts` (key `catalog/pagination.enabledSorts`). Applications that override this key must rename it. The semantics also changed: the default is now `[]` (expose all registered orders), whereas the old default was an explicit list of column tokens.
+
 **Constraint:** `presentation=numbered` requires `strategy=offset`. Setting `numbered` with `strategy=keyset` throws `InvalidPaginationConfigException`.
+
+### Category sort orders
+
+Sort orders for the category product listing are managed through `CategorySortOrderRegistry`. Any package can register additional sort orders at boot time; the storefront dropdown is populated from the registry at render time.
+
+`markommerce/catalog` registers the `position` sort order by default. [markommerce/catalog-price-index](/docs/packages/catalog-price-index/) registers `price_asc` and `price_desc` when installed.
+
+#### Implementing a custom sort order
+
+Implement `CategorySortOrderInterface` and register the instance in your `module.php` boot closure:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Marko\Database\Repository\RepositoryQueryBuilder;
+use Markommerce\Catalog\Sorting\CategorySortOrderInterface;
+use Markommerce\Criteria\Sort\SortDirection;
+use Markommerce\Criteria\Sort\SortField;
+
+class NameSortOrder implements CategorySortOrderInterface
+{
+    public function key(): string
+    {
+        return 'name';
+    }
+
+    public function label(): string
+    {
+        return 'Name';
+    }
+
+    public function supportsKeyset(): bool
+    {
+        return true;
+    }
+
+    public function prepareQuery(RepositoryQueryBuilder $repositoryQueryBuilder): void
+    {
+        // No additional JOINs needed for a plain column sort.
+    }
+
+    /** @return list<SortField> */
+    public function sortFields(): array
+    {
+        return [new SortField('catalog_products.name', SortDirection::Ascending)];
+    }
+}
+```
+
+Register it in `module.php`:
+
+```php title="module.php"
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
+
+return [
+    'boot' => function (CategorySortOrderRegistry $categorySortOrderRegistry, NameSortOrder $nameSortOrder): void {
+        $categorySortOrderRegistry->register($nameSortOrder, priority: 10);
+    },
+];
+```
+
+Pass the implementation class (not a `new` expression) to the closure so the container can resolve it and honour any `#[Preference]` overrides registered by other packages.
+
+#### Using `ColumnSortOrder` for simple column sorts
+
+For sorts that map directly to a single database column without extra JOINs, use the built-in `ColumnSortOrder` helper instead of writing a full class:
+
+```php title="module.php"
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
+use Markommerce\Catalog\Sorting\ColumnSortOrder;
+use Markommerce\Criteria\Sort\SortDirection;
+
+return [
+    'boot' => function (CategorySortOrderRegistry $categorySortOrderRegistry): void {
+        $categorySortOrderRegistry->register(new ColumnSortOrder(
+            key: 'sku',
+            label: 'SKU',
+            column: 'catalog_products.sku',
+            direction: SortDirection::Ascending,
+            supportsKeyset: true,
+        ), priority: 20);
+    },
+];
+```
 
 ### Working with category trees
 
@@ -488,7 +584,7 @@ php artisan db:seed --seeder=catalog-locale
 | `PriceResolverInterface` | `PriceResolver` |
 | `ProductBasePriceProviderInterface` | `RawProductBasePriceProvider` |
 
-`PriceContributorRegistry` is registered as a singleton. `BasePriceContributor` is registered with priority `0` at boot.
+`PriceContributorRegistry` and `CategorySortOrderRegistry` are registered as singletons. `BasePriceContributor` is registered with priority `0` at boot. The `position` sort order (`ColumnSortOrder`, key `'position'`) is registered in `CategorySortOrderRegistry` at priority `0` at boot.
 
 ## API Reference
 
@@ -674,7 +770,8 @@ Immutable value object produced by `PaginationOptionsResolver`.
 
 | Property | Type | Description |
 |---|---|---|
-| `$pageRequest` | `PageRequest` | Ready-to-use `PageRequest` for `paginatedProductsInCategory()` |
+| `$sortOrder` | `CategorySortOrderInterface` | Resolved sort order instance (used by `CategoryAssignmentService` to apply JOINs and ORDER BY) |
+| `$size` | `int` | Resolved page size |
 | `$page` | `int` | Resolved page number (1-based) |
 | `$presentation` | `PaginationPresentation` | Active storefront presentation mode |
 | `$strategyKind` | `PaginationStrategyKind` | Active pagination strategy |
@@ -702,6 +799,44 @@ Immutable value object produced by `PaginationOptionsResolver`.
 | `Exact` | `'exact'` | `SELECT COUNT(*)` for accurate totals |
 | `Estimated` | `'estimated'` | Planner estimate with exact fallback |
 
+### Sorting
+
+#### `CategorySortOrderInterface`
+
+The contract for all category product listing sort orders. Implement this interface to contribute a new sort option that any package (including third-party modules) can register.
+
+| Method | Return type | Description |
+|---|---|---|
+| `key()` | `string` | Stable URL/config token that uniquely identifies this sort order (e.g. `price_asc`). Used as the `sort` query parameter value. |
+| `label()` | `string` | Human-readable label shown in the storefront sort-order dropdown. |
+| `supportsKeyset()` | `bool` | Whether this sort order can be used with `strategy=keyset`. Sort orders that rely on a LEFT JOIN (e.g. price) must return `false`; column-only sorts may return `true` if they produce a deterministic order. |
+| `prepareQuery(RepositoryQueryBuilder $repositoryQueryBuilder)` | `void` | Add any JOINs required by this sort order to the category product query. Plain column sorts implement this as a no-op. |
+| `sortFields()` | `list<SortField>` | The sort fields to apply to the ORDER BY clause. |
+
+#### `CategorySortOrderRegistry`
+
+Singleton that holds all registered sort orders. Used by `PaginationOptionsResolver` at resolution time and by `ProductGridComponent` to build the storefront dropdown.
+
+| Method | Return type | Description |
+|---|---|---|
+| `register(CategorySortOrderInterface $categorySortOrder, int $priority = 0)` | `void` | Register a sort order. Lower priority values appear first. No-op if an order with the same key is already registered. |
+| `all()` | `list<CategorySortOrderInterface>` | Return all registered sort orders sorted by priority (ascending). |
+| `get(string $key)` | `?CategorySortOrderInterface` | Find a sort order by its key. Returns `null` when no match exists. |
+| `has(string $key)` | `bool` | Whether a sort order with the given key is registered. |
+
+#### `ColumnSortOrder`
+
+A built-in `CategorySortOrderInterface` implementation for sort orders that map directly to a single database column and require no additional JOINs. Construct it inline in your `module.php` boot closure instead of writing a dedicated class.
+
+| Constructor parameter | Type | Description |
+|---|---|---|
+| `$key` | `string` | Stable URL/config token |
+| `$label` | `string` | Human-readable label |
+| `$column` | `string` | Fully-qualified column name (e.g. `catalog_products.name`) |
+| `$direction` | `SortDirection` | `Ascending` (default) or `Descending` |
+| `$supportsKeyset` | `bool` | Whether this order is compatible with keyset pagination (default `false`) |
+| `$nulls` | `?NullsPlacement` | `NullsPlacement::First`, `NullsPlacement::Last`, or `null` (default; database default applies) |
+
 ### Enums
 
 #### `NodeRemovalStrategy`
@@ -728,7 +863,7 @@ All exceptions extend `MarkoException` and carry a `message`, `context`, and `su
 | `CategoryTreeNodeNotFoundException` | `forId(int $id)` | A `CategoryTreeService` method cannot find the requested node |
 | `NodeNotInTreeException` | `forNodeAndTree(int $nodeId, int $expectedTreeId, int $actualTreeId)`, `forParentMismatch(int $nodeId, ?int $expectedParentNodeId, ?int $actualParentNodeId)` | A node is referenced against the wrong tree, or a sibling group contains a node with a mismatched parent |
 | `CircularNodeReferenceException` | `forNodeAndParent(int $nodeId, int $proposedParentId)` | `CategoryTreeService::moveNode()` detects that the proposed parent is a descendant of the node being moved |
-| `InvalidPaginationConfigException` | `forUnknownStrategy()`, `forUnknownPresentation()`, `forUnsupportedCountMode()`, `forInvalidSort()`, `forNumberedKeysetCombination()` | `PaginationOptionsResolver::resolve()` receives an invalid config value or an incompatible strategy+presentation combination |
+| `InvalidPaginationConfigException` | `forUnknownStrategy()`, `forUnknownPresentation()`, `forUnsupportedCountMode()`, `forInvalidSort()`, `forNumberedKeysetCombination()`, `forKeysetIncompatibleSort(string $sortKey)` | `PaginationOptionsResolver::resolve()` receives an invalid config value, an incompatible strategy+presentation combination, or a sort order that does not support keyset pagination when `strategy=keyset` is active |
 | `PageDepthExceededException` | `forDepth(int $page, int $max)` | `PaginationOptionsResolver::resolve()` is called with a page number exceeding `maxPageDepth` |
 
 ### Pricing

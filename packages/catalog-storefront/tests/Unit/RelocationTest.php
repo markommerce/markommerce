@@ -134,7 +134,7 @@ it(
     function (): void {
         $catalogSrc = dirname(__DIR__, 3) . '/catalog/src';
 
-        $allowedDirs = ['Config', 'Contracts', 'Entity', 'Enum', 'Exceptions', 'Pagination', 'Pricing', 'Repositories', 'Services'];
+        $allowedDirs = ['Config', 'Contracts', 'Entity', 'Enum', 'Exceptions', 'Pagination', 'Pricing', 'Repositories', 'Services', 'Sorting'];
 
         $dirs = array_values(array_filter(
             scandir($catalogSrc),

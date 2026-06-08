@@ -16,12 +16,14 @@ use Markommerce\Catalog\Pagination\CategoryProductRowCounter;
 use Markommerce\Catalog\Pagination\PaginationStrategyKind;
 use Markommerce\Catalog\Pagination\ProductCursorValueExtractor;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
+use Markommerce\Criteria\Exceptions\EmptySortException;
 use Markommerce\Criteria\Exceptions\InvalidPageSizeException;
 use Markommerce\Criteria\Exceptions\InvalidPositionTokenException;
 use Markommerce\Criteria\Page\Page;
 use Markommerce\Criteria\Page\PageRequest;
 use Markommerce\Criteria\Position\OffsetPosition;
 use Markommerce\Criteria\Position\PositionCodec;
+use Markommerce\Criteria\Sort\Sort;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
 use Markommerce\Criteria\Strategy\OffsetPaginationStrategy;
 
@@ -134,6 +136,8 @@ class CategoryAssignmentService
             ->join('catalog_product_category', 'catalog_products.id', '=', 'catalog_product_category.product_id')
             ->where('catalog_product_category.category_id', '=', $categoryId);
 
+        $options->sortOrder->prepareQuery($query);
+
         $pageRequest = $this->buildPageRequest($options);
 
         if ($options->strategyKind === PaginationStrategyKind::Keyset) {
@@ -164,20 +168,22 @@ class CategoryAssignmentService
      *
      * For page > 1 with offset strategy, encodes an OffsetPosition token.
      *
-     * @throws InvalidPositionTokenException|InvalidPageSizeException
+     * @throws InvalidPositionTokenException|InvalidPageSizeException|EmptySortException
      */
     private function buildPageRequest(ResolvedPaginationOptions $options): PageRequest
     {
+        $sort = new Sort(...$options->sortOrder->sortFields());
+
         if ($options->page <= 1 || $options->strategyKind === PaginationStrategyKind::Keyset) {
-            return $options->pageRequest;
+            return PageRequest::first($options->size, $sort);
         }
 
         // For offset pagination on page > 1, encode the current page position
         $token = $this->positionCodec->encode(new OffsetPosition(page: $options->page));
 
         return PageRequest::at(
-            $options->pageRequest->size,
-            $options->pageRequest->sort,
+            $options->size,
+            $sort,
             $token,
         );
     }

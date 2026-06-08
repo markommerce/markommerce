@@ -185,9 +185,27 @@ echo $page->totalItems(); // join-safe total
 
 ### Core Value Objects
 
-#### `Sort` / `SortField` / `SortDirection`
+#### `Sort` / `SortField` / `SortDirection` / `NullsPlacement`
 
-A `Sort` wraps one or more `SortField` instances. Each `SortField` carries a column name and a `SortDirection` enum case (`Ascending` or `Descending`, defaulting to `Ascending`). Constructing `Sort` with no fields throws `EmptySortException` immediately. Column names are validated against `/^[a-zA-Z_][a-zA-Z0-9_]*$/` before SQL interpolation; dynamic values are always bound as parameters.
+A `Sort` wraps one or more `SortField` instances. Each `SortField` carries a column name, a `SortDirection` enum case (`Ascending` or `Descending`, defaulting to `Ascending`), an optional raw SQL `$expression` override, and an optional `NullsPlacement` hint. Constructing `Sort` with no fields throws `EmptySortException` immediately.
+
+`SortField` constructor parameters:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `$column` | `string` | required | Column identifier; validated against `/^[a-zA-Z_][a-zA-Z0-9_]*$/` before SQL interpolation |
+| `$direction` | `SortDirection` | `Ascending` | Sort direction |
+| `$expression` | `?string` | `null` | Raw SQL expression to use in the ORDER BY clause instead of the column name; when non-null, `sortExpression()` returns this value. **Only use with code-defined, non-user-derived strings.** |
+| `$nulls` | `?NullsPlacement` | `null` | `NullsPlacement::First` or `NullsPlacement::Last`; `null` means the database default applies. Implemented via a companion `(expr) IS NULL ASC/DESC` clause rather than SQL `NULLS FIRST/LAST` for cross-database compatibility. |
+
+`SortField::sortExpression()` returns `$expression` when set, otherwise `$column`.
+
+`NullsPlacement` is a backed enum with two cases:
+
+| Case | Description |
+|---|---|
+| `First` | Sort NULL values before non-NULL values |
+| `Last` | Sort NULL values after non-NULL values |
 
 #### `PageRequest`
 

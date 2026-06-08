@@ -82,6 +82,8 @@ class ScopedProductGridComponent extends ProductGridComponent
             nextPageUrl: $data->nextPageUrl,
             previousPageUrl: $data->previousPageUrl,
             canonicalPageUrl: $data->canonicalPageUrl,
+            sortOptions: $data->sortOptions,
+            activeSort: $data->activeSort,
             extensions: $data->extensions,
         );
     }

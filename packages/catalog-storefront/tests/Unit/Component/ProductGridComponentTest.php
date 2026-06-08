@@ -24,9 +24,12 @@ use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
 use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
+use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
+use Markommerce\Catalog\Sorting\ColumnSortOrder;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
+use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
 use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
@@ -180,7 +183,7 @@ function productGridMakeConfigResolver(array $overrides = []): ConfigResolverInt
         'countMode'        => 'exact',
         'maxPageDepth'     => 100,
         'defaultSort'      => 'position',
-        'allowedSorts'     => ['position', 'name', 'sku', 'price'],
+        'enabledSorts'     => [],
         'viewAllThreshold' => 0,
         'countCacheTtl'    => 0,
     ];
@@ -199,12 +202,33 @@ function productGridMakeConfigResolver(array $overrides = []): ConfigResolverInt
     };
 }
 
+function productGridMakeSortRegistry(): CategorySortOrderRegistry
+{
+    $registry = new CategorySortOrderRegistry();
+    $registry->register(new ColumnSortOrder(
+        key: 'position',
+        label: 'Position',
+        column: 'catalog_product_category.position',
+        direction: SortDirection::Ascending,
+        supportsKeyset: false,
+    ), 0);
+    $registry->register(new ColumnSortOrder(
+        key: 'name',
+        label: 'Name',
+        column: 'catalog_product.name',
+        direction: SortDirection::Ascending,
+        supportsKeyset: false,
+    ), 10);
+
+    return $registry;
+}
+
 /**
  * @param array<string, mixed> $overrides
  */
 function productGridMakePaginationOptionsResolver(array $overrides = []): PaginationOptionsResolver
 {
-    return new PaginationOptionsResolver(productGridMakeConfigResolver($overrides));
+    return new PaginationOptionsResolver(productGridMakeConfigResolver($overrides), productGridMakeSortRegistry());
 }
 
 /**
@@ -359,6 +383,7 @@ function productGridBuildComponent(
         $moneyFormatter ?? makeGridMoneyFormatter(),
         $priceIndexRepository ?? new FakeProductPriceIndexRepository(),
         $currencyResolver ?? makeGridCurrencyResolver(),
+        productGridMakeSortRegistry(),
     );
 }
 
@@ -1254,4 +1279,206 @@ it('it returns no formatted price when neither the index nor PriceResolver can r
     // No price available — should be null, not throw
     expect($data->formattedPrices)->toHaveKey($product->id)
         ->and($data->formattedPrices[$product->id])->toBeNull();
+});
+
+// ─── Sort dropdown requirements ───────────────────────────────────────────────
+
+it('exposes the registered sort orders as dropdown options', function (): void {
+    $category = new Category();
+    $category->name = 'Shoes';
+
+    $categoryRepository = new FakeCategoryRepository();
+    $categoryRepository->save($category);
+
+    $fakePage = productGridMakeFakeOffsetPage([]);
+
+    $registry = new CategorySortOrderRegistry();
+    $registry->register(new ColumnSortOrder(
+        key: 'position',
+        label: 'Position',
+        column: 'catalog_product_category.position',
+        direction: SortDirection::Ascending,
+        supportsKeyset: false,
+    ), 0);
+    $registry->register(new ColumnSortOrder(
+        key: 'name',
+        label: 'Name',
+        column: 'catalog_product.name',
+        direction: SortDirection::Ascending,
+        supportsKeyset: false,
+    ), 10);
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        new PaginationOptionsResolver(productGridMakeConfigResolver(), $registry),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
+        $registry,
+    );
+
+    $data = $component->data($category, 1, 0, '');
+
+    expect($data->sortOptions)->toHaveCount(2);
+    expect($data->sortOptions[0])->toBe(['key' => 'position', 'label' => 'Position']);
+    expect($data->sortOptions[1])->toBe(['key' => 'name', 'label' => 'Name']);
+});
+
+it('marks the active sort order as selected', function (): void {
+    $category = new Category();
+    $category->name = 'Shoes';
+
+    $categoryRepository = new FakeCategoryRepository();
+    $categoryRepository->save($category);
+
+    $fakePage = productGridMakeFakeOffsetPage([]);
+
+    $registry = productGridMakeSortRegistry(); // has position and name
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        new PaginationOptionsResolver(productGridMakeConfigResolver(), $registry),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
+        $registry,
+    );
+
+    // Request sort=name explicitly
+    $data = $component->data($category, 1, 0, 'name');
+
+    expect($data->activeSort)->toBe('name');
+});
+
+it('defaults the active sort to position when no sort is requested', function (): void {
+    $category = new Category();
+    $category->name = 'Shoes';
+
+    $categoryRepository = new FakeCategoryRepository();
+    $categoryRepository->save($category);
+
+    $fakePage = productGridMakeFakeOffsetPage([]);
+
+    $registry = productGridMakeSortRegistry();
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        new PaginationOptionsResolver(productGridMakeConfigResolver(), $registry),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
+        $registry,
+    );
+
+    // No sort requested — should default to position
+    $data = $component->data($category, 1, 0, '');
+
+    expect($data->activeSort)->toBe('position');
+});
+
+it('includes the price orders when the price index package is registered', function (): void {
+    $category = new Category();
+    $category->name = 'Shoes';
+
+    $categoryRepository = new FakeCategoryRepository();
+    $categoryRepository->save($category);
+
+    $fakePage = productGridMakeFakeOffsetPage([]);
+
+    $registry = new CategorySortOrderRegistry();
+    $registry->register(new ColumnSortOrder(
+        key: 'position',
+        label: 'Position',
+        column: 'catalog_product_category.position',
+        direction: SortDirection::Ascending,
+        supportsKeyset: false,
+    ), 0);
+    $registry->register(new ColumnSortOrder(
+        key: 'price_asc',
+        label: 'Price: Low to High',
+        column: 'price_index.amount',
+        direction: SortDirection::Ascending,
+        supportsKeyset: false,
+    ), 20);
+    $registry->register(new ColumnSortOrder(
+        key: 'price_desc',
+        label: 'Price: High to Low',
+        column: 'price_index.amount',
+        direction: SortDirection::Descending,
+        supportsKeyset: false,
+    ), 30);
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        new PaginationOptionsResolver(productGridMakeConfigResolver(), $registry),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
+        $registry,
+    );
+
+    $data = $component->data($category, 1, 0, '');
+
+    $keys = array_map(fn ($o) => $o['key'], $data->sortOptions);
+    expect($keys)->toContain('price_asc');
+    expect($keys)->toContain('price_desc');
+    expect($keys)->toContain('position');
+    expect($data->sortOptions)->toHaveCount(3);
+});
+
+it('renders a sort select that submits the sort query parameter', function (): void {
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Shoes';
+
+    $registry = productGridMakeSortRegistry();
+
+    $engine = productGridBuildLatte();
+
+    $output = $engine->renderToString('catalog-storefront::components/product-grid', [
+        'category' => $category,
+        'products' => [],
+        'resolvedNames' => [],
+        'resolvedDescs' => [],
+        'sortOptions' => [
+            ['key' => 'position', 'label' => 'Position'],
+            ['key' => 'name', 'label' => 'Name'],
+        ],
+        'activeSort' => 'position',
+    ]);
+
+    expect($output)->toContain('<select');
+    expect($output)->toContain('name="sort"');
+    expect($output)->toContain('value="position"');
+    expect($output)->toContain('value="name"');
+});
+
+it('resets to the first page when the sort changes', function (): void {
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Shoes';
+
+    $engine = productGridBuildLatte();
+
+    $output = $engine->renderToString('catalog-storefront::components/product-grid', [
+        'category' => $category,
+        'products' => [],
+        'resolvedNames' => [],
+        'resolvedDescs' => [],
+        'sortOptions' => [
+            ['key' => 'position', 'label' => 'Position'],
+            ['key' => 'name', 'label' => 'Name'],
+        ],
+        'activeSort' => 'position',
+    ]);
+
+    // The form must NOT include a hidden page param (so it resets to page 1)
+    // and must use GET method to submit sort= as a query param
+    expect($output)->toContain('method="get"');
+    // Ensure no hidden page input is included that would preserve pagination
+    expect($output)->not->toContain('<input type="hidden" name="page"');
 });

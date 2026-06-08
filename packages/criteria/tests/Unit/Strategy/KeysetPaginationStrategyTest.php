@@ -34,6 +34,9 @@ class FakeKeysetQueryBuilder extends RepositoryQueryBuilder
     /** @var list<array{column: string, direction: string}> */
     public array $orderByCalls = [];
 
+    /** @var list<array{expression: string, direction: string}> */
+    public array $orderByRawCalls = [];
+
     public ?int $appliedLimit = null;
 
     /** @var list<array{expression: string, bindings: array<mixed>}> */
@@ -54,6 +57,13 @@ class FakeKeysetQueryBuilder extends RepositoryQueryBuilder
     public function orderBy(string $column, string $direction = 'ASC'): static
     {
         $this->orderByCalls[] = ['column' => $column, 'direction' => $direction];
+
+        return $this;
+    }
+
+    public function orderByRaw(string $expression, string $direction = 'ASC'): static
+    {
+        $this->orderByRawCalls[] = ['expression' => $expression, 'direction' => $direction];
 
         return $this;
     }
@@ -284,4 +294,17 @@ it('throws MissingCursorValueExtractorException when extractor is null and there
 
     expect(fn () => $strategy->paginate($query, $request, null))
         ->toThrow(MissingCursorValueExtractorException::class);
+});
+
+it('expands a nulls-last sort field the same way in the keyset strategy', function (): void {
+    $query = makeKeysetQuery(makeEntities(3));
+    $strategy = makeKeysetStrategy();
+    $sort = new Sort(new SortField('price', SortDirection::Ascending, nulls: \Markommerce\Criteria\Sort\NullsPlacement::Last));
+    $request = PageRequest::first(size: 5, sort: $sort);
+
+    $strategy->paginate($query, $request, new FakeCursorValueExtractor());
+
+    expect($query->orderByRawCalls)->toHaveCount(2)
+        ->and($query->orderByRawCalls[0])->toBe(['expression' => '(price) IS NULL', 'direction' => 'ASC'])
+        ->and($query->orderByRawCalls[1])->toBe(['expression' => 'price', 'direction' => 'ASC']);
 });

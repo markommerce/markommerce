@@ -34,6 +34,7 @@ class KeysetPaginationStrategy implements PaginationStrategyInterface
 {
     public function __construct(
         private readonly PositionCodec $positionCodec,
+        private readonly SortFieldApplier $sortFieldApplier = new SortFieldApplier(),
     ) {}
 
     /**
@@ -62,7 +63,7 @@ class KeysetPaginationStrategy implements PaginationStrategyInterface
         }
 
         foreach ($pageRequest->sort->fields as $field) {
-            $query->orderBy($field->column, $field->direction->value);
+            $this->sortFieldApplier->apply($query, $field);
         }
         $query->orderBy('id', 'ASC');
 

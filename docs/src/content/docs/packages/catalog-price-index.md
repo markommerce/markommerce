@@ -142,6 +142,19 @@ The indexer calls `BatchPriceResolverInterface::resolve()` once per market pass 
 
 The indexer itself is N+1-free by design: it loads a chunk of products with a single `whereIn` query, runs the batch pipeline, and writes results in a single bulk upsert.
 
+## Sort Orders
+
+When `markommerce/catalog-price-index` is installed, its `module.php` boot registers two sort orders into the shared `CategorySortOrderRegistry`:
+
+| Key | Class | Label | Description |
+|---|---|---|---|
+| `price_asc` | `AscendingIndexedPriceSortOrder` | Price: Low to High | Orders by `catalog_product_price_index.amount` ascending; products not in the index sort last |
+| `price_desc` | `DescendingIndexedPriceSortOrder` | Price: High to Low | Orders by `catalog_product_price_index.amount` descending; products not in the index sort last |
+
+Both orders LEFT JOIN `catalog_product_price_index` on the category product query, set `supportsKeyset()` to `false` (the JOIN makes cursor-based pagination unreliable), and place un-indexed products last in both directions via a `NullsPlacement::Last` sort field.
+
+When `markommerce/catalog-price-index-market` is installed, its `#[Preference]` overrides replace `AscendingIndexedPriceSortOrder` and `DescendingIndexedPriceSortOrder` with market-aware variants (`ScopedAscendingIndexedPriceSortOrder` / `ScopedDescendingIndexedPriceSortOrder`) that use a `COALESCE` expression to fall back from the active market's JSON override amount to the base amount.
+
 ## v1 Freshness Limitations
 
 There is no automatic invalidation, dirty-tracking, or observer in v1. Rebuild the index manually after:

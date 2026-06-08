@@ -54,4 +54,13 @@ class InvalidPaginationConfigException extends MarkoException
             suggestion: "Use 'offset' strategy with 'numbered' presentation, or switch presentation to 'load_more' or 'infinite' for keyset",
         );
     }
+
+    public static function forKeysetIncompatibleSort(string $sortKey): self
+    {
+        return new self(
+            message: "Sort order '$sortKey' does not support keyset (cursor-based) pagination",
+            context: 'While resolving pagination options with keyset strategy',
+            suggestion: "Register the sort order with supportsKeyset: true, or switch the pagination strategy to 'offset'",
+        );
+    }
 }

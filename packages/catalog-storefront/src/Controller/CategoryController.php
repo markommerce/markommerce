@@ -99,16 +99,16 @@ class CategoryController
                 // Should not happen for page 1
             }
 
-            $defaultSize = $defaultOptions?->pageRequest->size ?? 0;
-            $resolvedSize = $resolvedOptions->pageRequest->size;
+            $defaultSize = $defaultOptions !== null ? $defaultOptions->size : 0;
+            $resolvedSize = $resolvedOptions->size;
             if ($resolvedSize !== $defaultSize) {
                 $params['size'] = $resolvedSize;
             }
 
-            $defaultSort = $defaultOptions?->pageRequest->sort->fields[0]->column ?? '';
-            $resolvedSort = $resolvedOptions->pageRequest->sort->fields[0]->column ?? '';
-            if ($resolvedSort !== '' && $resolvedSort !== $defaultSort) {
-                $params['sort'] = $resolvedSort;
+            $defaultSortKey = $defaultOptions !== null ? $defaultOptions->sortOrder->key() : '';
+            $resolvedSortKey = $resolvedOptions->sortOrder->key();
+            if ($resolvedSortKey !== '' && $resolvedSortKey !== $defaultSortKey) {
+                $params['sort'] = $resolvedSortKey;
             }
         } elseif ($size > 0) {
             $params['size'] = $size;

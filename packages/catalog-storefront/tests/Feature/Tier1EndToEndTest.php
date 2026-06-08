@@ -23,6 +23,9 @@ use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
+use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
+use Markommerce\Catalog\Sorting\ColumnSortOrder;
+use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
 use Markommerce\Catalog\Pricing\PriceContext;
@@ -112,7 +115,7 @@ function tier1MakeConfigResolver(array $overrides = []): ConfigResolverInterface
         'countMode'        => 'exact',
         'maxPageDepth'     => 100,
         'defaultSort'      => 'position',
-        'allowedSorts'     => ['position', 'name', 'sku', 'price'],
+        'enabledSorts'     => [],
         'viewAllThreshold' => 0,
         'countCacheTtl'    => 0,
     ];
@@ -131,9 +134,23 @@ function tier1MakeConfigResolver(array $overrides = []): ConfigResolverInterface
     };
 }
 
+function tier1MakeSortRegistry(): CategorySortOrderRegistry
+{
+    $registry = new CategorySortOrderRegistry();
+    $registry->register(new ColumnSortOrder(
+        key: 'position',
+        label: 'Position',
+        column: 'catalog_product_category.position',
+        direction: SortDirection::Ascending,
+        supportsKeyset: false,
+    ), 0);
+
+    return $registry;
+}
+
 function tier1MakePaginationOptionsResolver(): PaginationOptionsResolver
 {
-    return new PaginationOptionsResolver(tier1MakeConfigResolver());
+    return new PaginationOptionsResolver(tier1MakeConfigResolver(), tier1MakeSortRegistry());
 }
 
 /**
@@ -161,7 +178,7 @@ function tier1MakeAssignmentService(
 
             return new OffsetPage(
                 items: new EntityCollection($products),
-                size: $options->pageRequest->size,
+                size: $options->size,
                 nextPosition: null,
                 previousPosition: null,
                 currentPage: $options->page,
