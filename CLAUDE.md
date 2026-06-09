@@ -36,21 +36,28 @@ All packages share the same version number (unified versioning).
 
 ## Commands
 
+Tests run in the **self-contained Docker stack** (`compose.yaml`): it clones the
+marko framework at the pinned `.marko-version` and runs its own Postgres — no
+local `../marko` needed. Start a shell once (`docker compose run --rm tests bash`)
+and run the commands below inside it. See `.claude/testing.md` for the full
+workflow and `CLAUDE.local.md` for the workspace-container alternative.
+
 ```bash
-# Run tests (parallel — default)
+# Unit / non-DB suite (parallel; excludes the integration-destructive group)
 composer test
 
-# Run all tests including destructive integration tests
+# DB-backed integration suite only (parallel, real Postgres)
+composer test:integration
+
+# Everything (unit + integration)
 composer test:all
 
-# Lint (check)
+# Lint (check / fix)
 ./vendor/bin/phpcs
-
-# Lint (fix)
 ./vendor/bin/php-cs-fixer fix
 
-# Static analysis
-./vendor/bin/phpstan analyse
+# Static analysis — needs the raised memory limit (default 128M OOMs)
+php -d memory_limit=2G ./vendor/bin/phpstan analyse
 ```
 
 ## Key Rules

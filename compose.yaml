@@ -1,25 +1,39 @@
 # Self-contained test environment for markommerce.
 #
 # Unlike the workspace dev compose (~/www/marko/compose.yaml, which mounts a
-# developer's local ../marko + ../playground), this stack is standalone: it
-# clones the marko framework at the pinned .marko-version into a sibling path
-# inside the container, so `composer install` resolves with NO local checkout.
+# developer's live ../marko + ../playground), this stack is standalone: it clones
+# the marko framework at the pinned .marko-version into the container, so the
+# suite runs with NO local checkout. This is what CI uses; use it locally for
+# CI-parity or when you don't have the workspace.
 #
-#   docker compose up --abort-on-container-exit   # run the integration suite
-#   docker compose run --rm tests composer test    # unit suite
-#   docker compose run --rm tests bash             # interactive shell
+# IMPORTANT: marko is cloned into a NAMED VOLUME and dependencies install into a
+# SEPARATE vendor volume, so this stack never touches your host ../marko or the
+# host vendor/ used by the workspace dev compose.
 #
-# Developers normally keep using the workspace dev compose with their live
-# ../marko; this file is for self-contained / CI-parity runs.
+# One-off run (clones marko + installs, runs, exits):
+#   docker compose up --abort-on-container-exit        # integration suite (default cmd)
+#   docker compose run --rm tests composer test        # unit suite
+#
+# Fast repeated runs (recommended for iterating): start an interactive shell once
+# — the entrypoint clones marko + installs deps, then both persist in volumes —
+# and run commands inside it:
+#   docker compose run --rm tests bash
+#     composer test:integration
+#     composer test
+#     php -d memory_limit=2G ./vendor/bin/phpstan analyse
+#
+# After bumping .marko-version, reset the cached clone:  docker compose down -v
 services:
   tests:
     build:
       context: .
       dockerfile: Dockerfile
-    # Mount ONLY markommerce; marko is cloned into the sibling /workspace/marko
-    # by setup-marko.sh at startup (not mounted from the host).
     volumes:
       - .:/workspace/markommerce
+      # Isolate vendor + the marko clone from the host so this stack never
+      # rewrites the workspace dev compose's vendor/ or ../marko.
+      - tests-vendor:/workspace/markommerce/vendor
+      - marko-src:/workspace/marko
       - composer-cache:/root/.composer
     working_dir: /workspace/markommerce
     environment:
@@ -61,3 +75,5 @@ services:
 
 volumes:
   composer-cache:
+  tests-vendor:
+  marko-src:
