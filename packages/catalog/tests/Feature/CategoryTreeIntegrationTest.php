@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Markommerce\Catalog\Tests\Feature;
 
-use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
-use Markommerce\Catalog\Contracts\CategoryTreeServiceInterface;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Exceptions\CategoryHasPlacementsException;
 use Markommerce\Catalog\Exceptions\CircularNodeReferenceException;
@@ -49,9 +47,24 @@ it('materializes the tree with correct nesting and position order against the re
         $grandchild = $categoryFactory->withName('Grandchild')->create();
 
         $rootNode       = $treeService->placeCategory($treeId, (int) $root->id, parentNodeId: null, position: 0);
-        $childNode2     = $treeService->placeCategory($treeId, (int) $child2->id, parentNodeId: (int) $rootNode->id, position: 20);
-        $childNode1     = $treeService->placeCategory($treeId, (int) $child1->id, parentNodeId: (int) $rootNode->id, position: 10);
-        $grandchildNode = $treeService->placeCategory($treeId, (int) $grandchild->id, parentNodeId: (int) $childNode1->id, position: 0);
+        $childNode2     = $treeService->placeCategory(
+            $treeId,
+            (int) $child2->id,
+            parentNodeId: (int) $rootNode->id,
+            position: 20
+        );
+        $childNode1     = $treeService->placeCategory(
+            $treeId,
+            (int) $child1->id,
+            parentNodeId: (int) $rootNode->id,
+            position: 10
+        );
+        $grandchildNode = $treeService->placeCategory(
+            $treeId,
+            (int) $grandchild->id,
+            parentNodeId: (int) $childNode1->id,
+            position: 0
+        );
 
         $materialized = $treeService->getMaterializedTree($treeId);
 
@@ -170,11 +183,27 @@ it('detects a cycle when attempting to move a node under its own descendant', fu
         $catGrandchild = $categoryFactory->withName('Grandchild')->create();
 
         $rootNode      = $treeService->placeCategory($treeId, (int) $catRoot->id, parentNodeId: null, position: 0);
-        $childNode     = $treeService->placeCategory($treeId, (int) $catChild->id, parentNodeId: (int) $rootNode->id, position: 0);
-        $grandchildNode = $treeService->placeCategory($treeId, (int) $catGrandchild->id, parentNodeId: (int) $childNode->id, position: 0);
+        $childNode     = $treeService->placeCategory(
+            $treeId,
+            (int) $catChild->id,
+            parentNodeId: (int) $rootNode->id,
+            position: 0
+        );
+        $grandchildNode = $treeService->placeCategory(
+            $treeId,
+            (int) $catGrandchild->id,
+            parentNodeId: (int) $childNode->id,
+            position: 0
+        );
 
         // Moving the root node under its own grandchild should throw a cycle exception
-        expect(fn () => $treeService->moveNode((int) $rootNode->id, newParentNodeId: (int) $grandchildNode->id, position: 0))
+        expect(
+            fn () => $treeService->moveNode(
+                (int) $rootNode->id,
+                newParentNodeId: (int) $grandchildNode->id,
+                position: 0
+            )
+        )
             ->toThrow(CircularNodeReferenceException::class);
     } finally {
         $testCase->tearDownIntegration();

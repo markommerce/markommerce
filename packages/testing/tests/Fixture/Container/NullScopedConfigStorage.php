@@ -29,7 +29,14 @@ class NullScopedConfigStorage implements ScopedConfigStorageInterface
         return [];
     }
 
-    public function saveOverride(string $key, string $signature, mixed $value): void {}
+    public function saveOverride(
+        string $key,
+        string $signature,
+        mixed $value,
+    ): void {}
 
-    public function deleteOverride(string $key, string $signature): void {}
+    public function deleteOverride(
+        string $key,
+        string $signature,
+    ): void {}
 }

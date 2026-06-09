@@ -6,7 +6,6 @@ use Marko\Config\ConfigRepository;
 use Markommerce\CatalogPriceIndexMarket\Sorting\MarketScopedPriceExpression;
 use Markommerce\Criteria\Sort\NullsPlacement;
 use Markommerce\Criteria\Sort\SortDirection;
-use Markommerce\Criteria\Sort\SortField;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Registry\PhpScopeRegistry;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;

@@ -8,7 +8,10 @@ use Marko\Core\Exceptions\MarkoException;
 
 class MissingModuleException extends MarkoException
 {
-    public static function forModule(string $module, string $requiredFor): self
+    public static function forModule(
+        string $module,
+        string $requiredFor,
+    ): self
     {
         return new self(
             message: "The module '$module' is not loaded in the current store profile",

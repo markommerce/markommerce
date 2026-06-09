@@ -34,13 +34,16 @@ it('declares the Markommerce\\ConfigScope\\ namespace mapped to src/ in autoload
         ->and($composer['autoload']['psr-4']['Markommerce\\ConfigScope\\'])->toBe('src/');
 });
 
-it('declares the Markommerce\\ConfigScope\\Tests\\ namespace mapped to tests/ in autoload-dev psr-4', function (): void {
-    $composerPath = dirname(__DIR__) . '/composer.json';
-    $composer = json_decode(file_get_contents($composerPath), true);
-
-    expect($composer['autoload-dev']['psr-4'])->toHaveKey('Markommerce\\ConfigScope\\Tests\\')
-        ->and($composer['autoload-dev']['psr-4']['Markommerce\\ConfigScope\\Tests\\'])->toBe('tests/');
-});
+it(
+    'declares the Markommerce\\ConfigScope\\Tests\\ namespace mapped to tests/ in autoload-dev psr-4',
+    function (): void {
+        $composerPath = dirname(__DIR__) . '/composer.json';
+        $composer = json_decode(file_get_contents($composerPath), true);
+    
+        expect($composer['autoload-dev']['psr-4'])->toHaveKey('Markommerce\\ConfigScope\\Tests\\')
+            ->and($composer['autoload-dev']['psr-4']['Markommerce\\ConfigScope\\Tests\\'])->toBe('tests/');
+    }
+);
 
 it('declares extra.marko.module true in composer.json', function (): void {
     $composerPath = dirname(__DIR__) . '/composer.json';

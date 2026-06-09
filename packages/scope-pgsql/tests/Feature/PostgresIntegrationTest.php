@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Markommerce\Scope\PgSql\Tests\Feature;
 
-
 use Marko\Database\Attributes\Column;
 use Marko\Database\Attributes\Table;
 use Marko\Database\Diff\DiffCalculator;
@@ -27,7 +26,6 @@ use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\PgSql\Query\PgSqlScopedFieldRenderer;
 use Markommerce\Scope\PgSql\Schema\ScopesGinIndexEmitter;
-use Markommerce\Testing\Database\TestConnection;
 use Markommerce\Scope\Query\ScopedFieldExpression;
 use Markommerce\Scope\Query\ScopedOrderBy;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
@@ -38,6 +36,7 @@ use Markommerce\Scope\Signature\ScopeSignatureValidator;
 use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 use Markommerce\Scope\Storage\HasScopes;
 use Markommerce\Scope\Storage\HasScopesInterface;
+use Markommerce\Testing\Database\TestConnection;
 use PHPUnit\Framework\SkippedWithMessageException;
 
 // ─── Test-only entity fixtures ─────────────────────────────────────────────────

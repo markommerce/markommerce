@@ -14,6 +14,7 @@ use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
 use Markommerce\Catalog\Tests\Support\CategoryFactory;
 use Markommerce\Catalog\Tests\Support\ProductFactory;
 use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
+use Markommerce\Scope\Exceptions\ScopeStorageException;
 use Markommerce\Testing\Database\TestConnection;
 use Markommerce\Testing\IntegrationTestCase;
 use Markommerce\Testing\Profile\BootedStore;
@@ -41,7 +42,7 @@ function scopedPriceSortMakeOffsetOptions(CategorySortOrderInterface $sortOrder)
 /**
  * Set a market-scoped price override on an already-indexed product.
  *
- * @throws \Markommerce\Scope\Exceptions\ScopeStorageException
+ * @throws ScopeStorageException
  */
 function scopedPriceSortSetMarketOverride(BootedStore $store, int $productId, string $market, string $amount): void
 {
@@ -93,15 +94,19 @@ it('it orders by the active market override amount when present', function (): v
 
         $options = scopedPriceSortMakeOffsetOptions($priceAscOrder);
 
-        $store->inScope(market: 'us', locale: null, fn: function () use ($service, $categoryId, $marketCheapId, $marketExpensiveId, $options): void {
-            $page     = $service->paginatedProductsInCategory($categoryId, $options);
-            $products = $page->items->toArray();
-
-            expect($products)->toHaveCount(2);
-            // Market cheap ($5 us override) should come first in ascending order
+        $store->inScope(
+            market: 'us',
+            locale: null,
+            fn: function () use ($service, $categoryId, $marketCheapId, $marketExpensiveId, $options): void {
+                $page     = $service->paginatedProductsInCategory($categoryId, $options);
+                $products = $page->items->toArray();
+    
+                expect($products)->toHaveCount(2);
+                // Market cheap ($5 us override) should come first in ascending order
             expect($products[0]->id)->toBe($marketCheapId);
-            expect($products[1]->id)->toBe($marketExpensiveId);
-        });
+                expect($products[1]->id)->toBe($marketExpensiveId);
+            }
+        );
     } finally {
         $testCase->tearDownIntegration();
         $testCase->tearDownClass();
@@ -139,15 +144,19 @@ it('it falls back to the base amount when the active market has no override', fu
 
         $options = scopedPriceSortMakeOffsetOptions($priceAscOrder);
 
-        $store->inScope(market: 'us', locale: null, fn: function () use ($service, $categoryId, $cheapId, $expensiveId, $options): void {
-            $page     = $service->paginatedProductsInCategory($categoryId, $options);
-            $products = $page->items->toArray();
-
-            expect($products)->toHaveCount(2);
-            // Without market override, COALESCE falls back to base amount
+        $store->inScope(
+            market: 'us',
+            locale: null,
+            fn: function () use ($service, $categoryId, $cheapId, $expensiveId, $options): void {
+                $page     = $service->paginatedProductsInCategory($categoryId, $options);
+                $products = $page->items->toArray();
+    
+                expect($products)->toHaveCount(2);
+                // Without market override, COALESCE falls back to base amount
             expect($products[0]->id)->toBe($cheapId);
-            expect($products[1]->id)->toBe($expensiveId);
-        });
+                expect($products[1]->id)->toBe($expensiveId);
+            }
+        );
     } finally {
         $testCase->tearDownIntegration();
         $testCase->tearDownClass();
@@ -186,14 +195,18 @@ it('it still places products with no price last', function (): void {
 
         $options = scopedPriceSortMakeOffsetOptions($priceAscOrder);
 
-        $store->inScope(market: 'us', locale: null, fn: function () use ($service, $categoryId, $pricedId, $noPriceId, $options): void {
-            $page     = $service->paginatedProductsInCategory($categoryId, $options);
-            $products = $page->items->toArray();
-
-            expect($products)->toHaveCount(2);
-            expect($products[0]->id)->toBe($pricedId);
-            expect($products[1]->id)->toBe($noPriceId);
-        });
+        $store->inScope(
+            market: 'us',
+            locale: null,
+            fn: function () use ($service, $categoryId, $pricedId, $noPriceId, $options): void {
+                $page     = $service->paginatedProductsInCategory($categoryId, $options);
+                $products = $page->items->toArray();
+    
+                expect($products)->toHaveCount(2);
+                expect($products[0]->id)->toBe($pricedId);
+                expect($products[1]->id)->toBe($noPriceId);
+            }
+        );
     } finally {
         $testCase->tearDownIntegration();
         $testCase->tearDownClass();
@@ -234,15 +247,19 @@ it('it casts the json override amount to numeric so 100 sorts after 9', function
 
         $options = scopedPriceSortMakeOffsetOptions($priceAscOrder);
 
-        $store->inScope(market: 'us', locale: null, fn: function () use ($service, $categoryId, $nineId, $hundredId, $options): void {
-            $page     = $service->paginatedProductsInCategory($categoryId, $options);
-            $products = $page->items->toArray();
-
-            expect($products)->toHaveCount(2);
-            // With ::numeric cast, 9 < 100 (not "100" < "9" as text comparison)
+        $store->inScope(
+            market: 'us',
+            locale: null,
+            fn: function () use ($service, $categoryId, $nineId, $hundredId, $options): void {
+                $page     = $service->paginatedProductsInCategory($categoryId, $options);
+                $products = $page->items->toArray();
+    
+                expect($products)->toHaveCount(2);
+                // With ::numeric cast, 9 < 100 (not "100" < "9" as text comparison)
             expect($products[0]->id)->toBe($nineId);
-            expect($products[1]->id)->toBe($hundredId);
-        });
+                expect($products[1]->id)->toBe($hundredId);
+            }
+        );
     } finally {
         $testCase->tearDownIntegration();
         $testCase->tearDownClass();

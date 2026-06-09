@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Markommerce\Criteria\Sort\NullsPlacement;
 use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Criteria\Sort\SortField;
 
@@ -27,9 +28,9 @@ it('defaults to no nulls placement and no raw expression for a plain column sort
 });
 
 it('accepts an explicit nulls last placement', function (): void {
-    $field = new SortField(column: 'price', nulls: \Markommerce\Criteria\Sort\NullsPlacement::Last);
+    $field = new SortField(column: 'price', nulls: NullsPlacement::Last);
 
-    expect($field->nulls)->toBe(\Markommerce\Criteria\Sort\NullsPlacement::Last);
+    expect($field->nulls)->toBe(NullsPlacement::Last);
 });
 
 it('accepts a raw expression instead of a plain column', function (): void {

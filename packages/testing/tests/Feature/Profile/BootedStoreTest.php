@@ -7,7 +7,7 @@ use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use Markommerce\Scope\Storage\DefaultScopeGuard;
 use Markommerce\Testing\Database\TestConnection;
-use Markommerce\Testing\Profile\BootedStore;
+use Markommerce\Testing\Profile\Exceptions\MissingAppConfigPathException;
 use Markommerce\Testing\Profile\Exceptions\UndeclaredAxisException;
 use Markommerce\Testing\Profile\StoreProfile;
 
@@ -125,7 +125,7 @@ it('requires an explicit app config path for fromInstalled', function (): void {
     putenv('MARKO_APP_CONFIG_PATH');
 
     expect(fn () => StoreProfile::fromInstalled($vendorDir))
-        ->toThrow(\Markommerce\Testing\Profile\Exceptions\MissingAppConfigPathException::class);
+        ->toThrow(MissingAppConfigPathException::class);
 });
 
 it('exposes the entity directories for the booted module set', function (): void {

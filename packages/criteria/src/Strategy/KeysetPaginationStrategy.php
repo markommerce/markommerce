@@ -109,7 +109,10 @@ class KeysetPaginationStrategy implements PaginationStrategyInterface
      * Trust boundary: callers must supply validated sort-key column names.
      * Dynamic values are bound as parameters, never interpolated.
      */
-    private function applySeekPredicate(RepositoryQueryBuilder $query, KeysetPosition $position): void
+    private function applySeekPredicate(
+        RepositoryQueryBuilder $query,
+        KeysetPosition $position,
+    ): void
     {
         $anchor = $position->anchor;
         $id = $position->id;

@@ -34,7 +34,10 @@ class CategoryTreeNodeRepository extends Repository implements CategoryTreeNodeR
      *
      * @return list<CategoryTreeNode>
      */
-    public function findChildren(?int $parentNodeId, int $treeId): array
+    public function findChildren(
+        ?int $parentNodeId,
+        int $treeId,
+    ): array
     {
         if ($parentNodeId === null) {
             $sql = 'SELECT * FROM catalog_category_tree_nodes WHERE tree_id = ? AND parent_node_id IS NULL ORDER BY position ASC';
@@ -73,7 +76,10 @@ class CategoryTreeNodeRepository extends Repository implements CategoryTreeNodeR
      * @return list<CategoryTreeNode>
      * @throws RepositoryException
      */
-    public function findByCategoryInTree(int $categoryId, int $treeId): array
+    public function findByCategoryInTree(
+        int $categoryId,
+        int $treeId,
+    ): array
     {
         /** @var list<CategoryTreeNode> */
         return $this->findBy(['categoryId' => $categoryId, 'treeId' => $treeId])->toArray();

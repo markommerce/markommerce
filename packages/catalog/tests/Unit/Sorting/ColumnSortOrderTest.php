@@ -18,21 +18,36 @@ class SpyQueryBuilder extends RepositoryQueryBuilder
         // Skip parent constructor — no DB needed in unit tests.
     }
 
-    public function join(string $table, string $first, string $operator, string $second): static
+    public function join(
+        string $table,
+        string $first,
+        string $operator,
+        string $second,
+    ): static
     {
         $this->joinCallCount++;
 
         return $this;
     }
 
-    public function leftJoin(string $table, string $first, string $operator, string $second): static
+    public function leftJoin(
+        string $table,
+        string $first,
+        string $operator,
+        string $second,
+    ): static
     {
         $this->joinCallCount++;
 
         return $this;
     }
 
-    public function rightJoin(string $table, string $first, string $operator, string $second): static
+    public function rightJoin(
+        string $table,
+        string $first,
+        string $operator,
+        string $second,
+    ): static
     {
         $this->joinCallCount++;
 

@@ -21,6 +21,7 @@ class PriceResolver implements PriceResolverInterface
     public function resolve(PriceContext $context): Money
     {
         $result = $this->batchPriceResolver->resolve([0 => $context->product]);
+
         return $result[0] ?? throw PriceUnavailableException::forContext($context);
     }
 }

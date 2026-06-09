@@ -224,13 +224,16 @@ it('emits no CREATE INDEX statement for a GIN index on overrides', function (): 
     expect($indexRows)->toHaveCount(0);
 })->group('integration-destructive');
 
-it('returns a list with exactly one statement from ConfigValuesTableEmitter createStatements (down from two)', function (): void {
-    /** @var ConfigValuesTableEmitter $emitter */
-    $emitter = $this->emitter;
-    $statements = $emitter->createStatements($this->tableName);
-
-    expect($statements)->toHaveCount(1);
-})->group('integration-destructive');
+it(
+    'returns a list with exactly one statement from ConfigValuesTableEmitter createStatements (down from two)',
+    function (): void {
+        /** @var ConfigValuesTableEmitter $emitter */
+        $emitter = $this->emitter;
+        $statements = $emitter->createStatements($this->tableName);
+    
+        expect($statements)->toHaveCount(1);
+    }
+)->group('integration-destructive');
 
 it('is idempotent across multiple runs (no duplicate table errors)', function (): void {
     /** @var TestConnection $conn */

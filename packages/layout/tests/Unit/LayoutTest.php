@@ -6,8 +6,15 @@ use Markommerce\Layout\Layout;
 use Markommerce\Layout\Operation\Remove;
 
 it('passes PHPStan level 8 with the new fields typed', function (): void {
+    // Derive the monorepo root from this file (packages/layout/tests/Unit) rather
+    // than hardcoding a container path, so it works in CI as well as locally.
+    // Use the raised memory limit the project requires (default 128M OOMs).
+    $root = dirname(__DIR__, 4);
     $output = shell_exec(
-        'cd /workspace/markommerce && ./vendor/bin/phpstan analyse packages/layout/src/Layout.php --level=8 --no-progress 2>&1',
+        sprintf(
+            'cd %s && php -d memory_limit=2G vendor/bin/phpstan analyse packages/layout/src/Layout.php --level=8 --no-progress 2>&1',
+            escapeshellarg($root),
+        ),
     );
 
     expect($output)->toContain('[OK] No errors');

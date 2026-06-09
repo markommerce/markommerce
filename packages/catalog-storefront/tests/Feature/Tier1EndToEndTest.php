@@ -330,7 +330,9 @@ it(
             $store = $testCase->store;
 
             $category = CategoryFactory::new($store)->withName('Tier1 Category')->create();
-            ProductFactory::new($store)->withName('Tier1 Product')->withSku('TIER1-001')->inCategory($category)->create();
+            ProductFactory::new($store)->withName('Tier1 Product')->withSku('TIER1-001')->inCategory(
+                $category
+            )->create();
 
             $request = new Request([
                 'REQUEST_METHOD' => 'GET',
@@ -425,7 +427,9 @@ it(
             $store = $testCase->store;
 
             $category = CategoryFactory::new($store)->withName('Scope-Free Category')->create();
-            ProductFactory::new($store)->withName('Scope-Free Product')->withSku('SF-001')->inCategory($category)->create();
+            ProductFactory::new($store)->withName('Scope-Free Product')->withSku('SF-001')->inCategory(
+                $category
+            )->create();
 
             $request = new Request([
                 'REQUEST_METHOD' => 'GET',

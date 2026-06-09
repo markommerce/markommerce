@@ -22,6 +22,8 @@ it('moves all src classes to Markommerce\\CatalogMarket\\ namespace and they are
 
     foreach ($classes as $class) {
         expect(class_exists($class) || interface_exists($class))
-            ->toBeTrue("Class or interface $class should be autoloadable under Markommerce\\CatalogMarket\\ namespace");
+            ->toBeTrue(
+                "Class or interface $class should be autoloadable under Markommerce\\CatalogMarket\\ namespace"
+            );
     }
 });

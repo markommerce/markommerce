@@ -24,10 +24,17 @@ interface ScopedConfigStorageInterface
     /**
      * Save (or replace) an override for a (key, signature) pair.
      */
-    public function saveOverride(string $key, string $signature, mixed $value): void;
+    public function saveOverride(
+        string $key,
+        string $signature,
+        mixed $value,
+    ): void;
 
     /**
      * Remove an override for a (key, signature) pair.
      */
-    public function deleteOverride(string $key, string $signature): void;
+    public function deleteOverride(
+        string $key,
+        string $signature,
+    ): void;
 }

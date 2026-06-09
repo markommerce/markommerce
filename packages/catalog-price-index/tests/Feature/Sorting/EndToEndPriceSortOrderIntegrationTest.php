@@ -19,13 +19,13 @@ use Markommerce\Catalog\Tests\Support\CategoryFactory;
 use Markommerce\Catalog\Tests\Support\ProductFactory;
 use Markommerce\CatalogPriceIndex\Sorting\AscendingIndexedPriceSortOrder;
 use Markommerce\CatalogPriceIndex\Sorting\DescendingIndexedPriceSortOrder;
-use Markommerce\Testing\Database\TestConnection;
-use Markommerce\Testing\IntegrationTestCase;
-use Markommerce\Testing\Profile\StoreProfile;
 use Markommerce\Config\Contracts\ConfigResolverInterface;
 use Markommerce\Criteria\Position\PositionCodec;
 use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
+use Markommerce\Testing\Database\TestConnection;
+use Markommerce\Testing\IntegrationTestCase;
+use Markommerce\Testing\Profile\StoreProfile;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -109,7 +109,10 @@ function e2ePriceMakeResolver(
         /** @param array<string, mixed> $values */
         public function __construct(private array $values) {}
 
-        public function resolved(string $configClass, string $field): mixed
+        public function resolved(
+            string $configClass,
+            string $field,
+        ): mixed
         {
             return $this->values[$field] ?? null;
         }
@@ -332,7 +335,7 @@ it('preserves the selected sort across pagination pages', function (): void {
         $productIds = [];
 
         foreach ($prices as $i => $price) {
-            $product = $productFactory->withName("Product $i")->withSku("E2E-PAGE-{$i}")->create();
+            $product = $productFactory->withName("Product $i")->withSku("E2E-PAGE-$i")->create();
             $conn->execute(
                 'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, ?)',
                 [(int) $product->id, (int) $category->id, $i],

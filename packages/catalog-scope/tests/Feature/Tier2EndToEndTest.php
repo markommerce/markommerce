@@ -186,7 +186,10 @@ function makeTier2ProductConnection(): ConnectionInterface
             return true;
         }
 
-        public function query(string $sql, array $bindings = []): array
+        public function query(
+            string $sql,
+            array $bindings = [],
+        ): array
         {
             if (str_contains($sql, 'WHERE id = ?')) {
                 return [[
@@ -201,7 +204,10 @@ function makeTier2ProductConnection(): ConnectionInterface
             return [];
         }
 
-        public function execute(string $sql, array $bindings = []): int
+        public function execute(
+            string $sql,
+            array $bindings = [],
+        ): int
         {
             if (str_starts_with($sql, 'INSERT')) {
                 $this->lastId++;
@@ -247,7 +253,10 @@ function makeTier2CategoryConnection(): ConnectionInterface
             return true;
         }
 
-        public function query(string $sql, array $bindings = []): array
+        public function query(
+            string $sql,
+            array $bindings = [],
+        ): array
         {
             if (str_contains($sql, 'WHERE id = ?')) {
                 return [[
@@ -261,7 +270,10 @@ function makeTier2CategoryConnection(): ConnectionInterface
             return [];
         }
 
-        public function execute(string $sql, array $bindings = []): int
+        public function execute(
+            string $sql,
+            array $bindings = [],
+        ): int
         {
             if (str_starts_with($sql, 'INSERT')) {
                 $this->lastId++;
@@ -285,28 +297,34 @@ function makeTier2CategoryConnection(): ConnectionInterface
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-it('registers the locale axis in ScopeRegistryInterface after booting all of scope + locale + catalog + catalog-scope + catalog-locale', function (): void {
-    DefaultScopeGuard::reset();
+it(
+    'registers the locale axis in ScopeRegistryInterface after booting all of scope + locale + catalog + catalog-scope + catalog-locale',
+    function (): void {
+        DefaultScopeGuard::reset();
+    
+        $container = buildTier2Container();
+        bootTier2($container);
+    
+        $registry = $container->get(ScopeRegistryInterface::class);
+    
+        expect($registry->hasAxis('locale'))->toBeTrue()
+            ->and($registry->listAxes())->toContain('locale');
+    }
+);
 
-    $container = buildTier2Container();
-    bootTier2($container);
-
-    $registry = $container->get(ScopeRegistryInterface::class);
-
-    expect($registry->hasAxis('locale'))->toBeTrue()
-        ->and($registry->listAxes())->toContain('locale');
-});
-
-it('exposes Product.name as locale-scoped via ScopedFieldRegistry after the catalog-locale bridge boot runs', function (): void {
-    DefaultScopeGuard::reset();
-
-    $container = buildTier2Container();
-    bootTier2($container);
-
-    $registry = $container->get(ScopedFieldRegistry::class);
-
-    expect($registry->axesForProperty(Product::class, 'name'))->toBe(['locale']);
-});
+it(
+    'exposes Product.name as locale-scoped via ScopedFieldRegistry after the catalog-locale bridge boot runs',
+    function (): void {
+        DefaultScopeGuard::reset();
+    
+        $container = buildTier2Container();
+        bootTier2($container);
+    
+        $registry = $container->get(ScopedFieldRegistry::class);
+    
+        expect($registry->axesForProperty(Product::class, 'name'))->toBe(['locale']);
+    }
+);
 
 it('exposes Product.description, Category.name, Category.description as locale-scoped after boot', function (): void {
     DefaultScopeGuard::reset();
@@ -321,39 +339,42 @@ it('exposes Product.description, Category.name, Category.description as locale-s
         ->and($registry->axesForProperty(Category::class, 'description'))->toBe(['locale']);
 });
 
-it('persists a Product with an attached ProductScopedOverrides companion and re-fetches both rows through ProductRepository::find', function (): void {
-    DefaultScopeGuard::reset();
-
-    $container = buildTier2Container();
-    bootTier2($container);
-
-    $connection = makeTier2ProductConnection();
-    $metadataFactory = new EntityMetadataFactory();
-    $metadataFactory->linkExtenders(Product::class, [ProductScopedOverrides::class]);
-    $hydrator = new EntityHydrator($metadataFactory);
-    $productRepo = new ProductRepository($connection, $metadataFactory, $hydrator);
-
-    $product = new Product();
-    $product->sku = 'SKU-001';
-    $product->name = 'Shirt';
-
-    $overrides = new ProductScopedOverrides();
-    $overrides->setOverride('locale:de', 'name', 'Hemd');
-    $product->attachCompanion($overrides);
-
-    $productRepo->save($product);
-
-    /** @var Product $found */
-    $found = $productRepo->find($product->id);
-
-    /** @var ProductScopedOverrides $foundOverrides */
-    $foundOverrides = $found->companion(ProductScopedOverrides::class);
-
-    expect($found)->not->toBeNull()
-        ->and($found->name)->toBe('Shirt')
-        ->and($foundOverrides)->not->toBeNull()
-        ->and($foundOverrides->override('locale:de', 'name'))->toBe('Hemd');
-});
+it(
+    'persists a Product with an attached ProductScopedOverrides companion and re-fetches both rows through ProductRepository::find',
+    function (): void {
+        DefaultScopeGuard::reset();
+    
+        $container = buildTier2Container();
+        bootTier2($container);
+    
+        $connection = makeTier2ProductConnection();
+        $metadataFactory = new EntityMetadataFactory();
+        $metadataFactory->linkExtenders(Product::class, [ProductScopedOverrides::class]);
+        $hydrator = new EntityHydrator($metadataFactory);
+        $productRepo = new ProductRepository($connection, $metadataFactory, $hydrator);
+    
+        $product = new Product();
+        $product->sku = 'SKU-001';
+        $product->name = 'Shirt';
+    
+        $overrides = new ProductScopedOverrides();
+        $overrides->setOverride('locale:de', 'name', 'Hemd');
+        $product->attachCompanion($overrides);
+    
+        $productRepo->save($product);
+    
+        /** @var Product $found */
+        $found = $productRepo->find($product->id);
+    
+        /** @var ProductScopedOverrides $foundOverrides */
+        $foundOverrides = $found->companion(ProductScopedOverrides::class);
+    
+        expect($found)->not->toBeNull()
+            ->and($found->name)->toBe('Shirt')
+            ->and($foundOverrides)->not->toBeNull()
+            ->and($foundOverrides->override('locale:de', 'name'))->toBe('Hemd');
+    }
+);
 
 it('returns the raw Product.name when the active locale context matches the axis default', function (): void {
     DefaultScopeGuard::reset();
@@ -403,79 +424,85 @@ it('returns the German override Product.name when the active locale context is d
     expect($result)->toBe('Hemd');
 });
 
-it('falls back to the raw Product.name when the active locale context is an axis-valid scope with no override (e.g., fr)', function (): void {
-    DefaultScopeGuard::reset();
+it(
+    'falls back to the raw Product.name when the active locale context is an axis-valid scope with no override (e.g., fr)',
+    function (): void {
+        DefaultScopeGuard::reset();
+    
+        $container = buildTier2Container();
+        bootTier2($container);
+    
+        $scopeResolver = $container->get(ScopeResolver::class);
+        $scopeContext = $container->get(ScopeContext::class);
+    
+        $product = new Product();
+        $product->name = 'Shirt';
+    
+        $overrides = new ProductScopedOverrides();
+        $overrides->setOverride('locale:de', 'name', 'Hemd');
+        $product->attachCompanion($overrides);
+    
+        $scopeContext->clearAll();
+        $scopeContext->in('locale', 'fr');
+    
+        $result = $scopeResolver->resolved($product, 'name');
+    
+        expect($result)->toBe('Shirt');
+    }
+);
 
-    $container = buildTier2Container();
-    bootTier2($container);
-
-    $scopeResolver = $container->get(ScopeResolver::class);
-    $scopeContext = $container->get(ScopeContext::class);
-
-    $product = new Product();
-    $product->name = 'Shirt';
-
-    $overrides = new ProductScopedOverrides();
-    $overrides->setOverride('locale:de', 'name', 'Hemd');
-    $product->attachCompanion($overrides);
-
-    $scopeContext->clearAll();
-    $scopeContext->in('locale', 'fr');
-
-    $result = $scopeResolver->resolved($product, 'name');
-
-    expect($result)->toBe('Shirt');
-});
-
-it('propagates the same resolution semantics for Category.name through CategoryRepository + CategoryScopedOverrides', function (): void {
-    DefaultScopeGuard::reset();
-
-    $container = buildTier2Container();
-    bootTier2($container);
-
-    // Persistence round-trip via CategoryRepository
+it(
+    'propagates the same resolution semantics for Category.name through CategoryRepository + CategoryScopedOverrides',
+    function (): void {
+        DefaultScopeGuard::reset();
+    
+        $container = buildTier2Container();
+        bootTier2($container);
+    
+        // Persistence round-trip via CategoryRepository
     $connection = makeTier2CategoryConnection();
-    $metadataFactory = new EntityMetadataFactory();
-    $metadataFactory->linkExtenders(Category::class, [CategoryScopedOverrides::class]);
-    $hydrator = new EntityHydrator($metadataFactory);
-    $categoryRepo = new CategoryRepository($connection, $metadataFactory, $hydrator);
-
-    $category = new Category();
-    $category->name = 'Clothing';
-
-    $overrides = new CategoryScopedOverrides();
-    $overrides->setOverride('locale:de', 'name', 'Kleidung');
-    $category->attachCompanion($overrides);
-
-    $categoryRepo->save($category);
-
-    /** @var Category $found */
-    $found = $categoryRepo->find($category->id);
-
-    /** @var CategoryScopedOverrides $foundOverrides */
-    $foundOverrides = $found->companion(CategoryScopedOverrides::class);
-
-    expect($found)->not->toBeNull()
-        ->and($found->name)->toBe('Clothing')
-        ->and($foundOverrides)->not->toBeNull()
-        ->and($foundOverrides->override('locale:de', 'name'))->toBe('Kleidung');
-
-    // Resolution via ScopeResolver
+        $metadataFactory = new EntityMetadataFactory();
+        $metadataFactory->linkExtenders(Category::class, [CategoryScopedOverrides::class]);
+        $hydrator = new EntityHydrator($metadataFactory);
+        $categoryRepo = new CategoryRepository($connection, $metadataFactory, $hydrator);
+    
+        $category = new Category();
+        $category->name = 'Clothing';
+    
+        $overrides = new CategoryScopedOverrides();
+        $overrides->setOverride('locale:de', 'name', 'Kleidung');
+        $category->attachCompanion($overrides);
+    
+        $categoryRepo->save($category);
+    
+        /** @var Category $found */
+        $found = $categoryRepo->find($category->id);
+    
+        /** @var CategoryScopedOverrides $foundOverrides */
+        $foundOverrides = $found->companion(CategoryScopedOverrides::class);
+    
+        expect($found)->not->toBeNull()
+            ->and($found->name)->toBe('Clothing')
+            ->and($foundOverrides)->not->toBeNull()
+            ->and($foundOverrides->override('locale:de', 'name'))->toBe('Kleidung');
+    
+        // Resolution via ScopeResolver
     $scopeResolver = $container->get(ScopeResolver::class);
-    $scopeContext = $container->get(ScopeContext::class);
-
-    // Default scope → raw value
+        $scopeContext = $container->get(ScopeContext::class);
+    
+        // Default scope → raw value
     $scopeContext->clearAll();
-    $scopeContext->in('locale', 'default');
-    expect($scopeResolver->resolved($category, 'name'))->toBe('Clothing');
-
-    // de scope → override
+        $scopeContext->in('locale', 'default');
+        expect($scopeResolver->resolved($category, 'name'))->toBe('Clothing');
+    
+        // de scope → override
     $scopeContext->clearAll();
-    $scopeContext->in('locale', 'de');
-    expect($scopeResolver->resolved($category, 'name'))->toBe('Kleidung');
-
-    // fr scope (no override) → raw value
+        $scopeContext->in('locale', 'de');
+        expect($scopeResolver->resolved($category, 'name'))->toBe('Kleidung');
+    
+        // fr scope (no override) → raw value
     $scopeContext->clearAll();
-    $scopeContext->in('locale', 'fr');
-    expect($scopeResolver->resolved($category, 'name'))->toBe('Clothing');
-});
+        $scopeContext->in('locale', 'fr');
+        expect($scopeResolver->resolved($category, 'name'))->toBe('Clothing');
+    }
+);

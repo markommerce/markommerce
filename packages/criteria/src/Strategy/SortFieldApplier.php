@@ -10,7 +10,10 @@ use Markommerce\Criteria\Sort\SortField;
 
 readonly class SortFieldApplier
 {
-    public function apply(RepositoryQueryBuilder $query, SortField $field): void
+    public function apply(
+        RepositoryQueryBuilder $query,
+        SortField $field,
+    ): void
     {
         $expr = $field->sortExpression();
         $direction = $field->direction->value;

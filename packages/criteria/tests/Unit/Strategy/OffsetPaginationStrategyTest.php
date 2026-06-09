@@ -12,6 +12,7 @@ use Markommerce\Criteria\Page\PageRequest;
 use Markommerce\Criteria\Position\KeysetPosition;
 use Markommerce\Criteria\Position\OffsetPosition;
 use Markommerce\Criteria\Position\PositionCodec;
+use Markommerce\Criteria\Sort\NullsPlacement;
 use Markommerce\Criteria\Sort\Sort;
 use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Criteria\Sort\SortField;
@@ -43,14 +44,20 @@ class FakeOffsetQueryBuilder extends RepositoryQueryBuilder
         // Skip parent constructor — no DB needed in unit tests.
     }
 
-    public function orderBy(string $column, string $direction = 'ASC'): static
+    public function orderBy(
+        string $column,
+        string $direction = 'ASC',
+    ): static
     {
         $this->orderByCalls[] = ['column' => $column, 'direction' => $direction];
 
         return $this;
     }
 
-    public function orderByRaw(string $expression, string $direction = 'ASC'): static
+    public function orderByRaw(
+        string $expression,
+        string $direction = 'ASC',
+    ): static
     {
         $this->orderByRawCalls[] = ['expression' => $expression, 'direction' => $direction];
 
@@ -261,36 +268,42 @@ it('applies the sort fields and a deterministic id tie-break to the query', func
     ]);
 });
 
-it('applies a plain column sort field via orderBy when no raw expression or nulls placement is set', function (): void {
-    $query = makeQuery(fakeEntityCount: 10);
-    $strategy = makeStrategy(total: 30);
-    $sort = new Sort(new SortField('price', SortDirection::Ascending));
-    $request = PageRequest::first(size: 10, sort: $sort);
+it(
+    'applies a plain column sort field via orderBy when no raw expression or nulls placement is set',
+    function (): void {
+        $query = makeQuery(fakeEntityCount: 10);
+        $strategy = makeStrategy(total: 30);
+        $sort = new Sort(new SortField('price', SortDirection::Ascending));
+        $request = PageRequest::first(size: 10, sort: $sort);
+    
+        $strategy->paginate($query, $request);
+    
+        expect($query->orderByCalls)->toContain(['column' => 'price', 'direction' => 'ASC'])
+            ->and($query->orderByRawCalls)->toBeEmpty();
+    }
+);
 
-    $strategy->paginate($query, $request);
-
-    expect($query->orderByCalls)->toContain(['column' => 'price', 'direction' => 'ASC'])
-        ->and($query->orderByRawCalls)->toBeEmpty();
-});
-
-it('expands a nulls-last sort field into an IS NULL companion clause followed by the real ordering in the offset strategy', function (): void {
-    $query = makeQuery(fakeEntityCount: 10);
-    $strategy = makeStrategy(total: 30);
-    $sort = new Sort(new SortField('price', SortDirection::Ascending, nulls: \Markommerce\Criteria\Sort\NullsPlacement::Last));
-    $request = PageRequest::first(size: 10, sort: $sort);
-
-    $strategy->paginate($query, $request);
-
-    expect($query->orderByRawCalls)->toHaveCount(2)
-        ->and($query->orderByRawCalls[0])->toBe(['expression' => '(price) IS NULL', 'direction' => 'ASC'])
-        ->and($query->orderByRawCalls[1])->toBe(['expression' => 'price', 'direction' => 'ASC']);
-});
+it(
+    'expands a nulls-last sort field into an IS NULL companion clause followed by the real ordering in the offset strategy',
+    function (): void {
+        $query = makeQuery(fakeEntityCount: 10);
+        $strategy = makeStrategy(total: 30);
+        $sort = new Sort(new SortField('price', SortDirection::Ascending, nulls: NullsPlacement::Last));
+        $request = PageRequest::first(size: 10, sort: $sort);
+    
+        $strategy->paginate($query, $request);
+    
+        expect($query->orderByRawCalls)->toHaveCount(2)
+            ->and($query->orderByRawCalls[0])->toBe(['expression' => '(price) IS NULL', 'direction' => 'ASC'])
+            ->and($query->orderByRawCalls[1])->toBe(['expression' => 'price', 'direction' => 'ASC']);
+    }
+);
 
 it('keeps the IS NULL companion ascending so non-null values sort first in both directions', function (): void {
     // Descending real field — companion IS NULL must still be ASC
     $query = makeQuery(fakeEntityCount: 10);
     $strategy = makeStrategy(total: 30);
-    $sort = new Sort(new SortField('price', SortDirection::Descending, nulls: \Markommerce\Criteria\Sort\NullsPlacement::Last));
+    $sort = new Sort(new SortField('price', SortDirection::Descending, nulls: NullsPlacement::Last));
     $request = PageRequest::first(size: 10, sort: $sort);
 
     $strategy->paginate($query, $request);
@@ -302,13 +315,17 @@ it('keeps the IS NULL companion ascending so non-null values sort first in both 
 it('applies a raw-expression sort field via orderByRaw in the offset strategy', function (): void {
     $query = makeQuery(fakeEntityCount: 10);
     $strategy = makeStrategy(total: 30);
-    $sort = new Sort(new SortField('price', SortDirection::Ascending, expression: "COALESCE(price_index->>'amount', price)"));
+    $sort = new Sort(
+        new SortField('price', SortDirection::Ascending, expression: "COALESCE(price_index->>'amount', price)")
+    );
     $request = PageRequest::first(size: 10, sort: $sort);
 
     $strategy->paginate($query, $request);
 
     expect($query->orderByRawCalls)->toHaveCount(1)
-        ->and($query->orderByRawCalls[0])->toBe(['expression' => "COALESCE(price_index->>'amount', price)", 'direction' => 'ASC'])
+        ->and($query->orderByRawCalls[0])->toBe(
+            ['expression' => "COALESCE(price_index->>'amount', price)", 'direction' => 'ASC']
+        )
         ->and($query->orderByCalls)->not->toContain(['column' => 'price', 'direction' => 'ASC']);
 });
 
@@ -316,7 +333,7 @@ it('preserves the id ascending tie-break after applying sort fields', function (
     $query = makeQuery(fakeEntityCount: 10);
     $strategy = makeStrategy(total: 30);
     // Use nulls-last sort (expands to 2 orderByRaw) to ensure id tie-break still comes last
-    $sort = new Sort(new SortField('price', SortDirection::Ascending, nulls: \Markommerce\Criteria\Sort\NullsPlacement::Last));
+    $sort = new Sort(new SortField('price', SortDirection::Ascending, nulls: NullsPlacement::Last));
     $request = PageRequest::first(size: 10, sort: $sort);
 
     $strategy->paginate($query, $request);

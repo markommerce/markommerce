@@ -37,35 +37,40 @@ function catalogFragmentMakeTestCase(): IntegrationTestCase
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-it('migrates CategoryPageFragmentTest for the load-more fragment endpoint rendering its real fragment layout', function (): void {
-    IntegrationTestCase::skipIfUnavailable();
-
-    $testCase = catalogFragmentMakeTestCase();
-    $testCase->setUpIntegration();
-
-    try {
-        $store = $testCase->store;
-
-        $category = CategoryFactory::new($store)->withName('Test Category')->create();
-        ProductFactory::new($store)->withSku('FRAG-001')->withName('Fragment Product')->inCategory($category)->create();
-
-        $request = new Request(
-            server: ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/' . $category->id . '/page'],
-            query: ['page' => '1'],
-        );
-        $response = $store->handle($request);
-
-        expect($response->statusCode())->toBe(200);
-        // Real fragment layout renders product-grid-fragment.latte which wraps product cards
+it(
+    'migrates CategoryPageFragmentTest for the load-more fragment endpoint rendering its real fragment layout',
+    function (): void {
+        IntegrationTestCase::skipIfUnavailable();
+    
+        $testCase = catalogFragmentMakeTestCase();
+        $testCase->setUpIntegration();
+    
+        try {
+            $store = $testCase->store;
+    
+            $category = CategoryFactory::new($store)->withName('Test Category')->create();
+            ProductFactory::new($store)->withSku('FRAG-001')->withName('Fragment Product')->inCategory(
+                $category
+            )->create();
+    
+            $request = new Request(
+                server: ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/' . $category->id . '/page'],
+                query: ['page' => '1'],
+            );
+            $response = $store->handle($request);
+    
+            expect($response->statusCode())->toBe(200);
+            // Real fragment layout renders product-grid-fragment.latte which wraps product cards
         expect($response->body())->toContain('catalog-product-grid-fragment');
-        // Product card is rendered with real mk-* markup
+            // Product card is rendered with real mk-* markup
         expect($response->body())->toContain('catalog-product-card');
-        // Real Latte output — no fake-view placeholder strings
+            // Real Latte output — no fake-view placeholder strings
         expect($response->body())->not->toContain('data-template=');
-    } finally {
-        $testCase->tearDownIntegration();
+        } finally {
+            $testCase->tearDownIntegration();
+        }
     }
-})->group('integration-destructive');
+)->group('integration-destructive');
 
 it('renders the product cards for the requested page as html', function (): void {
     IntegrationTestCase::skipIfUnavailable();
@@ -103,7 +108,9 @@ it('produces card markup identical to the full page render', function (): void {
         $store = $testCase->store;
 
         $category = CategoryFactory::new($store)->withName('Test Category')->create();
-        ProductFactory::new($store)->withSku('PROD-001')->withName('Identical Card Product')->inCategory($category)->create();
+        ProductFactory::new($store)->withSku('PROD-001')->withName('Identical Card Product')->inCategory(
+            $category
+        )->create();
 
         // Fetch full page
         $fullRequest = new Request(

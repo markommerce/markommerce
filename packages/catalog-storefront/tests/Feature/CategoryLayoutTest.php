@@ -206,7 +206,10 @@ function categoryLayoutMakeConfigResolver(array $values = []): ConfigResolverInt
         /** @param array<string, mixed> $values */
         public function __construct(private readonly array $values) {}
 
-        public function resolved(string $configClass, string $field): mixed
+        public function resolved(
+            string $configClass,
+            string $field,
+        ): mixed
         {
             return $this->values[$field] ?? null;
         }
@@ -242,7 +245,10 @@ function categoryLayoutMakeAssignmentService(
         new KeysetPaginationStrategy($positionCodec),
     ) extends CategoryAssignmentService
     {
-        public function paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $options): Page
+        public function paginatedProductsInCategory(
+            int $categoryId,
+            ResolvedPaginationOptions $options,
+        ): Page
         {
             $products = $this->productsInCategory($categoryId);
 
@@ -349,10 +355,10 @@ it('loads the category via a context provider instead of inside the component', 
     $params = $dataMethod->getParameters();
 
     $paramNames = array_map(fn ($p) => $p->getName(), $params);
-    $paramTypes = array_map(function (\ReflectionParameter $p): ?string {
+    $paramTypes = array_map(function (ReflectionParameter $p): ?string {
         $type = $p->getType();
 
-        return $type instanceof \ReflectionNamedType ? $type->getName() : null;
+        return $type instanceof ReflectionNamedType ? $type->getName() : null;
     }, $params);
     expect($paramTypes)->toContain(Category::class);
     expect($paramNames[0])->toBe('category');

@@ -43,30 +43,33 @@ function resolvePreferenceCompatConfig(): ConfigRepository
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-it('both packages boot together without a TypeError and the preference replacement is type-compatible', function (): void {
-    // This is the regression test for the production bug:
+it(
+    'both packages boot together without a TypeError and the preference replacement is type-compatible',
+    function (): void {
+        // This is the regression test for the production bug:
     // catalog-price-index/module.php's boot closure type-hints the concrete
     // AscendingIndexedPriceSortOrder and DescendingIndexedPriceSortOrder.
     // When catalog-price-index-market is installed, the preference swaps them for
     // scoped variants. If the scoped variants are NOT subtypes of the concrete classes,
     // the container would throw a TypeError at boot time.
 
-    $manifests  = resolvePreferenceCompatManifests();
-    $config     = resolvePreferenceCompatConfig();
-    $connection = new NullConnection();
-
-    $bootstrapper = new ContainerBootstrapper();
-
-    // Must NOT throw a TypeError — the scoped classes are now subtypes of the originals
+        $manifests  = resolvePreferenceCompatManifests();
+        $config     = resolvePreferenceCompatConfig();
+        $connection = new NullConnection();
+    
+        $bootstrapper = new ContainerBootstrapper();
+    
+        // Must NOT throw a TypeError — the scoped classes are now subtypes of the originals
     $container = $bootstrapper->bootedContainer($manifests, $config, $connection);
-
-    // The container must resolve AscendingIndexedPriceSortOrder as the scoped variant
+    
+        // The container must resolve AscendingIndexedPriceSortOrder as the scoped variant
     $ascending = $container->get(AscendingIndexedPriceSortOrder::class);
-    expect($ascending)->toBeInstanceOf(ScopedAscendingIndexedPriceSortOrder::class);
-    expect($ascending)->toBeInstanceOf(AscendingIndexedPriceSortOrder::class);
-
-    // The container must resolve DescendingIndexedPriceSortOrder as the scoped variant
+        expect($ascending)->toBeInstanceOf(ScopedAscendingIndexedPriceSortOrder::class);
+        expect($ascending)->toBeInstanceOf(AscendingIndexedPriceSortOrder::class);
+    
+        // The container must resolve DescendingIndexedPriceSortOrder as the scoped variant
     $descending = $container->get(DescendingIndexedPriceSortOrder::class);
-    expect($descending)->toBeInstanceOf(ScopedDescendingIndexedPriceSortOrder::class);
-    expect($descending)->toBeInstanceOf(DescendingIndexedPriceSortOrder::class);
-})->group('integration-destructive');
+        expect($descending)->toBeInstanceOf(ScopedDescendingIndexedPriceSortOrder::class);
+        expect($descending)->toBeInstanceOf(DescendingIndexedPriceSortOrder::class);
+    }
+)->group('integration-destructive');

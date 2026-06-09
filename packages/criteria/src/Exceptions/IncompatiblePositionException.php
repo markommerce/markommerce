@@ -8,7 +8,10 @@ use Marko\Core\Exceptions\MarkoException;
 
 class IncompatiblePositionException extends MarkoException
 {
-    public static function expected(string $strategy, string $tokenType): self
+    public static function expected(
+        string $strategy,
+        string $tokenType,
+    ): self
     {
         return new self(
             message: "Strategy '$strategy' cannot use a '$tokenType' position token",

@@ -37,43 +37,46 @@ function catalogSeoMakeTestCase(): IntegrationTestCase
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-it('migrates CategorySeoTest asserting canonical and SEO headers from real data (config-driven view-all set via the real config pipeline)', function (): void {
-    IntegrationTestCase::skipIfUnavailable();
-
-    $testCase = catalogSeoMakeTestCase();
-    $testCase->setUpIntegration();
-
-    try {
-        $store = $testCase->store;
-
-        $category = CategoryFactory::new($store)->withName('Electronics')->create();
-
-        // defaultPageSize=24, defaultSort=position — requesting defaults should omit them from canonical
+it(
+    'migrates CategorySeoTest asserting canonical and SEO headers from real data (config-driven view-all set via the real config pipeline)',
+    function (): void {
+        IntegrationTestCase::skipIfUnavailable();
+    
+        $testCase = catalogSeoMakeTestCase();
+        $testCase->setUpIntegration();
+    
+        try {
+            $store = $testCase->store;
+    
+            $category = CategoryFactory::new($store)->withName('Electronics')->create();
+    
+            // defaultPageSize=24, defaultSort=position — requesting defaults should omit them from canonical
         $request = new Request(
-            server: [
-                'REQUEST_METHOD' => 'GET',
-                'REQUEST_URI'    => '/catalog/category/' . $category->id . '?page=1&size=24&sort=position',
-                'HTTP_HOST'      => 'example.com',
-            ],
-            query: ['page' => '1', 'size' => '24', 'sort' => 'position'],
-        );
-        $response = $store->handle($request);
-
-        expect($response->statusCode())->toBe(200);
-        $canonical = $response->headers()['Link'] ?? null;
-        expect($canonical)->not->toBeNull();
-        // page=1 is default — canonical should NOT include page param
+                server: [
+                    'REQUEST_METHOD' => 'GET',
+                    'REQUEST_URI'    => '/catalog/category/' . $category->id . '?page=1&size=24&sort=position',
+                    'HTTP_HOST'      => 'example.com',
+                ],
+                query: ['page' => '1', 'size' => '24', 'sort' => 'position'],
+            );
+            $response = $store->handle($request);
+    
+            expect($response->statusCode())->toBe(200);
+            $canonical = $response->headers()['Link'] ?? null;
+            expect($canonical)->not->toBeNull();
+            // page=1 is default — canonical should NOT include page param
         expect($canonical)->not->toContain('page=1');
-        // size=24 is the default page size — should NOT be included in canonical
+            // size=24 is the default page size — should NOT be included in canonical
         expect($canonical)->not->toContain('size=24');
-        // sort=position is the default — should NOT be included in canonical
+            // sort=position is the default — should NOT be included in canonical
         expect($canonical)->not->toContain('sort=position');
-        // Canonical URL should be just the bare category path
+            // Canonical URL should be just the bare category path
         expect($canonical)->toContain('/catalog/category/' . $category->id . '>');
-    } finally {
-        $testCase->tearDownIntegration();
+        } finally {
+            $testCase->tearDownIntegration();
+        }
     }
-})->group('integration-destructive');
+)->group('integration-destructive');
 
 it('renders all products on one page when under the view-all threshold', function (): void {
     IntegrationTestCase::skipIfUnavailable();
@@ -94,7 +97,9 @@ it('renders all products on one page when under the view-all threshold', functio
         $category = CategoryFactory::new($store)->withName('Small Category')->create();
 
         for ($i = 1; $i <= 3; $i++) {
-            ProductFactory::new($store)->withSku('SKU-' . $i)->withName('Product ' . $i)->inCategory($category)->create();
+            ProductFactory::new($store)->withSku('SKU-' . $i)->withName('Product ' . $i)->inCategory(
+                $category
+            )->create();
         }
 
         $request = new Request(

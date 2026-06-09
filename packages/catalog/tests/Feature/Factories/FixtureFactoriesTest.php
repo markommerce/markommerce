@@ -11,6 +11,7 @@ use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Tests\Support\CategoryFactory;
 use Markommerce\Catalog\Tests\Support\ProductFactory;
+use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
 use Markommerce\Testing\Database\TestConnection;
 use Markommerce\Testing\Fixtures\Exceptions\MissingModuleException;
 use Markommerce\Testing\IntegrationTestCase;
@@ -156,8 +157,8 @@ it('writes an indexed price row when the profile supports it', function (): void
 
         expect($product->id)->not->toBeNull();
 
-        /** @var \Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface $indexRepo */
-        $indexRepo = $testCase->store->get(\Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface::class);
+        /** @var ProductPriceIndexRepositoryInterface $indexRepo */
+        $indexRepo = $testCase->store->get(ProductPriceIndexRepositoryInterface::class);
         $entry = $indexRepo->findByProductId((int) $product->id);
 
         expect($entry)->not->toBeNull();

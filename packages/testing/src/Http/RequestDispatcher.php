@@ -7,11 +7,14 @@ namespace Markommerce\Testing\Http;
 use Marko\Core\Container\PreferenceRegistry;
 use Marko\Core\Discovery\ClassFileParser;
 use Marko\Core\Module\GlobalMiddlewareResolver;
+use Marko\Routing\Exceptions\RouteConflictException;
+use Marko\Routing\Exceptions\RouteException;
 use Marko\Routing\Http\Request;
 use Marko\Routing\Http\Response;
 use Marko\Routing\Router;
 use Marko\Routing\RoutingBootstrapper;
 use Markommerce\Testing\Profile\BootedStore;
+use ReflectionException;
 
 /**
  * Full-stack HTTP dispatcher for integration tests.
@@ -49,9 +52,7 @@ class RequestDispatcher
      * The Router, RouteCollection, and RouteMatcherInterface are registered as container
      * instances so the layout middleware and other middleware can resolve them.
      *
-     * @throws \ReflectionException
-     * @throws \Marko\Routing\Exceptions\RouteException
-     * @throws \Marko\Routing\Exceptions\RouteConflictException
+     * @throws ReflectionException|RouteException|RouteConflictException
      */
     public function buildRouter(): Router
     {
@@ -94,9 +95,7 @@ class RequestDispatcher
      * Short-circuit responses (3xx, 4xx, 5xx) from the controller are passed through
      * by MarkommerceLayoutMiddleware unchanged.
      *
-     * @throws \ReflectionException
-     * @throws \Marko\Routing\Exceptions\RouteException
-     * @throws \Marko\Routing\Exceptions\RouteConflictException
+     * @throws ReflectionException|RouteException|RouteConflictException
      */
     public function dispatch(Request $request): Response
     {

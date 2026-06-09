@@ -11,7 +11,10 @@ class PriceContributorRegistry
     /** @var list<array{priority: int, contributor: PriceContributorInterface}> */
     private array $registered = [];
 
-    public function register(PriceContributorInterface $priceContributor, int $priority = 0): void
+    public function register(
+        PriceContributorInterface $priceContributor,
+        int $priority = 0,
+    ): void
     {
         $this->registered[] = ['priority' => $priority, 'contributor' => $priceContributor];
     }

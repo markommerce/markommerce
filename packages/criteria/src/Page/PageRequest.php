@@ -18,7 +18,10 @@ readonly class PageRequest
     /**
      * @throws InvalidPageSizeException
      */
-    public static function first(int $size, Sort $sort): self
+    public static function first(
+        int $size,
+        Sort $sort,
+    ): self
     {
         self::guardSize($size);
 
@@ -28,7 +31,11 @@ readonly class PageRequest
     /**
      * @throws InvalidPageSizeException
      */
-    public static function at(int $size, Sort $sort, string $position): self
+    public static function at(
+        int $size,
+        Sort $sort,
+        string $position,
+    ): self
     {
         self::guardSize($size);
 

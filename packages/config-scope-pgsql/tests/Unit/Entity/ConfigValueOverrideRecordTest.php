@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Marko\Database\Attributes\Column;
 use Marko\Database\Attributes\Index;
 use Marko\Database\Attributes\Table;
 use Markommerce\ConfigScope\PgSql\Entity\ConfigValueOverrideRecord;

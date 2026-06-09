@@ -18,13 +18,13 @@ use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
 use Markommerce\Catalog\Sorting\ColumnSortOrder;
 use Markommerce\Catalog\Tests\Support\CategoryFactory;
 use Markommerce\Catalog\Tests\Support\ProductFactory;
-use Markommerce\Testing\Database\TestConnection;
-use Markommerce\Testing\IntegrationTestCase;
-use Markommerce\Testing\Profile\StoreProfile;
 use Markommerce\Config\Contracts\ConfigResolverInterface;
 use Markommerce\Criteria\Position\PositionCodec;
 use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
+use Markommerce\Testing\Database\TestConnection;
+use Markommerce\Testing\IntegrationTestCase;
+use Markommerce\Testing\Profile\StoreProfile;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -81,7 +81,10 @@ function e2ePositionMakeResolver(
         /** @param array<string, mixed> $values */
         public function __construct(private array $values) {}
 
-        public function resolved(string $configClass, string $field): mixed
+        public function resolved(
+            string $configClass,
+            string $field,
+        ): mixed
         {
             return $this->values[$field] ?? null;
         }

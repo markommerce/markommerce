@@ -19,7 +19,10 @@ class CategoryTreeMarketAssignmentService
     /**
      * @throws CategoryTreeNotFoundException
      */
-    public function assignTreeToMarket(int $treeId, string $market): void
+    public function assignTreeToMarket(
+        int $treeId,
+        string $market,
+    ): void
     {
         $tree = $this->categoryTreeRepository->find($treeId);
 

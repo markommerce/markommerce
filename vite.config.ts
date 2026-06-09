@@ -75,6 +75,9 @@ export default defineConfig(({ command }) => ({
       input: {
         frontendDemo: path.join(repoRoot, 'packages/frontend-demo/resources/js/main.ts'),
         themeBlankDemo: path.join(repoRoot, 'packages/theme-blank-demo/resources/js/main.ts'),
+        // theme-blank's base.latte references this entry via {vite(...)}, so it must
+        // be a build input or the manifest lacks it (ViteManifestException at render).
+        themeBlank: path.join(repoRoot, 'packages/theme-blank/resources/js/index.ts'),
         catalogStorefront: path.join(repoRoot, 'packages/catalog-storefront/resources/js/index.ts'),
       },
       output: {

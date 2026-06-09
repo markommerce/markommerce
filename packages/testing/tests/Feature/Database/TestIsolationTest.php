@@ -47,7 +47,8 @@ it('rolls back row changes between tests in rollback mode', function (): void {
 
         // Bind a no-op EventDispatcherInterface so the repository can be instantiated.
         // In the full app this is done by Application; in test containers it must be explicit.
-        $noOpDispatcher = new class implements EventDispatcherInterface {
+        $noOpDispatcher = new class () implements EventDispatcherInterface
+        {
             public function dispatch(Event $event): void {}
         };
         $store->container()->instance(EventDispatcherInterface::class, $noOpDispatcher);
@@ -94,7 +95,8 @@ it('resets profile tables between tests in truncate mode', function (): void {
         $connection = $provisioner->connection();
         $store = $profile->boot($connection);
 
-        $noOpDispatcher = new class implements EventDispatcherInterface {
+        $noOpDispatcher = new class () implements EventDispatcherInterface
+        {
             public function dispatch(Event $event): void {}
         };
         $store->container()->instance(EventDispatcherInterface::class, $noOpDispatcher);
@@ -145,7 +147,8 @@ it('begins and rolls back on the same connection instance the container resolves
         $containerConnection = $store->get(ConnectionInterface::class);
         expect($containerConnection)->toBe($connection);
 
-        $noOpDispatcher = new class implements EventDispatcherInterface {
+        $noOpDispatcher = new class () implements EventDispatcherInterface
+        {
             public function dispatch(Event $event): void {}
         };
         $store->container()->instance(EventDispatcherInterface::class, $noOpDispatcher);
@@ -195,7 +198,8 @@ it('selects truncate mode for code that opens its own transaction', function ():
         $connection = $provisioner->connection();
         $store = $profile->boot($connection);
 
-        $noOpDispatcher = new class implements EventDispatcherInterface {
+        $noOpDispatcher = new class () implements EventDispatcherInterface
+        {
             public function dispatch(Event $event): void {}
         };
         $store->container()->instance(EventDispatcherInterface::class, $noOpDispatcher);
@@ -215,14 +219,14 @@ it('selects truncate mode for code that opens its own transaction', function ():
         // nestedTransactionNotSupported if TestIsolation had begun a wrapping transaction
         $transactionalConnection->beginTransaction();
         $connection->execute(
-            "INSERT INTO catalog_products (sku, name) VALUES (?, ?)",
+            'INSERT INTO catalog_products (sku, name) VALUES (?, ?)',
             ['OWN-TX-001', 'Own Transaction Product'],
         );
         $transactionalConnection->commit();
 
         // After the code's own transaction commits, the row is visible
         $rows = $connection->query(
-            "SELECT sku FROM catalog_products WHERE sku = ?",
+            'SELECT sku FROM catalog_products WHERE sku = ?',
             ['OWN-TX-001'],
         );
         expect($rows)->toHaveCount(1);
@@ -232,7 +236,7 @@ it('selects truncate mode for code that opens its own transaction', function ():
 
         // Row must be gone
         $rows = $connection->query(
-            "SELECT sku FROM catalog_products WHERE sku = ?",
+            'SELECT sku FROM catalog_products WHERE sku = ?',
             ['OWN-TX-001'],
         );
         expect($rows)->toHaveCount(0);

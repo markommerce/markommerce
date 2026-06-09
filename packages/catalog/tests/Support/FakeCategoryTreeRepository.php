@@ -144,7 +144,10 @@ class FakeCategoryTreeRepository implements CategoryTreeRepositoryInterface
     /**
      * @param array<string, mixed> $criteria
      */
-    private function matchesCriteria(CategoryTree $tree, array $criteria): bool
+    private function matchesCriteria(
+        CategoryTree $tree,
+        array $criteria,
+    ): bool
     {
         return array_all(
             array_keys($criteria),

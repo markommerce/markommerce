@@ -19,32 +19,34 @@ use Marko\Database\Entity\EntityMetadataFactory;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Contracts\CategoryTreeNodeRepositoryInterface;
 use Markommerce\Catalog\Contracts\CategoryTreeRepositoryInterface;
+use Markommerce\Catalog\Contracts\CategoryTreeServiceInterface;
 use Markommerce\Catalog\Repositories\CategoryRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeNodeRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeRepository;
 use Markommerce\Catalog\Services\CategoryTreeService;
 use Markommerce\CatalogMarket\Contracts\CategoryTreeMarketAssignmentRepositoryInterface;
+use Markommerce\CatalogMarket\Exceptions\TreeHasMarketAssignmentsException;
 use Markommerce\CatalogMarket\Repositories\CategoryTreeMarketAssignmentRepository;
 use Markommerce\CatalogMarket\Services\CategoryTreeMarketAssignmentService;
 use Markommerce\Config\Cache\CachingConfigResolver;
+use Markommerce\Config\Command\SetCommand;
 use Markommerce\Config\ConfigResolver;
 use Markommerce\Config\ConfigWriter;
-use Markommerce\Config\Command\SetCommand;
 use Markommerce\Config\Contracts\ConfigStorageInterface;
-use Markommerce\Config\Contracts\ConfigWriterInterface;
 use Markommerce\Config\PgSql\PgsqlConfigStorage;
 use Markommerce\Config\PgSql\Schema\ConfigValuesTableEmitter;
 use Markommerce\ConfigScope\Cache\ScopedCachingConfigResolver;
 use Markommerce\ConfigScope\Command\ScopedSetCommand;
 use Markommerce\ConfigScope\Contracts\ScopedConfigStorageInterface;
-use Markommerce\ConfigScope\Contracts\ScopedConfigWriterInterface;
 use Markommerce\ConfigScope\PgSql\PgsqlScopedConfigStorage;
 use Markommerce\ConfigScope\PgSql\Schema\ConfigValueOverridesTableEmitter;
 use Markommerce\ConfigScope\ScopedConfigWriter;
+use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use Markommerce\Scope\Storage\DefaultScopeGuard;
 use Markommerce\Testing\Container\ContainerBootstrapper;
 use Markommerce\Testing\Database\TestConnection;
 use Markommerce\Testing\Module\ModuleResolver;
+use Markommerce\Testing\Profile\StoreProfile;
 use Markommerce\Testing\Tests\Fixture\Container\NullConfigStorage;
 use Markommerce\Testing\Tests\Fixture\Container\NullConnection;
 use Markommerce\Testing\Tests\Fixture\Container\NullScopedConfigStorage;
@@ -148,10 +150,10 @@ it('registers bindings and singletons from each module manifest', function (): v
             name: 'test/a',
             version: '1.0.0',
             bindings: [
-                Marko\Core\Container\ContainerInterface::class => Marko\Core\Container\Container::class,
+                ContainerInterface::class => Container::class,
             ],
             singletons: [
-                Marko\Core\Path\ProjectPaths::class,
+                ProjectPaths::class,
             ],
         );
 
@@ -159,15 +161,15 @@ it('registers bindings and singletons from each module manifest', function (): v
         $container = $bootstrapper->build([$manifestA], $config, $connection);
 
         // Verify the binding was registered — resolving ContainerInterface returns the container
-        expect($container->get(Marko\Core\Container\ContainerInterface::class))->toBeInstanceOf(Container::class);
+        expect($container->get(ContainerInterface::class))->toBeInstanceOf(Container::class);
 
         // For scope module: bindings from module manifests should be applied
         $scopeManifests = buildConfigScopeManifests();
         $container2 = $bootstrapper->build($scopeManifests, $config, $connection);
 
         // scope/module.php binds ScopeRegistryInterface — check it was registered and resolves
-        expect($container2->get(Markommerce\Scope\Registry\ScopeRegistryInterface::class))
-            ->toBeInstanceOf(Markommerce\Scope\Registry\ScopeRegistryInterface::class);
+        expect($container2->get(ScopeRegistryInterface::class))
+            ->toBeInstanceOf(ScopeRegistryInterface::class);
 
         // config/module.php registers ConfigResolver as a singleton — verify it's in singletons
         // (singleton registration is a type of binding registration from manifest)
@@ -348,7 +350,7 @@ it('discovers and registers module plugins from manifests with a path', function
     expect($registry)->toBeInstanceOf(PluginRegistry::class);
 
     // The plugin targets CategoryTreeServiceInterface
-    expect($registry->hasPluginsFor(Markommerce\Catalog\Contracts\CategoryTreeServiceInterface::class))->toBeTrue();
+    expect($registry->hasPluginsFor(CategoryTreeServiceInterface::class))->toBeTrue();
 });
 
 it('wires plugins so a plugin-decorated service method is intercepted', function (): void {
@@ -434,7 +436,7 @@ it('wires plugins so a plugin-decorated service method is intercepted', function
             $assignmentService->assignTreeToMarket((int) $usTree->id, 'us');
 
             expect(fn () => $treeService->deleteTree((int) $usTree->id))
-                ->toThrow(Markommerce\CatalogMarket\Exceptions\TreeHasMarketAssignmentsException::class);
+                ->toThrow(TreeHasMarketAssignmentsException::class);
         } finally {
             $conn->execute('DROP TABLE IF EXISTS catalog_category_tree_market_assignments CASCADE');
             $conn->execute('DROP TABLE IF EXISTS catalog_category_tree_nodes CASCADE');
@@ -447,15 +449,15 @@ it('wires plugins so a plugin-decorated service method is intercepted', function
 })->group('integration-destructive');
 
 it('keeps existing profiles booting unchanged when no base path is provided', function (): void {
-    \Markommerce\Testing\Database\TestConnection::skipIfUnavailable();
-    \Markommerce\Scope\Storage\DefaultScopeGuard::reset();
+    TestConnection::skipIfUnavailable();
+    DefaultScopeGuard::reset();
 
     $envKey = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
     putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $envKey);
 
     try {
-        $conn = new \Markommerce\Testing\Database\TestConnection();
-        $profile = \Markommerce\Testing\Profile\StoreProfile::simple(bootstrapperVendorDir());
+        $conn = new TestConnection();
+        $profile = StoreProfile::simple(bootstrapperVendorDir());
 
         // boot() called WITHOUT base path — should behave exactly as before
         $store = $profile->boot($conn);
@@ -468,7 +470,7 @@ it('keeps existing profiles booting unchanged when no base path is provided', fu
         expect($projectPaths->base)->toBe(sys_get_temp_dir() . '/markommerce-bootstrapper-' . getmypid());
     } finally {
         putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
-        \Markommerce\Scope\Storage\DefaultScopeGuard::reset();
+        DefaultScopeGuard::reset();
     }
 })->group('integration-destructive');
 
@@ -499,36 +501,39 @@ it('binds ProjectPaths to a caller-provided base path', function (): void {
     expect($projectPaths->base)->toBe($customBasePath);
 });
 
-it('skips the ConfigResolver and CachingConfigResolver preferences so the explicit factory binding wins', function (): void {
-    // config/module.php binds SecretCipherInterface which reads MARKOMMERCE_CONFIG_SECRET_KEY
+it(
+    'skips the ConfigResolver and CachingConfigResolver preferences so the explicit factory binding wins',
+    function (): void {
+        // config/module.php binds SecretCipherInterface which reads MARKOMMERCE_CONFIG_SECRET_KEY
     $envKey = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
-    putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $envKey);
-
-    try {
-        $manifests = buildConfigScopeManifests();
-        $config = bootstrapperConfig();
-        $connection = new NullConnection();
-
-        $bootstrapper = new ContainerBootstrapper();
-        $registry = $bootstrapper->discoverPreferences($manifests);
-
-        // ConfigResolver and CachingConfigResolver preferences must be skipped
+        putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $envKey);
+    
+        try {
+            $manifests = buildConfigScopeManifests();
+            $config = bootstrapperConfig();
+            $connection = new NullConnection();
+    
+            $bootstrapper = new ContainerBootstrapper();
+            $registry = $bootstrapper->discoverPreferences($manifests);
+    
+            // ConfigResolver and CachingConfigResolver preferences must be skipped
         // so the explicit factory from config-scope/module.php wins
         expect($registry->getPreference(ConfigResolver::class))->toBeNull();
-        expect($registry->getPreference(CachingConfigResolver::class))->toBeNull();
-
-        // Build the container and add null storage bindings so the resolution chain works
+            expect($registry->getPreference(CachingConfigResolver::class))->toBeNull();
+    
+            // Build the container and add null storage bindings so the resolution chain works
         $container = $bootstrapper->build($manifests, $config, $connection);
-        $container->instance(ConfigStorageInterface::class, new NullConfigStorage());
-        $container->instance(ScopedConfigStorageInterface::class, new NullScopedConfigStorage());
-
-        // Boot populates ConfigRegistry singleton (needed to resolve ConfigResolver)
+            $container->instance(ConfigStorageInterface::class, new NullConfigStorage());
+            $container->instance(ScopedConfigStorageInterface::class, new NullScopedConfigStorage());
+    
+            // Boot populates ConfigRegistry singleton (needed to resolve ConfigResolver)
         $bootstrapper->boot($container, $manifests);
-
-        $resolver = $container->get(ConfigResolver::class);
-        // The explicit factory from config-scope/module.php returns ScopedCachingConfigResolver
+    
+            $resolver = $container->get(ConfigResolver::class);
+            // The explicit factory from config-scope/module.php returns ScopedCachingConfigResolver
         expect($resolver)->toBeInstanceOf(ScopedCachingConfigResolver::class);
-    } finally {
-        putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
+        } finally {
+            putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
+        }
     }
-});
+);

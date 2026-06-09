@@ -68,24 +68,33 @@ it('CategoryTreeMarketResolver returns the default tree when no assignment exist
     expect($resolved->code)->toBe('default');
 });
 
-it('CategoryTreeMarketResolver throws CategoryTreeNotFoundException when the assigned tree id no longer exists', function (): void {
-    $treeRepo = new FakeCategoryTreeRepository();
-    $assignmentRepo = new FakeCategoryTreeMarketAssignmentRepository();
+it(
+    'CategoryTreeMarketResolver throws CategoryTreeNotFoundException when the assigned tree id no longer exists',
+    function (): void {
+        $treeRepo = new FakeCategoryTreeRepository();
+        $assignmentRepo = new FakeCategoryTreeMarketAssignmentRepository();
+    
+        $assignment = new CategoryTreeMarketAssignment();
+        $assignment->market = 'us';
+        $assignment->treeId = 999;
+        $assignmentRepo->save($assignment);
+    
+        $resolver = makeCategoryTreeMarketResolverForCatalogMarket(
+            treeRepo: $treeRepo,
+            assignmentRepo: $assignmentRepo
+        );
+    
+        expect(fn () => $resolver->resolveTreeForMarket(market: 'us'))
+            ->toThrow(CategoryTreeNotFoundException::class);
+    }
+);
 
-    $assignment = new CategoryTreeMarketAssignment();
-    $assignment->market = 'us';
-    $assignment->treeId = 999;
-    $assignmentRepo->save($assignment);
-
-    $resolver = makeCategoryTreeMarketResolverForCatalogMarket(treeRepo: $treeRepo, assignmentRepo: $assignmentRepo);
-
-    expect(fn () => $resolver->resolveTreeForMarket(market: 'us'))
-        ->toThrow(CategoryTreeNotFoundException::class);
-});
-
-it('CategoryTreeMarketResolver throws DefaultTreeMissingException when neither a market assignment nor a default tree exist', function (): void {
-    $resolver = makeCategoryTreeMarketResolverForCatalogMarket();
-
-    expect(fn () => $resolver->resolveTreeForMarket(market: 'us'))
-        ->toThrow(DefaultTreeMissingException::class);
-});
+it(
+    'CategoryTreeMarketResolver throws DefaultTreeMissingException when neither a market assignment nor a default tree exist',
+    function (): void {
+        $resolver = makeCategoryTreeMarketResolverForCatalogMarket();
+    
+        expect(fn () => $resolver->resolveTreeForMarket(market: 'us'))
+            ->toThrow(DefaultTreeMissingException::class);
+    }
+);

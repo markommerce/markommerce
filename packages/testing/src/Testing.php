@@ -11,6 +11,4 @@ namespace Markommerce\Testing;
  * for Markommerce modules. It is NOT a Marko module and must never be loaded
  * in production.
  */
-class Testing
-{
-}
+class Testing {}

@@ -65,6 +65,7 @@ function featureBuildPriceResolver(string $baseCurrencyCode = 'USD'): PriceResol
 {
     $registry = new PriceContributorRegistry();
     $registry->register(new BasePriceContributor(new RawProductBasePriceProvider()));
+
     return new PriceResolver(
         new BatchPriceResolver($registry, featureBuildCurrencyResolver($baseCurrencyCode)),
     );

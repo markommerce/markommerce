@@ -7,8 +7,6 @@ namespace Markommerce\Testing\Tests\Feature\Schema;
 use Markommerce\Testing\Database\AdminConnection;
 use Markommerce\Testing\Database\TestConnection;
 use Markommerce\Testing\Schema\SchemaProvisioner;
-use Markommerce\Testing\Tests\Fixture\Entity\ChildFixtureEntity;
-use Markommerce\Testing\Tests\Fixture\Entity\ParentFixtureEntity;
 
 it('deduplicates entities discovered from overlapping directories', function (): void {
     $provisioner = new SchemaProvisioner();
@@ -75,39 +73,42 @@ it('creates all discovered tables in a fresh database', function (): void {
     }
 })->group('integration-destructive');
 
-it('creates foreign keys after all tables exist using a fixture entity with a table-dot-column reference', function (): void {
-    TestConnection::skipIfUnavailable();
-
-    $admin = new AdminConnection();
-    $dbName = 'marko_test_provisioner_fks_' . getmypid();
-    $admin->createDatabase($dbName);
-
-    try {
-        $conn = $admin->connectionFor($dbName);
-        $provisioner = new SchemaProvisioner();
-
-        $fixtureEntityDir = realpath(__DIR__ . '/../../Fixture/Entity');
-        expect($fixtureEntityDir)->not->toBeFalse();
-
-        $provisioner->provision($conn, [$fixtureEntityDir]);
-
-        $constraints = $conn->query(
-            "SELECT constraint_name, constraint_type FROM information_schema.table_constraints"
-            . " WHERE table_name = 'fixture_children' AND constraint_type = 'FOREIGN KEY' AND table_schema = 'public'",
-        );
-
-        expect($constraints)->not->toBeEmpty();
-
-        $constraintNames = array_map(
-            static fn (array $row): string => (string) $row['constraint_name'],
-            $constraints,
-        );
-
-        expect($constraintNames)->toContain('fk_fixture_children_parent_id');
-    } finally {
-        $admin->dropDatabase($dbName);
+it(
+    'creates foreign keys after all tables exist using a fixture entity with a table-dot-column reference',
+    function (): void {
+        TestConnection::skipIfUnavailable();
+    
+        $admin = new AdminConnection();
+        $dbName = 'marko_test_provisioner_fks_' . getmypid();
+        $admin->createDatabase($dbName);
+    
+        try {
+            $conn = $admin->connectionFor($dbName);
+            $provisioner = new SchemaProvisioner();
+    
+            $fixtureEntityDir = realpath(__DIR__ . '/../../Fixture/Entity');
+            expect($fixtureEntityDir)->not->toBeFalse();
+    
+            $provisioner->provision($conn, [$fixtureEntityDir]);
+    
+            $constraints = $conn->query(
+                'SELECT constraint_name, constraint_type FROM information_schema.table_constraints'
+                . " WHERE table_name = 'fixture_children' AND constraint_type = 'FOREIGN KEY' AND table_schema = 'public'",
+            );
+    
+            expect($constraints)->not->toBeEmpty();
+    
+            $constraintNames = array_map(
+                static fn (array $row): string => (string) $row['constraint_name'],
+                $constraints,
+            );
+    
+            expect($constraintNames)->toContain('fk_fixture_children_parent_id');
+        } finally {
+            $admin->dropDatabase($dbName);
+        }
     }
-})->group('integration-destructive');
+)->group('integration-destructive');
 
 it('creates declared indexes including the catalog product-category unique index', function (): void {
     TestConnection::skipIfUnavailable();
@@ -126,7 +127,7 @@ it('creates declared indexes including the catalog product-category unique index
         $provisioner->provision($conn, [$catalogEntityDir]);
 
         $indexes = $conn->query(
-            "SELECT indexname, indexdef FROM pg_indexes"
+            'SELECT indexname, indexdef FROM pg_indexes'
             . " WHERE tablename = 'catalog_product_category' AND schemaname = 'public'",
         );
 
@@ -166,8 +167,8 @@ it('provisions the catalog product and category tables from the catalog entity d
         $conn->execute("INSERT INTO catalog_categories (name) VALUES ('Test Category')");
         $conn->execute("INSERT INTO catalog_products (sku, name) VALUES ('TEST-001', 'Test Product')");
 
-        $categories = $conn->query("SELECT id, name FROM catalog_categories");
-        $products = $conn->query("SELECT id, sku, name FROM catalog_products");
+        $categories = $conn->query('SELECT id, name FROM catalog_categories');
+        $products = $conn->query('SELECT id, sku, name FROM catalog_products');
 
         expect($categories)->toHaveCount(1)
             ->and((string) $categories[0]['name'])->toBe('Test Category')

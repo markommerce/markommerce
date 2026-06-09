@@ -98,25 +98,35 @@ it('reports hasScopedProperties false for an unregistered class', function (): v
     expect($registry->hasScopedProperties(entityClass: stdClass::class))->toBeFalse();
 });
 
-it('unions axes (no duplicates) when the same property is registered twice with overlapping axis lists', function (): void {
-    $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website', 'locale']);
-    $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
+it(
+    'unions axes (no duplicates) when the same property is registered twice with overlapping axis lists',
+    function (): void {
+        $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website', 'locale']);
+        $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
+    
+        $registry->register(entityClass: stdClass::class, property: 'name', axes: ['store', 'website']);
+        $registry->register(entityClass: stdClass::class, property: 'name', axes: ['website', 'locale']);
+    
+        expect($registry->axesForProperty(entityClass: stdClass::class, property: 'name'))->toBe(
+            ['store', 'website', 'locale']
+        );
+    }
+);
 
-    $registry->register(entityClass: stdClass::class, property: 'name', axes: ['store', 'website']);
-    $registry->register(entityClass: stdClass::class, property: 'name', axes: ['website', 'locale']);
-
-    expect($registry->axesForProperty(entityClass: stdClass::class, property: 'name'))->toBe(['store', 'website', 'locale']);
-});
-
-it('preserves first-registration axis order and appends new axes from later registrations in their declared order', function (): void {
-    $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website', 'locale']);
-    $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
-
-    $registry->register(entityClass: stdClass::class, property: 'name', axes: ['locale', 'store']);
-    $registry->register(entityClass: stdClass::class, property: 'name', axes: ['website', 'locale']);
-
-    expect($registry->axesForProperty(entityClass: stdClass::class, property: 'name'))->toBe(['locale', 'store', 'website']);
-});
+it(
+    'preserves first-registration axis order and appends new axes from later registrations in their declared order',
+    function (): void {
+        $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website', 'locale']);
+        $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
+    
+        $registry->register(entityClass: stdClass::class, property: 'name', axes: ['locale', 'store']);
+        $registry->register(entityClass: stdClass::class, property: 'name', axes: ['website', 'locale']);
+    
+        expect($registry->axesForProperty(entityClass: stdClass::class, property: 'name'))->toBe(
+            ['locale', 'store', 'website']
+        );
+    }
+);
 
 it('is a no-op when the same property is registered twice with the exact same axes (idempotent)', function (): void {
     $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
@@ -128,44 +138,77 @@ it('is a no-op when the same property is registered twice with the exact same ax
     expect($registry->axesForProperty(entityClass: stdClass::class, property: 'name'))->toBe(['store', 'website']);
 });
 
-it('throws UnknownAxisException when register is called with an axis not present in ScopeRegistryInterface', function (): void {
-    $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
-    $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
+it(
+    'throws UnknownAxisException when register is called with an axis not present in ScopeRegistryInterface',
+    function (): void {
+        $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
+        $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
+    
+        expect(fn () => $registry->register(entityClass: stdClass::class, property: 'name', axes: ['unknown_axis']))
+            ->toThrow(UnknownAxisException::class);
+    }
+);
 
-    expect(fn () => $registry->register(entityClass: stdClass::class, property: 'name', axes: ['unknown_axis']))
-        ->toThrow(UnknownAxisException::class);
-});
+it(
+    'accepts an empty axis list and treats the registration as a no-op (the property does not appear in propertiesFor and hasScopedProperties stays false if it was the only registration)',
+    function (): void {
+        $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
+        $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
+    
+        $registry->register(entityClass: stdClass::class, property: 'name', axes: []);
+    
+        expect($registry->propertiesFor(entityClass: stdClass::class))->toBe([])
+            ->and($registry->hasScopedProperties(entityClass: stdClass::class))->toBeFalse();
+    }
+);
 
-it('accepts an empty axis list and treats the registration as a no-op (the property does not appear in propertiesFor and hasScopedProperties stays false if it was the only registration)', function (): void {
-    $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
-    $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
+it(
+    'validates every axis in a multi-axis registration so a list mixing valid and unknown axes still throws UnknownAxisException',
+    function (): void {
+        $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
+        $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
+    
+        expect(
+            fn () => $registry->register(
+                entityClass: stdClass::class,
+                property: 'name',
+                axes: ['store', 'unknown_axis']
+            )
+        )
+            ->toThrow(UnknownAxisException::class);
+    }
+);
 
-    $registry->register(entityClass: stdClass::class, property: 'name', axes: []);
+it(
+    'throws UnknownEntityClassException when register is called with a class name that does not exist (caught typos in bridge module.php files)',
+    function (): void {
+        $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
+        $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
+    
+        expect(
+            fn () => $registry->register(
+                entityClass: 'NonExistentClass\That\Does\NotExist',
+                property: 'name',
+                axes: ['store']
+            )
+        )
+            ->toThrow(UnknownEntityClassException::class);
+    }
+);
 
-    expect($registry->propertiesFor(entityClass: stdClass::class))->toBe([])
-        ->and($registry->hasScopedProperties(entityClass: stdClass::class))->toBeFalse();
-});
-
-it('validates every axis in a multi-axis registration so a list mixing valid and unknown axes still throws UnknownAxisException', function (): void {
-    $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
-    $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
-
-    expect(fn () => $registry->register(entityClass: stdClass::class, property: 'name', axes: ['store', 'unknown_axis']))
-        ->toThrow(UnknownAxisException::class);
-});
-
-it('throws UnknownEntityClassException when register is called with a class name that does not exist (caught typos in bridge module.php files)', function (): void {
-    $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
-    $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
-
-    expect(fn () => $registry->register(entityClass: 'NonExistentClass\That\Does\NotExist', property: 'name', axes: ['store']))
-        ->toThrow(UnknownEntityClassException::class);
-});
-
-it('validates class existence before axis validation so a registration with both a typo class name and an unknown axis surfaces the class error first', function (): void {
-    $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
-    $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
-
-    expect(fn () => $registry->register(entityClass: 'NonExistentClass\That\Does\NotExist', property: 'name', axes: ['unknown_axis']))
-        ->toThrow(UnknownEntityClassException::class);
-});
+it(
+    'validates class existence before axis validation so a registration with both a typo class name and an unknown axis surfaces the class error first',
+    function (): void {
+        $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
+        $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
+    
+        expect(
+            fn () => $registry->register(
+                entityClass: 'NonExistentClass\That\Does\NotExist',
+                property: 'name',
+                axes: ['unknown_axis']
+            )
+        )
+            ->toThrow(UnknownEntityClassException::class);
+    }
+);

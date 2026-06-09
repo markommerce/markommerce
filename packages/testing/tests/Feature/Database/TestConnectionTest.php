@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Markommerce\Testing\Tests\Feature\Database;
 
-use Markommerce\Testing\Database\AdminConnection;
-use Markommerce\Testing\Database\TestConnection;
 use Marko\Database\Connection\ConnectionInterface;
+use Markommerce\Testing\Database\AdminConnection;
+use Markommerce\Testing\Database\Exceptions\InvalidIdentifierException;
+use Markommerce\Testing\Database\TestConnection;
+use PHPUnit\Framework\SkippedWithMessageException;
 
 it('connects to the database named in DB env and runs a trivial query', function (): void {
     TestConnection::skipIfUnavailable();
@@ -93,19 +95,19 @@ it('rejects an unsafe database identifier', function (): void {
     $admin = new AdminConnection();
 
     expect(fn () => $admin->createDatabase('invalid-name'))->toThrow(
-        \Markommerce\Testing\Database\Exceptions\InvalidIdentifierException::class,
+        InvalidIdentifierException::class,
     );
 
     expect(fn () => $admin->dropDatabase('../../etc/passwd'))->toThrow(
-        \Markommerce\Testing\Database\Exceptions\InvalidIdentifierException::class,
+        InvalidIdentifierException::class,
     );
 
     expect(fn () => $admin->createDatabaseFromTemplate('valid_name', 'bad name with spaces'))->toThrow(
-        \Markommerce\Testing\Database\Exceptions\InvalidIdentifierException::class,
+        InvalidIdentifierException::class,
     );
 
     expect(fn () => $admin->connectionFor('1invalid'))->toThrow(
-        \Markommerce\Testing\Database\Exceptions\InvalidIdentifierException::class,
+        InvalidIdentifierException::class,
     );
 });
 
@@ -120,7 +122,7 @@ it('skips when required database env vars are absent', function (): void {
 
     try {
         expect(fn () => TestConnection::skipIfUnavailable())
-            ->toThrow(\PHPUnit\Framework\SkippedWithMessageException::class, 'DB_HOST');
+            ->toThrow(SkippedWithMessageException::class, 'DB_HOST');
     } finally {
         foreach ($original as $var => $value) {
             if ($value !== false) {

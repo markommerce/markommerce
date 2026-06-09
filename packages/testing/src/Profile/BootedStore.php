@@ -6,11 +6,14 @@ namespace Markommerce\Testing\Profile;
 
 use Marko\Core\Container\Container;
 use Marko\Core\Module\ModuleManifest;
+use Marko\Routing\Exceptions\RouteConflictException;
+use Marko\Routing\Exceptions\RouteException;
 use Marko\Routing\Http\Request;
 use Marko\Routing\Http\Response;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Testing\Http\RequestDispatcher;
 use Markommerce\Testing\Profile\Exceptions\UndeclaredAxisException;
+use ReflectionException;
 
 /**
  * A fully-booted test store: container + scope helper.
@@ -60,7 +63,11 @@ class BootedStore
      *
      * @throws UndeclaredAxisException when an axis argument is non-null but not declared in the profile
      */
-    public function inScope(?string $market, ?string $locale, callable $fn): void
+    public function inScope(
+        ?string $market,
+        ?string $locale,
+        callable $fn,
+    ): void
     {
         if ($market !== null && !in_array('market', $this->declaredAxes, true)) {
             throw UndeclaredAxisException::forAxis('market');
@@ -124,9 +131,7 @@ class BootedStore
      * Requires the store to have been booted from a profile that includes routing + layout
      * modules (e.g. StoreProfile::storefront()).
      *
-     * @throws \ReflectionException
-     * @throws \Marko\Routing\Exceptions\RouteException
-     * @throws \Marko\Routing\Exceptions\RouteConflictException
+     * @throws ReflectionException|RouteException|RouteConflictException
      */
     public function handle(Request $request): Response
     {

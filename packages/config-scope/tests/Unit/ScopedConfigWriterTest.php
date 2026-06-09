@@ -127,14 +127,17 @@ function makeScopedWriter(
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-it('declares setOverride and unsetOverride methods on ScopedConfigWriterInterface that extend ConfigWriterInterface', function (): void {
-    $reflection = new ReflectionClass(ScopedConfigWriterInterface::class);
-
-    expect($reflection->isInterface())->toBeTrue()
-        ->and($reflection->isSubclassOf(ConfigWriterInterface::class))->toBeTrue()
-        ->and($reflection->hasMethod('setOverride'))->toBeTrue()
-        ->and($reflection->hasMethod('unsetOverride'))->toBeTrue();
-});
+it(
+    'declares setOverride and unsetOverride methods on ScopedConfigWriterInterface that extend ConfigWriterInterface',
+    function (): void {
+        $reflection = new ReflectionClass(ScopedConfigWriterInterface::class);
+    
+        expect($reflection->isInterface())->toBeTrue()
+            ->and($reflection->isSubclassOf(ConfigWriterInterface::class))->toBeTrue()
+            ->and($reflection->hasMethod('setOverride'))->toBeTrue()
+            ->and($reflection->hasMethod('unsetOverride'))->toBeTrue();
+    }
+);
 
 it('carries #[Preference(replaces: ConfigWriter::class)] on ScopedConfigWriter', function (): void {
     $reflection = new ReflectionClass(ScopedConfigWriter::class);
@@ -154,28 +157,51 @@ it('extends Markommerce\Config\ConfigWriter and implements ScopedConfigWriterInt
         ->and($reflection->implementsInterface(ScopedConfigWriterInterface::class))->toBeTrue();
 });
 
-it('persists a new per-scope override via ScopedConfigWriter setOverride keyed by the signature string', function (): void {
-    $globalStorage = new InMemoryConfigStorage();
-    $scopedStorage = new InMemoryScopedConfigStorage();
-    $scopeRegistry = makeScopedWriterScopeRegistry(['locale' => ['en', 'fr']]);
-    $scopedFieldRegistry = makeScopedWriterScopedFieldRegistry($scopeRegistry, ScopedWriterScopedConfig::class, 'theme', ['locale']);
-
-    $writer = makeScopedWriter($globalStorage, $scopedStorage, $scopedFieldRegistry, [ScopedWriterScopedConfig::class]);
-    $signature = new ScopeSignature(['locale' => 'en']);
-
-    $writer->setOverride('scoped-writer/test.theme', $signature, 'modern');
-
-    $overrides = $scopedStorage->loadOverrides('scoped-writer/test.theme');
-    expect($overrides)->toBe(['locale:en' => 'modern']);
-});
+it(
+    'persists a new per-scope override via ScopedConfigWriter setOverride keyed by the signature string',
+    function (): void {
+        $globalStorage = new InMemoryConfigStorage();
+        $scopedStorage = new InMemoryScopedConfigStorage();
+        $scopeRegistry = makeScopedWriterScopeRegistry(['locale' => ['en', 'fr']]);
+        $scopedFieldRegistry = makeScopedWriterScopedFieldRegistry(
+            $scopeRegistry,
+            ScopedWriterScopedConfig::class,
+            'theme',
+            ['locale']
+        );
+    
+        $writer = makeScopedWriter(
+            $globalStorage,
+            $scopedStorage,
+            $scopedFieldRegistry,
+            [ScopedWriterScopedConfig::class]
+        );
+        $signature = new ScopeSignature(['locale' => 'en']);
+    
+        $writer->setOverride('scoped-writer/test.theme', $signature, 'modern');
+    
+        $overrides = $scopedStorage->loadOverrides('scoped-writer/test.theme');
+        expect($overrides)->toBe(['locale:en' => 'modern']);
+    }
+);
 
 it('replaces an existing per-scope override for the same signature on a second setOverride call', function (): void {
     $globalStorage = new InMemoryConfigStorage();
     $scopedStorage = new InMemoryScopedConfigStorage();
     $scopeRegistry = makeScopedWriterScopeRegistry(['locale' => ['en', 'fr']]);
-    $scopedFieldRegistry = makeScopedWriterScopedFieldRegistry($scopeRegistry, ScopedWriterScopedConfig::class, 'theme', ['locale']);
+    $scopedFieldRegistry = makeScopedWriterScopedFieldRegistry(
+        $scopeRegistry,
+        ScopedWriterScopedConfig::class,
+        'theme',
+        ['locale']
+    );
 
-    $writer = makeScopedWriter($globalStorage, $scopedStorage, $scopedFieldRegistry, [ScopedWriterScopedConfig::class]);
+    $writer = makeScopedWriter(
+        $globalStorage,
+        $scopedStorage,
+        $scopedFieldRegistry,
+        [ScopedWriterScopedConfig::class]
+    );
     $signature = new ScopeSignature(['locale' => 'en']);
 
     $writer->setOverride('scoped-writer/test.theme', $signature, 'modern');
@@ -185,29 +211,47 @@ it('replaces an existing per-scope override for the same signature on a second s
     expect($overrides)->toBe(['locale:en' => 'classic']);
 });
 
-it('removes a specific per-scope override via ScopedConfigWriter unsetOverride leaving other overrides untouched', function (): void {
-    $globalStorage = new InMemoryConfigStorage();
-    $scopedStorage = new InMemoryScopedConfigStorage();
-    $scopeRegistry = makeScopedWriterScopeRegistry(['locale' => ['en', 'fr']]);
-    $scopedFieldRegistry = makeScopedWriterScopedFieldRegistry($scopeRegistry, ScopedWriterScopedConfig::class, 'theme', ['locale']);
-
-    $writer = makeScopedWriter($globalStorage, $scopedStorage, $scopedFieldRegistry, [ScopedWriterScopedConfig::class]);
-    $signatureEn = new ScopeSignature(['locale' => 'en']);
-    $signatureFr = new ScopeSignature(['locale' => 'fr']);
-
-    $writer->setOverride('scoped-writer/test.theme', $signatureEn, 'modern');
-    $writer->setOverride('scoped-writer/test.theme', $signatureFr, 'classic');
-    $writer->unsetOverride('scoped-writer/test.theme', $signatureEn);
-
-    $overrides = $scopedStorage->loadOverrides('scoped-writer/test.theme');
-    expect($overrides)->toBe(['locale:fr' => 'classic']);
-});
+it(
+    'removes a specific per-scope override via ScopedConfigWriter unsetOverride leaving other overrides untouched',
+    function (): void {
+        $globalStorage = new InMemoryConfigStorage();
+        $scopedStorage = new InMemoryScopedConfigStorage();
+        $scopeRegistry = makeScopedWriterScopeRegistry(['locale' => ['en', 'fr']]);
+        $scopedFieldRegistry = makeScopedWriterScopedFieldRegistry(
+            $scopeRegistry,
+            ScopedWriterScopedConfig::class,
+            'theme',
+            ['locale']
+        );
+    
+        $writer = makeScopedWriter(
+            $globalStorage,
+            $scopedStorage,
+            $scopedFieldRegistry,
+            [ScopedWriterScopedConfig::class]
+        );
+        $signatureEn = new ScopeSignature(['locale' => 'en']);
+        $signatureFr = new ScopeSignature(['locale' => 'fr']);
+    
+        $writer->setOverride('scoped-writer/test.theme', $signatureEn, 'modern');
+        $writer->setOverride('scoped-writer/test.theme', $signatureFr, 'classic');
+        $writer->unsetOverride('scoped-writer/test.theme', $signatureEn);
+    
+        $overrides = $scopedStorage->loadOverrides('scoped-writer/test.theme');
+        expect($overrides)->toBe(['locale:fr' => 'classic']);
+    }
+);
 
 it('accepts SecretCipherInterface but does NOT invoke it for non-secret writes', function (): void {
     $globalStorage = new InMemoryConfigStorage();
     $scopedStorage = new InMemoryScopedConfigStorage();
     $scopeRegistry = makeScopedWriterScopeRegistry(['locale' => ['en']]);
-    $scopedFieldRegistry = makeScopedWriterScopedFieldRegistry($scopeRegistry, ScopedWriterScopedConfig::class, 'theme', ['locale']);
+    $scopedFieldRegistry = makeScopedWriterScopedFieldRegistry(
+        $scopeRegistry,
+        ScopedWriterScopedConfig::class,
+        'theme',
+        ['locale']
+    );
 
     // NullSecretCipher throws when called — proves cipher is bypassed for non-secret
     $builder = new ConfigRegistryBuilder();
@@ -234,7 +278,12 @@ it('encrypts secret values via SecretCipher before persisting an override', func
     $globalStorage = new InMemoryConfigStorage();
     $scopedStorage = new InMemoryScopedConfigStorage();
     $scopeRegistry = makeScopedWriterScopeRegistry(['locale' => ['en']]);
-    $scopedFieldRegistry = makeScopedWriterScopedFieldRegistry($scopeRegistry, ScopedWriterSecretConfig::class, 'apiKey', ['locale']);
+    $scopedFieldRegistry = makeScopedWriterScopedFieldRegistry(
+        $scopeRegistry,
+        ScopedWriterSecretConfig::class,
+        'apiKey',
+        ['locale']
+    );
 
     $builder = new ConfigRegistryBuilder();
     $registry = $builder->build([ScopedWriterSecretConfig::class]);
@@ -270,32 +319,53 @@ it('encrypts secret values via SecretCipher before persisting an override', func
     expect($overrides)->toBe(['locale:en' => json_encode('my-secret-key')]);
 });
 
-it('throws AxisNotDeclaredException when setOverride\'s signature uses an axis not registered for the property via ScopedFieldRegistry', function (): void {
-    $globalStorage = new InMemoryConfigStorage();
-    $scopedStorage = new InMemoryScopedConfigStorage();
-    $scopeRegistry = makeScopedWriterScopeRegistry(['locale' => ['en'], 'store' => ['1']]);
-
-    // Only 'locale' is declared for the theme property
-    $scopedFieldRegistry = makeScopedWriterScopedFieldRegistry($scopeRegistry, ScopedWriterScopedConfig::class, 'theme', ['locale']);
-
-    $writer = makeScopedWriter($globalStorage, $scopedStorage, $scopedFieldRegistry, [ScopedWriterScopedConfig::class]);
-
-    // Attempt to set override using 'store' axis which is not declared for theme
+it(
+    'throws AxisNotDeclaredException when setOverride\'s signature uses an axis not registered for the property via ScopedFieldRegistry',
+    function (): void {
+        $globalStorage = new InMemoryConfigStorage();
+        $scopedStorage = new InMemoryScopedConfigStorage();
+        $scopeRegistry = makeScopedWriterScopeRegistry(['locale' => ['en'], 'store' => ['1']]);
+    
+        // Only 'locale' is declared for the theme property
+    $scopedFieldRegistry = makeScopedWriterScopedFieldRegistry(
+        $scopeRegistry,
+        ScopedWriterScopedConfig::class,
+        'theme',
+        ['locale']
+    );
+    
+        $writer = makeScopedWriter(
+            $globalStorage,
+            $scopedStorage,
+            $scopedFieldRegistry,
+            [ScopedWriterScopedConfig::class]
+        );
+    
+        // Attempt to set override using 'store' axis which is not declared for theme
     $signature = new ScopeSignature(['store' => '1']);
+    
+        expect(fn () => $writer->setOverride('scoped-writer/test.theme', $signature, 'modern'))
+            ->toThrow(AxisNotDeclaredException::class);
+    }
+);
 
-    expect(fn () => $writer->setOverride('scoped-writer/test.theme', $signature, 'modern'))
-        ->toThrow(AxisNotDeclaredException::class);
-});
-
-it('throws ConfigNotFoundException when ScopedConfigWriter setOverride is called for a key not in the registry', function (): void {
-    $globalStorage = new InMemoryConfigStorage();
-    $scopedStorage = new InMemoryScopedConfigStorage();
-    $scopeRegistry = makeScopedWriterScopeRegistry(['locale' => ['en']]);
-    $scopedFieldRegistry = new ScopedFieldRegistry($scopeRegistry);
-
-    $writer = makeScopedWriter($globalStorage, $scopedStorage, $scopedFieldRegistry, [ScopedWriterScopedConfig::class]);
-    $signature = new ScopeSignature(['locale' => 'en']);
-
-    expect(fn () => $writer->setOverride('nonexistent/key.value', $signature, 'test'))
-        ->toThrow(ConfigNotFoundException::class);
-});
+it(
+    'throws ConfigNotFoundException when ScopedConfigWriter setOverride is called for a key not in the registry',
+    function (): void {
+        $globalStorage = new InMemoryConfigStorage();
+        $scopedStorage = new InMemoryScopedConfigStorage();
+        $scopeRegistry = makeScopedWriterScopeRegistry(['locale' => ['en']]);
+        $scopedFieldRegistry = new ScopedFieldRegistry($scopeRegistry);
+    
+        $writer = makeScopedWriter(
+            $globalStorage,
+            $scopedStorage,
+            $scopedFieldRegistry,
+            [ScopedWriterScopedConfig::class]
+        );
+        $signature = new ScopeSignature(['locale' => 'en']);
+    
+        expect(fn () => $writer->setOverride('nonexistent/key.value', $signature, 'test'))
+            ->toThrow(ConfigNotFoundException::class);
+    }
+);

@@ -8,6 +8,7 @@ use Marko\Database\Connection\ConnectionInterface;
 use Marko\Database\Entity\EntityHydrator;
 use Marko\Database\Entity\EntityMetadataFactory;
 use Marko\Database\PgSql\Query\PgSqlQueryBuilderFactory;
+use Marko\Database\Repository\RepositoryQueryBuilder;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Exceptions\CategoryNotFoundException;
 use Markommerce\Catalog\Pagination\CountMode;
@@ -22,13 +23,13 @@ use Markommerce\Catalog\Sorting\CategorySortOrderInterface;
 use Markommerce\Catalog\Sorting\ColumnSortOrder;
 use Markommerce\Catalog\Tests\Support\CategoryFactory;
 use Markommerce\Catalog\Tests\Support\ProductFactory;
-use Markommerce\Testing\Database\TestConnection;
-use Markommerce\Testing\IntegrationTestCase;
-use Markommerce\Testing\Profile\StoreProfile;
 use Markommerce\Criteria\Page\Page;
 use Markommerce\Criteria\Position\PositionCodec;
 use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
+use Markommerce\Testing\Database\TestConnection;
+use Markommerce\Testing\IntegrationTestCase;
+use Markommerce\Testing\Profile\StoreProfile;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -161,14 +162,20 @@ it('fetches the products in a single join query without per-product lookups', fu
                 // Skip parent constructor — we delegate to wrapped
             }
 
-            public function query(string $sql, array $bindings = []): array
+            public function query(
+                string $sql,
+                array $bindings = [],
+            ): array
             {
                 $this->queryCount++;
 
                 return $this->wrapped->query($sql, $bindings);
             }
 
-            public function execute(string $sql, array $bindings = []): int
+            public function execute(
+                string $sql,
+                array $bindings = [],
+            ): int
             {
                 return $this->wrapped->execute($sql, $bindings);
             }
@@ -573,7 +580,7 @@ it('it applies joins contributed by the selected sort order before paginating', 
                 parent::__construct($key, $label, $column, $direction, $supportsKeyset);
             }
 
-            public function prepareQuery(\Marko\Database\Repository\RepositoryQueryBuilder $repositoryQueryBuilder): void
+            public function prepareQuery(RepositoryQueryBuilder $repositoryQueryBuilder): void
             {
                 $this->prepareCallCount++;
                 parent::prepareQuery($repositoryQueryBuilder);

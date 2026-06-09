@@ -148,16 +148,19 @@ function runScopedGetCommand(ScopedConfigGetCommand $command, string ...$args): 
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-it('carries #[Preference(replaces: ConfigGetCommand::class)] on ScopedConfigGetCommand and builds a synthetic ScopeContext from --scope=axis=value', function (): void {
-    $reflection = new ReflectionClass(ScopedConfigGetCommand::class);
-    $attributes = $reflection->getAttributes(Preference::class);
-
-    expect($attributes)->not->toBeEmpty();
-
-    $preference = $attributes[0]->newInstance();
-
-    expect($preference->replaces)->toBe(ConfigGetCommand::class);
-});
+it(
+    'carries #[Preference(replaces: ConfigGetCommand::class)] on ScopedConfigGetCommand and builds a synthetic ScopeContext from --scope=axis=value',
+    function (): void {
+        $reflection = new ReflectionClass(ScopedConfigGetCommand::class);
+        $attributes = $reflection->getAttributes(Preference::class);
+    
+        expect($attributes)->not->toBeEmpty();
+    
+        $preference = $attributes[0]->newInstance();
+    
+        expect($preference->replaces)->toBe(ConfigGetCommand::class);
+    }
+);
 
 it('does NOT carry a #[Command] attribute on ScopedConfigGetCommand', function (): void {
     $reflection = new ReflectionClass(ScopedConfigGetCommand::class);
@@ -166,40 +169,52 @@ it('does NOT carry a #[Command] attribute on ScopedConfigGetCommand', function (
     expect($commandAttributes)->toBeEmpty();
 });
 
-it('returns the resolved override value from ScopedConfigGetCommand when --scope matches a persisted override', function (): void {
-    $globalStorage = new InMemoryConfigStorage();
-    $scopedStorage = new InMemoryScopedConfigStorage();
-    $scopeRegistry = makeScopedGetCmdScopeRegistry(['locale']);
-    $scopedFieldRegistry = new ScopedFieldRegistry($scopeRegistry);
-    $scopedFieldRegistry->register(ScopedGetCmdStringConfig::class, 'storeName', ['locale']);
-
-    $scopeContext = new ScopeContext($scopeRegistry);
-    ['registry' => $configRegistry, 'resolver' => $resolver] = buildScopedGetCmdResolver($globalStorage, $scopedStorage, $scopedFieldRegistry, $scopeContext, $scopeRegistry);
-    $command = buildScopedGetCommand($configRegistry, $resolver, $scopeContext);
-
-    // Pre-seed an override for locale=en
+it(
+    'returns the resolved override value from ScopedConfigGetCommand when --scope matches a persisted override',
+    function (): void {
+        $globalStorage = new InMemoryConfigStorage();
+        $scopedStorage = new InMemoryScopedConfigStorage();
+        $scopeRegistry = makeScopedGetCmdScopeRegistry(['locale']);
+        $scopedFieldRegistry = new ScopedFieldRegistry($scopeRegistry);
+        $scopedFieldRegistry->register(ScopedGetCmdStringConfig::class, 'storeName', ['locale']);
+    
+        $scopeContext = new ScopeContext($scopeRegistry);
+        ['registry' => $configRegistry, 'resolver' => $resolver] = buildScopedGetCmdResolver(
+            $globalStorage,
+            $scopedStorage,
+            $scopedFieldRegistry,
+            $scopeContext,
+            $scopeRegistry
+        );
+        $command = buildScopedGetCommand($configRegistry, $resolver, $scopeContext);
+    
+        // Pre-seed an override for locale=en
     $scopedStorage->saveOverride('scoped-get-cmd/test.storeName', 'locale:en', 'english-store');
+    
+        $result = runScopedGetCommand($command, 'scoped-get-cmd/test.storeName', '--scope=locale=en');
+    
+        expect($result['exitCode'])->toBe(0)
+            ->and($result['output'])->toContain('english-store');
+    }
+);
 
-    $result = runScopedGetCommand($command, 'scoped-get-cmd/test.storeName', '--scope=locale=en');
-
-    expect($result['exitCode'])->toBe(0)
-        ->and($result['output'])->toContain('english-store');
-});
-
-it('type-hints ScopedConfigResolver (not the base ConfigResolver) on ScopedConfigGetCommand\'s constructor parameter so resolvedAt(...) is statically accessible', function (): void {
-    $reflection = new ReflectionClass(ScopedConfigGetCommand::class);
-    $constructor = $reflection->getConstructor();
-
-    assert($constructor !== null);
-
-    $resolverParam = array_find(
-        $constructor->getParameters(),
-        fn ($param) => $param->getName() === 'resolver',
-    );
-
-    expect($resolverParam)->not->toBeNull();
-
-    $type = (string) $resolverParam->getType();
-
-    expect($type)->toBe(ScopedConfigResolver::class);
-});
+it(
+    'type-hints ScopedConfigResolver (not the base ConfigResolver) on ScopedConfigGetCommand\'s constructor parameter so resolvedAt(...) is statically accessible',
+    function (): void {
+        $reflection = new ReflectionClass(ScopedConfigGetCommand::class);
+        $constructor = $reflection->getConstructor();
+    
+        assert($constructor !== null);
+    
+        $resolverParam = array_find(
+            $constructor->getParameters(),
+            fn ($param) => $param->getName() === 'resolver',
+        );
+    
+        expect($resolverParam)->not->toBeNull();
+    
+        $type = (string) $resolverParam->getType();
+    
+        expect($type)->toBe(ScopedConfigResolver::class);
+    }
+);

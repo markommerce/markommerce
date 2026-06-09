@@ -6,20 +6,20 @@ use Marko\Core\Module\GlobalMiddlewareResolver;
 use Marko\Database\Connection\ConnectionInterface;
 use Marko\Database\Connection\TransactionInterface;
 use Marko\Routing\Http\Request;
-use Marko\Routing\Http\Response;
+use Marko\Routing\RouteMatcherInterface;
 use Marko\Routing\Router;
 use Markommerce\Catalog\Tests\Support\CategoryFactory;
 use Markommerce\Catalog\Tests\Support\ProductFactory;
+use Markommerce\CatalogStorefront\Controller\CategoryController;
 use Markommerce\Layout\Middleware\CompileIfStaleMiddleware;
 use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
-use Markommerce\Testing\Database\TestConnection;
-use Markommerce\Testing\Http\RequestDispatcher;
-use Markommerce\Testing\Profile\BootedStore;
-use Markommerce\Testing\Profile\StoreProfile;
-use Markommerce\Testing\Database\DatabaseProvisioner;
 use Markommerce\Testing\Database\AdminConnection;
-use Markommerce\Testing\Database\TestIsolation;
+use Markommerce\Testing\Database\DatabaseProvisioner;
 use Markommerce\Testing\Database\IsolationMode;
+use Markommerce\Testing\Database\TestConnection;
+use Markommerce\Testing\Database\TestIsolation;
+use Markommerce\Testing\Http\RequestDispatcher;
+use Markommerce\Testing\Profile\StoreProfile;
 
 function httpTestVendorDir(): string
 {
@@ -32,6 +32,7 @@ function httpTestVendorDir(): string
 function httpTestWorkerBasePath(): string
 {
     $token = getenv('TEST_TOKEN') ?: getenv('PARATEST_TOKEN') ?: (string) mt_rand(100000, 999999);
+
     return sys_get_temp_dir() . '/markommerce-http-test-' . getmypid() . '-' . $token;
 }
 
@@ -87,26 +88,29 @@ beforeEach(function (): void {
 
 // ─── Requirement 1 ────────────────────────────────────────────────────────────
 
-it('sources global middleware from the booted manifests via GlobalMiddlewareResolver (CompileIfStale then MarkommerceLayout)', function (): void {
-    $profile = StoreProfile::storefront(httpTestVendorDir());
-    $manifests = $profile->modules();
-
-    $resolver = new GlobalMiddlewareResolver();
-    $middleware = $resolver->resolve($manifests);
-
-    expect($middleware)->toContain(CompileIfStaleMiddleware::class);
-    expect($middleware)->toContain(MarkommerceLayoutMiddleware::class);
-
-    // Order: CompileIfStale must come before MarkommerceLayout
+it(
+    'sources global middleware from the booted manifests via GlobalMiddlewareResolver (CompileIfStale then MarkommerceLayout)',
+    function (): void {
+        $profile = StoreProfile::storefront(httpTestVendorDir());
+        $manifests = $profile->modules();
+    
+        $resolver = new GlobalMiddlewareResolver();
+        $middleware = $resolver->resolve($manifests);
+    
+        expect($middleware)->toContain(CompileIfStaleMiddleware::class);
+        expect($middleware)->toContain(MarkommerceLayoutMiddleware::class);
+    
+        // Order: CompileIfStale must come before MarkommerceLayout
     $compileIdx = array_search(CompileIfStaleMiddleware::class, $middleware, true);
-    $layoutIdx = array_search(MarkommerceLayoutMiddleware::class, $middleware, true);
-
-    // array_search returns int|string|false; the toContain assertions above guarantee
+        $layoutIdx = array_search(MarkommerceLayoutMiddleware::class, $middleware, true);
+    
+        // array_search returns int|string|false; the toContain assertions above guarantee
     // both values are present, so we assert not-false before casting to int.
     expect($compileIdx)->not->toBeFalse();
-    expect($layoutIdx)->not->toBeFalse();
-    expect((int) $compileIdx)->toBeLessThan((int) $layoutIdx);
-});
+        expect($layoutIdx)->not->toBeFalse();
+        expect((int) $compileIdx)->toBeLessThan((int) $layoutIdx);
+    }
+);
 
 // ─── Requirement 2 ────────────────────────────────────────────────────────────
 
@@ -124,55 +128,58 @@ it('builds a router that matches the category page route via RoutingBootstrapper
     expect($router)->toBeInstanceOf(Router::class);
 
     // Verify it can match /catalog/category/{id}
-    /** @var \Marko\Routing\RouteMatcherInterface $matcher */
-    $matcher = $store->get(\Marko\Routing\RouteMatcherInterface::class);
+    /** @var RouteMatcherInterface $matcher */
+    $matcher = $store->get(RouteMatcherInterface::class);
     $matched = $matcher->match('GET', '/catalog/category/1');
 
     expect($matched)->not->toBeNull();
-    expect($matched?->route->controller)->toBe(\Markommerce\CatalogStorefront\Controller\CategoryController::class);
+    expect($matched?->route->controller)->toBe(CategoryController::class);
     expect($matched?->route->action)->toBe('show');
 })->group('integration-destructive');
 
 // ─── Requirement 3 ────────────────────────────────────────────────────────────
 
-it('renders real Latte HTML (not fake-view placeholder markup) without throwing ViteManifestException', function (): void {
-    TestConnection::skipIfUnavailable();
-
-    $basePath = httpTestWorkerBasePath() . '-r3';
-    $profile = StoreProfile::storefront(httpTestVendorDir());
-
-    $provisioner = new DatabaseProvisioner(new AdminConnection(), $profile);
-    $provisioner->ensureTemplate();
-    $provisioner->ensureWorkerClone();
-    $conn = $provisioner->connection();
-    /** @var ConnectionInterface&TransactionInterface $conn */
-    $isolation = new TestIsolation(IsolationMode::Rollback);
-
-    $store = $profile->boot($conn, $basePath);
-    $isolation->begin($conn, $provisioner->tableNames());
-
-    try {
-        $category = CategoryFactory::new($store)->withName('Latte Real Category')->create();
-        ProductFactory::new($store)->withName('Latte Real Product')->inCategory($category)->create();
-
-        $request = new Request([
-            'REQUEST_METHOD' => 'GET',
-            'REQUEST_URI' => '/catalog/category/' . $category->id,
-            'HTTP_HOST' => 'localhost',
-        ]);
-
-        $response = $store->handle($request);
-
-        expect($response->statusCode())->toBe(200);
-        // Real Latte output — must NOT contain fake-view data-template markers
+it(
+    'renders real Latte HTML (not fake-view placeholder markup) without throwing ViteManifestException',
+    function (): void {
+        TestConnection::skipIfUnavailable();
+    
+        $basePath = httpTestWorkerBasePath() . '-r3';
+        $profile = StoreProfile::storefront(httpTestVendorDir());
+    
+        $provisioner = new DatabaseProvisioner(new AdminConnection(), $profile);
+        $provisioner->ensureTemplate();
+        $provisioner->ensureWorkerClone();
+        $conn = $provisioner->connection();
+        /** @var ConnectionInterface&TransactionInterface $conn */
+        $isolation = new TestIsolation(IsolationMode::Rollback);
+    
+        $store = $profile->boot($conn, $basePath);
+        $isolation->begin($conn, $provisioner->tableNames());
+    
+        try {
+            $category = CategoryFactory::new($store)->withName('Latte Real Category')->create();
+            ProductFactory::new($store)->withName('Latte Real Product')->inCategory($category)->create();
+    
+            $request = new Request([
+                'REQUEST_METHOD' => 'GET',
+                'REQUEST_URI' => '/catalog/category/' . $category->id,
+                'HTTP_HOST' => 'localhost',
+            ]);
+    
+            $response = $store->handle($request);
+    
+            expect($response->statusCode())->toBe(200);
+            // Real Latte output — must NOT contain fake-view data-template markers
         expect($response->body())->not->toContain('data-template=');
-        // Must contain actual HTML structure
+            // Must contain actual HTML structure
         expect($response->body())->toContain('<html');
-    } finally {
-        $isolation->finish();
-        $provisioner->teardown();
+        } finally {
+            $isolation->finish();
+            $provisioner->teardown();
+        }
     }
-})->group('integration-destructive');
+)->group('integration-destructive');
 
 // ─── Requirement 4 ────────────────────────────────────────────────────────────
 
@@ -258,51 +265,54 @@ it('exposes the SEO canonical Link header on the response', function (): void {
 
 // ─── Requirement 6 ────────────────────────────────────────────────────────────
 
-it('passes through controller short-circuit responses (302/410/404) with status and Location/headers intact', function (): void {
-    TestConnection::skipIfUnavailable();
-
-    $basePath = httpTestWorkerBasePath() . '-r6';
-    $profile = StoreProfile::storefront(httpTestVendorDir());
-
-    $provisioner = new DatabaseProvisioner(new AdminConnection(), $profile);
-    $provisioner->ensureTemplate();
-    $provisioner->ensureWorkerClone();
-    $conn = $provisioner->connection();
-    /** @var ConnectionInterface&TransactionInterface $conn */
-    $isolation = new TestIsolation(IsolationMode::Rollback);
-
-    $store = $profile->boot($conn, $basePath);
-    $isolation->begin($conn, $provisioner->tableNames());
-
-    try {
-        // 404: non-existent category
+it(
+    'passes through controller short-circuit responses (302/410/404) with status and Location/headers intact',
+    function (): void {
+        TestConnection::skipIfUnavailable();
+    
+        $basePath = httpTestWorkerBasePath() . '-r6';
+        $profile = StoreProfile::storefront(httpTestVendorDir());
+    
+        $provisioner = new DatabaseProvisioner(new AdminConnection(), $profile);
+        $provisioner->ensureTemplate();
+        $provisioner->ensureWorkerClone();
+        $conn = $provisioner->connection();
+        /** @var ConnectionInterface&TransactionInterface $conn */
+        $isolation = new TestIsolation(IsolationMode::Rollback);
+    
+        $store = $profile->boot($conn, $basePath);
+        $isolation->begin($conn, $provisioner->tableNames());
+    
+        try {
+            // 404: non-existent category
         $notFoundRequest = new Request([
-            'REQUEST_METHOD' => 'GET',
-            'REQUEST_URI' => '/catalog/category/99999',
-            'HTTP_HOST' => 'localhost',
-        ]);
-        $notFoundResponse = $store->handle($notFoundRequest);
-        expect($notFoundResponse->statusCode())->toBe(404);
-
-        // 302: invalid sort param redirects to default
-        $category = CategoryFactory::new($store)->withName('Sort Redirect Category')->create();
-        $redirectRequest = new Request(
-            server: [
                 'REQUEST_METHOD' => 'GET',
-                'REQUEST_URI' => '/catalog/category/' . $category->id . '?sort=invalid_sort_xyz',
+                'REQUEST_URI' => '/catalog/category/99999',
                 'HTTP_HOST' => 'localhost',
-            ],
-            query: ['sort' => 'invalid_sort_xyz'],
-        );
-        $redirectResponse = $store->handle($redirectRequest);
-        expect($redirectResponse->statusCode())->toBe(302);
-        $locationHeader = $redirectResponse->headers()['Location'] ?? null;
-        expect($locationHeader)->not->toBeNull();
-    } finally {
-        $isolation->finish();
-        $provisioner->teardown();
+            ]);
+            $notFoundResponse = $store->handle($notFoundRequest);
+            expect($notFoundResponse->statusCode())->toBe(404);
+    
+            // 302: invalid sort param redirects to default
+        $category = CategoryFactory::new($store)->withName('Sort Redirect Category')->create();
+            $redirectRequest = new Request(
+                server: [
+                    'REQUEST_METHOD' => 'GET',
+                    'REQUEST_URI' => '/catalog/category/' . $category->id . '?sort=invalid_sort_xyz',
+                    'HTTP_HOST' => 'localhost',
+                ],
+                query: ['sort' => 'invalid_sort_xyz'],
+            );
+            $redirectResponse = $store->handle($redirectRequest);
+            expect($redirectResponse->statusCode())->toBe(302);
+            $locationHeader = $redirectResponse->headers()['Location'] ?? null;
+            expect($locationHeader)->not->toBeNull();
+        } finally {
+            $isolation->finish();
+            $provisioner->teardown();
+        }
     }
-})->group('integration-destructive');
+)->group('integration-destructive');
 
 // ─── Requirement 7 ────────────────────────────────────────────────────────────
 

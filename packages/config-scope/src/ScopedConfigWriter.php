@@ -32,7 +32,11 @@ class ScopedConfigWriter extends ConfigWriter implements ScopedConfigWriterInter
     /**
      * @throws ConfigNotFoundException|AxisNotDeclaredException
      */
-    public function setOverride(string $key, ScopeSignature $signature, mixed $value): void
+    public function setOverride(
+        string $key,
+        ScopeSignature $signature,
+        mixed $value,
+    ): void
     {
         $definition = $this->registry->byKey($key);
         $axes = $this->scopedFieldRegistry->axesForProperty($definition->configClass, $definition->field);
@@ -59,7 +63,10 @@ class ScopedConfigWriter extends ConfigWriter implements ScopedConfigWriterInter
     /**
      * @throws ConfigNotFoundException|AxisNotDeclaredException
      */
-    public function unsetOverride(string $key, ScopeSignature $signature): void
+    public function unsetOverride(
+        string $key,
+        ScopeSignature $signature,
+    ): void
     {
         $this->setOverride($key, $signature, null);
     }

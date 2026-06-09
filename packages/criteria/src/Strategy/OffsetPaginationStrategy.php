@@ -58,11 +58,11 @@ class OffsetPaginationStrategy implements PaginationStrategyInterface
         $hasNext = count($allItems) > $size;
         $items = array_slice($allItems, 0, $size);
 
-        $nextPosition = ($hasNext)
+        $nextPosition = $hasNext
             ? $this->positionCodec->encode(new OffsetPosition(page: $currentPage + 1))
             : null;
 
-        $previousPosition = ($currentPage > 1)
+        $previousPosition = $currentPage > 1
             ? $this->positionCodec->encode(new OffsetPosition(page: $currentPage - 1))
             : null;
 

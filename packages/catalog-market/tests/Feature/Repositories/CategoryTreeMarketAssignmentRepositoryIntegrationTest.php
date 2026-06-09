@@ -6,7 +6,6 @@ namespace Markommerce\CatalogMarket\Tests\Feature\Repositories;
 
 use Markommerce\Catalog\Entity\CategoryTree;
 use Markommerce\Catalog\Repositories\CategoryTreeRepository;
-use Markommerce\CatalogMarket\Contracts\CategoryTreeMarketAssignmentRepositoryInterface;
 use Markommerce\CatalogMarket\Entity\CategoryTreeMarketAssignment;
 use Markommerce\CatalogMarket\Repositories\CategoryTreeMarketAssignmentRepository;
 use Markommerce\Testing\Database\TestConnection;

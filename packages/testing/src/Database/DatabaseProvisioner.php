@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Markommerce\Testing\Database;
 
+use Exception;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Database\Connection\ConnectionInterface;
 use Markommerce\Testing\Profile\StoreProfile;
@@ -148,7 +149,7 @@ class DatabaseProvisioner
                     $cloneAdmin->disconnect();
                     $lastException = null;
                     break;
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     $lastException = $e;
 
                     if ($attempt < $maxAttempts) {
@@ -247,5 +248,4 @@ class DatabaseProvisioner
     {
         return (int) (hexdec(substr($this->profileKey(), 0, 8)) & 0x7FFFFFFF);
     }
-
 }

@@ -45,7 +45,11 @@ class CategoryTreeService implements CategoryTreeServiceInterface
     /**
      * @throws InvalidArgumentException|DuplicateDefaultTreeException
      */
-    public function createTree(string $code, string $name, bool $isDefault = false): CategoryTree
+    public function createTree(
+        string $code,
+        string $name,
+        bool $isDefault = false,
+    ): CategoryTree
     {
         if (trim($code) === '') {
             throw new InvalidArgumentException('Category tree code must not be empty');
@@ -125,7 +129,12 @@ class CategoryTreeService implements CategoryTreeServiceInterface
     /**
      * @throws CategoryTreeNotFoundException|CategoryNotFoundException|CategoryTreeNodeNotFoundException|NodeNotInTreeException
      */
-    public function placeCategory(int $treeId, int $categoryId, ?int $parentNodeId = null, ?int $position = null): CategoryTreeNode
+    public function placeCategory(
+        int $treeId,
+        int $categoryId,
+        ?int $parentNodeId = null,
+        ?int $position = null,
+    ): CategoryTreeNode
     {
         $tree = $this->categoryTreeRepository->find($treeId);
 
@@ -178,7 +187,11 @@ class CategoryTreeService implements CategoryTreeServiceInterface
     /**
      * @throws CategoryTreeNodeNotFoundException|NodeNotInTreeException|CircularNodeReferenceException
      */
-    public function moveNode(int $nodeId, ?int $newParentNodeId, int $position): void
+    public function moveNode(
+        int $nodeId,
+        ?int $newParentNodeId,
+        int $position,
+    ): void
     {
         $node = $this->categoryTreeNodeRepository->find($nodeId);
 
@@ -198,7 +211,11 @@ class CategoryTreeService implements CategoryTreeServiceInterface
             }
 
             if ($newParent->treeId !== $node->treeId) {
-                throw NodeNotInTreeException::forNodeAndTree($newParentNodeId, (int) $node->treeId, (int) $newParent->treeId);
+                throw NodeNotInTreeException::forNodeAndTree(
+                    $newParentNodeId,
+                    (int) $node->treeId,
+                    (int) $newParent->treeId
+                );
             }
 
             $this->guardNoCycle($nodeId, $newParentNodeId);
@@ -215,7 +232,10 @@ class CategoryTreeService implements CategoryTreeServiceInterface
     /**
      * @throws CategoryTreeNodeNotFoundException
      */
-    public function removeNode(int $nodeId, NodeRemovalStrategy $strategy): void
+    public function removeNode(
+        int $nodeId,
+        NodeRemovalStrategy $strategy,
+    ): void
     {
         $node = $this->categoryTreeNodeRepository->find($nodeId);
 
@@ -245,7 +265,11 @@ class CategoryTreeService implements CategoryTreeServiceInterface
      * @param list<int> $orderedNodeIds
      * @throws CategoryTreeNodeNotFoundException|NodeNotInTreeException
      */
-    public function reorderSiblings(?int $parentNodeId, int $treeId, array $orderedNodeIds): void
+    public function reorderSiblings(
+        ?int $parentNodeId,
+        int $treeId,
+        array $orderedNodeIds,
+    ): void
     {
         foreach ($orderedNodeIds as $id) {
             $node = $this->categoryTreeNodeRepository->find($id);
@@ -338,7 +362,10 @@ class CategoryTreeService implements CategoryTreeServiceInterface
         }
     }
 
-    private function cascadeDelete(int $nodeId, int $treeId): void
+    private function cascadeDelete(
+        int $nodeId,
+        int $treeId,
+    ): void
     {
         $children = $this->categoryTreeNodeRepository->findChildren($nodeId, $treeId);
 
@@ -356,7 +383,10 @@ class CategoryTreeService implements CategoryTreeServiceInterface
     /**
      * @throws CircularNodeReferenceException
      */
-    private function guardNoCycle(int $nodeId, int $newParentNodeId): void
+    private function guardNoCycle(
+        int $nodeId,
+        int $newParentNodeId,
+    ): void
     {
         $current = $this->categoryTreeNodeRepository->find($newParentNodeId);
 

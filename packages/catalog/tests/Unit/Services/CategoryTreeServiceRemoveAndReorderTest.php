@@ -267,30 +267,33 @@ it('reorderSiblings throws NodeNotInTreeException when a listed node belongs to 
         ->toThrow(NodeNotInTreeException::class);
 });
 
-it('reorderSiblings throws NodeNotInTreeException (forParentMismatch) when a listed node has a different parent than expected', function (): void {
-    $treeRepo = new FakeCategoryTreeRepository();
-    $nodeRepo = new FakeCategoryTreeNodeRepository();
-    $categoryRepo = new FakeCategoryRepository();
-    $service = makeCategoryTreeServiceForRemoveAndReorder(
-        treeRepo: $treeRepo,
-        nodeRepo: $nodeRepo,
-        categoryRepo: $categoryRepo,
-    );
-
-    $tree = makeTreeForRemoveAndReorder($treeRepo);
-    $catParent = makeCategoryForRemoveAndReorder($categoryRepo, 'Parent');
-    $catChild = makeCategoryForRemoveAndReorder($categoryRepo, 'Child');
-    $catRoot = makeCategoryForRemoveAndReorder($categoryRepo, 'Root');
-
-    $parentNode = makeNodeForRemoveAndReorder($nodeRepo, $tree->id, $catParent->id, null, 0);
-    $childNode = makeNodeForRemoveAndReorder($nodeRepo, $tree->id, $catChild->id, $parentNode->id, 0);
-    $rootNode = makeNodeForRemoveAndReorder($nodeRepo, $tree->id, $catRoot->id, null, 10);
-
-    // childNode has parentNodeId = parentNode->id, not null
+it(
+    'reorderSiblings throws NodeNotInTreeException (forParentMismatch) when a listed node has a different parent than expected',
+    function (): void {
+        $treeRepo = new FakeCategoryTreeRepository();
+        $nodeRepo = new FakeCategoryTreeNodeRepository();
+        $categoryRepo = new FakeCategoryRepository();
+        $service = makeCategoryTreeServiceForRemoveAndReorder(
+            treeRepo: $treeRepo,
+            nodeRepo: $nodeRepo,
+            categoryRepo: $categoryRepo,
+        );
+    
+        $tree = makeTreeForRemoveAndReorder($treeRepo);
+        $catParent = makeCategoryForRemoveAndReorder($categoryRepo, 'Parent');
+        $catChild = makeCategoryForRemoveAndReorder($categoryRepo, 'Child');
+        $catRoot = makeCategoryForRemoveAndReorder($categoryRepo, 'Root');
+    
+        $parentNode = makeNodeForRemoveAndReorder($nodeRepo, $tree->id, $catParent->id, null, 0);
+        $childNode = makeNodeForRemoveAndReorder($nodeRepo, $tree->id, $catChild->id, $parentNode->id, 0);
+        $rootNode = makeNodeForRemoveAndReorder($nodeRepo, $tree->id, $catRoot->id, null, 10);
+    
+        // childNode has parentNodeId = parentNode->id, not null
     // We claim all nodes should have parent = null but childNode has a parent
     expect(fn () => $service->reorderSiblings(null, $tree->id, [$rootNode->id, $childNode->id]))
-        ->toThrow(NodeNotInTreeException::class);
-});
+            ->toThrow(NodeNotInTreeException::class);
+    }
+);
 
 it('all previously added service tests continue to pass', function (): void {
     $service = makeCategoryTreeServiceForRemoveAndReorder();

@@ -8,7 +8,10 @@ use Marko\Core\Exceptions\MarkoException;
 
 class CircularNodeReferenceException extends MarkoException
 {
-    public static function forNodeAndParent(int $nodeId, int $proposedParentId): self
+    public static function forNodeAndParent(
+        int $nodeId,
+        int $proposedParentId,
+    ): self
     {
         return new self(
             message: "Cannot set node $proposedParentId as parent of node $nodeId: this would create a circular reference",

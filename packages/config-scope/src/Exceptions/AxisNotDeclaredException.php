@@ -8,7 +8,10 @@ use Marko\Core\Exceptions\MarkoException;
 
 class AxisNotDeclaredException extends MarkoException
 {
-    public static function forPropertyAndAxis(string $property, string $axis): self
+    public static function forPropertyAndAxis(
+        string $property,
+        string $axis,
+    ): self
     {
         return new self(
             message: "Axis '$axis' is not declared for property '$property'",

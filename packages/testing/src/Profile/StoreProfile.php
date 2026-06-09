@@ -58,7 +58,10 @@ class StoreProfile
      *
      * @param string ...$rootPackages
      */
-    public static function of(string $vendorDir, string ...$rootPackages): self
+    public static function of(
+        string $vendorDir,
+        string ...$rootPackages,
+    ): self
     {
         $resolver = new ModuleResolver($vendorDir);
         $manifests = $resolver->resolveFrom(array_values($rootPackages));
@@ -77,7 +80,10 @@ class StoreProfile
      *
      * @throws MissingAppConfigPathException when neither argument nor env var is set
      */
-    public static function fromInstalled(string $vendorDir, string $appConfigPath = ''): self
+    public static function fromInstalled(
+        string $vendorDir,
+        string $appConfigPath = '',
+    ): self
     {
         if ($appConfigPath === '') {
             $appConfigPath = (string) getenv('MARKO_APP_CONFIG_PATH');
@@ -204,7 +210,10 @@ class StoreProfile
     /**
      * Inject a locale value for a specific market.
      */
-    public function withLocale(string $market, string $locale): self
+    public function withLocale(
+        string $market,
+        string $locale,
+    ): self
     {
         $clone = clone $this;
         $clone->locales[$market][] = $locale;
@@ -238,7 +247,10 @@ class StoreProfile
      *
      * @param string ...$locales
      */
-    public function withLocales(string $market, string ...$locales): self
+    public function withLocales(
+        string $market,
+        string ...$locales,
+    ): self
     {
         $clone = clone $this;
         $clone->locales[$market] = array_merge($clone->locales[$market] ?? [], array_values($locales));
@@ -261,7 +273,10 @@ class StoreProfile
      *        Pass a unique, per-worker path (including getmypid() + a worker token) so parallel
      *        workers don't collide on compiled layout artifacts or the Vite manifest path.
      */
-    public function boot(ConnectionInterface $connection, ?string $projectBasePath = null): BootedStore
+    public function boot(
+        ConnectionInterface $connection,
+        ?string $projectBasePath = null,
+    ): BootedStore
     {
         $config = $this->buildConfig();
         $bootstrapper = new ContainerBootstrapper();

@@ -79,7 +79,11 @@ class PgsqlScopedConfigStorage implements ScopedConfigStorageInterface
     /**
      * @throws PDOException
      */
-    public function saveOverride(string $key, string $signature, mixed $value): void
+    public function saveOverride(
+        string $key,
+        string $signature,
+        mixed $value,
+    ): void
     {
         $valueJson = json_encode($value);
 
@@ -103,7 +107,10 @@ class PgsqlScopedConfigStorage implements ScopedConfigStorageInterface
     /**
      * @throws PDOException
      */
-    public function deleteOverride(string $key, string $signature): void
+    public function deleteOverride(
+        string $key,
+        string $signature,
+    ): void
     {
         $this->connection->execute(
             sprintf(

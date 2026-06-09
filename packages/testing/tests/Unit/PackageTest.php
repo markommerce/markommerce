@@ -1,9 +1,10 @@
 <?php
 
 declare(strict_types=1);
+use Markommerce\Testing\Testing;
 
 it('autoloads a class from the Markommerce\Testing namespace', function (): void {
-    expect(class_exists(\Markommerce\Testing\Testing::class))->toBeTrue();
+    expect(class_exists(Testing::class))->toBeTrue();
 });
 
 it('exposes the package on the test suite path', function (): void {

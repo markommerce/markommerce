@@ -7,13 +7,16 @@ use Markommerce\CatalogMarket\Contracts\CategoryTreeMarketAssignmentRepositoryIn
 use Markommerce\CatalogMarket\Entity\CategoryTreeMarketAssignment;
 use Markommerce\CatalogMarket\Tests\Support\FakeCategoryTreeMarketAssignmentRepository;
 
-it('FakeCategoryTreeMarketAssignmentRepository lives in the new package\'s tests/Support with the new namespace and still satisfies the relocated interface', function (): void {
-    $reflection = new ReflectionClass(FakeCategoryTreeMarketAssignmentRepository::class);
-
-    expect($reflection->getNamespaceName())->toBe('Markommerce\\CatalogMarket\\Tests\\Support');
-    expect($reflection->implementsInterface(CategoryTreeMarketAssignmentRepositoryInterface::class))->toBeTrue();
-    expect($reflection->implementsInterface(RepositoryInterface::class))->toBeTrue();
-});
+it(
+    'FakeCategoryTreeMarketAssignmentRepository lives in the new package\'s tests/Support with the new namespace and still satisfies the relocated interface',
+    function (): void {
+        $reflection = new ReflectionClass(FakeCategoryTreeMarketAssignmentRepository::class);
+    
+        expect($reflection->getNamespaceName())->toBe('Markommerce\\CatalogMarket\\Tests\\Support');
+        expect($reflection->implementsInterface(CategoryTreeMarketAssignmentRepositoryInterface::class))->toBeTrue();
+        expect($reflection->implementsInterface(RepositoryInterface::class))->toBeTrue();
+    }
+);
 
 it('interface extends Marko\Database\Repository\RepositoryInterface', function (): void {
     $reflection = new ReflectionClass(CategoryTreeMarketAssignmentRepositoryInterface::class);

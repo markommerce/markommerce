@@ -150,32 +150,41 @@ it('bumps the row version after a successful write to ConfigWriter', function ()
     expect($rowAfterSecond)->not->toBeNull()->and($rowAfterSecond->version)->toBe(2);
 });
 
-it('retries up to 3 times on compareAndSave conflict before throwing StaleConfigWriteException from ConfigWriter', function (): void {
-    $storage = new ContentiousStorage(failCount: 3);
-    $writer = buildWriter($storage);
+it(
+    'retries up to 3 times on compareAndSave conflict before throwing StaleConfigWriteException from ConfigWriter',
+    function (): void {
+        $storage = new ContentiousStorage(failCount: 3);
+        $writer = buildWriter($storage);
+    
+        expect(fn () => $writer->setGlobal('writer/general.page_size', 99))
+            ->toThrow(StaleConfigWriteException::class);
+    
+        expect($storage->attempts)->toBe(3);
+    }
+);
 
-    expect(fn () => $writer->setGlobal('writer/general.page_size', 99))
-        ->toThrow(StaleConfigWriteException::class);
+it(
+    'throws ConfigNotFoundException from ConfigWriter setGlobal when the key is not in the registry',
+    function (): void {
+        $storage = new InMemoryConfigStorage();
+        $writer = buildWriter($storage);
+    
+        expect(fn () => $writer->setGlobal('nonexistent/key.value', 42))
+            ->toThrow(ConfigNotFoundException::class);
+    }
+);
 
-    expect($storage->attempts)->toBe(3);
-});
-
-it('throws ConfigNotFoundException from ConfigWriter setGlobal when the key is not in the registry', function (): void {
-    $storage = new InMemoryConfigStorage();
-    $writer = buildWriter($storage);
-
-    expect(fn () => $writer->setGlobal('nonexistent/key.value', 42))
-        ->toThrow(ConfigNotFoundException::class);
-});
-
-it('declares ConfigWriter\'s constructor-promoted properties (registry, storage, cipher) with protected visibility (verified via reflection)', function (): void {
-    $reflection = new ReflectionClass(ConfigWriter::class);
-
-    $registryProp = $reflection->getProperty('registry');
-    $storageProp = $reflection->getProperty('storage');
-    $cipherProp = $reflection->getProperty('cipher');
-
-    expect($registryProp->isProtected())->toBeTrue()
-        ->and($storageProp->isProtected())->toBeTrue()
-        ->and($cipherProp->isProtected())->toBeTrue();
-});
+it(
+    'declares ConfigWriter\'s constructor-promoted properties (registry, storage, cipher) with protected visibility (verified via reflection)',
+    function (): void {
+        $reflection = new ReflectionClass(ConfigWriter::class);
+    
+        $registryProp = $reflection->getProperty('registry');
+        $storageProp = $reflection->getProperty('storage');
+        $cipherProp = $reflection->getProperty('cipher');
+    
+        expect($registryProp->isProtected())->toBeTrue()
+            ->and($storageProp->isProtected())->toBeTrue()
+            ->and($cipherProp->isProtected())->toBeTrue();
+    }
+);

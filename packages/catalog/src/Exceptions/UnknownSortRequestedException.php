@@ -6,7 +6,10 @@ namespace Markommerce\Catalog\Exceptions;
 
 class UnknownSortRequestedException extends InvalidPaginationConfigException
 {
-    public static function forRequestedKey(string $sort, string $allowedKeys): self
+    public static function forRequestedKey(
+        string $sort,
+        string $allowedKeys,
+    ): self
     {
         return new self(
             message: "Sort '$sort' is not in the allowed list",

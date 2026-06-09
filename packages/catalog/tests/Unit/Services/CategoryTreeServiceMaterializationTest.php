@@ -146,29 +146,32 @@ it('getMaterializedTree throws CategoryTreeNotFoundException for an unknown tree
         ->toThrow(CategoryTreeNotFoundException::class);
 });
 
-it('getMaterializedTree memoises within a request — repeated calls do not re-query the node repository', function (): void {
-    $treeRepo = new FakeCategoryTreeRepository();
-    $nodeRepo = new FakeCategoryTreeNodeRepository();
-    $categoryRepo = new FakeCategoryRepository();
-    $service = makeCategoryTreeServiceForMaterialization(
-        treeRepo: $treeRepo,
-        nodeRepo: $nodeRepo,
-        categoryRepo: $categoryRepo,
-    );
-
-    $tree = makeTreeForMaterialization($treeRepo);
-    $cat = makeCategoryForMaterialization($categoryRepo, 'Cat1');
-    makeNodeForMaterialization($nodeRepo, $tree->id, $cat->id, null, 0);
-
-    $callsBefore = count($nodeRepo->callLog);
-
-    $service->getMaterializedTree($tree->id);
-    $service->getMaterializedTree($tree->id);
-
-    $callsAfter = count($nodeRepo->callLog);
-
-    expect($callsAfter - $callsBefore)->toBe(1);
-});
+it(
+    'getMaterializedTree memoises within a request — repeated calls do not re-query the node repository',
+    function (): void {
+        $treeRepo = new FakeCategoryTreeRepository();
+        $nodeRepo = new FakeCategoryTreeNodeRepository();
+        $categoryRepo = new FakeCategoryRepository();
+        $service = makeCategoryTreeServiceForMaterialization(
+            treeRepo: $treeRepo,
+            nodeRepo: $nodeRepo,
+            categoryRepo: $categoryRepo,
+        );
+    
+        $tree = makeTreeForMaterialization($treeRepo);
+        $cat = makeCategoryForMaterialization($categoryRepo, 'Cat1');
+        makeNodeForMaterialization($nodeRepo, $tree->id, $cat->id, null, 0);
+    
+        $callsBefore = count($nodeRepo->callLog);
+    
+        $service->getMaterializedTree($tree->id);
+        $service->getMaterializedTree($tree->id);
+    
+        $callsAfter = count($nodeRepo->callLog);
+    
+        expect($callsAfter - $callsBefore)->toBe(1);
+    }
+);
 
 it('moveNode invalidates the cached materialization for the affected tree', function (): void {
     $treeRepo = new FakeCategoryTreeRepository();

@@ -56,7 +56,10 @@ class AdminConnection extends TestConnection
      *
      * @throws InvalidIdentifierException
      */
-    public function createDatabaseFromTemplate(string $name, string $template): void
+    public function createDatabaseFromTemplate(
+        string $name,
+        string $template,
+    ): void
     {
         $this->validateIdentifier($name);
         $this->validateIdentifier($template);

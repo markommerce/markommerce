@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use Marko\Core\Module\ModuleManifest;
+use Markommerce\CatalogStorefront\Controller\CategoryController;
+use Markommerce\Scope\Storage\DefaultScopeGuard;
+use Markommerce\Testing\Database\TestConnection;
 use Markommerce\Testing\Profile\StoreProfile;
 
 function storeProfileVendorDir(): string
@@ -64,22 +67,22 @@ it('excludes scope locale and market modules from the storefront profile', funct
 });
 
 it('boots the storefront profile against a connection and resolves a storefront service', function (): void {
-    \Markommerce\Testing\Database\TestConnection::skipIfUnavailable();
-    \Markommerce\Scope\Storage\DefaultScopeGuard::reset();
+    TestConnection::skipIfUnavailable();
+    DefaultScopeGuard::reset();
 
     $envKey = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
     putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $envKey);
 
     try {
-        $conn = new \Markommerce\Testing\Database\TestConnection();
+        $conn = new TestConnection();
         $profile = StoreProfile::storefront(storeProfileVendorDir());
         $store = $profile->boot($conn);
 
-        $controller = $store->get(\Markommerce\CatalogStorefront\Controller\CategoryController::class);
-        expect($controller)->toBeInstanceOf(\Markommerce\CatalogStorefront\Controller\CategoryController::class);
+        $controller = $store->get(CategoryController::class);
+        expect($controller)->toBeInstanceOf(CategoryController::class);
     } finally {
         putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
-        \Markommerce\Scope\Storage\DefaultScopeGuard::reset();
+        DefaultScopeGuard::reset();
     }
 })->group('integration-destructive');
 

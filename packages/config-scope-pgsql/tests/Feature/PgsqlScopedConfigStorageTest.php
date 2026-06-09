@@ -59,35 +59,41 @@ it('inserts a new override row via PgsqlScopedConfigStorage saveOverride', funct
         ->and($result['store_1'])->toBe(20);
 })->group('integration-destructive');
 
-it('overwrites an existing override row via PgsqlScopedConfigStorage saveOverride using ON CONFLICT DO UPDATE', function (): void {
-    /** @var PgsqlScopedConfigStorage $storage */
-    $storage = $this->storage;
+it(
+    'overwrites an existing override row via PgsqlScopedConfigStorage saveOverride using ON CONFLICT DO UPDATE',
+    function (): void {
+        /** @var PgsqlScopedConfigStorage $storage */
+        $storage = $this->storage;
+    
+        $storage->saveOverride('markommerce/catalog.grid_page_size', 'store_1', 20);
+        $storage->saveOverride('markommerce/catalog.grid_page_size', 'store_1', 50);
+    
+        $result = $storage->loadOverrides('markommerce/catalog.grid_page_size');
+    
+        expect($result)->toHaveKey('store_1')
+            ->and($result['store_1'])->toBe(50)
+            ->and(count($result))->toBe(1);
+    }
+)->group('integration-destructive');
 
-    $storage->saveOverride('markommerce/catalog.grid_page_size', 'store_1', 20);
-    $storage->saveOverride('markommerce/catalog.grid_page_size', 'store_1', 50);
-
-    $result = $storage->loadOverrides('markommerce/catalog.grid_page_size');
-
-    expect($result)->toHaveKey('store_1')
-        ->and($result['store_1'])->toBe(50)
-        ->and(count($result))->toBe(1);
-})->group('integration-destructive');
-
-it('loads all overrides for a given config_key as a signature=>value map via PgsqlScopedConfigStorage loadOverrides', function (): void {
-    /** @var PgsqlScopedConfigStorage $storage */
-    $storage = $this->storage;
-
-    $storage->saveOverride('markommerce/catalog.grid_page_size', 'store_1', 20);
-    $storage->saveOverride('markommerce/catalog.grid_page_size', 'store_2', 30);
-
-    $result = $storage->loadOverrides('markommerce/catalog.grid_page_size');
-
-    expect($result)->toHaveCount(2)
-        ->and($result)->toHaveKey('store_1')
-        ->and($result['store_1'])->toBe(20)
-        ->and($result)->toHaveKey('store_2')
-        ->and($result['store_2'])->toBe(30);
-})->group('integration-destructive');
+it(
+    'loads all overrides for a given config_key as a signature=>value map via PgsqlScopedConfigStorage loadOverrides',
+    function (): void {
+        /** @var PgsqlScopedConfigStorage $storage */
+        $storage = $this->storage;
+    
+        $storage->saveOverride('markommerce/catalog.grid_page_size', 'store_1', 20);
+        $storage->saveOverride('markommerce/catalog.grid_page_size', 'store_2', 30);
+    
+        $result = $storage->loadOverrides('markommerce/catalog.grid_page_size');
+    
+        expect($result)->toHaveCount(2)
+            ->and($result)->toHaveKey('store_1')
+            ->and($result['store_1'])->toBe(20)
+            ->and($result)->toHaveKey('store_2')
+            ->and($result['store_2'])->toBe(30);
+    }
+)->group('integration-destructive');
 
 it('returns an empty array from PgsqlScopedConfigStorage loadOverrides for an unknown config_key', function (): void {
     /** @var PgsqlScopedConfigStorage $storage */
@@ -121,19 +127,22 @@ it('returns multiple keys as a nested map from PgsqlScopedConfigStorage loadMany
         ->and($result['markommerce/catalog.list_page_size']['store_1'])->toBe(10);
 })->group('integration-destructive');
 
-it('removes a single override via PgsqlScopedConfigStorage deleteOverride leaving other overrides for the same key intact', function (): void {
-    /** @var PgsqlScopedConfigStorage $storage */
-    $storage = $this->storage;
-
-    $storage->saveOverride('markommerce/catalog.grid_page_size', 'store_1', 20);
-    $storage->saveOverride('markommerce/catalog.grid_page_size', 'store_2', 30);
-
-    $storage->deleteOverride('markommerce/catalog.grid_page_size', 'store_1');
-
-    $result = $storage->loadOverrides('markommerce/catalog.grid_page_size');
-
-    expect($result)->toHaveCount(1)
-        ->and($result)->not->toHaveKey('store_1')
-        ->and($result)->toHaveKey('store_2')
-        ->and($result['store_2'])->toBe(30);
-})->group('integration-destructive');
+it(
+    'removes a single override via PgsqlScopedConfigStorage deleteOverride leaving other overrides for the same key intact',
+    function (): void {
+        /** @var PgsqlScopedConfigStorage $storage */
+        $storage = $this->storage;
+    
+        $storage->saveOverride('markommerce/catalog.grid_page_size', 'store_1', 20);
+        $storage->saveOverride('markommerce/catalog.grid_page_size', 'store_2', 30);
+    
+        $storage->deleteOverride('markommerce/catalog.grid_page_size', 'store_1');
+    
+        $result = $storage->loadOverrides('markommerce/catalog.grid_page_size');
+    
+        expect($result)->toHaveCount(1)
+            ->and($result)->not->toHaveKey('store_1')
+            ->and($result)->toHaveKey('store_2')
+            ->and($result['store_2'])->toBe(30);
+    }
+)->group('integration-destructive');

@@ -9,6 +9,8 @@ use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Entity\ProductCategoryAssignment;
+use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
+use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
 use Markommerce\Testing\Fixtures\Exceptions\MissingModuleException;
 use Markommerce\Testing\Fixtures\FixtureFactory;
 use Markommerce\Testing\Profile\BootedStore;
@@ -118,7 +120,10 @@ class ProductFactory extends FixtureFactory
     /**
      * @throws MissingModuleException when the price-index repository is not bound in the container
      */
-    private function writeIndexedPrice(Product $product, string $price): void
+    private function writeIndexedPrice(
+        Product $product,
+        string $price,
+    ): void
     {
         $repositoryInterface = 'Markommerce\\CatalogPriceIndex\\Contracts\\ProductPriceIndexRepositoryInterface';
 
@@ -129,10 +134,10 @@ class ProductFactory extends FixtureFactory
             );
         }
 
-        /** @var \Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface $indexRepo */
+        /** @var ProductPriceIndexRepositoryInterface $indexRepo */
         $indexRepo = $this->store->get($repositoryInterface);
 
-        $entry = new \Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry();
+        $entry = new ProductPriceIndexEntry();
         $entry->productId = (int) $product->id;
         $entry->amount = $price;
         $entry->currencyCode = 'USD';

@@ -10,7 +10,7 @@ function ciWorkflowPath(): string
 function ciWorkflowContent(): string
 {
     $path = ciWorkflowPath();
-    expect(file_exists($path))->toBeTrue("CI workflow file must exist at {$path}");
+    expect(file_exists($path))->toBeTrue("CI workflow file must exist at $path");
 
     return (string) file_get_contents($path);
 }

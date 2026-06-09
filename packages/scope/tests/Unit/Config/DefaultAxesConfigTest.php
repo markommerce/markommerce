@@ -89,15 +89,21 @@ it('gives the channel axis a single scope named web set as its default', functio
         ->and($config['axes']['channel']['scopes'])->toHaveKey('web');
 });
 
-it('is accepted by PhpScopeRegistry and lists only [market, channel] axes from scope\'s default config', function () use ($config): void {
-    $stub = makeConfigStubForDefaultAxes($config['axes']);
-    $registry = new PhpScopeRegistry($stub);
+it(
+    'is accepted by PhpScopeRegistry and lists only [market, channel] axes from scope\'s default config',
+    function () use ($config): void {
+        $stub = makeConfigStubForDefaultAxes($config['axes']);
+        $registry = new PhpScopeRegistry($stub);
+    
+        expect($registry->listAxes())->toBe(['market', 'channel']);
+    }
+);
 
-    expect($registry->listAxes())->toBe(['market', 'channel']);
-});
-
-it('it removes the obsolete CatalogMetadataIntegrationTest file that cross-referenced catalog entities from scope tests', function (): void {
-    $obsoleteFile = dirname(__DIR__, 2) . '/Feature/CatalogMetadataIntegrationTest.php';
-
-    expect(file_exists($obsoleteFile))->toBeFalse();
-});
+it(
+    'it removes the obsolete CatalogMetadataIntegrationTest file that cross-referenced catalog entities from scope tests',
+    function (): void {
+        $obsoleteFile = dirname(__DIR__, 2) . '/Feature/CatalogMetadataIntegrationTest.php';
+    
+        expect(file_exists($obsoleteFile))->toBeFalse();
+    }
+);

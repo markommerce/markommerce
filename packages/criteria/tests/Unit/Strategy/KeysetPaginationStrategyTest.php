@@ -13,6 +13,7 @@ use Markommerce\Criteria\Page\PageRequest;
 use Markommerce\Criteria\Position\KeysetPosition;
 use Markommerce\Criteria\Position\OffsetPosition;
 use Markommerce\Criteria\Position\PositionCodec;
+use Markommerce\Criteria\Sort\NullsPlacement;
 use Markommerce\Criteria\Sort\Sort;
 use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Criteria\Sort\SortField;
@@ -54,14 +55,20 @@ class FakeKeysetQueryBuilder extends RepositoryQueryBuilder
         $this->entities = $entities;
     }
 
-    public function orderBy(string $column, string $direction = 'ASC'): static
+    public function orderBy(
+        string $column,
+        string $direction = 'ASC',
+    ): static
     {
         $this->orderByCalls[] = ['column' => $column, 'direction' => $direction];
 
         return $this;
     }
 
-    public function orderByRaw(string $expression, string $direction = 'ASC'): static
+    public function orderByRaw(
+        string $expression,
+        string $direction = 'ASC',
+    ): static
     {
         $this->orderByRawCalls[] = ['expression' => $expression, 'direction' => $direction];
 
@@ -78,7 +85,10 @@ class FakeKeysetQueryBuilder extends RepositoryQueryBuilder
     /**
      * @param array<int|string, mixed> $bindings
      */
-    public function whereRaw(string $expression, array $bindings = []): static
+    public function whereRaw(
+        string $expression,
+        array $bindings = [],
+    ): static
     {
         $this->whereRawCalls[] = ['expression' => $expression, 'bindings' => $bindings];
 
@@ -100,7 +110,10 @@ class FakeCursorValueExtractor implements CursorValueExtractorInterface
     /**
      * @return array<string, scalar>
      */
-    public function extract(object $entity, Sort $sort): array
+    public function extract(
+        object $entity,
+        Sort $sort,
+    ): array
     {
         assert($entity instanceof KeysetTestEntity);
         $result = [];
@@ -299,7 +312,7 @@ it('throws MissingCursorValueExtractorException when extractor is null and there
 it('expands a nulls-last sort field the same way in the keyset strategy', function (): void {
     $query = makeKeysetQuery(makeEntities(3));
     $strategy = makeKeysetStrategy();
-    $sort = new Sort(new SortField('price', SortDirection::Ascending, nulls: \Markommerce\Criteria\Sort\NullsPlacement::Last));
+    $sort = new Sort(new SortField('price', SortDirection::Ascending, nulls: NullsPlacement::Last));
     $request = PageRequest::first(size: 5, sort: $sort);
 
     $strategy->paginate($query, $request, new FakeCursorValueExtractor());

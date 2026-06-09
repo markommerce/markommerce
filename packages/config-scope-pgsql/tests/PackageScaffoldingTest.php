@@ -33,13 +33,16 @@ it('declares the Markommerce\\ConfigScope\\PgSql\\ namespace mapped to src/ in a
         ->and($composer['autoload']['psr-4']['Markommerce\\ConfigScope\\PgSql\\'])->toBe('src/');
 });
 
-it('declares the Markommerce\\ConfigScope\\PgSql\\Tests\\ namespace mapped to tests/ in autoload-dev psr-4', function (): void {
-    $composerPath = dirname(__DIR__) . '/composer.json';
-    $composer = json_decode(file_get_contents($composerPath), true);
-
-    expect($composer['autoload-dev']['psr-4'])->toHaveKey('Markommerce\\ConfigScope\\PgSql\\Tests\\')
-        ->and($composer['autoload-dev']['psr-4']['Markommerce\\ConfigScope\\PgSql\\Tests\\'])->toBe('tests/');
-});
+it(
+    'declares the Markommerce\\ConfigScope\\PgSql\\Tests\\ namespace mapped to tests/ in autoload-dev psr-4',
+    function (): void {
+        $composerPath = dirname(__DIR__) . '/composer.json';
+        $composer = json_decode(file_get_contents($composerPath), true);
+    
+        expect($composer['autoload-dev']['psr-4'])->toHaveKey('Markommerce\\ConfigScope\\PgSql\\Tests\\')
+            ->and($composer['autoload-dev']['psr-4']['Markommerce\\ConfigScope\\PgSql\\Tests\\'])->toBe('tests/');
+    }
+);
 
 it('binds ScopedConfigStorageInterface to a PgsqlScopedConfigStorage factory in module.php', function (): void {
     $modulePath = dirname(__DIR__) . '/module.php';

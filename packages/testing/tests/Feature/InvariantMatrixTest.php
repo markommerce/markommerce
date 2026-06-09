@@ -14,6 +14,7 @@ use Markommerce\Catalog\Sorting\CategorySortOrderInterface;
 use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
 use Markommerce\Catalog\Tests\Support\CategoryFactory;
 use Markommerce\Catalog\Tests\Support\ProductFactory;
+use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
 use Markommerce\Testing\Database\TestConnection;
 use Markommerce\Testing\IntegrationTestCase;
 use Markommerce\Testing\Profile\BootedStore;
@@ -319,7 +320,7 @@ it('reflects the active market price override in the two-markets profile', funct
 
         $priceIndexInterface = 'Markommerce\\CatalogPriceIndex\\Contracts\\ProductPriceIndexRepositoryInterface';
 
-        /** @var \Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface $indexRepo */
+        /** @var ProductPriceIndexRepositoryInterface $indexRepo */
         $indexRepo = $store->get($priceIndexInterface);
 
         $entryA = $indexRepo->findByProductId((int) $productA->id);
@@ -342,24 +343,32 @@ it('reflects the active market price override in the two-markets profile', funct
         $options = invariantMatrixMakeOffsetOptions($priceAscOrder);
 
         // In US scope: A (5.00) < B (80.00) → A first
-        $store->inScope(market: 'us', locale: null, fn: function () use ($service, $category, $productA, $productB, $options): void {
-            $page  = $service->paginatedProductsInCategory((int) $category->id, $options);
-            $items = $page->items->toArray();
-
-            expect($items)->toHaveCount(2)
-                ->and($items[0]->id)->toBe($productA->id)  // $5 US price
+        $store->inScope(
+            market: 'us',
+            locale: null,
+            fn: function () use ($service, $category, $productA, $productB, $options): void {
+                $page  = $service->paginatedProductsInCategory((int) $category->id, $options);
+                $items = $page->items->toArray();
+    
+                expect($items)->toHaveCount(2)
+                    ->and($items[0]->id)->toBe($productA->id)  // $5 US price
                 ->and($items[1]->id)->toBe($productB->id); // $80 US price
-        });
+        }
+        );
 
         // In EU scope: B (1.00) < A (100.00) → B first
-        $store->inScope(market: 'eu', locale: null, fn: function () use ($service, $category, $productA, $productB, $options): void {
-            $page  = $service->paginatedProductsInCategory((int) $category->id, $options);
-            $items = $page->items->toArray();
-
-            expect($items)->toHaveCount(2)
-                ->and($items[0]->id)->toBe($productB->id)  // $1 EU price
+        $store->inScope(
+            market: 'eu',
+            locale: null,
+            fn: function () use ($service, $category, $productA, $productB, $options): void {
+                $page  = $service->paginatedProductsInCategory((int) $category->id, $options);
+                $items = $page->items->toArray();
+    
+                expect($items)->toHaveCount(2)
+                    ->and($items[0]->id)->toBe($productB->id)  // $1 EU price
                 ->and($items[1]->id)->toBe($productA->id); // $100 EU price
-        });
+        }
+        );
     } finally {
         $testCase->tearDownIntegration();
         $testCase->tearDownClass();

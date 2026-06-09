@@ -244,17 +244,20 @@ it('returns a definition by string key via registry.byKey(key)', function (): vo
         ->and($definition->key)->toBe('test/general.value');
 });
 
-it('it does not import scope namespace from any of the three production files after task completes', function (): void {
-    $files = [
-        dirname(__DIR__, 3) . '/src/ConfigResolver.php',
-        dirname(__DIR__, 3) . '/src/Cache/CachingConfigResolver.php',
-        dirname(__DIR__, 3) . '/src/Registry/ConfigRegistryBuilder.php',
-    ];
-
-    $scopeNs = 'Markommerce' . '\\' . 'Scope' . '\\';
-
-    foreach ($files as $file) {
-        $content = file_get_contents($file);
-        expect($content)->not->toContain($scopeNs, "File $file still imports scope namespace");
+it(
+    'it does not import scope namespace from any of the three production files after task completes',
+    function (): void {
+        $files = [
+            dirname(__DIR__, 3) . '/src/ConfigResolver.php',
+            dirname(__DIR__, 3) . '/src/Cache/CachingConfigResolver.php',
+            dirname(__DIR__, 3) . '/src/Registry/ConfigRegistryBuilder.php',
+        ];
+    
+        $scopeNs = 'Markommerce' . '\\' . 'Scope' . '\\';
+    
+        foreach ($files as $file) {
+            $content = file_get_contents($file);
+            expect($content)->not->toContain($scopeNs, "File $file still imports scope namespace");
+        }
     }
-});
+);

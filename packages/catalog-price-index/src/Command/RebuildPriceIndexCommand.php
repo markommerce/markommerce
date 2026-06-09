@@ -15,7 +15,10 @@ readonly class RebuildPriceIndexCommand implements CommandInterface
 {
     public function __construct(private PriceIndexerInterface $priceIndexer) {}
 
-    public function execute(Input $input, Output $output): int
+    public function execute(
+        Input $input,
+        Output $output,
+    ): int
     {
         $chunkOption = $input->getOption('chunk');
         $chunkSize   = $chunkOption !== null ? (int) $chunkOption : 500;

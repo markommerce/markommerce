@@ -110,9 +110,9 @@ it('creates the expected tables after applying', function (): void {
 
         // Verify fixture_parents columns
         $parentColumns = $conn->query(
-            "SELECT column_name FROM information_schema.columns"
+            'SELECT column_name FROM information_schema.columns'
             . " WHERE table_name = 'fixture_parents' AND table_schema = 'public'"
-            . " ORDER BY column_name",
+            . ' ORDER BY column_name',
         );
         $parentColumnNames = array_map(static fn (array $row): string => (string) $row['column_name'], $parentColumns);
 
@@ -121,9 +121,9 @@ it('creates the expected tables after applying', function (): void {
 
         // Verify fixture_children has parent_id FK column
         $childColumns = $conn->query(
-            "SELECT column_name FROM information_schema.columns"
+            'SELECT column_name FROM information_schema.columns'
             . " WHERE table_name = 'fixture_children' AND table_schema = 'public'"
-            . " ORDER BY column_name",
+            . ' ORDER BY column_name',
         );
         $childColumnNames = array_map(static fn (array $row): string => (string) $row['column_name'], $childColumns);
 
@@ -133,7 +133,7 @@ it('creates the expected tables after applying', function (): void {
 
         // Verify the FK constraint exists
         $fkConstraints = $conn->query(
-            "SELECT constraint_name FROM information_schema.table_constraints"
+            'SELECT constraint_name FROM information_schema.table_constraints'
             . " WHERE table_name = 'fixture_children' AND constraint_type = 'FOREIGN KEY' AND table_schema = 'public'",
         );
         expect($fkConstraints)->not->toBeEmpty();

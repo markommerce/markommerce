@@ -25,6 +25,7 @@ use Marko\Core\Plugin\PluginRegistry;
 use Marko\Database\Connection\ConnectionInterface;
 use Markommerce\Config\Cache\CachingConfigResolver;
 use Markommerce\Config\ConfigResolver;
+use Markommerce\Config\ConfigWriter;
 use Markommerce\Config\Contracts\ConfigWriterInterface;
 use Markommerce\ConfigScope\Contracts\ScopedConfigWriterInterface;
 use Markommerce\ConfigScope\ScopedConfigWriter;
@@ -186,7 +187,7 @@ class ContainerBootstrapper
         // ScopedConfigWriter when it is available (i.e. when config-scope is
         // in the module set).
         if (class_exists(ScopedConfigWriter::class)) {
-            $preference = $preferenceRegistry->getPreference(\Markommerce\Config\ConfigWriter::class);
+            $preference = $preferenceRegistry->getPreference(ConfigWriter::class);
 
             if ($preference !== null) {
                 $container->bind(ConfigWriterInterface::class, $preference);
@@ -210,7 +211,10 @@ class ContainerBootstrapper
      *
      * @param array<ModuleManifest> $manifests
      */
-    public function wirePlugins(Container $container, array $manifests): void
+    public function wirePlugins(
+        Container $container,
+        array $manifests,
+    ): void
     {
         $pluginRegistry = new PluginRegistry();
         $interceptor = new PluginInterceptor($container, $pluginRegistry, new InterceptorClassGenerator());
@@ -241,7 +245,10 @@ class ContainerBootstrapper
      *
      * @param array<ModuleManifest> $manifests
      */
-    public function boot(Container $container, array $manifests): void
+    public function boot(
+        Container $container,
+        array $manifests,
+    ): void
     {
         $resolver = new DependencyResolver();
         $ordered = $resolver->resolve($manifests);
@@ -286,7 +293,10 @@ class ContainerBootstrapper
      * even though the ModuleManifest PHPDoc declares `array<string, string|Closure>`.
      * We detect list-style entries by checking `ctype_digit($key)`.
      */
-    private function registerManifestBindings(Container $container, ModuleManifest $manifest): void
+    private function registerManifestBindings(
+        Container $container,
+        ModuleManifest $manifest,
+    ): void
     {
         foreach ($manifest->bindings as $interface => $implementation) {
             $container->bind($interface, $implementation);

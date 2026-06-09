@@ -66,47 +66,55 @@ it('ships a callable boot closure typed on ScopedFieldRegistry', function (): vo
         ->and((string) $type)->toBe(ScopedFieldRegistry::class);
 });
 
-it('registers the package in the root composer.json require block and adds Markommerce\\CatalogMarket\\Tests\\ to autoload-dev.psr-4', function (): void {
-    $rootComposerPath = dirname(__DIR__, 3) . '/composer.json';
-    $rootComposer = json_decode(file_get_contents($rootComposerPath), true);
-
-    expect($rootComposer['require'])->toHaveKey('markommerce/catalog-market')
-        ->and($rootComposer['autoload-dev']['psr-4'])->toHaveKey('Markommerce\\CatalogMarket\\Tests\\')
-        ->and($rootComposer['autoload-dev']['psr-4']['Markommerce\\CatalogMarket\\Tests\\'])->toBe('packages/catalog-market/tests/');
-});
-
-it('registers Product.priceAmount on the market axis when the boot closure runs against a fresh ScopedFieldRegistry', function (): void {
-    $fakeScopeRegistry = new class () implements ScopeRegistryInterface
-    {
-        public function hasAxis(string $name): bool
-        {
-            return true;
-        }
-
-        public function getAxis(string $name): ScopeAxis
-        {
-            return new ScopeAxis(
-                name: $name,
-                hierarchy: ScopeHierarchy::fromPaths(['default']),
-                default: 'default',
+it(
+    'registers the package in the root composer.json require block and adds Markommerce\\CatalogMarket\\Tests\\ to autoload-dev.psr-4',
+    function (): void {
+        $rootComposerPath = dirname(__DIR__, 3) . '/composer.json';
+        $rootComposer = json_decode(file_get_contents($rootComposerPath), true);
+    
+        expect($rootComposer['require'])->toHaveKey('markommerce/catalog-market')
+            ->and($rootComposer['autoload-dev']['psr-4'])->toHaveKey('Markommerce\\CatalogMarket\\Tests\\')
+            ->and($rootComposer['autoload-dev']['psr-4']['Markommerce\\CatalogMarket\\Tests\\'])->toBe(
+                'packages/catalog-market/tests/'
             );
-        }
+    }
+);
 
-        public function listAxes(): array
+it(
+    'registers Product.priceAmount on the market axis when the boot closure runs against a fresh ScopedFieldRegistry',
+    function (): void {
+        $fakeScopeRegistry = new class () implements ScopeRegistryInterface
         {
-            return [];
-        }
-
-        public function getHierarchy(string $axisName): ScopeHierarchy
-        {
-            return ScopeHierarchy::fromPaths(['default']);
-        }
-    };
-
-    $registry = new ScopedFieldRegistry(scopeRegistry: $fakeScopeRegistry);
-    $boot = (require dirname(__DIR__) . '/module.php')['boot'];
-    $boot($registry);
-
-    expect($registry->hasScopedProperties(Product::class))->toBeTrue()
-        ->and($registry->axesForProperty(Product::class, 'priceAmount'))->toBe(['market']);
-});
+            public function hasAxis(string $name): bool
+            {
+                return true;
+            }
+    
+            public function getAxis(string $name): ScopeAxis
+            {
+                return new ScopeAxis(
+                    name: $name,
+                    hierarchy: ScopeHierarchy::fromPaths(['default']),
+                    default: 'default',
+                );
+            }
+    
+            public function listAxes(): array
+            {
+                return [];
+            }
+    
+            public function getHierarchy(string $axisName): ScopeHierarchy
+            {
+                return ScopeHierarchy::fromPaths(['default']);
+            }
+        };
+    
+        $registry = new ScopedFieldRegistry(scopeRegistry: $fakeScopeRegistry);
+        $boot = (require dirname(__DIR__) . '/module.php')['boot'];
+        $boot($registry);
+    
+        expect($registry->hasScopedProperties(Product::class))->toBeTrue()
+            ->and($registry->axesForProperty(Product::class, 'priceAmount'))->toBe(['market']);
+    }
+);

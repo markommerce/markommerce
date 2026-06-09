@@ -7,12 +7,6 @@ namespace Markommerce\Catalog\Tests\Feature;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Contracts\CategoryTreeNodeRepositoryInterface;
 use Markommerce\Catalog\Contracts\CategoryTreeRepositoryInterface;
-use Markommerce\Catalog\Contracts\ProductCategoryAssignmentRepositoryInterface;
-use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
-use Markommerce\Catalog\Entity\CategoryTreeNode;
-use Markommerce\Catalog\Repositories\CategoryRepository;
-use Markommerce\Catalog\Repositories\CategoryTreeNodeRepository;
-use Markommerce\Catalog\Repositories\CategoryTreeRepository;
 use Markommerce\Catalog\Seed\CatalogSeeder;
 use Markommerce\Catalog\Services\CategoryTreeService;
 use Markommerce\Testing\Database\IsolationMode;
@@ -89,64 +83,75 @@ it('running the seeder reuses an existing default tree without creating a duplic
     }
 })->group('integration-destructive');
 
-it('the tree-placement step is idempotent: when seeded categories already have a placement in the default tree, the seeder does not create a second placement for the same (category, tree) pair', function (): void {
-    TestConnection::skipIfUnavailable();
-
-    $profile  = StoreProfile::simple(catalogSeederVendorDir());
-    $testCase = new IntegrationTestCase($profile, IsolationMode::Truncate);
-    $testCase->setUpIntegration();
-
-    try {
-        $store = $testCase->store;
-
-        /** @var CatalogSeeder $seeder */
-        $seeder = $store->get(CatalogSeeder::class);
-
-        /** @var CategoryTreeRepositoryInterface $treeRepository */
-        $treeRepository = $store->get(CategoryTreeRepositoryInterface::class);
-
-        /** @var CategoryTreeNodeRepositoryInterface $treeNodeRepository */
-        $treeNodeRepository = $store->get(CategoryTreeNodeRepositoryInterface::class);
-
-        /** @var CategoryRepositoryInterface $categoryRepository */
-        $categoryRepository = $store->get(CategoryRepositoryInterface::class);
-
-        // Run seeder once to seed categories, products, and initial tree placements
+it(
+    'the tree-placement step is idempotent: when seeded categories already have a placement in the default tree, the seeder does not create a second placement for the same (category, tree) pair',
+    function (): void {
+        TestConnection::skipIfUnavailable();
+    
+        $profile  = StoreProfile::simple(catalogSeederVendorDir());
+        $testCase = new IntegrationTestCase($profile, IsolationMode::Truncate);
+        $testCase->setUpIntegration();
+    
+        try {
+            $store = $testCase->store;
+    
+            /** @var CatalogSeeder $seeder */
+            $seeder = $store->get(CatalogSeeder::class);
+    
+            /** @var CategoryTreeRepositoryInterface $treeRepository */
+            $treeRepository = $store->get(CategoryTreeRepositoryInterface::class);
+    
+            /** @var CategoryTreeNodeRepositoryInterface $treeNodeRepository */
+            $treeNodeRepository = $store->get(CategoryTreeNodeRepositoryInterface::class);
+    
+            /** @var CategoryRepositoryInterface $categoryRepository */
+            $categoryRepository = $store->get(CategoryRepositoryInterface::class);
+    
+            // Run seeder once to seed categories, products, and initial tree placements
         $seeder->run();
-
-        $defaultTree = $treeRepository->findDefault();
-        $treeId      = (int) $defaultTree->id;
-
-        $nodesAfterFirstRun     = $treeNodeRepository->findByTree($treeId);
-        $nodeCountAfterFirstRun = count($nodesAfterFirstRun);
-
-        // Simulate re-running the tree-placement step through a fresh CategoryTreeService
+    
+            $defaultTree = $treeRepository->findDefault();
+            $treeId      = (int) $defaultTree->id;
+    
+            $nodesAfterFirstRun     = $treeNodeRepository->findByTree($treeId);
+            $nodeCountAfterFirstRun = count($nodesAfterFirstRun);
+    
+            // Simulate re-running the tree-placement step through a fresh CategoryTreeService
         // using the same container-resolved repositories
 
-        /** @var CategoryTreeService $freshTreeService */
-        $freshTreeService = $store->get(CategoryTreeService::class);
-
-        // Place all already-seeded categories again — the idempotency guard should prevent duplicates
+            /** @var CategoryTreeService $freshTreeService */
+            $freshTreeService = $store->get(CategoryTreeService::class);
+    
+            // Place all already-seeded categories again — the idempotency guard should prevent duplicates
         $alreadySeededCategories = $categoryRepository->findAll()->toArray();
-        $freshDefaultTree        = $freshTreeService->ensureDefaultTreeExists();
-
-        foreach ($alreadySeededCategories as $category) {
-            $existing = $treeNodeRepository->findByCategoryInTree((int) $category->id, (int) $freshDefaultTree->id);
-
-            if (count($existing) === 0) {
-                $freshTreeService->placeCategory((int) $freshDefaultTree->id, (int) $category->id, parentNodeId: null, position: null);
+            $freshDefaultTree        = $freshTreeService->ensureDefaultTreeExists();
+    
+            foreach ($alreadySeededCategories as $category) {
+                $existing = $treeNodeRepository->findByCategoryInTree(
+                    (int) $category->id,
+                    (int) $freshDefaultTree->id
+                );
+    
+                if (count($existing) === 0) {
+                    $freshTreeService->placeCategory(
+                        (int) $freshDefaultTree->id,
+                        (int) $category->id,
+                        parentNodeId: null,
+                        position: null
+                    );
+                }
             }
-        }
-
-        $nodesAfterSecondPass = $treeNodeRepository->findByTree((int) $freshDefaultTree->id);
-
-        // The node count should not have grown — no duplicate placements were created
+    
+            $nodesAfterSecondPass = $treeNodeRepository->findByTree((int) $freshDefaultTree->id);
+    
+            // The node count should not have grown — no duplicate placements were created
         expect(count($nodesAfterSecondPass))->toBe($nodeCountAfterFirstRun);
-    } finally {
-        $testCase->tearDownIntegration();
-        $testCase->tearDownClass();
+        } finally {
+            $testCase->tearDownIntegration();
+            $testCase->tearDownClass();
+        }
     }
-})->group('integration-destructive');
+)->group('integration-destructive');
 
 it('seeded categories appear in stable position order in the default tree', function (): void {
     TestConnection::skipIfUnavailable();

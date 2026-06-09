@@ -165,7 +165,10 @@ class PaginationOptionsResolver
      *
      * @throws InvalidPaginationConfigException
      */
-    private function resolveRequestedSortOrder(string $sort, array $enabledSorts): CategorySortOrderInterface
+    private function resolveRequestedSortOrder(
+        string $sort,
+        array $enabledSorts,
+    ): CategorySortOrderInterface
     {
         // If enabledSorts is non-empty, apply gate filter first
         if ($enabledSorts !== [] && !in_array($sort, $enabledSorts, true)) {
