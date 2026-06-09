@@ -43,6 +43,12 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       DB_ADMIN_DATABASE: postgres
+      # markommerce requires marko via `self.version`; composer derives the root
+      # version from git (the host's branch / a detached HEAD), which may not be
+      # `dev-develop`. setup-marko.sh puts the marko clone on branch `develop`
+      # (`dev-develop`), so pin the root version to match — otherwise `self.version`
+      # constraints can't resolve against the marko clone.
+      COMPOSER_ROOT_VERSION: dev-develop
       # Override to point at a private mirror / token URL if marko is not public:
       # MARKO_REPO: https://x-access-token:${GH_TOKEN}@github.com/marko-php/marko.git
     depends_on:
