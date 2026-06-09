@@ -1,0 +1,91 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Property Markommerce\\CatalogPriceIndex\\Entity\\ProductPriceIndexEntry\:\:\$scopes type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: packages/catalog-price-index/src/Entity/ProductPriceIndexEntry.php
+
+		-
+			message: '#^Property Markommerce\\CatalogScope\\Entity\\CategoryScopedOverrides\:\:\$scopes type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: packages/catalog-scope/src/Entity/CategoryScopedOverrides.php
+
+		-
+			message: '#^Property Markommerce\\CatalogScope\\Entity\\ProductScopedOverrides\:\:\$scopes type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: packages/catalog-scope/src/Entity/ProductScopedOverrides.php
+
+		-
+			message: '#^Method Markommerce\\Catalog\\Pagination\\ProductCursorValueExtractor\:\:extractValue\(\) never returns int so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: packages/catalog/src/Pagination/ProductCursorValueExtractor.php
+
+		-
+			message: '#^Class Markommerce\\Catalog\\Repositories\\CategoryRepository extends generic class Marko\\Database\\Repository\\Repository but does not specify its types\: TEntity$#'
+			identifier: missingType.generics
+			count: 1
+			path: packages/catalog/src/Repositories/CategoryRepository.php
+
+		-
+			message: '#^Class Markommerce\\Catalog\\Repositories\\ProductCategoryAssignmentRepository extends generic class Marko\\Database\\Repository\\Repository but does not specify its types\: TEntity$#'
+			identifier: missingType.generics
+			count: 1
+			path: packages/catalog/src/Repositories/ProductCategoryAssignmentRepository.php
+
+		-
+			message: '#^Class Markommerce\\Catalog\\Repositories\\ProductRepository extends generic class Marko\\Database\\Repository\\Repository but does not specify its types\: TEntity$#'
+			identifier: missingType.generics
+			count: 1
+			path: packages/catalog/src/Repositories/ProductRepository.php
+
+		-
+			message: '#^Parameter \#1 \$id of method Marko\\Database\\Repository\\RepositoryInterface\<Markommerce\\Catalog\\Entity\\Product\>\:\:find\(\) expects int\|string, int\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: packages/catalog/src/Services/CategoryAssignmentService.php
+
+		-
+			message: '#^Property Markommerce\\LayoutDemo\\Component\\ItemComponent\:\:\$labelFormatter is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: packages/layout-demo/src/Component/ItemComponent.php
+
+		-
+			message: '#^Method Markommerce\\Layout\\Cache\\PhpCodeEmitter\:\:emitArtifact\(\) has parameter \$trees with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: packages/layout/src/Cache/PhpCodeEmitter.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$params$#'
+			identifier: parameter.notFound
+			count: 1
+			path: packages/layout/src/Compiler/ValidationPhase.php
+
+		-
+			message: '#^Parameter \#1 \$objectOrClass of class ReflectionClass constructor expects class\-string\<T of object\>\|T of object, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: packages/layout/src/Compiler/ValidationPhase.php
+
+		-
+			message: '#^Method Markommerce\\Layout\\Contracts\\ContextProvider\:\:provide\(\) has parameter \$props with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: packages/layout/src/Contracts/ContextProvider.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: packages/layout/src/Discovery/LayoutDiscovery.php
+
+		-
+			message: '#^Method Markommerce\\Layout\\Provide\:\:__construct\(\) has parameter \$props with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: packages/layout/src/Provide.php
