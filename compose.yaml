@@ -1,0 +1,63 @@
+# Self-contained test environment for markommerce.
+#
+# Unlike the workspace dev compose (~/www/marko/compose.yaml, which mounts a
+# developer's local ../marko + ../playground), this stack is standalone: it
+# clones the marko framework at the pinned .marko-version into a sibling path
+# inside the container, so `composer install` resolves with NO local checkout.
+#
+#   docker compose up --abort-on-container-exit   # run the integration suite
+#   docker compose run --rm tests composer test    # unit suite
+#   docker compose run --rm tests bash             # interactive shell
+#
+# Developers normally keep using the workspace dev compose with their live
+# ../marko; this file is for self-contained / CI-parity runs.
+services:
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Mount ONLY markommerce; marko is cloned into the sibling /workspace/marko
+    # by setup-marko.sh at startup (not mounted from the host).
+    volumes:
+      - .:/workspace/markommerce
+      - composer-cache:/root/.composer
+    working_dir: /workspace/markommerce
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: markommerce_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_ADMIN_DATABASE: postgres
+      # Override to point at a private mirror / token URL if marko is not public:
+      # MARKO_REPO: https://x-access-token:${GH_TOKEN}@github.com/marko-php/marko.git
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -e
+        MARKO_DIR=/workspace/marko ./bin/setup-marko.sh
+        composer install --no-interaction --prefer-dist
+        exec "$@"
+      - sh
+    # Default: run the integration suite self-contained. Override on the CLI for
+    # other commands (see header).
+    command: composer test:integration
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: markommerce_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  composer-cache:

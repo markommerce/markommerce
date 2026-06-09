@@ -6,11 +6,21 @@ on:
   pull_request:
     branches: ["**"]
 
+# markommerce depends on the marko framework via a path repository
+# (`../marko/packages/*`, `self.version`). marko is NOT on Packagist, so every
+# job clones it as a sibling at the pinned `.marko-version` ref before
+# `composer install` (see bin/setup-marko.sh). Developers keep using their local
+# ../marko; CI is self-contained.
+#
+# If marko-php/marko is private, set a repo secret and override the clone URL,
+# e.g. add to the setup step:
+#   env:
+#     MARKO_REPO: https://x-access-token:${{ secrets.MARKO_TOKEN }}@github.com/marko-php/marko.git
+
 jobs:
   unit:
     name: Unit Tests
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -21,20 +31,28 @@ jobs:
           tools: composer
           coverage: none
 
-      - name: Get Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+      - name: Set up marko framework (pinned sibling clone)
+        run: ./bin/setup-marko.sh
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
         with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Frontend/demo package tests assert against a built Vite manifest; build
+      # assets so those tests pass in CI (no manifest = ViteManifestException).
+      - name: Build frontend assets
+        run: npm install --no-audit --no-fund && npm run build
 
       - name: Run unit tests
         run: composer test
@@ -42,7 +60,6 @@ jobs:
   static:
     name: Static Analysis
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -53,17 +70,15 @@ jobs:
           tools: composer
           coverage: none
 
-      - name: Get Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+      - name: Set up marko framework (pinned sibling clone)
+        run: ./bin/setup-marko.sh
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
         with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
@@ -84,7 +99,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: playground
+          POSTGRES_DB: markommerce_test
         ports:
           - 5432:5432
         options: >-
@@ -96,7 +111,7 @@ jobs:
     env:
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
-      DB_DATABASE: playground
+      DB_DATABASE: markommerce_test
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       DB_ADMIN_DATABASE: postgres
@@ -111,20 +126,18 @@ jobs:
           tools: composer
           coverage: none
 
-      - name: Get Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+      - name: Set up marko framework (pinned sibling clone)
+        run: ./bin/setup-marko.sh
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
         with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-      - name: Run integration tests
+      - name: Run integration tests (parallel, real Postgres)
         run: composer test:integration

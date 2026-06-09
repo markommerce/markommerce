@@ -1,0 +1,8 @@
+.git
+vendor
+node_modules
+.itf-verify
+.phpstan-cache
+.phpunit.cache
+public/build
+docs/dist
