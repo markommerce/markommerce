@@ -12,13 +12,12 @@ use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
-use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
-use Markommerce\Catalog\Sorting\ColumnSortOrder;
-use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
 use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
+use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
+use Markommerce\Catalog\Sorting\ColumnSortOrder;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
@@ -30,6 +29,7 @@ use Markommerce\CatalogStorefrontScope\Component\ScopedProductGridComponent;
 use Markommerce\Config\Contracts\ConfigResolverInterface;
 use Markommerce\Criteria\Page\Page;
 use Markommerce\Criteria\Position\PositionCodec;
+use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
 use Markommerce\Criteria\Strategy\OffsetPage;
 use Markommerce\Currency\CurrencyResolver;
@@ -189,7 +189,10 @@ function scopedGridMakeConfigResolver(array $overrides = []): ConfigResolverInte
         /** @param array<string, mixed> $values */
         public function __construct(private readonly array $values) {}
 
-        public function resolved(string $configClass, string $field): mixed
+        public function resolved(
+            string $configClass,
+            string $field,
+        ): mixed
         {
             return $this->values[$field] ?? null;
         }
@@ -233,7 +236,10 @@ function scopedGridMakeAssignmentService(
         new KeysetPaginationStrategy($positionCodec),
     ) extends CategoryAssignmentService
     {
-        public function paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $options): Page
+        public function paginatedProductsInCategory(
+            int $categoryId,
+            ResolvedPaginationOptions $options,
+        ): Page
         {
             $products = $this->productsInCategory($categoryId);
 

@@ -110,16 +110,18 @@ function bootConfigScopeContainer(
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-it('walks every config class returned by ConfigClassDiscovery during boot and registers #[Scoped] properties with ScopedFieldRegistry', function (): void {
-    $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-boot-test-' . uniqid();
-    $srcDir = $tempModuleDir . '/src/Config';
-    mkdir($srcDir, 0755, true);
-
-    $namespace = 'Markommerce\\ConfigScope\\Tests\\TempBoot\\Config';
-    $className = 'TempBootConfig' . uniqid('', false);
-    $fqn = $namespace . '\\' . $className;
-
-    file_put_contents($srcDir . '/' . $className . '.php', <<<PHP
+it(
+    'walks every config class returned by ConfigClassDiscovery during boot and registers #[Scoped] properties with ScopedFieldRegistry',
+    function (): void {
+        $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-boot-test-' . uniqid();
+        $srcDir = $tempModuleDir . '/src/Config';
+        mkdir($srcDir, 0755, true);
+    
+        $namespace = 'Markommerce\\ConfigScope\\Tests\\TempBoot\\Config';
+        $className = 'TempBootConfig' . uniqid('', false);
+        $fqn = $namespace . '\\' . $className;
+    
+        file_put_contents($srcDir . '/' . $className . '.php', <<<PHP
         <?php
         declare(strict_types=1);
         namespace $namespace;
@@ -131,25 +133,26 @@ it('walks every config class returned by ConfigClassDiscovery during boot and re
             public string \$value = 'default';
         }
         PHP);
-
-    require $srcDir . '/' . $className . '.php';
-
-    $manifest = new ModuleManifest(
-        name: 'test/temp-boot',
-        version: '1.0.0',
-        path: $tempModuleDir,
-        source: 'vendor',
-    );
-
-    $container = bootConfigScopeContainer(
-        axisNames: ['locale'],
-        extraModules: [$manifest],
-    );
-
-    $registry = $container->get(ScopedFieldRegistry::class);
-
-    expect($registry->axesForProperty($fqn, 'value'))->toBe(['locale']);
-})->group('integration-destructive');
+    
+        require $srcDir . '/' . $className . '.php';
+    
+        $manifest = new ModuleManifest(
+            name: 'test/temp-boot',
+            version: '1.0.0',
+            path: $tempModuleDir,
+            source: 'vendor',
+        );
+    
+        $container = bootConfigScopeContainer(
+            axisNames: ['locale'],
+            extraModules: [$manifest],
+        );
+    
+        $registry = $container->get(ScopedFieldRegistry::class);
+    
+        expect($registry->axesForProperty($fqn, 'value'))->toBe(['locale']);
+    }
+)->group('integration-destructive');
 
 it('does not register any axes when a config class has no #[Scoped] property', function (): void {
     $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-noscoped-test-' . uniqid();
@@ -190,16 +193,18 @@ it('does not register any axes when a config class has no #[Scoped] property', f
     expect($registry->hasScopedProperties($fqn))->toBeFalse();
 })->group('integration-destructive');
 
-it('registers compound axes (e.g. #[Scoped(axes: [\'locale\', \'market\'])]) as a list of axis names', function (): void {
-    $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-compound-test-' . uniqid();
-    $srcDir = $tempModuleDir . '/src/Config';
-    mkdir($srcDir, 0755, true);
-
-    $namespace = 'Markommerce\\ConfigScope\\Tests\\TempCompound\\Config';
-    $className = 'TempCompoundConfig' . uniqid('', false);
-    $fqn = $namespace . '\\' . $className;
-
-    file_put_contents($srcDir . '/' . $className . '.php', <<<PHP
+it(
+    'registers compound axes (e.g. #[Scoped(axes: [\'locale\', \'market\'])]) as a list of axis names',
+    function (): void {
+        $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-compound-test-' . uniqid();
+        $srcDir = $tempModuleDir . '/src/Config';
+        mkdir($srcDir, 0755, true);
+    
+        $namespace = 'Markommerce\\ConfigScope\\Tests\\TempCompound\\Config';
+        $className = 'TempCompoundConfig' . uniqid('', false);
+        $fqn = $namespace . '\\' . $className;
+    
+        file_put_contents($srcDir . '/' . $className . '.php', <<<PHP
         <?php
         declare(strict_types=1);
         namespace $namespace;
@@ -211,35 +216,38 @@ it('registers compound axes (e.g. #[Scoped(axes: [\'locale\', \'market\'])]) as 
             public string \$value = 'default';
         }
         PHP);
+    
+        require $srcDir . '/' . $className . '.php';
+    
+        $manifest = new ModuleManifest(
+            name: 'test/temp-compound',
+            version: '1.0.0',
+            path: $tempModuleDir,
+            source: 'vendor',
+        );
+    
+        $container = bootConfigScopeContainer(
+            axisNames: ['locale', 'market'],
+            extraModules: [$manifest],
+        );
+    
+        $registry = $container->get(ScopedFieldRegistry::class);
+    
+        expect($registry->axesForProperty($fqn, 'value'))->toBe(['locale', 'market']);
+    }
+)->group('integration-destructive');
 
-    require $srcDir . '/' . $className . '.php';
-
-    $manifest = new ModuleManifest(
-        name: 'test/temp-compound',
-        version: '1.0.0',
-        path: $tempModuleDir,
-        source: 'vendor',
-    );
-
-    $container = bootConfigScopeContainer(
-        axisNames: ['locale', 'market'],
-        extraModules: [$manifest],
-    );
-
-    $registry = $container->get(ScopedFieldRegistry::class);
-
-    expect($registry->axesForProperty($fqn, 'value'))->toBe(['locale', 'market']);
-})->group('integration-destructive');
-
-it('throws Markommerce\Scope\Exceptions\UnknownAxisException when a #[Scoped] axis on a discovered config class is not registered with the ScopeRegistry', function (): void {
-    $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-unknownaxis-test-' . uniqid();
-    $srcDir = $tempModuleDir . '/src/Config';
-    mkdir($srcDir, 0755, true);
-
-    $namespace = 'Markommerce\\ConfigScope\\Tests\\TempUnknownAxis\\Config';
-    $className = 'TempUnknownAxisConfig' . uniqid('', false);
-
-    file_put_contents($srcDir . '/' . $className . '.php', <<<PHP
+it(
+    'throws Markommerce\Scope\Exceptions\UnknownAxisException when a #[Scoped] axis on a discovered config class is not registered with the ScopeRegistry',
+    function (): void {
+        $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-unknownaxis-test-' . uniqid();
+        $srcDir = $tempModuleDir . '/src/Config';
+        mkdir($srcDir, 0755, true);
+    
+        $namespace = 'Markommerce\\ConfigScope\\Tests\\TempUnknownAxis\\Config';
+        $className = 'TempUnknownAxisConfig' . uniqid('', false);
+    
+        file_put_contents($srcDir . '/' . $className . '.php', <<<PHP
         <?php
         declare(strict_types=1);
         namespace $namespace;
@@ -251,35 +259,38 @@ it('throws Markommerce\Scope\Exceptions\UnknownAxisException when a #[Scoped] ax
             public string \$value = 'default';
         }
         PHP);
-
-    require $srcDir . '/' . $className . '.php';
-
-    $manifest = new ModuleManifest(
-        name: 'test/temp-unknownaxis',
-        version: '1.0.0',
-        path: $tempModuleDir,
-        source: 'vendor',
-    );
-
-    // No axes registered in scope, but the class references 'nonexistent_axis'
+    
+        require $srcDir . '/' . $className . '.php';
+    
+        $manifest = new ModuleManifest(
+            name: 'test/temp-unknownaxis',
+            version: '1.0.0',
+            path: $tempModuleDir,
+            source: 'vendor',
+        );
+    
+        // No axes registered in scope, but the class references 'nonexistent_axis'
     expect(fn () => bootConfigScopeContainer(
-        axisNames: [],
-        extraModules: [$manifest],
-    ))->toThrow(UnknownAxisException::class);
-})->group('integration-destructive');
+            axisNames: [],
+            extraModules: [$manifest],
+        ))->toThrow(UnknownAxisException::class);
+    }
+)->group('integration-destructive');
 
-it('auto-injects ConfigClassDiscovery and ScopedFieldRegistry into the boot closure via container::call', function (): void {
-    $injectedDiscovery = null;
-    $injectedRegistry = null;
-
-    $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-inject-test-' . uniqid();
-    $srcDir = $tempModuleDir . '/src/Config';
-    mkdir($srcDir, 0755, true);
-
-    $namespace = 'Markommerce\\ConfigScope\\Tests\\TempInject\\Config';
-    $className = 'TempInjectConfig' . uniqid('', false);
-
-    file_put_contents($srcDir . '/' . $className . '.php', <<<PHP
+it(
+    'auto-injects ConfigClassDiscovery and ScopedFieldRegistry into the boot closure via container::call',
+    function (): void {
+        $injectedDiscovery = null;
+        $injectedRegistry = null;
+    
+        $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-inject-test-' . uniqid();
+        $srcDir = $tempModuleDir . '/src/Config';
+        mkdir($srcDir, 0755, true);
+    
+        $namespace = 'Markommerce\\ConfigScope\\Tests\\TempInject\\Config';
+        $className = 'TempInjectConfig' . uniqid('', false);
+    
+        file_put_contents($srcDir . '/' . $className . '.php', <<<PHP
         <?php
         declare(strict_types=1);
         namespace $namespace;
@@ -289,44 +300,48 @@ it('auto-injects ConfigClassDiscovery and ScopedFieldRegistry into the boot clos
             public string \$value = 'default';
         }
         PHP);
-
-    require $srcDir . '/' . $className . '.php';
-
-    $manifest = new ModuleManifest(
-        name: 'test/temp-inject',
-        version: '1.0.0',
-        path: $tempModuleDir,
-        source: 'vendor',
-    );
-
-    // Verify by reading the actual module.php and confirming it uses ConfigClassDiscovery and ScopedFieldRegistry type hints
+    
+        require $srcDir . '/' . $className . '.php';
+    
+        $manifest = new ModuleManifest(
+            name: 'test/temp-inject',
+            version: '1.0.0',
+            path: $tempModuleDir,
+            source: 'vendor',
+        );
+    
+        // Verify by reading the actual module.php and confirming it uses ConfigClassDiscovery and ScopedFieldRegistry type hints
     $moduleSource = file_get_contents(dirname(__DIR__, 2) . '/module.php');
-
-    expect($moduleSource)->toContain('ConfigClassDiscovery')
-        ->and($moduleSource)->toContain('ScopedFieldRegistry');
-
-    // Boot the container to confirm the closure runs successfully (i.e., injection works)
+    
+        expect($moduleSource)->toContain('ConfigClassDiscovery')
+            ->and($moduleSource)->toContain('ScopedFieldRegistry');
+    
+        // Boot the container to confirm the closure runs successfully (i.e., injection works)
     $container = bootConfigScopeContainer(
-        axisNames: ['locale'],
-        extraModules: [$manifest],
-    );
-
-    expect($container->get(ScopedFieldRegistry::class))->toBeInstanceOf(ScopedFieldRegistry::class)
-        ->and($container->get(ConfigClassDiscovery::class))->toBeInstanceOf(ConfigClassDiscovery::class);
-})->group('integration-destructive');
-
-it('returns the ScopedCachingConfigResolver from container::get(ConfigResolver::class) when all module manifests are booted and PreferenceRegistry is wired (verifies the binding wins over the Tier 1 factory + Preference autowiring path)', function (): void {
-    // Set the env variable required by SecretCipherInterface
-    $key = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
-    putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $key);
-
-    try {
-        $container = bootConfigScopeContainer(axisNames: ['locale']);
-
-        $resolver = $container->get(ConfigResolver::class);
-
-        expect($resolver)->toBeInstanceOf(ScopedCachingConfigResolver::class);
-    } finally {
-        putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
+            axisNames: ['locale'],
+            extraModules: [$manifest],
+        );
+    
+        expect($container->get(ScopedFieldRegistry::class))->toBeInstanceOf(ScopedFieldRegistry::class)
+            ->and($container->get(ConfigClassDiscovery::class))->toBeInstanceOf(ConfigClassDiscovery::class);
     }
-})->group('integration-destructive');
+)->group('integration-destructive');
+
+it(
+    'returns the ScopedCachingConfigResolver from container::get(ConfigResolver::class) when all module manifests are booted and PreferenceRegistry is wired (verifies the binding wins over the Tier 1 factory + Preference autowiring path)',
+    function (): void {
+        // Set the env variable required by SecretCipherInterface
+    $key = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
+        putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $key);
+    
+        try {
+            $container = bootConfigScopeContainer(axisNames: ['locale']);
+    
+            $resolver = $container->get(ConfigResolver::class);
+    
+            expect($resolver)->toBeInstanceOf(ScopedCachingConfigResolver::class);
+        } finally {
+            putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
+        }
+    }
+)->group('integration-destructive');

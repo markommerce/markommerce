@@ -39,14 +39,21 @@ class IndexerFakeQueryBuilder extends RepositoryQueryBuilder
         // Skipping parent constructor — no real DB needed in unit tests.
     }
 
-    public function selectRaw(string $expression, array $bindings = []): static
+    public function selectRaw(
+        string $expression,
+        array $bindings = [],
+    ): static
     {
         return $this;
     }
 
-    public function whereIn(string $column, array $values): static
+    public function whereIn(
+        string $column,
+        array $values,
+    ): static
     {
         $this->filteredIds = $values;
+
         return $this;
     }
 
@@ -64,6 +71,7 @@ class IndexerFakeQueryBuilder extends RepositoryQueryBuilder
             $this->products,
             fn (Product $p): bool => in_array($p->id, $ids, strict: true),
         ));
+
         return new EntityCollection($filtered);
     }
 }
@@ -233,6 +241,7 @@ function indexerMakeProduct(int $id, ?string $priceAmount = '10.00'): Product
     $p              = new Product();
     $p->id          = $id;
     $p->priceAmount = $priceAmount;
+
     return $p;
 }
 
@@ -249,7 +258,9 @@ function indexerBuildIndexer(
 function indexerMakeScopeContext(): ScopeContext
 {
     DefaultScopeGuard::reset();
-    $config = new ConfigRepository(['scope' => ['axes' => ['market' => ['default' => 'default', 'scopes' => ['default' => [], 'us' => [], 'eu' => []]]]]]);
+    $config = new ConfigRepository(
+        ['scope' => ['axes' => ['market' => ['default' => 'default', 'scopes' => ['default' => [], 'us' => [], 'eu' => []]]]]]
+    );
     $container = new Container();
     $container->instance(ConfigRepositoryInterface::class, $config);
     $container->instance(ContainerInterface::class, $container);
@@ -261,6 +272,7 @@ function indexerMakeScopeContext(): ScopeContext
         $container->bind($interface, $implementation);
     }
     $container->call($scopeModule['boot']);
+
     return $container->get(ScopeContext::class);
 }
 
@@ -273,7 +285,13 @@ it('writes one index row per product with the base amount and currency', functio
     $productRepo  = new CountingProductRepository([1 => $p1, 2 => $p2]);
     $indexRepo    = new CountingIndexRepository();
     $resolver     = new StubBatchPriceIndexResolver($scopeContext, [1 => '10.00', 2 => '20.00']);
-    $indexer      = indexerBuildIndexer($productRepo, $resolver, $indexRepo, new StubMarketsProvider([]), $scopeContext);
+    $indexer      = indexerBuildIndexer(
+        $productRepo,
+        $resolver,
+        $indexRepo,
+        new StubMarketsProvider([]),
+        $scopeContext
+    );
 
     $count = $indexer->reindexProducts([1, 2]);
 
@@ -317,7 +335,13 @@ it('writes per market amounts into the scopes json for each indexed market', fun
         baseAmounts: [1 => '10.00'],
         marketAmounts: ['us' => [1 => '9.00'], 'eu' => [1 => '8.50']],
     );
-    $indexer = indexerBuildIndexer($productRepo, $resolver, $indexRepo, new StubMarketsProvider(['us', 'eu']), $scopeContext);
+    $indexer = indexerBuildIndexer(
+        $productRepo,
+        $resolver,
+        $indexRepo,
+        new StubMarketsProvider(['us', 'eu']),
+        $scopeContext
+    );
 
     $indexer->reindexProducts([1]);
 
@@ -332,7 +356,13 @@ it('writes only the base amount when no markets are indexed', function (): void 
     $productRepo  = new CountingProductRepository([1 => $p1]);
     $indexRepo    = new CountingIndexRepository();
     $resolver     = new StubBatchPriceIndexResolver($scopeContext, [1 => '10.00']);
-    $indexer      = indexerBuildIndexer($productRepo, $resolver, $indexRepo, new StubMarketsProvider([]), $scopeContext);
+    $indexer      = indexerBuildIndexer(
+        $productRepo,
+        $resolver,
+        $indexRepo,
+        new StubMarketsProvider([]),
+        $scopeContext
+    );
 
     $indexer->reindexProducts([1]);
 
@@ -347,7 +377,13 @@ it('reindexes a single product by id', function (): void {
     $productRepo  = new CountingProductRepository([42 => $p42]);
     $indexRepo    = new CountingIndexRepository();
     $resolver     = new StubBatchPriceIndexResolver($scopeContext, [42 => '5.00']);
-    $indexer      = indexerBuildIndexer($productRepo, $resolver, $indexRepo, new StubMarketsProvider([]), $scopeContext);
+    $indexer      = indexerBuildIndexer(
+        $productRepo,
+        $resolver,
+        $indexRepo,
+        new StubMarketsProvider([]),
+        $scopeContext
+    );
 
     $count = $indexer->reindexProduct(42);
 
@@ -367,7 +403,13 @@ it('rebuilds the whole index in chunks after truncating', function (): void {
     $productRepo = new CountingProductRepository($products);
     $indexRepo   = new CountingIndexRepository();
     $resolver    = new StubBatchPriceIndexResolver($scopeContext, $amounts);
-    $indexer     = indexerBuildIndexer($productRepo, $resolver, $indexRepo, new StubMarketsProvider([]), $scopeContext);
+    $indexer     = indexerBuildIndexer(
+        $productRepo,
+        $resolver,
+        $indexRepo,
+        new StubMarketsProvider([]),
+        $scopeContext
+    );
 
     $indexer->rebuildAll(chunkSize: 2);
 
@@ -388,7 +430,13 @@ it('returns the count of index rows written from rebuildAll', function (): void 
     $productRepo = new CountingProductRepository($products);
     $indexRepo   = new CountingIndexRepository();
     $resolver    = new StubBatchPriceIndexResolver($scopeContext, $amounts);
-    $indexer     = indexerBuildIndexer($productRepo, $resolver, $indexRepo, new StubMarketsProvider([]), $scopeContext);
+    $indexer     = indexerBuildIndexer(
+        $productRepo,
+        $resolver,
+        $indexRepo,
+        new StubMarketsProvider([]),
+        $scopeContext
+    );
 
     $total = $indexer->rebuildAll(chunkSize: 2);
 
@@ -406,7 +454,13 @@ it('loads each chunk of products with a single query regardless of chunk size', 
     $productRepo = new CountingProductRepository($products);
     $indexRepo   = new CountingIndexRepository();
     $resolver    = new StubBatchPriceIndexResolver($scopeContext, $amounts);
-    $indexer     = indexerBuildIndexer($productRepo, $resolver, $indexRepo, new StubMarketsProvider([]), $scopeContext);
+    $indexer     = indexerBuildIndexer(
+        $productRepo,
+        $resolver,
+        $indexRepo,
+        new StubMarketsProvider([]),
+        $scopeContext
+    );
 
     $productRepo->loadCallCount = 0;
     $indexer->reindexProducts(range(1, 100));
@@ -432,7 +486,13 @@ it('runs the pricing pipeline once per market pass not once per product', functi
     $productRepo = new CountingProductRepository($products);
     $indexRepo   = new CountingIndexRepository();
     $resolver    = new StubBatchPriceIndexResolver($scopeContext, $amounts, ['us' => $amounts, 'eu' => $amounts]);
-    $indexer     = indexerBuildIndexer($productRepo, $resolver, $indexRepo, new StubMarketsProvider(['us', 'eu']), $scopeContext);
+    $indexer     = indexerBuildIndexer(
+        $productRepo,
+        $resolver,
+        $indexRepo,
+        new StubMarketsProvider(['us', 'eu']),
+        $scopeContext
+    );
 
     $indexer->reindexProducts(range(1, 5));
 
@@ -448,7 +508,13 @@ it('restores the ambient market scope after indexing', function (): void {
     $productRepo = new CountingProductRepository([1 => $p1]);
     $indexRepo   = new CountingIndexRepository();
     $resolver    = new StubBatchPriceIndexResolver($scopeContext, [1 => '10.00'], ['us' => [1 => '9.00']]);
-    $indexer     = indexerBuildIndexer($productRepo, $resolver, $indexRepo, new StubMarketsProvider(['us']), $scopeContext);
+    $indexer     = indexerBuildIndexer(
+        $productRepo,
+        $resolver,
+        $indexRepo,
+        new StubMarketsProvider(['us']),
+        $scopeContext
+    );
 
     $indexer->reindexProducts([1]);
 
@@ -466,7 +532,13 @@ it('upserts each chunk in a single bulk statement', function (): void {
     $productRepo = new CountingProductRepository($products);
     $indexRepo   = new CountingIndexRepository();
     $resolver    = new StubBatchPriceIndexResolver($scopeContext, $amounts);
-    $indexer     = indexerBuildIndexer($productRepo, $resolver, $indexRepo, new StubMarketsProvider([]), $scopeContext);
+    $indexer     = indexerBuildIndexer(
+        $productRepo,
+        $resolver,
+        $indexRepo,
+        new StubMarketsProvider([]),
+        $scopeContext
+    );
 
     $indexer->reindexProducts([1, 2, 3]);
 

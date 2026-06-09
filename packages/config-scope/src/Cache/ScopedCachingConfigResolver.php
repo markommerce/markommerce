@@ -31,7 +31,10 @@ class ScopedCachingConfigResolver extends CachingConfigResolver
      *
      * @throws ConfigNotFoundException
      */
-    protected function buildCacheKey(string $configClass, string $field): string
+    protected function buildCacheKey(
+        string $configClass,
+        string $field,
+    ): string
     {
         $baseKey = parent::buildCacheKey($configClass, $field);
 

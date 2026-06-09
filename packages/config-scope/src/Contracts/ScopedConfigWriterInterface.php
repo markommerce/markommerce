@@ -14,10 +14,17 @@ interface ScopedConfigWriterInterface extends ConfigWriterInterface
     /**
      * @throws ConfigNotFoundException|AxisNotDeclaredException
      */
-    public function setOverride(string $key, ScopeSignature $signature, mixed $value): void;
+    public function setOverride(
+        string $key,
+        ScopeSignature $signature,
+        mixed $value,
+    ): void;
 
     /**
      * @throws ConfigNotFoundException|AxisNotDeclaredException
      */
-    public function unsetOverride(string $key, ScopeSignature $signature): void;
+    public function unsetOverride(
+        string $key,
+        ScopeSignature $signature,
+    ): void;
 }

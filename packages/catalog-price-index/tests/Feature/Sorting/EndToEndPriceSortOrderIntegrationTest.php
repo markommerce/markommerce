@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Markommerce\CatalogPriceIndex\Tests\Feature\Sorting;
 
-require_once __DIR__ . '/../Helpers/PostgresTestConnection.php';
-
+use Marko\Database\Connection\ConnectionInterface;
 use Marko\Database\Entity\EntityHydrator;
 use Marko\Database\Entity\EntityMetadataFactory;
 use Marko\Database\PgSql\Query\PgSqlQueryBuilderFactory;
@@ -16,82 +15,35 @@ use Markommerce\Catalog\Repositories\ProductRepository;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
 use Markommerce\Catalog\Sorting\ColumnSortOrder;
+use Markommerce\Catalog\Tests\Support\CategoryFactory;
+use Markommerce\Catalog\Tests\Support\ProductFactory;
 use Markommerce\CatalogPriceIndex\Sorting\AscendingIndexedPriceSortOrder;
 use Markommerce\CatalogPriceIndex\Sorting\DescendingIndexedPriceSortOrder;
-use Markommerce\CatalogPriceIndex\Tests\Feature\Helpers\PostgresTestConnection;
 use Markommerce\Config\Contracts\ConfigResolverInterface;
 use Markommerce\Criteria\Position\PositionCodec;
 use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
+use Markommerce\Testing\Database\TestConnection;
+use Markommerce\Testing\IntegrationTestCase;
+use Markommerce\Testing\Profile\StoreProfile;
 
-// ─── Schema helpers ───────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function e2ePriceCreateSchema(PostgresTestConnection $conn): void
+function e2ePriceVendorDir(): string
 {
-    $conn->execute(
-        'CREATE TABLE IF NOT EXISTS catalog_products (
-            id           SERIAL PRIMARY KEY,
-            name         VARCHAR(255) NOT NULL,
-            sku          VARCHAR(255) NOT NULL UNIQUE,
-            description  TEXT,
-            price_amount DECIMAL(20,4)
-        )',
-    );
+    return dirname(__DIR__, 5) . '/vendor';
+}
 
-    $conn->execute(
-        'CREATE TABLE IF NOT EXISTS catalog_categories (
-            id          SERIAL PRIMARY KEY,
-            name        VARCHAR(255) NOT NULL,
-            description TEXT
-        )',
-    );
-
-    $conn->execute(
-        'CREATE TABLE IF NOT EXISTS catalog_product_category (
-            id          SERIAL PRIMARY KEY,
-            product_id  INTEGER NOT NULL REFERENCES catalog_products(id) ON DELETE CASCADE,
-            category_id INTEGER NOT NULL REFERENCES catalog_categories(id) ON DELETE CASCADE,
-            position    INTEGER NOT NULL DEFAULT 0
-        )',
-    );
-
-    $conn->execute(
-        "DO \$\$
-        BEGIN
-            IF NOT EXISTS (
-                SELECT 1 FROM pg_indexes
-                WHERE tablename = 'catalog_product_category'
-                  AND indexname = 'uniq_e2e_price_prod_cat'
-            ) THEN
-                CREATE UNIQUE INDEX uniq_e2e_price_prod_cat
-                ON catalog_product_category (product_id, category_id);
-            END IF;
-        END
-        \$\$",
-    );
-
-    $conn->execute(
-        "CREATE TABLE IF NOT EXISTS catalog_product_price_index (
-            id            SERIAL PRIMARY KEY,
-            product_id    INTEGER NOT NULL UNIQUE REFERENCES catalog_products(id) ON DELETE CASCADE,
-            amount        DECIMAL(20,4),
-            currency_code CHAR(3) NOT NULL DEFAULT 'USD',
-            scopes        JSONB
-        )",
+function e2ePriceProfile(): StoreProfile
+{
+    return StoreProfile::of(
+        e2ePriceVendorDir(),
+        'markommerce/catalog-price-index',
+        'marko/database-pgsql',
     );
 }
 
-function e2ePriceDropSchema(PostgresTestConnection $conn): void
-{
-    $conn->execute('DROP TABLE IF EXISTS catalog_product_price_index CASCADE');
-    $conn->execute('DROP TABLE IF EXISTS catalog_product_category CASCADE');
-    $conn->execute('DROP TABLE IF EXISTS catalog_products CASCADE');
-    $conn->execute('DROP TABLE IF EXISTS catalog_categories CASCADE');
-}
-
-// ─── Factory helpers ──────────────────────────────────────────────────────────
-
-function e2ePriceMakeService(PostgresTestConnection $conn): CategoryAssignmentService
+function e2ePriceMakeServiceFromConn(ConnectionInterface $conn): CategoryAssignmentService
 {
     $metadataFactory      = new EntityMetadataFactory();
     $hydrator             = new EntityHydrator($metadataFactory);
@@ -115,7 +67,6 @@ function e2ePriceMakeRegistry(): CategorySortOrderRegistry
 {
     $registry = new CategorySortOrderRegistry();
 
-    // catalog registers position
     $registry->register(new ColumnSortOrder(
         key: 'position',
         label: 'Position',
@@ -124,7 +75,6 @@ function e2ePriceMakeRegistry(): CategorySortOrderRegistry
         supportsKeyset: false,
     ), 0);
 
-    // catalog-price-index registers price_asc / price_desc
     $registry->register(new AscendingIndexedPriceSortOrder(), 10);
     $registry->register(new DescendingIndexedPriceSortOrder(), 20);
 
@@ -159,7 +109,10 @@ function e2ePriceMakeResolver(
         /** @param array<string, mixed> $values */
         public function __construct(private array $values) {}
 
-        public function resolved(string $configClass, string $field): mixed
+        public function resolved(
+            string $configClass,
+            string $field,
+        ): mixed
         {
             return $this->values[$field] ?? null;
         }
@@ -168,35 +121,10 @@ function e2ePriceMakeResolver(
     return new PaginationOptionsResolver($configResolver, $registry);
 }
 
-function e2ePriceInsertProduct(PostgresTestConnection $conn, string $name, string $sku): int
-{
-    $conn->execute('INSERT INTO catalog_products (name, sku) VALUES (?, ?)', [$name, $sku]);
-    $result = $conn->query('SELECT id FROM catalog_products WHERE sku = ? LIMIT 1', [$sku]);
-
-    return (int) $result[0]['id'];
-}
-
-function e2ePriceInsertCategory(PostgresTestConnection $conn, string $name): int
-{
-    $conn->execute('INSERT INTO catalog_categories (name) VALUES (?)', [$name]);
-    $result = $conn->query('SELECT id FROM catalog_categories WHERE name = ? LIMIT 1', [$name]);
-
-    return (int) $result[0]['id'];
-}
-
-function e2ePriceAssignProduct(
-    PostgresTestConnection $conn,
-    int $productId,
-    int $categoryId,
-    int $position = 0,
-): void {
-    $conn->execute(
-        'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, ?)',
-        [$productId, $categoryId, $position],
-    );
-}
-
-function e2ePriceSetPrice(PostgresTestConnection $conn, int $productId, string $amount): void
+/**
+ * Set or update the price index entry for a product.
+ */
+function e2ePriceSetIndexEntry(ConnectionInterface $conn, int $productId, string $amount): void
 {
     $conn->execute(
         "INSERT INTO catalog_product_price_index (product_id, amount, currency_code)
@@ -206,180 +134,243 @@ function e2ePriceSetPrice(PostgresTestConnection $conn, int $productId, string $
     );
 }
 
-// ─── Shared lifecycle ─────────────────────────────────────────────────────────
-
-beforeEach(function (): void {
-    PostgresTestConnection::skipIfUnavailable();
-
-    $this->conn = new PostgresTestConnection();
-
-    e2ePriceDropSchema($this->conn);
-    e2ePriceCreateSchema($this->conn);
-});
-
-afterEach(function (): void {
-    if (isset($this->conn)) {
-        e2ePriceDropSchema($this->conn);
-    }
-});
-
-// ─── Tests ────────────────────────────────────────────────────────────────────
+// ─── Tests ───────────────────────────────────────────────────────────────────
 
 it('lists category products ascending by indexed price when price_asc is selected', function (): void {
-    $registry = e2ePriceMakeRegistry();
-    $resolver = e2ePriceMakeResolver($registry);
-    $service  = e2ePriceMakeService($this->conn);
+    TestConnection::skipIfUnavailable();
 
-    $categoryId = e2ePriceInsertCategory($this->conn, 'Asc Price Category');
+    $testCase = new IntegrationTestCase(e2ePriceProfile());
+    $testCase->setUpIntegration();
 
-    $cheapId    = e2ePriceInsertProduct($this->conn, 'Budget Widget', 'E2E-ASC-CHEAP');
-    $midId      = e2ePriceInsertProduct($this->conn, 'Mid Widget', 'E2E-ASC-MID');
-    $expensiveId = e2ePriceInsertProduct($this->conn, 'Premium Widget', 'E2E-ASC-PREM');
+    try {
+        $store = $testCase->store;
 
-    e2ePriceAssignProduct($this->conn, $cheapId, $categoryId);
-    e2ePriceAssignProduct($this->conn, $midId, $categoryId);
-    e2ePriceAssignProduct($this->conn, $expensiveId, $categoryId);
+        /** @var ConnectionInterface $conn */
+        $conn = $store->container()->get(ConnectionInterface::class);
 
-    e2ePriceSetPrice($this->conn, $cheapId, '5.00');
-    e2ePriceSetPrice($this->conn, $midId, '25.00');
-    e2ePriceSetPrice($this->conn, $expensiveId, '99.00');
+        $registry = e2ePriceMakeRegistry();
+        $resolver = e2ePriceMakeResolver($registry);
+        $service  = e2ePriceMakeServiceFromConn($conn);
 
-    $options  = $resolver->resolve(page: 1, size: 10, sort: 'price_asc');
-    $page     = $service->paginatedProductsInCategory($categoryId, $options);
-    $products = $page->items->toArray();
+        $categoryFactory = CategoryFactory::new($store);
+        $productFactory  = ProductFactory::new($store);
 
-    expect($products)->toHaveCount(3)
-        ->and($products[0]->id)->toBe($cheapId)
-        ->and($products[1]->id)->toBe($midId)
-        ->and($products[2]->id)->toBe($expensiveId);
+        $category      = $categoryFactory->withName('Asc Price Category')->create();
+        $cheap         = $productFactory->withName('Budget Widget')->withSku('E2E-ASC-CHEAP')->create();
+        $mid           = $productFactory->withName('Mid Widget')->withSku('E2E-ASC-MID')->create();
+        $expensive     = $productFactory->withName('Premium Widget')->withSku('E2E-ASC-PREM')->create();
+
+        $conn->execute(
+            'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, 0)',
+            [(int) $cheap->id, (int) $category->id],
+        );
+        $conn->execute(
+            'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, 0)',
+            [(int) $mid->id, (int) $category->id],
+        );
+        $conn->execute(
+            'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, 0)',
+            [(int) $expensive->id, (int) $category->id],
+        );
+
+        e2ePriceSetIndexEntry($conn, (int) $cheap->id, '5.00');
+        e2ePriceSetIndexEntry($conn, (int) $mid->id, '25.00');
+        e2ePriceSetIndexEntry($conn, (int) $expensive->id, '99.00');
+
+        $options  = $resolver->resolve(page: 1, size: 10, sort: 'price_asc');
+        $page     = $service->paginatedProductsInCategory((int) $category->id, $options);
+        $products = $page->items->toArray();
+
+        expect($products)->toHaveCount(3)
+            ->and($products[0]->id)->toBe($cheap->id)
+            ->and($products[1]->id)->toBe($mid->id)
+            ->and($products[2]->id)->toBe($expensive->id);
+    } finally {
+        $testCase->tearDownIntegration();
+        $testCase->tearDownClass();
+    }
 })->group('integration-destructive');
 
 it('lists category products descending by indexed price when price_desc is selected', function (): void {
-    $registry = e2ePriceMakeRegistry();
-    $resolver = e2ePriceMakeResolver($registry);
-    $service  = e2ePriceMakeService($this->conn);
+    TestConnection::skipIfUnavailable();
 
-    $categoryId = e2ePriceInsertCategory($this->conn, 'Desc Price Category');
+    $testCase = new IntegrationTestCase(e2ePriceProfile());
+    $testCase->setUpIntegration();
 
-    $cheapId    = e2ePriceInsertProduct($this->conn, 'Budget Item', 'E2E-DESC-CHEAP');
-    $midId      = e2ePriceInsertProduct($this->conn, 'Mid Item', 'E2E-DESC-MID');
-    $expensiveId = e2ePriceInsertProduct($this->conn, 'Premium Item', 'E2E-DESC-PREM');
+    try {
+        $store = $testCase->store;
 
-    e2ePriceAssignProduct($this->conn, $cheapId, $categoryId);
-    e2ePriceAssignProduct($this->conn, $midId, $categoryId);
-    e2ePriceAssignProduct($this->conn, $expensiveId, $categoryId);
+        /** @var ConnectionInterface $conn */
+        $conn = $store->container()->get(ConnectionInterface::class);
 
-    e2ePriceSetPrice($this->conn, $cheapId, '5.00');
-    e2ePriceSetPrice($this->conn, $midId, '25.00');
-    e2ePriceSetPrice($this->conn, $expensiveId, '99.00');
+        $registry = e2ePriceMakeRegistry();
+        $resolver = e2ePriceMakeResolver($registry);
+        $service  = e2ePriceMakeServiceFromConn($conn);
 
-    $options  = $resolver->resolve(page: 1, size: 10, sort: 'price_desc');
-    $page     = $service->paginatedProductsInCategory($categoryId, $options);
-    $products = $page->items->toArray();
+        $categoryFactory = CategoryFactory::new($store);
+        $productFactory  = ProductFactory::new($store);
 
-    expect($products)->toHaveCount(3)
-        ->and($products[0]->id)->toBe($expensiveId)
-        ->and($products[1]->id)->toBe($midId)
-        ->and($products[2]->id)->toBe($cheapId);
+        $category  = $categoryFactory->withName('Desc Price Category')->create();
+        $cheap     = $productFactory->withName('Budget Item')->withSku('E2E-DESC-CHEAP')->create();
+        $mid       = $productFactory->withName('Mid Item')->withSku('E2E-DESC-MID')->create();
+        $expensive = $productFactory->withName('Premium Item')->withSku('E2E-DESC-PREM')->create();
+
+        foreach ([(int) $cheap->id, (int) $mid->id, (int) $expensive->id] as $pid) {
+            $conn->execute(
+                'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, 0)',
+                [$pid, (int) $category->id],
+            );
+        }
+
+        e2ePriceSetIndexEntry($conn, (int) $cheap->id, '5.00');
+        e2ePriceSetIndexEntry($conn, (int) $mid->id, '25.00');
+        e2ePriceSetIndexEntry($conn, (int) $expensive->id, '99.00');
+
+        $options  = $resolver->resolve(page: 1, size: 10, sort: 'price_desc');
+        $page     = $service->paginatedProductsInCategory((int) $category->id, $options);
+        $products = $page->items->toArray();
+
+        expect($products)->toHaveCount(3)
+            ->and($products[0]->id)->toBe($expensive->id)
+            ->and($products[1]->id)->toBe($mid->id)
+            ->and($products[2]->id)->toBe($cheap->id);
+    } finally {
+        $testCase->tearDownIntegration();
+        $testCase->tearDownClass();
+    }
 })->group('integration-destructive');
 
 it('lists non-indexed products after indexed ones for both price directions', function (): void {
-    $registry = e2ePriceMakeRegistry();
-    $resolver = e2ePriceMakeResolver($registry);
-    $service  = e2ePriceMakeService($this->conn);
+    TestConnection::skipIfUnavailable();
 
-    $categoryId = e2ePriceInsertCategory($this->conn, 'Null Price Category');
+    $testCase = new IntegrationTestCase(e2ePriceProfile());
+    $testCase->setUpIntegration();
 
-    $indexedCheapId   = e2ePriceInsertProduct($this->conn, 'Indexed Cheap', 'E2E-NULL-CHEAP');
-    $indexedExpId     = e2ePriceInsertProduct($this->conn, 'Indexed Expensive', 'E2E-NULL-EXP');
-    $unindexedAId     = e2ePriceInsertProduct($this->conn, 'Unindexed A', 'E2E-NULL-UNIDX-A');
-    $unindexedBId     = e2ePriceInsertProduct($this->conn, 'Unindexed B', 'E2E-NULL-UNIDX-B');
+    try {
+        $store = $testCase->store;
 
-    e2ePriceAssignProduct($this->conn, $indexedCheapId, $categoryId);
-    e2ePriceAssignProduct($this->conn, $indexedExpId, $categoryId);
-    e2ePriceAssignProduct($this->conn, $unindexedAId, $categoryId);
-    e2ePriceAssignProduct($this->conn, $unindexedBId, $categoryId);
+        /** @var ConnectionInterface $conn */
+        $conn = $store->container()->get(ConnectionInterface::class);
 
-    // Only two products have price index entries
-    e2ePriceSetPrice($this->conn, $indexedCheapId, '10.00');
-    e2ePriceSetPrice($this->conn, $indexedExpId, '50.00');
-    // $unindexedAId and $unindexedBId have no price index row → NULL via LEFT JOIN
+        $registry = e2ePriceMakeRegistry();
+        $resolver = e2ePriceMakeResolver($registry);
+        $service  = e2ePriceMakeServiceFromConn($conn);
 
-    // ASC: indexed first (cheap → expensive), then NULL-priced last
-    $optionsAsc  = $resolver->resolve(page: 1, size: 10, sort: 'price_asc');
-    $pageAsc     = $service->paginatedProductsInCategory($categoryId, $optionsAsc);
-    $productsAsc = $pageAsc->items->toArray();
+        $categoryFactory = CategoryFactory::new($store);
+        $productFactory  = ProductFactory::new($store);
 
-    expect($productsAsc)->toHaveCount(4);
-    // First two must be indexed (in any order among themselves, but before unindexed)
-    $indexedIds = [$indexedCheapId, $indexedExpId];
-    expect(in_array($productsAsc[0]->id, $indexedIds, true))->toBeTrue();
-    expect(in_array($productsAsc[1]->id, $indexedIds, true))->toBeTrue();
-    // Last two must be unindexed
-    $unindexedIds = [$unindexedAId, $unindexedBId];
-    expect(in_array($productsAsc[2]->id, $unindexedIds, true))->toBeTrue();
-    expect(in_array($productsAsc[3]->id, $unindexedIds, true))->toBeTrue();
+        $category      = $categoryFactory->withName('Null Price Category')->create();
+        $indexedCheap  = $productFactory->withName('Indexed Cheap')->withSku('E2E-NULL-CHEAP')->create();
+        $indexedExp    = $productFactory->withName('Indexed Expensive')->withSku('E2E-NULL-EXP')->create();
+        $unindexedA    = $productFactory->withName('Unindexed A')->withSku('E2E-NULL-UNIDX-A')->create();
+        $unindexedB    = $productFactory->withName('Unindexed B')->withSku('E2E-NULL-UNIDX-B')->create();
 
-    // DESC: indexed first (expensive → cheap), then NULL-priced last
-    $optionsDesc  = $resolver->resolve(page: 1, size: 10, sort: 'price_desc');
-    $pageDesc     = $service->paginatedProductsInCategory($categoryId, $optionsDesc);
-    $productsDesc = $pageDesc->items->toArray();
+        foreach ([
+            (int) $indexedCheap->id,
+            (int) $indexedExp->id,
+            (int) $unindexedA->id,
+            (int) $unindexedB->id,
+        ] as $pid) {
+            $conn->execute(
+                'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, 0)',
+                [$pid, (int) $category->id],
+            );
+        }
 
-    expect($productsDesc)->toHaveCount(4);
-    expect(in_array($productsDesc[0]->id, $indexedIds, true))->toBeTrue();
-    expect(in_array($productsDesc[1]->id, $indexedIds, true))->toBeTrue();
-    expect(in_array($productsDesc[2]->id, $unindexedIds, true))->toBeTrue();
-    expect(in_array($productsDesc[3]->id, $unindexedIds, true))->toBeTrue();
+        e2ePriceSetIndexEntry($conn, (int) $indexedCheap->id, '10.00');
+        e2ePriceSetIndexEntry($conn, (int) $indexedExp->id, '50.00');
+
+        $indexedIds   = [(int) $indexedCheap->id, (int) $indexedExp->id];
+        $unindexedIds = [(int) $unindexedA->id, (int) $unindexedB->id];
+
+        // ASC: indexed first (cheap → expensive), then NULL-priced last
+        $optionsAsc  = $resolver->resolve(page: 1, size: 10, sort: 'price_asc');
+        $pageAsc     = $service->paginatedProductsInCategory((int) $category->id, $optionsAsc);
+        $productsAsc = $pageAsc->items->toArray();
+
+        expect($productsAsc)->toHaveCount(4);
+        expect(in_array($productsAsc[0]->id, $indexedIds, true))->toBeTrue();
+        expect(in_array($productsAsc[1]->id, $indexedIds, true))->toBeTrue();
+        expect(in_array($productsAsc[2]->id, $unindexedIds, true))->toBeTrue();
+        expect(in_array($productsAsc[3]->id, $unindexedIds, true))->toBeTrue();
+
+        // DESC: indexed first (expensive → cheap), then NULL-priced last
+        $optionsDesc  = $resolver->resolve(page: 1, size: 10, sort: 'price_desc');
+        $pageDesc     = $service->paginatedProductsInCategory((int) $category->id, $optionsDesc);
+        $productsDesc = $pageDesc->items->toArray();
+
+        expect($productsDesc)->toHaveCount(4);
+        expect(in_array($productsDesc[0]->id, $indexedIds, true))->toBeTrue();
+        expect(in_array($productsDesc[1]->id, $indexedIds, true))->toBeTrue();
+        expect(in_array($productsDesc[2]->id, $unindexedIds, true))->toBeTrue();
+        expect(in_array($productsDesc[3]->id, $unindexedIds, true))->toBeTrue();
+    } finally {
+        $testCase->tearDownIntegration();
+        $testCase->tearDownClass();
+    }
 })->group('integration-destructive');
 
 it('preserves the selected sort across pagination pages', function (): void {
-    $registry = e2ePriceMakeRegistry();
-    // Use page size 3 so 7 products span multiple pages
-    $resolver = e2ePriceMakeResolver($registry, ['defaultPageSize' => 3, 'allowedPageSizes' => [3, 5, 10]]);
-    $service  = e2ePriceMakeService($this->conn);
+    TestConnection::skipIfUnavailable();
 
-    $categoryId = e2ePriceInsertCategory($this->conn, 'Multi-Page Price Category');
+    $testCase = new IntegrationTestCase(e2ePriceProfile());
+    $testCase->setUpIntegration();
 
-    // Insert 7 products with distinct prices; track by price for easy ordering assertions
-    $prices = ['70.00', '10.00', '50.00', '30.00', '90.00', '20.00', '60.00'];
-    $productIds = [];
+    try {
+        $store = $testCase->store;
 
-    foreach ($prices as $i => $price) {
-        $productId = e2ePriceInsertProduct($this->conn, "Product $i", "E2E-PAGE-{$i}");
-        e2ePriceAssignProduct($this->conn, $productId, $categoryId, $i);
-        e2ePriceSetPrice($this->conn, $productId, $price);
-        $productIds[] = $productId;
+        /** @var ConnectionInterface $conn */
+        $conn = $store->container()->get(ConnectionInterface::class);
+
+        $registry = e2ePriceMakeRegistry();
+        $resolver = e2ePriceMakeResolver($registry, ['defaultPageSize' => 3, 'allowedPageSizes' => [3, 5, 10]]);
+        $service  = e2ePriceMakeServiceFromConn($conn);
+
+        $categoryFactory = CategoryFactory::new($store);
+        $productFactory  = ProductFactory::new($store);
+
+        $category = $categoryFactory->withName('Multi-Page Price Category')->create();
+
+        $prices = ['70.00', '10.00', '50.00', '30.00', '90.00', '20.00', '60.00'];
+        $productIds = [];
+
+        foreach ($prices as $i => $price) {
+            $product = $productFactory->withName("Product $i")->withSku("E2E-PAGE-$i")->create();
+            $conn->execute(
+                'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, ?)',
+                [(int) $product->id, (int) $category->id, $i],
+            );
+            e2ePriceSetIndexEntry($conn, (int) $product->id, $price);
+            $productIds[] = (int) $product->id;
+        }
+
+        $optionsPage1  = $resolver->resolve(page: 1, size: 3, sort: 'price_asc');
+        $page1         = $service->paginatedProductsInCategory((int) $category->id, $optionsPage1);
+        $productsPage1 = $page1->items->toArray();
+
+        $optionsPage2  = $resolver->resolve(page: 2, size: 3, sort: 'price_asc');
+        $page2         = $service->paginatedProductsInCategory((int) $category->id, $optionsPage2);
+        $productsPage2 = $page2->items->toArray();
+
+        $allIds = array_map(fn ($p) => $p->id, array_merge($productsPage1, $productsPage2));
+
+        expect(array_unique($allIds))->toHaveCount(count($allIds));
+
+        $page1Prices = array_map(function ($p) use ($prices, $productIds): float {
+            $idx = array_search($p->id, $productIds, true);
+
+            return (float) $prices[$idx];
+        }, $productsPage1);
+
+        $page2Prices = array_map(function ($p) use ($prices, $productIds): float {
+            $idx = array_search($p->id, $productIds, true);
+
+            return (float) $prices[$idx];
+        }, $productsPage2);
+
+        expect(max($page1Prices))->toBeLessThan(min($page2Prices));
+    } finally {
+        $testCase->tearDownIntegration();
+        $testCase->tearDownClass();
     }
-
-    // Resolve page 1 with price_asc
-    $optionsPage1  = $resolver->resolve(page: 1, size: 3, sort: 'price_asc');
-    $page1         = $service->paginatedProductsInCategory($categoryId, $optionsPage1);
-    $productsPage1 = $page1->items->toArray();
-
-    // Resolve page 2 with the same sort
-    $optionsPage2  = $resolver->resolve(page: 2, size: 3, sort: 'price_asc');
-    $page2         = $service->paginatedProductsInCategory($categoryId, $optionsPage2);
-    $productsPage2 = $page2->items->toArray();
-
-    // Collect all IDs across both pages
-    $allIds = array_map(fn ($p) => $p->id, array_merge($productsPage1, $productsPage2));
-
-    // No duplicates between page 1 and page 2
-    expect(array_unique($allIds))->toHaveCount(count($allIds));
-
-    // Page 1 items must all be cheaper than page 2 items (global ascending price order preserved)
-    $page1Prices = array_map(function ($p) use ($prices, $productIds): float {
-        $idx = array_search($p->id, $productIds, true);
-
-        return (float) $prices[$idx];
-    }, $productsPage1);
-
-    $page2Prices = array_map(function ($p) use ($prices, $productIds): float {
-        $idx = array_search($p->id, $productIds, true);
-
-        return (float) $prices[$idx];
-    }, $productsPage2);
-
-    // All prices on page 1 must be lower than all prices on page 2
-    expect(max($page1Prices))->toBeLessThan(min($page2Prices));
 })->group('integration-destructive');

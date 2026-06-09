@@ -9,7 +9,10 @@ class CategorySortOrderRegistry
     /** @var list<array{priority: int, order: CategorySortOrderInterface}> */
     private array $registered = [];
 
-    public function register(CategorySortOrderInterface $categorySortOrder, int $priority = 0): void
+    public function register(
+        CategorySortOrderInterface $categorySortOrder,
+        int $priority = 0,
+    ): void
     {
         if ($this->has($categorySortOrder->key())) {
             return;

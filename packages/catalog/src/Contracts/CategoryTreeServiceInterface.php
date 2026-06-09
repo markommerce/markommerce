@@ -21,7 +21,11 @@ interface CategoryTreeServiceInterface
     /**
      * @throws InvalidArgumentException|DuplicateDefaultTreeException
      */
-    public function createTree(string $code, string $name, bool $isDefault = false): CategoryTree;
+    public function createTree(
+        string $code,
+        string $name,
+        bool $isDefault = false,
+    ): CategoryTree;
 
     /**
      * @throws CategoryTreeNotFoundException
@@ -43,23 +47,39 @@ interface CategoryTreeServiceInterface
     /**
      * @throws CategoryTreeNotFoundException|CategoryNotFoundException|CategoryTreeNodeNotFoundException|NodeNotInTreeException
      */
-    public function placeCategory(int $treeId, int $categoryId, ?int $parentNodeId = null, ?int $position = null): CategoryTreeNode;
+    public function placeCategory(
+        int $treeId,
+        int $categoryId,
+        ?int $parentNodeId = null,
+        ?int $position = null,
+    ): CategoryTreeNode;
 
     /**
      * @throws CategoryTreeNodeNotFoundException|NodeNotInTreeException|CircularNodeReferenceException
      */
-    public function moveNode(int $nodeId, ?int $newParentNodeId, int $position): void;
+    public function moveNode(
+        int $nodeId,
+        ?int $newParentNodeId,
+        int $position,
+    ): void;
 
     /**
      * @throws CategoryTreeNodeNotFoundException
      */
-    public function removeNode(int $nodeId, NodeRemovalStrategy $strategy): void;
+    public function removeNode(
+        int $nodeId,
+        NodeRemovalStrategy $strategy,
+    ): void;
 
     /**
      * @param list<int> $orderedNodeIds
      * @throws CategoryTreeNodeNotFoundException|NodeNotInTreeException
      */
-    public function reorderSiblings(?int $parentNodeId, int $treeId, array $orderedNodeIds): void;
+    public function reorderSiblings(
+        ?int $parentNodeId,
+        int $treeId,
+        array $orderedNodeIds,
+    ): void;
 
     /**
      * @return array<int, array{node: CategoryTreeNode, category_id: int, children: array<int, mixed>}>

@@ -21,7 +21,12 @@ class PriceIndexSpyQueryBuilder extends RepositoryQueryBuilder
         // Skip parent constructor — no DB needed in unit tests.
     }
 
-    public function leftJoin(string $table, string $first, string $operator, string $second): static
+    public function leftJoin(
+        string $table,
+        string $first,
+        string $operator,
+        string $second,
+    ): static
     {
         $this->leftJoinCalls[] = compact('table', 'first', 'operator', 'second');
 

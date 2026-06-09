@@ -1,8 +1,13 @@
+includes:
+    # Grandfathers pre-existing errors in untouched packages (layout, scope,
+    # catalog repos, layout-demo). Burn down over time; new errors still fail.
+    - phpstan-baseline.neon
+
 parameters:
     level: 8
     paths:
         - packages
     excludePaths:
-        - packages/*/tests
-        - packages/*/vendor
+        - packages/*/tests/*
+        - packages/*/vendor/*
     tmpDir: .phpstan-cache

@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Markommerce\Config\PgSql\Tests\Feature;
 
-require_once __DIR__ . '/Helpers/PostgresTestConnection.php';
-
 use Markommerce\Config\PgSql\Schema\ConfigValuesTableEmitter;
-use Markommerce\Config\PgSql\Tests\Feature\Helpers\PostgresTestConnection;
+use Markommerce\Testing\Database\TestConnection;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -28,9 +26,9 @@ function configValuesTableName(): string
 // ─── Shared connection & lifecycle ────────────────────────────────────────────
 
 beforeEach(function (): void {
-    PostgresTestConnection::skipIfUnavailable();
+    TestConnection::skipIfUnavailable();
 
-    $conn = new PostgresTestConnection();
+    $conn = new TestConnection();
     $tableName = configValuesTableName();
 
     // DROP IF EXISTS first (crash resilience from previous failed runs)
@@ -52,7 +50,7 @@ afterEach(function (): void {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 it('creates the config_values table with config_key as primary key', function (): void {
-    /** @var PostgresTestConnection $conn */
+    /** @var TestConnection $conn */
     $conn = $this->conn;
     $tableName = $this->tableName;
 
@@ -91,7 +89,7 @@ it('creates the config_values table with config_key as primary key', function ()
 })->group('integration-destructive');
 
 it('creates the value column as JSONB and nullable', function (): void {
-    /** @var PostgresTestConnection $conn */
+    /** @var TestConnection $conn */
     $conn = $this->conn;
     $tableName = $this->tableName;
 
@@ -117,7 +115,7 @@ it('creates the value column as JSONB and nullable', function (): void {
 })->group('integration-destructive');
 
 it('creates the version column as integer defaulting to 0', function (): void {
-    /** @var PostgresTestConnection $conn */
+    /** @var TestConnection $conn */
     $conn = $this->conn;
     $tableName = $this->tableName;
 
@@ -144,7 +142,7 @@ it('creates the version column as integer defaulting to 0', function (): void {
 })->group('integration-destructive');
 
 it('creates the updated_at column as timestamptz', function (): void {
-    /** @var PostgresTestConnection $conn */
+    /** @var TestConnection $conn */
     $conn = $this->conn;
     $tableName = $this->tableName;
 
@@ -172,7 +170,7 @@ it('creates the updated_at column as timestamptz', function (): void {
 it(
     'emits a CREATE TABLE config_values statement with config_key, value, version, and updated_at columns and no overrides column',
     function (): void {
-        /** @var PostgresTestConnection $conn */
+        /** @var TestConnection $conn */
         $conn = $this->conn;
         $tableName = $this->tableName;
 
@@ -203,7 +201,7 @@ it(
 )->group('integration-destructive');
 
 it('emits no CREATE INDEX statement for a GIN index on overrides', function (): void {
-    /** @var PostgresTestConnection $conn */
+    /** @var TestConnection $conn */
     $conn = $this->conn;
     $tableName = $this->tableName;
 
@@ -226,16 +224,19 @@ it('emits no CREATE INDEX statement for a GIN index on overrides', function (): 
     expect($indexRows)->toHaveCount(0);
 })->group('integration-destructive');
 
-it('returns a list with exactly one statement from ConfigValuesTableEmitter createStatements (down from two)', function (): void {
-    /** @var ConfigValuesTableEmitter $emitter */
-    $emitter = $this->emitter;
-    $statements = $emitter->createStatements($this->tableName);
-
-    expect($statements)->toHaveCount(1);
-})->group('integration-destructive');
+it(
+    'returns a list with exactly one statement from ConfigValuesTableEmitter createStatements (down from two)',
+    function (): void {
+        /** @var ConfigValuesTableEmitter $emitter */
+        $emitter = $this->emitter;
+        $statements = $emitter->createStatements($this->tableName);
+    
+        expect($statements)->toHaveCount(1);
+    }
+)->group('integration-destructive');
 
 it('is idempotent across multiple runs (no duplicate table errors)', function (): void {
-    /** @var PostgresTestConnection $conn */
+    /** @var TestConnection $conn */
     $conn = $this->conn;
     $tableName = $this->tableName;
 

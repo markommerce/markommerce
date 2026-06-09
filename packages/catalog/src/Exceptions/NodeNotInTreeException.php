@@ -8,7 +8,11 @@ use Marko\Core\Exceptions\MarkoException;
 
 class NodeNotInTreeException extends MarkoException
 {
-    public static function forNodeAndTree(int $nodeId, int $expectedTreeId, int $actualTreeId): self
+    public static function forNodeAndTree(
+        int $nodeId,
+        int $expectedTreeId,
+        int $actualTreeId,
+    ): self
     {
         return new self(
             message: "Node $nodeId belongs to tree $actualTreeId, not the expected tree $expectedTreeId",
@@ -17,7 +21,11 @@ class NodeNotInTreeException extends MarkoException
         );
     }
 
-    public static function forParentMismatch(int $nodeId, ?int $expectedParentNodeId, ?int $actualParentNodeId): self
+    public static function forParentMismatch(
+        int $nodeId,
+        ?int $expectedParentNodeId,
+        ?int $actualParentNodeId,
+    ): self
     {
         $expected = $expectedParentNodeId === null ? 'null (root)' : (string) $expectedParentNodeId;
         $actual = $actualParentNodeId === null ? 'null (root)' : (string) $actualParentNodeId;

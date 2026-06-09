@@ -50,6 +50,7 @@ function buildTestPriceResolver(
 ): PriceResolver {
     $registry = new PriceContributorRegistry();
     $registry->register(new BasePriceContributor($basePriceProvider));
+
     return new PriceResolver(new BatchPriceResolver($registry, unitBuildCurrencyResolver($baseCurrencyCode)));
 }
 

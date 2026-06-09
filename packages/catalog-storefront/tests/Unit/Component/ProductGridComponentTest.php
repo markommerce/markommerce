@@ -29,7 +29,6 @@ use Markommerce\Catalog\Sorting\ColumnSortOrder;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
-use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
 use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
@@ -40,6 +39,7 @@ use Markommerce\Criteria\Page\Page;
 use Markommerce\Criteria\Position\OffsetPosition;
 use Markommerce\Criteria\Position\PositionCodec;
 use Markommerce\Criteria\Sort\Sort;
+use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
 use Markommerce\Criteria\Strategy\OffsetPage;
 use Markommerce\Currency\CurrencyResolver;
@@ -195,7 +195,10 @@ function productGridMakeConfigResolver(array $overrides = []): ConfigResolverInt
         /** @param array<string, mixed> $values */
         public function __construct(private readonly array $values) {}
 
-        public function resolved(string $configClass, string $field): mixed
+        public function resolved(
+            string $configClass,
+            string $field,
+        ): mixed
         {
             return $this->values[$field] ?? null;
         }
@@ -292,7 +295,10 @@ function productGridMakeFakeService(
             );
         }
 
-        public function paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $options): Page
+        public function paginatedProductsInCategory(
+            int $categoryId,
+            ResolvedPaginationOptions $options,
+        ): Page
         {
             return $this->fakePage;
         }

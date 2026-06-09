@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  pull_request:
+    branches: ["**"]
+
+# markommerce depends on the marko framework via a path repository
+# (`../marko/packages/*`, `self.version`). marko is NOT on Packagist, so every
+# job clones it as a sibling at the pinned `.marko-version` ref before
+# `composer install` (see bin/setup-marko.sh). Developers keep using their local
+# ../marko; CI is self-contained.
+#
+# If marko-php/marko is private, set a repo secret and override the clone URL,
+# e.g. add to the setup step:
+#   env:
+#     MARKO_REPO: https://x-access-token:${{ secrets.MARKO_TOKEN }}@github.com/marko-php/marko.git
+
+# markommerce packages require marko via `self.version`. composer derives the
+# root version from git, which is `dev-<sha>` under actions/checkout's detached
+# HEAD — but setup-marko.sh puts the marko clone on branch `develop` (`dev-develop`),
+# so `dev-<sha>` != `dev-develop` and resolution fails. Pin the root version to
+# `dev-develop` (matching the marko branch name) so every `self.version` constraint
+# resolves consistently. Inherited by all jobs/steps below.
+env:
+  COMPOSER_ROOT_VERSION: dev-develop
+
+jobs:
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          tools: composer
+          coverage: none
+
+      - name: Set up marko framework (pinned sibling clone)
+        run: ./bin/setup-marko.sh
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Frontend/demo package tests assert against a built Vite manifest; build
+      # assets so those tests pass in CI (no manifest = ViteManifestException).
+      - name: Build frontend assets
+        run: npm install --no-audit --no-fund && npm run build
+
+      - name: Run unit tests
+        run: composer test
+
+  static:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          tools: composer
+          coverage: none
+
+      - name: Set up marko framework (pinned sibling clone)
+        run: ./bin/setup-marko.sh
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Run PHPStan
+        run: php -d memory_limit=2G ./vendor/bin/phpstan analyse
+
+      - name: Run code style check
+        run: composer cs:check
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: markommerce_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: markommerce_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_ADMIN_DATABASE: postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          tools: composer
+          coverage: none
+
+      - name: Set up marko framework (pinned sibling clone)
+        run: ./bin/setup-marko.sh
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Run integration tests (parallel, real Postgres)
+        run: composer test:integration

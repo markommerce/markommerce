@@ -7,6 +7,7 @@ use Marko\Core\Attributes\Preference;
 use Marko\Database\Repository\RepositoryQueryBuilder;
 use Markommerce\CatalogPriceIndex\Sorting\AscendingIndexedPriceSortOrder;
 use Markommerce\CatalogPriceIndex\Sorting\DescendingIndexedPriceSortOrder;
+use Markommerce\CatalogPriceIndexMarket\Sorting\MarketScopedPriceExpression;
 use Markommerce\CatalogPriceIndexMarket\Sorting\ScopedAscendingIndexedPriceSortOrder;
 use Markommerce\CatalogPriceIndexMarket\Sorting\ScopedDescendingIndexedPriceSortOrder;
 use Markommerce\Criteria\Sort\NullsPlacement;
@@ -84,6 +85,33 @@ function makeScopeContextWithoutMarket(ScopeRegistryInterface $registry): ScopeC
     return new ScopeContext($registry);
 }
 
+function makeAscendingWithMarket(string $market = 'us'): ScopedAscendingIndexedPriceSortOrder
+{
+    $registry = makeScopeRegistryWithMarket($market);
+    $context  = makeScopeContextWithMarket($registry, $market);
+    $expr     = new MarketScopedPriceExpression($registry, $context);
+
+    return new ScopedAscendingIndexedPriceSortOrder($expr);
+}
+
+function makeAscendingWithoutMarket(): ScopedAscendingIndexedPriceSortOrder
+{
+    $registry = makeScopeRegistryWithMarket();
+    $context  = makeScopeContextWithoutMarket($registry);
+    $expr     = new MarketScopedPriceExpression($registry, $context);
+
+    return new ScopedAscendingIndexedPriceSortOrder($expr);
+}
+
+function makeAscendingWithoutMarketAxis(): ScopedAscendingIndexedPriceSortOrder
+{
+    $registry = makeScopeRegistryWithoutMarket();
+    $context  = new ScopeContext($registry);
+    $expr     = new MarketScopedPriceExpression($registry, $context);
+
+    return new ScopedAscendingIndexedPriceSortOrder($expr);
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 it('replaces both base indexed price sort orders via preferences', function (): void {
@@ -101,10 +129,7 @@ it('replaces both base indexed price sort orders via preferences', function (): 
 });
 
 it('casts the json override amount to numeric so 100 sorts after 9', function (): void {
-    $registry = makeScopeRegistryWithMarket();
-    $context  = makeScopeContextWithMarket($registry, 'us');
-    $sortOrder = new ScopedAscendingIndexedPriceSortOrder($registry, $context);
-
+    $sortOrder  = makeAscendingWithMarket();
     $fields     = $sortOrder->sortFields();
     $expression = $fields[0]->sortExpression();
 
@@ -112,11 +137,8 @@ it('casts the json override amount to numeric so 100 sorts after 9', function ()
 });
 
 it('orders by the active market override amount when present', function (): void {
-    $registry  = makeScopeRegistryWithMarket();
-    $context   = makeScopeContextWithMarket($registry, 'us');
-    $sortOrder = new ScopedAscendingIndexedPriceSortOrder($registry, $context);
-
-    $fields     = $sortOrder->sortFields();
+    $sortOrder = makeAscendingWithMarket();
+    $fields    = $sortOrder->sortFields();
 
     expect($fields)->toHaveCount(1);
     expect($fields[0])->toBeInstanceOf(SortField::class);
@@ -128,11 +150,8 @@ it('orders by the active market override amount when present', function (): void
 });
 
 it('falls back to the base amount when the active market has no override', function (): void {
-    $registry  = makeScopeRegistryWithMarket();
-    $context   = makeScopeContextWithoutMarket($registry);
-    $sortOrder = new ScopedAscendingIndexedPriceSortOrder($registry, $context);
-
-    $fields = $sortOrder->sortFields();
+    $sortOrder = makeAscendingWithoutMarket();
+    $fields    = $sortOrder->sortFields();
 
     expect($fields)->toHaveCount(1);
     expect($fields[0])->toBeInstanceOf(SortField::class);
@@ -143,19 +162,14 @@ it('falls back to the base amount when the active market has no override', funct
 });
 
 it('still places products with no price last', function (): void {
-    $registry  = makeScopeRegistryWithMarket();
-    $context   = makeScopeContextWithMarket($registry, 'us');
-    $sortOrder = new ScopedAscendingIndexedPriceSortOrder($registry, $context);
-
-    $fields = $sortOrder->sortFields();
+    $sortOrder = makeAscendingWithMarket();
+    $fields    = $sortOrder->sortFields();
 
     expect($fields[0]->nulls)->toBe(NullsPlacement::Last);
 });
 
 it('keeps the price index left join in the prepared query', function (): void {
-    $registry  = makeScopeRegistryWithMarket();
-    $context   = makeScopeContextWithMarket($registry, 'us');
-    $sortOrder = new ScopedAscendingIndexedPriceSortOrder($registry, $context);
+    $sortOrder = makeAscendingWithMarket();
     $spy       = new ScopedPriceSpyQueryBuilder();
 
     $sortOrder->prepareQuery($spy);
@@ -168,11 +182,8 @@ it('keeps the price index left join in the prepared query', function (): void {
 });
 
 it('falls back to base-amount ordering when no market axis is configured', function (): void {
-    $registry  = makeScopeRegistryWithoutMarket();
-    $context   = new ScopeContext($registry);
-    $sortOrder = new ScopedAscendingIndexedPriceSortOrder($registry, $context);
-
-    $fields = $sortOrder->sortFields();
+    $sortOrder = makeAscendingWithoutMarketAxis();
+    $fields    = $sortOrder->sortFields();
 
     expect($fields)->toHaveCount(1);
     expect($fields[0]->expression)->toBeNull();

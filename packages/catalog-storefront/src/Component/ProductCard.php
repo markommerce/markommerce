@@ -22,7 +22,10 @@ class ProductCard
     /**
      * @param array<int, string|null>|null $formattedPrices Pre-computed prices keyed by product ID (from parent grid).
      */
-    public function data(Product $product, ?array $formattedPrices = null): ProductCardData
+    public function data(
+        Product $product,
+        ?array $formattedPrices = null,
+    ): ProductCardData
     {
         $formattedPrice = null;
 

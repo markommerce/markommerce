@@ -15,31 +15,34 @@ it('interface extends Marko\Database\Repository\RepositoryInterface', function (
     expect($reflection->implementsInterface(RepositoryInterface::class))->toBeTrue();
 });
 
-it('interface declares findByCode and findDefault methods (custom methods only — base methods inherited)', function (): void {
-    $reflection = new ReflectionClass(CategoryTreeRepositoryInterface::class);
-
-    // Only own methods declared directly on this interface
+it(
+    'interface declares findByCode and findDefault methods (custom methods only — base methods inherited)',
+    function (): void {
+        $reflection = new ReflectionClass(CategoryTreeRepositoryInterface::class);
+    
+        // Only own methods declared directly on this interface
     $ownMethods = array_map(
-        fn (ReflectionMethod $m) => $m->getName(),
-        array_filter(
-            $reflection->getMethods(),
-            fn (ReflectionMethod $m) => $m->getDeclaringClass()->getName() === CategoryTreeRepositoryInterface::class,
-        ),
-    );
-
-    expect($ownMethods)->toContain('findByCode');
-    expect($ownMethods)->toContain('findDefault');
-    expect(count($ownMethods))->toBe(2);
-
-    $findByCode = $reflection->getMethod('findByCode');
-    $params = $findByCode->getParameters();
-    expect($params)->toHaveCount(1);
-    expect($params[0]->getName())->toBe('code');
-    expect((string) $params[0]->getType())->toBe('string');
-
-    $findDefault = $reflection->getMethod('findDefault');
-    expect($findDefault->getParameters())->toHaveCount(0);
-});
+            fn (ReflectionMethod $m) => $m->getName(),
+            array_filter(
+                $reflection->getMethods(),
+                fn (ReflectionMethod $m) => $m->getDeclaringClass()->getName() === CategoryTreeRepositoryInterface::class,
+            ),
+        );
+    
+        expect($ownMethods)->toContain('findByCode');
+        expect($ownMethods)->toContain('findDefault');
+        expect(count($ownMethods))->toBe(2);
+    
+        $findByCode = $reflection->getMethod('findByCode');
+        $params = $findByCode->getParameters();
+        expect($params)->toHaveCount(1);
+        expect($params[0]->getName())->toBe('code');
+        expect((string) $params[0]->getType())->toBe('string');
+    
+        $findDefault = $reflection->getMethod('findDefault');
+        expect($findDefault->getParameters())->toHaveCount(0);
+    }
+);
 
 it('fake stores a tree on save and returns it from find by id', function (): void {
     $repository = new FakeCategoryTreeRepository();

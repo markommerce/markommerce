@@ -10,44 +10,53 @@ it('has no markommerce/scope entry in the require block of catalog\'s composer.j
     expect(true)->toBeTrue();
 });
 
-it('has no markommerce/scope-pgsql entry in the require block of catalog\'s composer.json (it never had one, but assert anyway)', function (): void {
-    $manifest = json_decode(
-        file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
-        true,
-    );
+it(
+    'has no markommerce/scope-pgsql entry in the require block of catalog\'s composer.json (it never had one, but assert anyway)',
+    function (): void {
+        $manifest = json_decode(
+            file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
+            true,
+        );
+    
+        $require = $manifest['require'] ?? [];
+    
+        expect($require)->not->toHaveKey('markommerce/scope-pgsql');
+    }
+);
 
-    $require = $manifest['require'] ?? [];
+it(
+    'lists markommerce/catalog-scope, markommerce/locale, and markommerce/catalog-locale in the root composer.json require block',
+    function (): void {
+        $rootManifest = json_decode(
+            file_get_contents(dirname(__DIR__, 4) . '/composer.json'),
+            true,
+        );
+    
+        $require = $rootManifest['require'] ?? [];
+    
+        expect($require)
+            ->toHaveKey('markommerce/catalog-scope')
+            ->toHaveKey('markommerce/locale')
+            ->toHaveKey('markommerce/catalog-locale');
+    }
+);
 
-    expect($require)->not->toHaveKey('markommerce/scope-pgsql');
-});
-
-it('lists markommerce/catalog-scope, markommerce/locale, and markommerce/catalog-locale in the root composer.json require block', function (): void {
-    $rootManifest = json_decode(
-        file_get_contents(dirname(__DIR__, 4) . '/composer.json'),
-        true,
-    );
-
-    $require = $rootManifest['require'] ?? [];
-
-    expect($require)
-        ->toHaveKey('markommerce/catalog-scope')
-        ->toHaveKey('markommerce/locale')
-        ->toHaveKey('markommerce/catalog-locale');
-});
-
-it('registers Markommerce\\CatalogScope\\Tests\\, Markommerce\\Locale\\Tests\\, and Markommerce\\CatalogLocale\\Tests\\ in the root composer.json autoload-dev.psr-4', function (): void {
-    $rootManifest = json_decode(
-        file_get_contents(dirname(__DIR__, 4) . '/composer.json'),
-        true,
-    );
-
-    $autoloadDev = $rootManifest['autoload-dev']['psr-4'] ?? [];
-
-    expect($autoloadDev)
-        ->toHaveKey('Markommerce\\CatalogScope\\Tests\\')
-        ->toHaveKey('Markommerce\\Locale\\Tests\\')
-        ->toHaveKey('Markommerce\\CatalogLocale\\Tests\\');
-});
+it(
+    'registers Markommerce\\CatalogScope\\Tests\\, Markommerce\\Locale\\Tests\\, and Markommerce\\CatalogLocale\\Tests\\ in the root composer.json autoload-dev.psr-4',
+    function (): void {
+        $rootManifest = json_decode(
+            file_get_contents(dirname(__DIR__, 4) . '/composer.json'),
+            true,
+        );
+    
+        $autoloadDev = $rootManifest['autoload-dev']['psr-4'] ?? [];
+    
+        expect($autoloadDev)
+            ->toHaveKey('Markommerce\\CatalogScope\\Tests\\')
+            ->toHaveKey('Markommerce\\Locale\\Tests\\')
+            ->toHaveKey('Markommerce\\CatalogLocale\\Tests\\');
+    }
+);
 
 it('passes the full catalog test suite after the dependency is removed', function (): void {
     $catalogManifest = json_decode(
@@ -65,68 +74,80 @@ it('passes the full catalog test suite after the dependency is removed', functio
     expect($requireDev)->not->toHaveKey('markommerce/scope-pgsql');
 });
 
-it('extends packages/catalog/tests/Unit/ComposerManifestTest.php with assertions that catalog\'s composer.json no longer lists markommerce/layout, markommerce/frontend, markommerce/theme-blank, marko/routing, marko/view, marko/view-latte in either require or require-dev', function (): void {
-    $manifest = json_decode(
-        file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
-        true,
-    );
-
-    $require = $manifest['require'] ?? [];
-    $requireDev = $manifest['require-dev'] ?? [];
-
-    $storefrontPackages = [
-        'markommerce/layout',
-        'markommerce/frontend',
-        'markommerce/theme-blank',
-        'marko/routing',
-        'marko/view',
-        'marko/view-latte',
-    ];
-
-    foreach ($storefrontPackages as $package) {
-        expect($require)->not->toHaveKey($package);
-        expect($requireDev)->not->toHaveKey($package);
+it(
+    'extends packages/catalog/tests/Unit/ComposerManifestTest.php with assertions that catalog\'s composer.json no longer lists markommerce/layout, markommerce/frontend, markommerce/theme-blank, marko/routing, marko/view, marko/view-latte in either require or require-dev',
+    function (): void {
+        $manifest = json_decode(
+            file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
+            true,
+        );
+    
+        $require = $manifest['require'] ?? [];
+        $requireDev = $manifest['require-dev'] ?? [];
+    
+        $storefrontPackages = [
+            'markommerce/layout',
+            'markommerce/frontend',
+            'markommerce/theme-blank',
+            'marko/routing',
+            'marko/view',
+            'marko/view-latte',
+        ];
+    
+        foreach ($storefrontPackages as $package) {
+            expect($require)->not->toHaveKey($package);
+            expect($requireDev)->not->toHaveKey($package);
+        }
     }
-});
+);
 
-it('ComposerManifestTest asserts catalog.composer.json does not require markommerce/market in either require or require-dev', function (): void {
-    $manifest = json_decode(
-        file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
-        true,
-    );
+it(
+    'ComposerManifestTest asserts catalog.composer.json does not require markommerce/market in either require or require-dev',
+    function (): void {
+        $manifest = json_decode(
+            file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
+            true,
+        );
+    
+        $require = $manifest['require'] ?? [];
+        $requireDev = $manifest['require-dev'] ?? [];
+    
+        expect($require)->not->toHaveKey('markommerce/market');
+        expect($requireDev)->not->toHaveKey('markommerce/market');
+    }
+);
 
-    $require = $manifest['require'] ?? [];
-    $requireDev = $manifest['require-dev'] ?? [];
+it(
+    'ComposerManifestTest asserts catalog.composer.json does not require markommerce/catalog-market in either require or require-dev',
+    function (): void {
+        $manifest = json_decode(
+            file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
+            true,
+        );
+    
+        $require = $manifest['require'] ?? [];
+        $requireDev = $manifest['require-dev'] ?? [];
+    
+        expect($require)->not->toHaveKey('markommerce/catalog-market');
+        expect($requireDev)->not->toHaveKey('markommerce/catalog-market');
+    }
+);
 
-    expect($require)->not->toHaveKey('markommerce/market');
-    expect($requireDev)->not->toHaveKey('markommerce/market');
-});
-
-it('ComposerManifestTest asserts catalog.composer.json does not require markommerce/catalog-market in either require or require-dev', function (): void {
-    $manifest = json_decode(
-        file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
-        true,
-    );
-
-    $require = $manifest['require'] ?? [];
-    $requireDev = $manifest['require-dev'] ?? [];
-
-    expect($require)->not->toHaveKey('markommerce/catalog-market');
-    expect($requireDev)->not->toHaveKey('markommerce/catalog-market');
-});
-
-it('ComposerManifestTest asserts catalog.composer.json does not require markommerce/catalog-market-category-trees in either require or require-dev', function (): void {
-    $manifest = json_decode(
-        file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
-        true,
-    );
-
-    $require = $manifest['require'] ?? [];
-    $requireDev = $manifest['require-dev'] ?? [];
-
-    expect($require)->not->toHaveKey('markommerce/catalog-market-category-trees');
-    expect($requireDev)->not->toHaveKey('markommerce/catalog-market-category-trees');
-});
+it(
+    'ComposerManifestTest asserts catalog.composer.json does not require markommerce/catalog-market-category-trees in either require or require-dev',
+    function (): void {
+        $manifest = json_decode(
+            file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
+            true,
+        );
+    
+        $require = $manifest['require'] ?? [];
+        $requireDev = $manifest['require-dev'] ?? [];
+    
+        expect($require)->not->toHaveKey('markommerce/catalog-market-category-trees');
+        expect($requireDev)->not->toHaveKey('markommerce/catalog-market-category-trees');
+    }
+);
 
 it('succeeds composer dump-autoload at the monorepo root after the change', function (): void {
     $rootDir = dirname(__DIR__, 4);

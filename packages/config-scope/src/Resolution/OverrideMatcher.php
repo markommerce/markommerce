@@ -19,7 +19,11 @@ class OverrideMatcher
      * @param array<string, mixed> $overrides signature => raw value
      * @param list<string> $axes
      */
-    public function match(array $overrides, array $axes, ScopeContext $context): mixed
+    public function match(
+        array $overrides,
+        array $axes,
+        ScopeContext $context,
+    ): mixed
     {
         if ($overrides === []) {
             return null;

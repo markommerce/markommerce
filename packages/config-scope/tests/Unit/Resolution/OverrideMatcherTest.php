@@ -22,7 +22,10 @@ function makeOverrideMatcherRegistry(array $axes = [], array $defaults = []): Sc
         private array $builtAxes;
 
         /** @param array<string, list<string>> $axes @param array<string, string> $defaults */
-        public function __construct(array $axes, array $defaults = [])
+        public function __construct(
+            array $axes,
+            array $defaults = [],
+        )
         {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
@@ -75,19 +78,22 @@ it('returns null from OverrideMatcher match when the overrides array is empty', 
     expect($result)->toBeNull();
 });
 
-it('returns the matching override value from OverrideMatcher match when a signature matches the candidate list', function (): void {
-    $registry = makeOverrideMatcherRegistry(['locale' => ['en']]);
-    $context = new ScopeContext($registry);
-    $context->in('locale', 'en');
-
-    $enumerator = new SignatureCandidateEnumerator($registry);
-    $matcher = new OverrideMatcher($enumerator);
-
-    $overrides = ['locale:en' => 'override-value'];
-    $result = $matcher->match($overrides, ['locale'], $context);
-
-    expect($result)->toBe('override-value');
-});
+it(
+    'returns the matching override value from OverrideMatcher match when a signature matches the candidate list',
+    function (): void {
+        $registry = makeOverrideMatcherRegistry(['locale' => ['en']]);
+        $context = new ScopeContext($registry);
+        $context->in('locale', 'en');
+    
+        $enumerator = new SignatureCandidateEnumerator($registry);
+        $matcher = new OverrideMatcher($enumerator);
+    
+        $overrides = ['locale:en' => 'override-value'];
+        $result = $matcher->match($overrides, ['locale'], $context);
+    
+        expect($result)->toBe('override-value');
+    }
+);
 
 it('returns null from OverrideMatcher match when no signature matches the current ScopeContext', function (): void {
     $registry = makeOverrideMatcherRegistry(['locale' => ['en', 'fr']]);

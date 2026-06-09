@@ -73,6 +73,14 @@ One row exists per config key. The columns map to the `ConfigRow` value object:
 
 A `false` return value signals a version mismatch. `ConfigWriter` retries up to 3 times and throws `StaleConfigWriteException` if all attempts fail.
 
+## Schema Entity
+
+`markommerce/config-pgsql` ships a `ConfigValueRecord` entity (annotated with `#[Table('config_values')]`) that declares the `config_values` table schema. `markommerce/testing`'s `SchemaProvisioner` discovers this entity automatically and creates the table in test databases without requiring migration files.
+
+One column is intentionally absent from `ConfigValueRecord`: the GIN index on the JSONB `value` column. `marko/database`'s `#[Index]` attribute cannot express `USING GIN`, so the index cannot be declared on the entity. It is a production-only performance index and must be created separately outside entity metadata (e.g. in a migration). Integration test databases run without it.
+
+The `updated_at` column has no `DEFAULT` in the entity declaration because Marko cannot emit `DEFAULT NOW()`. `PgsqlConfigStorage` always supplies the current timestamp at write time.
+
 ## API Reference
 
 ### `PgsqlConfigStorage`

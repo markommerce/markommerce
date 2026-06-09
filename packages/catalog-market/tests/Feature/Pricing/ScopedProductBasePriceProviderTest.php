@@ -176,28 +176,31 @@ function bootCurrencyOverridePricingModules(Container $container): void
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-it('resolves the per market price amount from the product scoped overrides companion under the ambient market', function (): void {
-    DefaultScopeGuard::reset();
-
-    $container = buildMarketPricingContainer();
-    bootMarketPricingModules($container);
-
-    $scopeContext = $container->get(ScopeContext::class);
-    $scopeContext->clearAll();
-    $scopeContext->in('market', 'us');
-
-    $product = new Product();
-    $product->priceAmount = '99.99';
-
-    $overrides = new ProductScopedOverrides();
-    $overrides->setOverride('market:us', 'priceAmount', '79.99');
-    $product->attachCompanion($overrides);
-
-    $provider = new ScopedProductBasePriceProvider($container->get(ScopeResolver::class));
-    $amounts  = $provider->amountsFor([$product]);
-
-    expect($amounts[0])->toBe('79.99');
-});
+it(
+    'resolves the per market price amount from the product scoped overrides companion under the ambient market',
+    function (): void {
+        DefaultScopeGuard::reset();
+    
+        $container = buildMarketPricingContainer();
+        bootMarketPricingModules($container);
+    
+        $scopeContext = $container->get(ScopeContext::class);
+        $scopeContext->clearAll();
+        $scopeContext->in('market', 'us');
+    
+        $product = new Product();
+        $product->priceAmount = '99.99';
+    
+        $overrides = new ProductScopedOverrides();
+        $overrides->setOverride('market:us', 'priceAmount', '79.99');
+        $product->attachCompanion($overrides);
+    
+        $provider = new ScopedProductBasePriceProvider($container->get(ScopeResolver::class));
+        $amounts  = $provider->amountsFor([$product]);
+    
+        expect($amounts[0])->toBe('79.99');
+    }
+);
 
 it('falls back to the raw price amount when the product has no market override', function (): void {
     DefaultScopeGuard::reset();

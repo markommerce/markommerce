@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Markommerce\Catalog\Tests\Feature\Sorting;
 
-require_once __DIR__ . '/../Helpers/PostgresTestConnection.php';
-
+use Marko\Database\Connection\ConnectionInterface;
 use Marko\Database\Entity\EntityHydrator;
 use Marko\Database\Entity\EntityMetadataFactory;
 use Marko\Database\PgSql\Query\PgSqlQueryBuilderFactory;
@@ -17,69 +16,24 @@ use Markommerce\Catalog\Repositories\ProductRepository;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
 use Markommerce\Catalog\Sorting\ColumnSortOrder;
-use Markommerce\Catalog\Tests\Feature\Helpers\PostgresTestConnection;
+use Markommerce\Catalog\Tests\Support\CategoryFactory;
+use Markommerce\Catalog\Tests\Support\ProductFactory;
 use Markommerce\Config\Contracts\ConfigResolverInterface;
 use Markommerce\Criteria\Position\PositionCodec;
 use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
+use Markommerce\Testing\Database\TestConnection;
+use Markommerce\Testing\IntegrationTestCase;
+use Markommerce\Testing\Profile\StoreProfile;
 
-// ─── Schema helpers ───────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function e2ePositionCreateSchema(PostgresTestConnection $conn): void
+function e2ePositionVendorDir(): string
 {
-    $conn->execute(
-        'CREATE TABLE IF NOT EXISTS catalog_products (
-            id           SERIAL PRIMARY KEY,
-            name         VARCHAR(255) NOT NULL,
-            sku          VARCHAR(255) NOT NULL UNIQUE,
-            description  TEXT,
-            price_amount DECIMAL(20,4)
-        )',
-    );
-
-    $conn->execute(
-        'CREATE TABLE IF NOT EXISTS catalog_categories (
-            id          SERIAL PRIMARY KEY,
-            name        VARCHAR(255) NOT NULL,
-            description TEXT
-        )',
-    );
-
-    $conn->execute(
-        'CREATE TABLE IF NOT EXISTS catalog_product_category (
-            id          SERIAL PRIMARY KEY,
-            product_id  INTEGER NOT NULL REFERENCES catalog_products(id) ON DELETE CASCADE,
-            category_id INTEGER NOT NULL REFERENCES catalog_categories(id) ON DELETE CASCADE,
-            position    INTEGER NOT NULL DEFAULT 0
-        )',
-    );
-
-    $conn->execute(
-        "DO \$\$
-        BEGIN
-            IF NOT EXISTS (
-                SELECT 1 FROM pg_indexes
-                WHERE tablename = 'catalog_product_category'
-                  AND indexname = 'uniq_e2e_position_prod_cat'
-            ) THEN
-                CREATE UNIQUE INDEX uniq_e2e_position_prod_cat
-                ON catalog_product_category (product_id, category_id);
-            END IF;
-        END
-        \$\$",
-    );
+    return dirname(__DIR__, 5) . '/vendor';
 }
 
-function e2ePositionDropSchema(PostgresTestConnection $conn): void
-{
-    $conn->execute('DROP TABLE IF EXISTS catalog_product_category CASCADE');
-    $conn->execute('DROP TABLE IF EXISTS catalog_products CASCADE');
-    $conn->execute('DROP TABLE IF EXISTS catalog_categories CASCADE');
-}
-
-// ─── Factory helpers ──────────────────────────────────────────────────────────
-
-function e2ePositionMakeService(PostgresTestConnection $conn): CategoryAssignmentService
+function e2ePositionMakeServiceFromConn(ConnectionInterface $conn): CategoryAssignmentService
 {
     $metadataFactory      = new EntityMetadataFactory();
     $hydrator             = new EntityHydrator($metadataFactory);
@@ -127,7 +81,10 @@ function e2ePositionMakeResolver(
         /** @param array<string, mixed> $values */
         public function __construct(private array $values) {}
 
-        public function resolved(string $configClass, string $field): mixed
+        public function resolved(
+            string $configClass,
+            string $field,
+        ): mixed
         {
             return $this->values[$field] ?? null;
         }
@@ -150,77 +107,58 @@ function e2ePositionMakeRegistry(): CategorySortOrderRegistry
     return $registry;
 }
 
-function e2ePositionInsertProduct(PostgresTestConnection $conn, string $name, string $sku): int
-{
-    $conn->execute('INSERT INTO catalog_products (name, sku) VALUES (?, ?)', [$name, $sku]);
-    $result = $conn->query('SELECT id FROM catalog_products WHERE sku = ? LIMIT 1', [$sku]);
-
-    return (int) $result[0]['id'];
-}
-
-function e2ePositionInsertCategory(PostgresTestConnection $conn, string $name): int
-{
-    $conn->execute('INSERT INTO catalog_categories (name) VALUES (?)', [$name]);
-    $result = $conn->query('SELECT id FROM catalog_categories WHERE name = ? LIMIT 1', [$name]);
-
-    return (int) $result[0]['id'];
-}
-
-function e2ePositionAssignProduct(
-    PostgresTestConnection $conn,
-    int $productId,
-    int $categoryId,
-    int $position,
-): void {
-    $conn->execute(
-        'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, ?)',
-        [$productId, $categoryId, $position],
-    );
-}
-
-// ─── Shared lifecycle ─────────────────────────────────────────────────────────
-
-beforeEach(function (): void {
-    PostgresTestConnection::skipIfUnavailable();
-
-    $this->conn = new PostgresTestConnection();
-
-    e2ePositionDropSchema($this->conn);
-    e2ePositionCreateSchema($this->conn);
-});
-
-afterEach(function (): void {
-    if (isset($this->conn)) {
-        e2ePositionDropSchema($this->conn);
-    }
-});
-
-// ─── Tests ────────────────────────────────────────────────────────────────────
+// ─── Tests ───────────────────────────────────────────────────────────────────
 
 it('lists category products in assignment position order by default', function (): void {
-    $registry = e2ePositionMakeRegistry();
-    $resolver = e2ePositionMakeResolver($registry);
-    $service  = e2ePositionMakeService($this->conn);
+    TestConnection::skipIfUnavailable();
 
-    $categoryId = e2ePositionInsertCategory($this->conn, 'Default Sort Category');
+    $testCase = new IntegrationTestCase(StoreProfile::simple(e2ePositionVendorDir()));
+    $testCase->setUpIntegration();
 
-    $productId3 = e2ePositionInsertProduct($this->conn, 'Third', 'E2E-POS-003');
-    $productId1 = e2ePositionInsertProduct($this->conn, 'First', 'E2E-POS-001');
-    $productId2 = e2ePositionInsertProduct($this->conn, 'Second', 'E2E-POS-002');
+    try {
+        $store = $testCase->store;
 
-    e2ePositionAssignProduct($this->conn, $productId3, $categoryId, 30);
-    e2ePositionAssignProduct($this->conn, $productId1, $categoryId, 10);
-    e2ePositionAssignProduct($this->conn, $productId2, $categoryId, 20);
+        /** @var ConnectionInterface $conn */
+        $conn = $store->container()->get(ConnectionInterface::class);
 
-    // Drive through the real resolve → apply path (no sort param = default position)
-    $options  = $resolver->resolve(page: 1, size: 10, sort: null);
-    $page     = $service->paginatedProductsInCategory($categoryId, $options);
-    $products = $page->items->toArray();
+        $registry = e2ePositionMakeRegistry();
+        $resolver = e2ePositionMakeResolver($registry);
+        $service  = e2ePositionMakeServiceFromConn($conn);
 
-    expect($products)->toHaveCount(3)
-        ->and($products[0]->id)->toBe($productId1)
-        ->and($products[1]->id)->toBe($productId2)
-        ->and($products[2]->id)->toBe($productId3);
+        $categoryFactory = CategoryFactory::new($store);
+        $productFactory  = ProductFactory::new($store);
+
+        $category = $categoryFactory->withName('Default Sort Category')->create();
+        $product3 = $productFactory->withName('Third')->withSku('E2E-POS-003')->create();
+        $product1 = $productFactory->withName('First')->withSku('E2E-POS-001')->create();
+        $product2 = $productFactory->withName('Second')->withSku('E2E-POS-002')->create();
+
+        $conn->execute(
+            'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, ?)',
+            [(int) $product3->id, (int) $category->id, 30],
+        );
+        $conn->execute(
+            'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, ?)',
+            [(int) $product1->id, (int) $category->id, 10],
+        );
+        $conn->execute(
+            'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, ?)',
+            [(int) $product2->id, (int) $category->id, 20],
+        );
+
+        // Drive through the real resolve → apply path (no sort param = default position)
+        $options  = $resolver->resolve(page: 1, size: 10, sort: null);
+        $page     = $service->paginatedProductsInCategory((int) $category->id, $options);
+        $products = $page->items->toArray();
+
+        expect($products)->toHaveCount(3)
+            ->and($products[0]->id)->toBe($product1->id)
+            ->and($products[1]->id)->toBe($product2->id)
+            ->and($products[2]->id)->toBe($product3->id);
+    } finally {
+        $testCase->tearDownIntegration();
+        $testCase->tearDownClass();
+    }
 })->group('integration-destructive');
 
 it('fails loudly when a non-keyset sort is requested under the keyset strategy', function (): void {

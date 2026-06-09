@@ -59,28 +59,34 @@ it('createTree with isDefault=true marks the tree as default', function (): void
     expect(array_values($treeRepo->trees)[0]->isDefault)->toBeTrue();
 });
 
-it('createTree with isDefault=true throws DuplicateDefaultTreeException when a default already exists', function (): void {
-    $treeRepo = new FakeCategoryTreeRepository();
-    $service = makeCategoryTreeService(treeRepo: $treeRepo);
+it(
+    'createTree with isDefault=true throws DuplicateDefaultTreeException when a default already exists',
+    function (): void {
+        $treeRepo = new FakeCategoryTreeRepository();
+        $service = makeCategoryTreeService(treeRepo: $treeRepo);
+    
+        $service->createTree(code: 'main', name: 'Main Tree', isDefault: true);
+    
+        expect(fn () => $service->createTree(code: 'secondary', name: 'Secondary Tree', isDefault: true))
+            ->toThrow(DuplicateDefaultTreeException::class);
+    }
+);
 
-    $service->createTree(code: 'main', name: 'Main Tree', isDefault: true);
-
-    expect(fn () => $service->createTree(code: 'secondary', name: 'Secondary Tree', isDefault: true))
-        ->toThrow(DuplicateDefaultTreeException::class);
-});
-
-it('setDefaultTree promotes the given tree to default and demotes the previous default in one operation', function (): void {
-    $treeRepo = new FakeCategoryTreeRepository();
-    $service = makeCategoryTreeService(treeRepo: $treeRepo);
-
-    $oldDefault = $service->createTree(code: 'old', name: 'Old Default', isDefault: true);
-    $newTarget = $service->createTree(code: 'new', name: 'New Target');
-
-    $service->setDefaultTree($newTarget->id);
-
-    expect($oldDefault->isDefault)->toBeFalse();
-    expect($newTarget->isDefault)->toBeTrue();
-});
+it(
+    'setDefaultTree promotes the given tree to default and demotes the previous default in one operation',
+    function (): void {
+        $treeRepo = new FakeCategoryTreeRepository();
+        $service = makeCategoryTreeService(treeRepo: $treeRepo);
+    
+        $oldDefault = $service->createTree(code: 'old', name: 'Old Default', isDefault: true);
+        $newTarget = $service->createTree(code: 'new', name: 'New Target');
+    
+        $service->setDefaultTree($newTarget->id);
+    
+        expect($oldDefault->isDefault)->toBeFalse();
+        expect($newTarget->isDefault)->toBeTrue();
+    }
+);
 
 it('setDefaultTree leaves exactly one default tree after the swap (no overlap, no gap)', function (): void {
     $treeRepo = new FakeCategoryTreeRepository();

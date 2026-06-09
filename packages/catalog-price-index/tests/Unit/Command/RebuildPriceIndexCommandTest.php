@@ -33,6 +33,7 @@ class FakePriceIndexer implements PriceIndexerInterface
     {
         $this->rebuildCallCount++;
         $this->lastChunkSize = $chunkSize;
+
         return $this->rebuildReturn;
     }
 }
@@ -48,6 +49,7 @@ function captureRebuildOutput(callable $callback): string
     rewind($stream);
     $content = stream_get_contents($stream);
     fclose($stream);
+
     return $content !== false ? $content : '';
 }
 

@@ -11,6 +11,7 @@
     },
     "require-dev": {
         "marko/testing": "self.version",
+        "markommerce/testing": "self.version",
         "pestphp/pest": "^4.0"
     },
     "autoload": {

@@ -50,7 +50,10 @@ class ScopedConfigResolver extends ConfigResolver
      *
      * @throws ConfigNotFoundException|InvalidConfigValueException|SecretCipherException
      */
-    public function resolved(string $configClass, string $field): mixed
+    public function resolved(
+        string $configClass,
+        string $field,
+    ): mixed
     {
         return $this->resolvedAt($configClass, $field, $this->scopeContext);
     }
@@ -60,7 +63,11 @@ class ScopedConfigResolver extends ConfigResolver
      *
      * @throws ConfigNotFoundException|InvalidConfigValueException|SecretCipherException
      */
-    public function resolvedAt(string $configClass, string $field, ScopeContext $context): mixed
+    public function resolvedAt(
+        string $configClass,
+        string $field,
+        ScopeContext $context,
+    ): mixed
     {
         $definition = $this->configRegistry->definition($configClass, $field);
         $axes = $this->scopedFieldRegistry->axesForProperty($definition->configClass, $definition->field);

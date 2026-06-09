@@ -25,7 +25,10 @@ interface CategoryTreeNodeRepositoryInterface extends RepositoryInterface
      *
      * @return list<CategoryTreeNode>
      */
-    public function findChildren(?int $parentNodeId, int $treeId): array;
+    public function findChildren(
+        ?int $parentNodeId,
+        int $treeId,
+    ): array;
 
     /**
      * Convenience shortcut for findChildren(null, $treeId).
@@ -39,7 +42,10 @@ interface CategoryTreeNodeRepositoryInterface extends RepositoryInterface
      *
      * @return list<CategoryTreeNode>
      */
-    public function findByCategoryInTree(int $categoryId, int $treeId): array;
+    public function findByCategoryInTree(
+        int $categoryId,
+        int $treeId,
+    ): array;
 
     /**
      * Find all placements of a category across all trees.

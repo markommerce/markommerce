@@ -34,6 +34,7 @@ function batchBuildCurrencyResolver(string $code = 'USD'): CurrencyResolver
         proxyLocator: new ProxyLocator(),
         preferenceRegistry: new PreferenceRegistry(),
     );
+
     return new CurrencyResolver($resolver, new DefaultCurrencyRegistry());
 }
 
@@ -41,6 +42,7 @@ function batchBuildResolver(string $currencyCode = 'USD'): BatchPriceResolver
 {
     $registry = new PriceContributorRegistry();
     $registry->register(new BasePriceContributor(new RawProductBasePriceProvider()));
+
     return new BatchPriceResolver($registry, batchBuildCurrencyResolver($currencyCode));
 }
 
@@ -48,6 +50,7 @@ function batchMakeProduct(?string $priceAmount): Product
 {
     $p = new Product();
     $p->priceAmount = $priceAmount;
+
     return $p;
 }
 

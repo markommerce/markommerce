@@ -41,7 +41,10 @@ class CachingConfigResolver implements ConfigResolverInterface
      *
      * @throws ConfigNotFoundException
      */
-    protected function buildCacheKey(string $configClass, string $field): string
+    protected function buildCacheKey(
+        string $configClass,
+        string $field,
+    ): string
     {
         $definition = $this->configRegistry->definition($configClass, $field);
 

@@ -130,12 +130,15 @@ it('carries #[Preference(replaces: SetCommand::class)] on ScopedSetCommand', fun
     expect($preference->replaces)->toBe(SetCommand::class);
 });
 
-it('does NOT carry a #[Command] attribute on ScopedSetCommand (parent\'s #[Command(name: \'config:set\')] is the single source of command-name registration; a duplicate attribute would cause CommandRegistry::register to throw duplicateCommandName)', function (): void {
-    $reflection = new ReflectionClass(ScopedSetCommand::class);
-    $commandAttributes = $reflection->getAttributes(Command::class);
-
-    expect($commandAttributes)->toBeEmpty();
-});
+it(
+    'does NOT carry a #[Command] attribute on ScopedSetCommand (parent\'s #[Command(name: \'config:set\')] is the single source of command-name registration; a duplicate attribute would cause CommandRegistry::register to throw duplicateCommandName)',
+    function (): void {
+        $reflection = new ReflectionClass(ScopedSetCommand::class);
+        $commandAttributes = $reflection->getAttributes(Command::class);
+    
+        expect($commandAttributes)->toBeEmpty();
+    }
+);
 
 it('parses --scope=axis=value into a ScopeSignature inside ScopedSetCommand execute', function (): void {
     $globalStorage = new InMemoryConfigStorage();
@@ -155,25 +158,28 @@ it('parses --scope=axis=value into a ScopeSignature inside ScopedSetCommand exec
     expect($overrides)->toHaveKey('locale:fr');
 });
 
-it('calls writer.setOverride when --scope is provided and writer.setGlobal otherwise from ScopedSetCommand', function (): void {
-    $globalStorage = new InMemoryConfigStorage();
-    $scopedStorage = new InMemoryScopedConfigStorage();
-    $scopeRegistry = makeScopedSetCmdScopeRegistry(['locale']);
-    $scopedFieldRegistry = new ScopedFieldRegistry($scopeRegistry);
-    $scopedFieldRegistry->register(ScopedSetCmdStringConfig::class, 'storeName', ['locale']);
-
-    $command = buildScopedSetCommand($globalStorage, $scopedStorage, $scopedFieldRegistry);
-
-    // With --scope: sets override
+it(
+    'calls writer.setOverride when --scope is provided and writer.setGlobal otherwise from ScopedSetCommand',
+    function (): void {
+        $globalStorage = new InMemoryConfigStorage();
+        $scopedStorage = new InMemoryScopedConfigStorage();
+        $scopeRegistry = makeScopedSetCmdScopeRegistry(['locale']);
+        $scopedFieldRegistry = new ScopedFieldRegistry($scopeRegistry);
+        $scopedFieldRegistry->register(ScopedSetCmdStringConfig::class, 'storeName', ['locale']);
+    
+        $command = buildScopedSetCommand($globalStorage, $scopedStorage, $scopedFieldRegistry);
+    
+        // With --scope: sets override
     $resultWithScope = runScopedSetCommand($command, 'scoped-set-cmd/test.storeName', 'fr-name', '--scope=locale=fr');
-    expect($resultWithScope['exitCode'])->toBe(0);
-    $overrides = $scopedStorage->loadOverrides('scoped-set-cmd/test.storeName');
-    expect($overrides)->toHaveKey('locale:fr');
-
-    // Without --scope: sets global
+        expect($resultWithScope['exitCode'])->toBe(0);
+        $overrides = $scopedStorage->loadOverrides('scoped-set-cmd/test.storeName');
+        expect($overrides)->toHaveKey('locale:fr');
+    
+        // Without --scope: sets global
     $resultWithoutScope = runScopedSetCommand($command, 'scoped-set-cmd/test.storeName', 'global-name');
-    expect($resultWithoutScope['exitCode'])->toBe(0);
-    $globalRow = $globalStorage->load('scoped-set-cmd/test.storeName');
-    expect($globalRow)->not->toBeNull()
-        ->and($globalRow->value)->toBe('global-name');
-});
+        expect($resultWithoutScope['exitCode'])->toBe(0);
+        $globalRow = $globalStorage->load('scoped-set-cmd/test.storeName');
+        expect($globalRow)->not->toBeNull()
+            ->and($globalRow->value)->toBe('global-name');
+    }
+);

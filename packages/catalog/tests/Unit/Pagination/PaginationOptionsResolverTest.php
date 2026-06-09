@@ -44,7 +44,10 @@ function makePaginationConfigResolver(array $overrides = []): ConfigResolverInte
         /** @param array<string, mixed> $values */
         public function __construct(private array $values) {}
 
-        public function resolved(string $configClass, string $field): mixed
+        public function resolved(
+            string $configClass,
+            string $field,
+        ): mixed
         {
             return $this->values[$field] ?? null;
         }
@@ -148,20 +151,23 @@ it('it excludes orders not in a non-empty enabledSorts gate', function (): void 
         ->toThrow(InvalidPaginationConfigException::class);
 });
 
-it('it throws a loud keyset-incompatibility exception when a non-keyset order is requested under the keyset strategy', function (): void {
-    $resolver = new PaginationOptionsResolver(
-        makePaginationConfigResolver([
-            'strategy'     => 'keyset',
-            'presentation' => 'load_more',
-            'defaultSort'  => 'position',
-        ]),
-        makeRegistryWithPosition(),
-    );
-
-    // position does not support keyset → must throw
+it(
+    'it throws a loud keyset-incompatibility exception when a non-keyset order is requested under the keyset strategy',
+    function (): void {
+        $resolver = new PaginationOptionsResolver(
+            makePaginationConfigResolver([
+                'strategy'     => 'keyset',
+                'presentation' => 'load_more',
+                'defaultSort'  => 'position',
+            ]),
+            makeRegistryWithPosition(),
+        );
+    
+        // position does not support keyset → must throw
     expect(fn () => $resolver->resolve(page: null, size: null, sort: null))
-        ->toThrow(InvalidPaginationConfigException::class);
-});
+            ->toThrow(InvalidPaginationConfigException::class);
+    }
+);
 
 it('it carries the selected sort order and resolved size on the resolved options', function (): void {
     $nameOrder = new ColumnSortOrder(

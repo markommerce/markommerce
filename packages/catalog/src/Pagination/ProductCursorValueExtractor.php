@@ -22,7 +22,10 @@ class ProductCursorValueExtractor implements CursorValueExtractorInterface
     /**
      * @return array<string, scalar>
      */
-    public function extract(object $entity, Sort $sort): array
+    public function extract(
+        object $entity,
+        Sort $sort,
+    ): array
     {
         /** @var Product $entity */
         $values = [];
@@ -34,7 +37,10 @@ class ProductCursorValueExtractor implements CursorValueExtractorInterface
         return $values;
     }
 
-    private function extractValue(Product $product, string $column): string|int|float
+    private function extractValue(
+        Product $product,
+        string $column,
+    ): string|int|float
     {
         return match ($column) {
             'catalog_products.name' => $product->name,

@@ -2,457 +2,41 @@
 
 declare(strict_types=1);
 
-use Marko\Core\Container\ContainerInterface;
-use Marko\Core\Module\ModuleManifest;
-use Marko\Core\Module\ModuleRepository;
-use Marko\Database\Entity\EntityCollection;
 use Marko\Routing\Attributes\Get;
 use Marko\Routing\Http\Request;
-use Marko\Routing\Http\Response;
-use Marko\Routing\RouteCollection;
-use Marko\Routing\RouteDiscovery;
-use Marko\Routing\RouteMatcher;
-use Marko\Routing\RouteMatcherInterface;
-use Marko\Routing\Router;
-use Marko\View\ViewInterface;
-use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
-use Markommerce\Catalog\Entity\Category;
-use Markommerce\Catalog\Entity\Product;
-use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
-use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
-use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
-use Markommerce\Catalog\Sorting\ColumnSortOrder;
-use Markommerce\Criteria\Sort\SortDirection;
-use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
-use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
-use Markommerce\Catalog\Pricing\PriceContext;
-use Markommerce\Catalog\Services\CategoryAssignmentService;
-use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
-use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
-use Markommerce\Catalog\Tests\Support\FakeProductRepository;
-use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
-use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
-use Markommerce\CatalogStorefront\Component\ProductCard;
-use Markommerce\CatalogStorefront\Component\ProductGridComponent;
-use Markommerce\CatalogStorefront\Component\StockBadge;
-use Markommerce\CatalogStorefront\Context\CategoryDataProvider;
+use Markommerce\Catalog\Tests\Support\CategoryFactory;
+use Markommerce\Catalog\Tests\Support\ProductFactory;
 use Markommerce\CatalogStorefront\Controller\CategoryController;
-use Markommerce\Config\Contracts\ConfigResolverInterface;
-use Markommerce\Criteria\Page\Page;
-use Markommerce\Criteria\Position\PositionCodec;
-use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
-use Markommerce\Criteria\Strategy\OffsetPage;
-use Markommerce\Currency\CurrencyResolver;
-use Markommerce\Layout\Cache\ArtifactReaderInterface;
-use Markommerce\Layout\Cache\PreparedTree;
-use Markommerce\Layout\Cache\PreparedTreeBuilder;
-use Markommerce\Layout\Compiler\Compiler;
-use Markommerce\Layout\Compiler\ResolutionPhase;
-use Markommerce\Layout\Compiler\ValidationPhase;
-use Markommerce\Layout\Discovery\LayoutDiscovery;
-use Markommerce\Layout\Middleware\MarkommerceLayoutMiddleware;
-use Markommerce\Layout\Runtime\Renderer;
-use Markommerce\Money\Currency;
-use Markommerce\Money\Money;
-use Markommerce\MoneyIntl\MoneyFormatter;
-use Markommerce\Scope\Axis\ScopeAxis;
-use Markommerce\Scope\Context\ScopeContext;
-use Markommerce\Scope\Exceptions\UnknownAxisException;
-use Markommerce\Scope\Hierarchy\ScopeHierarchy;
-use Markommerce\Scope\Registry\ScopeRegistryInterface;
+use Markommerce\Testing\IntegrationTestCase;
+use Markommerce\Testing\Profile\StoreProfile;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Harness helpers ──────────────────────────────────────────────────────────
 
-function catalogControllerMakeEmptyPriceIndexRepository(): ProductPriceIndexRepositoryInterface
+function categoryControllerVendorDir(): string
 {
-    return new class () implements ProductPriceIndexRepositoryInterface
-    {
-        public function upsertMany(array $entries): void {}
-
-        public function findByProductId(int $productId): ?ProductPriceIndexEntry
-        {
-            return null;
-        }
-
-        public function findByProductIds(array $productIds): array
-        {
-            return [];
-        }
-
-        public function truncate(): void {}
-    };
+    // __DIR__ = packages/catalog-storefront/tests/Feature
+    // dirname 4 levels up = markommerce root
+    return dirname(__DIR__, 4) . '/vendor';
 }
 
-function catalogControllerMakeCurrencyResolver(): CurrencyResolver
+function categoryControllerEnsureConfigKey(): void
 {
-    $currency = new Currency(code: 'USD', scale: 2, symbol: '$', name: 'US Dollar');
-
-    return new class ($currency) extends CurrencyResolver
-    {
-        public function __construct(private readonly Currency $currency) {}
-
-        public function base(): Currency
-        {
-            return $this->currency;
-        }
-    };
-}
-
-/**
- * @param array<string, mixed> $overrides
- */
-function catalogControllerMakeConfigResolver(array $overrides = []): ConfigResolverInterface
-{
-    $defaults = [
-        'defaultPageSize'  => 24,
-        'allowedPageSizes' => [12, 24, 48, 96],
-        'maxPageSize'      => 96,
-        'strategy'         => 'offset',
-        'presentation'     => 'numbered',
-        'countMode'        => 'exact',
-        'maxPageDepth'     => 100,
-        'defaultSort'      => 'position',
-        'enabledSorts'     => [],
-        'viewAllThreshold' => 0,
-        'countCacheTtl'    => 0,
-    ];
-
-    $values = array_merge($defaults, $overrides);
-
-    return new class ($values) implements ConfigResolverInterface
-    {
-        /** @param array<string, mixed> $values */
-        public function __construct(private readonly array $values) {}
-
-        public function resolved(string $configClass, string $field): mixed
-        {
-            return $this->values[$field] ?? null;
-        }
-    };
-}
-
-function catalogControllerMakeSortRegistry(): CategorySortOrderRegistry
-{
-    $registry = new CategorySortOrderRegistry();
-    $registry->register(new ColumnSortOrder(
-        key: 'position',
-        label: 'Position',
-        column: 'catalog_product_category.position',
-        direction: SortDirection::Ascending,
-        supportsKeyset: false,
-    ), 0);
-
-    return $registry;
-}
-
-function catalogControllerMakePaginationOptionsResolver(): PaginationOptionsResolver
-{
-    return new PaginationOptionsResolver(catalogControllerMakeConfigResolver(), catalogControllerMakeSortRegistry());
-}
-
-/**
- * Build a CategoryAssignmentService that delegates paginatedProductsInCategory
- * to the in-memory fake repositories (wraps productsInCategory result in an OffsetPage).
- */
-function catalogControllerMakeAssignmentService(
-    FakeProductRepository $productRepository,
-    FakeCategoryRepository $categoryRepository,
-    FakeProductCategoryAssignmentRepository $assignmentRepository,
-): CategoryAssignmentService {
-    $positionCodec = new PositionCodec();
-
-    return new class (
-        $productRepository,
-        $categoryRepository,
-        $assignmentRepository,
-        $positionCodec,
-        new KeysetPaginationStrategy($positionCodec),
-    ) extends CategoryAssignmentService
-    {
-        public function paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $options): Page
-        {
-            $products = $this->productsInCategory($categoryId);
-
-            return new OffsetPage(
-                items: new EntityCollection($products),
-                size: $options->size,
-                nextPosition: null,
-                previousPosition: null,
-                currentPage: $options->page,
-                totalPages: 1,
-                totalItems: count($products),
-                positionCodec: new PositionCodec(),
-            );
-        }
-    };
-}
-
-function catalogControllerMakeScopeContext(): ScopeContext
-{
-    $registry = new class () implements ScopeRegistryInterface
-    {
-        public function hasAxis(string $name): bool
-        {
-            return false;
-        }
-
-        public function getAxis(string $name): ScopeAxis
-        {
-            throw UnknownAxisException::forAxis($name);
-        }
-
-        /** @return list<string> */
-        public function listAxes(): array
-        {
-            return [];
-        }
-
-        public function getHierarchy(string $axisName): ScopeHierarchy
-        {
-            throw UnknownAxisException::forAxis($axisName);
-        }
-    };
-
-    return new ScopeContext($registry);
-}
-
-function catalogControllerMakeMoneyFormatter(): MoneyFormatter
-{
-    return new MoneyFormatter(catalogControllerMakeScopeContext());
-}
-
-function catalogControllerMakeNoPricePriceResolver(): PriceResolverInterface
-{
-    return new class () implements PriceResolverInterface
-    {
-        public function resolve(PriceContext $context): Money
-        {
-            throw PriceUnavailableException::forContext($context);
-        }
-    };
-}
-
-function catalogControllerTestCleanup(string $dir): void
-{
-    if (!is_dir($dir)) {
-        return;
-    }
-
-    $items = scandir($dir);
-    foreach ($items as $item) {
-        if ($item === '.' || $item === '..') {
-            continue;
-        }
-        $path = $dir . '/' . $item;
-        if (is_dir($path)) {
-            catalogControllerTestCleanup($path);
-        } else {
-            unlink($path);
-        }
-    }
-    rmdir($dir);
-}
-
-/**
- * Build a compiled layout artifact (prepared trees) for the catalog layout.
- *
- * @return array<string, PreparedTree>
- */
-function catalogControllerBuildArtifact(): array
-{
-    $catalogPath = dirname(__DIR__, 2);
-
-    $moduleRepository = new ModuleRepository([
-        new ModuleManifest(
-            name: 'markommerce/catalog-storefront',
-            version: '1.0.0',
-            path: $catalogPath,
-            source: 'vendor',
-        ),
-    ]);
-
-    $layoutDiscovery = new LayoutDiscovery($moduleRepository);
-    $resolutionPhase = new ResolutionPhase();
-    $validationPhase = new ValidationPhase();
-    $treeBuilder = new PreparedTreeBuilder();
-    $compiler = new Compiler($layoutDiscovery, $resolutionPhase, $validationPhase, $treeBuilder);
-
-    return $compiler->compile();
-}
-
-/**
- * A fake ViewInterface that renders template name and all scalar data properties.
- * This makes it possible to assert that the right data was passed to the view.
- */
-class CatalogControllerFakeView implements ViewInterface
-{
-    public function render(
-        string $template,
-        array $data = [],
-    ): Response {
-        return Response::html($this->renderToString($template, $data));
-    }
-
-    public function renderToString(
-        string $template,
-        array $data = [],
-    ): string {
-        $output = '<div data-template="' . htmlspecialchars($template) . '"';
-
-        foreach ($data as $key => $value) {
-            if (is_string($value) || is_int($value) || is_float($value) || is_bool($value)) {
-                $output .= ' data-' . htmlspecialchars($key) . '="' . htmlspecialchars((string) $value) . '"';
-            } elseif (is_object($value) && method_exists($value, '__toString')) {
-                $output .= ' data-' . htmlspecialchars($key) . '="' . htmlspecialchars((string) $value) . '"';
-            } elseif (is_object($value)) {
-                // For Category objects, include their name if available
-                if (property_exists($value, 'name') && is_string($value->name)) {
-                    $output .= ' data-' . htmlspecialchars($key) . '-name="' . htmlspecialchars($value->name) . '"';
-                    $output .= '>' . htmlspecialchars($value->name);
-                    // Include slot placeholders
-                    if (isset($data['_slots']) && is_array($data['_slots'])) {
-                        foreach (array_keys($data['_slots']) as $slotName) {
-                            $output .= "{slot $slotName}{/slot}";
-                        }
-                    }
-                    $output .= '</div>';
-
-                    return $output;
-                }
-            } elseif (is_array($value)) {
-                // For arrays like resolvedNames - include values
-                foreach ($value as $k => $v) {
-                    if (is_string($v)) {
-                        $output .= ' data-array-item="' . htmlspecialchars($v) . '"';
-                    }
-                }
-            }
-        }
-
-        // Include slot placeholders
-        $slots = '';
-        if (isset($data['_slots']) && is_array($data['_slots'])) {
-            foreach (array_keys($data['_slots']) as $slotName) {
-                $slots .= "{slot $slotName}{/slot}";
-            }
-        }
-
-        $output .= ">$slots</div>";
-
-        return $output;
+    if ((string) (getenv('MARKOMMERCE_CONFIG_SECRET_KEY') ?: '') === '') {
+        $testKey = base64_encode(str_repeat("\x01", SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
+        putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $testKey);
     }
 }
 
-/**
- * Simple fake container for tests.
- */
-class CatalogControllerFakeContainer implements ContainerInterface
+function categoryControllerMakeTestCase(): IntegrationTestCase
 {
-    /** @var array<string, object> */
-    private array $bindings = [];
+    categoryControllerEnsureConfigKey();
 
-    public function bind(
-        string $class,
-        object $instance,
-    ): void {
-        $this->bindings[$class] = $instance;
-    }
-
-    public function get(string $id): mixed
-    {
-        if (isset($this->bindings[$id])) {
-            return $this->bindings[$id];
-        }
-        if (class_exists($id)) {
-            return new $id();
-        }
-        throw new RuntimeException("No binding for $id");
-    }
-
-    public function has(string $id): bool
-    {
-        return isset($this->bindings[$id]) || class_exists($id);
-    }
-
-    public function singleton(string $id): void {}
-
-    public function instance(
-        string $id,
-        object $instance,
-    ): void {
-        $this->bindings[$id] = $instance;
-    }
-
-    public function call(Closure $callable): mixed
-    {
-        return $callable();
-    }
-}
-
-function catalogControllerTestBuildRouter(
-    FakeCategoryRepository $categoryRepository,
-    FakeProductRepository $productRepository,
-    FakeProductCategoryAssignmentRepository $assignmentRepository,
-): Router {
-    $routes = new RouteCollection();
-    $discovery = new RouteDiscovery();
-    foreach ($discovery->discoverFromClass(CategoryController::class) as $route) {
-        $routes->add($route);
-    }
-    $matcher = new RouteMatcher($routes);
-
-    $assignmentService = catalogControllerMakeAssignmentService(
-        $productRepository,
-        $categoryRepository,
-        $assignmentRepository,
+    return new IntegrationTestCase(
+        StoreProfile::storefront(categoryControllerVendorDir()),
     );
-
-    $container = new CatalogControllerFakeContainer();
-    $container->instance(RouteMatcherInterface::class, $matcher);
-    $container->instance(CategoryRepositoryInterface::class, $categoryRepository);
-    $container->instance(CategoryController::class, new CategoryController($categoryRepository));
-    $container->instance(CategoryAssignmentService::class, $assignmentService);
-
-    $priceResolver = catalogControllerMakeNoPricePriceResolver();
-    $moneyFormatter = catalogControllerMakeMoneyFormatter();
-
-    $productGridComponent = new ProductGridComponent(
-        $assignmentService,
-        catalogControllerMakePaginationOptionsResolver(),
-        $priceResolver,
-        $moneyFormatter,
-        catalogControllerMakeEmptyPriceIndexRepository(),
-        catalogControllerMakeCurrencyResolver(),
-    );
-    $container->instance(ProductGridComponent::class, $productGridComponent);
-    $container->instance(ProductCard::class, new ProductCard($priceResolver, $moneyFormatter));
-    $container->instance(StockBadge::class, new StockBadge());
-
-    $categoryDataProvider = new CategoryDataProvider($categoryRepository);
-    $container->instance(CategoryDataProvider::class, $categoryDataProvider);
-
-    $trees = catalogControllerBuildArtifact();
-    $view = new CatalogControllerFakeView();
-
-    $artifactReader = new class ($trees) implements ArtifactReaderInterface
-    {
-        /** @param array<string, PreparedTree> $trees */
-        public function __construct(private array $trees) {}
-
-        public function read(): array
-        {
-            return $this->trees;
-        }
-    };
-
-    $renderer = new Renderer($view, $container);
-    $layoutMiddleware = new MarkommerceLayoutMiddleware($matcher, $artifactReader, $renderer, $container);
-    $container->instance(MarkommerceLayoutMiddleware::class, $layoutMiddleware);
-
-    return new Router($matcher, $container, [MarkommerceLayoutMiddleware::class]);
 }
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
+// ─── Pure-reflection tests (no DB needed) ─────────────────────────────────────
 
 it('places a Get route at /catalog/category/{id} on the controller action', function (): void {
     $reflection = new ReflectionClass(CategoryController::class);
@@ -473,139 +57,183 @@ it(
     function (): void {
         $reflection = new ReflectionClass(CategoryController::class);
 
-        // Controller should NOT have marko/layout's Layout attribute
         $markoLayoutClass = 'Marko\Layout\Attributes\Layout';
         $attributes = $reflection->getAttributes($markoLayoutClass);
         expect($attributes)->toBeEmpty();
 
-        // The layout file should exist
         $layoutPath = dirname(__DIR__, 2) . '/layout/category_show.php';
         expect(file_exists($layoutPath))->toBeTrue();
     },
 );
-
-it('returns a 200 response with the assembled layout HTML when the category exists', function (): void {
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-
-    $category = new Category();
-    $category->name = 'Test Category';
-    $categoryRepository->save($category);
-
-    $router = catalogControllerTestBuildRouter(
-        $categoryRepository,
-        $productRepository,
-        $assignmentRepository,
-    );
-
-    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/' . $category->id]);
-    $response = $router->handle($request);
-
-    expect($response->statusCode())->toBe(200);
-});
-
-it('returns a 404 response when the requested category id does not exist', function (): void {
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-
-    $router = catalogControllerTestBuildRouter(
-        $categoryRepository,
-        $productRepository,
-        $assignmentRepository,
-    );
-
-    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/9999']);
-    $response = $router->handle($request);
-
-    expect($response->statusCode())->toBe(404);
-});
-
-it('includes the category name in the rendered page heading', function (): void {
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-
-    $category = new Category();
-    $category->name = 'Featured Electronics';
-    $categoryRepository->save($category);
-
-    $router = catalogControllerTestBuildRouter(
-        $categoryRepository,
-        $productRepository,
-        $assignmentRepository,
-    );
-
-    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/' . $category->id]);
-    $response = $router->handle($request);
-
-    expect($response->body())->toContain('Featured Electronics');
-});
-
-it('renders every assigned product as a product grid item in the response body', function (): void {
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-
-    $category = new Category();
-    $category->name = 'Shoes';
-    $categoryRepository->save($category);
-
-    $product1 = new Product();
-    $product1->sku = 'SHOE-001';
-    $product1->name = 'Running Shoes';
-    $productRepository->save($product1);
-
-    $product2 = new Product();
-    $product2->sku = 'SHOE-002';
-    $product2->name = 'Hiking Boots';
-    $productRepository->save($product2);
-
-    $assignmentService = catalogControllerMakeAssignmentService($productRepository, $categoryRepository, $assignmentRepository);
-    $assignmentService->assign($product1->id, $category->id);
-    $assignmentService->assign($product2->id, $category->id);
-
-    $router = catalogControllerTestBuildRouter(
-        $categoryRepository,
-        $productRepository,
-        $assignmentRepository,
-    );
-
-    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/' . $category->id]);
-    $response = $router->handle($request);
-
-    expect($response->body())
-        ->toContain('Running Shoes')
-        ->toContain('Hiking Boots');
-});
-
-it('renders an empty-state message when the category has no products', function (): void {
-    $categoryRepository = new FakeCategoryRepository();
-    $productRepository = new FakeProductRepository();
-    $assignmentRepository = new FakeProductCategoryAssignmentRepository();
-
-    $category = new Category();
-    $category->name = 'Empty Category';
-    $categoryRepository->save($category);
-
-    $router = catalogControllerTestBuildRouter(
-        $categoryRepository,
-        $productRepository,
-        $assignmentRepository,
-    );
-
-    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/' . $category->id]);
-    $response = $router->handle($request);
-
-    // The ProductGrid component renders with the category but no products
-    // The response should contain the layout and product grid template
-    expect($response->body())->toContain('catalog-storefront::components/product-grid');
-    expect($response->statusCode())->toBe(200);
-});
 
 it('removes the standalone resources/views/category.latte template', function (): void {
     $templatePath = dirname(__DIR__, 2) . '/resources/views/category.latte';
 
     expect(file_exists($templatePath))->toBeFalse();
 });
+
+// ─── Integration tests (real DB + handle()) ───────────────────────────────────
+
+it(
+    'migrates CategoryControllerTest to handle() with real factory-seeded data',
+    function (): void {
+        IntegrationTestCase::skipIfUnavailable();
+
+        $testCase = categoryControllerMakeTestCase();
+        $testCase->setUpIntegration();
+
+        try {
+            $store = $testCase->store;
+
+            $category = CategoryFactory::new($store)->withName('Migration Test Category')->create();
+
+            $request = new Request([
+                'REQUEST_METHOD' => 'GET',
+                'REQUEST_URI' => '/catalog/category/' . $category->id,
+                'HTTP_HOST' => 'localhost',
+            ]);
+            $response = $store->handle($request);
+
+            expect($response->statusCode())->toBe(200);
+            expect($response->body())->not->toContain('data-template=');
+
+            $notFoundRequest = new Request([
+                'REQUEST_METHOD' => 'GET',
+                'REQUEST_URI' => '/catalog/category/99999',
+                'HTTP_HOST' => 'localhost',
+            ]);
+            $notFoundResponse = $store->handle($notFoundRequest);
+            expect($notFoundResponse->statusCode())->toBe(404);
+        } finally {
+            $testCase->tearDownIntegration();
+        }
+    },
+)->group('integration-destructive');
+
+it('returns a 200 response with the assembled layout HTML when the category exists', function (): void {
+    IntegrationTestCase::skipIfUnavailable();
+
+    $testCase = categoryControllerMakeTestCase();
+    $testCase->setUpIntegration();
+
+    try {
+        $store = $testCase->store;
+
+        $category = CategoryFactory::new($store)->withName('Test Category')->create();
+
+        $request = new Request([
+            'REQUEST_METHOD' => 'GET',
+            'REQUEST_URI' => '/catalog/category/' . $category->id,
+            'HTTP_HOST' => 'localhost',
+        ]);
+        $response = $store->handle($request);
+
+        expect($response->statusCode())->toBe(200);
+    } finally {
+        $testCase->tearDownIntegration();
+    }
+})->group('integration-destructive');
+
+it('returns a 404 response when the requested category id does not exist', function (): void {
+    IntegrationTestCase::skipIfUnavailable();
+
+    $testCase = categoryControllerMakeTestCase();
+    $testCase->setUpIntegration();
+
+    try {
+        $store = $testCase->store;
+
+        $request = new Request([
+            'REQUEST_METHOD' => 'GET',
+            'REQUEST_URI' => '/catalog/category/9999',
+            'HTTP_HOST' => 'localhost',
+        ]);
+        $response = $store->handle($request);
+
+        expect($response->statusCode())->toBe(404);
+    } finally {
+        $testCase->tearDownIntegration();
+    }
+})->group('integration-destructive');
+
+it('includes the category name in the rendered page heading', function (): void {
+    IntegrationTestCase::skipIfUnavailable();
+
+    $testCase = categoryControllerMakeTestCase();
+    $testCase->setUpIntegration();
+
+    try {
+        $store = $testCase->store;
+
+        $category = CategoryFactory::new($store)->withName('Featured Electronics')->create();
+
+        $request = new Request([
+            'REQUEST_METHOD' => 'GET',
+            'REQUEST_URI' => '/catalog/category/' . $category->id,
+            'HTTP_HOST' => 'localhost',
+        ]);
+        $response = $store->handle($request);
+
+        // The product-grid.latte template renders <mk-heading size="2xl"><h1>{$category->name}</h1></mk-heading>
+        expect($response->body())->toContain('Featured Electronics');
+    } finally {
+        $testCase->tearDownIntegration();
+    }
+})->group('integration-destructive');
+
+it('renders every assigned product as a product grid item in the response body', function (): void {
+    IntegrationTestCase::skipIfUnavailable();
+
+    $testCase = categoryControllerMakeTestCase();
+    $testCase->setUpIntegration();
+
+    try {
+        $store = $testCase->store;
+
+        $category = CategoryFactory::new($store)->withName('Shoes')->create();
+
+        ProductFactory::new($store)->withName('Running Shoes')->withSku('SHOE-001')->inCategory($category)->create();
+        ProductFactory::new($store)->withName('Hiking Boots')->withSku('SHOE-002')->inCategory($category)->create();
+
+        $request = new Request([
+            'REQUEST_METHOD' => 'GET',
+            'REQUEST_URI' => '/catalog/category/' . $category->id,
+            'HTTP_HOST' => 'localhost',
+        ]);
+        $response = $store->handle($request);
+
+        // Product names appear in product-card.latte via {$resolvedName}
+        expect($response->body())
+            ->toContain('Running Shoes')
+            ->toContain('Hiking Boots');
+    } finally {
+        $testCase->tearDownIntegration();
+    }
+})->group('integration-destructive');
+
+it('renders an empty-state message when the category has no products', function (): void {
+    IntegrationTestCase::skipIfUnavailable();
+
+    $testCase = categoryControllerMakeTestCase();
+    $testCase->setUpIntegration();
+
+    try {
+        $store = $testCase->store;
+
+        $category = CategoryFactory::new($store)->withName('Empty Category')->create();
+
+        $request = new Request([
+            'REQUEST_METHOD' => 'GET',
+            'REQUEST_URI' => '/catalog/category/' . $category->id,
+            'HTTP_HOST' => 'localhost',
+        ]);
+        $response = $store->handle($request);
+
+        // product-grid.latte renders <mk-text variant="muted">No products found in this category.</mk-text>
+        // when count($products) === 0
+        expect($response->body())->toContain('No products found');
+        expect($response->statusCode())->toBe(200);
+    } finally {
+        $testCase->tearDownIntegration();
+    }
+})->group('integration-destructive');

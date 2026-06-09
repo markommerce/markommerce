@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Markommerce\Config\PgSql\Tests\Feature;
 
-require_once __DIR__ . '/Helpers/PostgresTestConnection.php';
-
 use DateTimeImmutable;
 use Markommerce\Config\PgSql\PgsqlConfigStorage;
 use Markommerce\Config\PgSql\Schema\ConfigValuesTableEmitter;
-use Markommerce\Config\PgSql\Tests\Feature\Helpers\PostgresTestConnection;
 use Markommerce\Config\ValueObjects\ConfigRow;
+use Markommerce\Testing\Database\TestConnection;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
@@ -39,9 +37,9 @@ function makeRow(string $key, mixed $value = null, int $version = 0): ConfigRow
 // ─── Shared connection & lifecycle ────────────────────────────────────────────
 
 beforeEach(function (): void {
-    PostgresTestConnection::skipIfUnavailable();
+    TestConnection::skipIfUnavailable();
 
-    $this->conn = new PostgresTestConnection();
+    $this->conn = new TestConnection();
     $this->tableName = configStorageTableName();
 
     // Ensure table exists
@@ -185,9 +183,9 @@ it('sets updated_at to NOW() on every successful compareAndSave', function (): v
 it(
     'is safe under concurrent compareAndSave calls — only one of two simultaneous writers with the same expectedVersion succeeds',
     function (): void {
-        /** @var PostgresTestConnection $conn */
-        $connA = new PostgresTestConnection();
-        $connB = new PostgresTestConnection();
+        /** @var TestConnection $conn */
+        $connA = new TestConnection();
+        $connB = new TestConnection();
         $tableName = $this->tableName;
 
         $storageA = new PgsqlConfigStorage($connA, $tableName);
@@ -243,8 +241,8 @@ it(
 it(
     'serializes two simultaneous INSERTs to a brand-new key — exactly one succeeds, the other returns false',
     function (): void {
-        $connA = new PostgresTestConnection();
-        $connB = new PostgresTestConnection();
+        $connA = new TestConnection();
+        $connB = new TestConnection();
         $tableName = $this->tableName;
 
         $storageA = new PgsqlConfigStorage($connA, $tableName);
@@ -285,60 +283,72 @@ it('persists a global value via PgsqlConfigStorage compareAndSave with no overri
         ->and($loaded->version)->toBe(1);
 })->group('integration-destructive');
 
-it('loads a global value via PgsqlConfigStorage load and hydrates ConfigRow with key, value, version, updatedAt only', function (): void {
-    /** @var PgsqlConfigStorage $storage */
-    $storage = $this->storage;
-    $key = 'markommerce/catalog.hydration_test';
-
-    $storage->compareAndSave($key, makeRow($key, ['nested' => true]), 0);
-
-    $loaded = $storage->load($key);
-
-    expect($loaded)->not->toBeNull()
-        ->and($loaded)->toBeInstanceOf(ConfigRow::class)
-        ->and($loaded->key)->toBe($key)
-        ->and($loaded->value)->toBe(['nested' => true])
-        ->and($loaded->version)->toBe(1)
-        ->and($loaded->updatedAt)->toBeInstanceOf(DateTimeImmutable::class);
-})->group('integration-destructive');
-
-it('deletes the row from PgsqlConfigStorage compareAndSave when the new row has value=null and the version matches', function (): void {
-    /** @var PgsqlConfigStorage $storage */
-    $storage = $this->storage;
-    $key = 'markommerce/catalog.delete_test';
-
-    $storage->compareAndSave($key, makeRow($key, 'to_delete'), 0);
-
-    $emptyRow = makeRow($key, null);
-    $result = $storage->compareAndSave($key, $emptyRow, 1);
-
-    expect($result)->toBeTrue();
-    expect($storage->load($key))->toBeNull();
-})->group('integration-destructive');
-
-it('does not reference overrides or _overrides_gin in any SQL statement issued by PgsqlConfigStorage', function (): void {
-    $source = file_get_contents(
-        dirname(__DIR__, 2) . '/src/PgsqlConfigStorage.php',
-    );
-
-    expect($source)->toBeString()
-        ->and($source)->not->toContain('overrides')
-        ->and($source)->not->toContain('_overrides_gin');
-})->group('integration-destructive');
-
-it('does not import Markommerce\Scope\... namespaces from any file under packages/config-pgsql/src after task completes', function (): void {
-    $srcDir = dirname(__DIR__, 2) . '/src';
-    $phpFiles = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($srcDir),
-    );
-
-    foreach ($phpFiles as $file) {
-        if ($file->getExtension() !== 'php') {
-            continue;
-        }
-
-        $contents = file_get_contents($file->getPathname());
-
-        expect($contents)->not->toContain('Markommerce\\Scope\\');
+it(
+    'loads a global value via PgsqlConfigStorage load and hydrates ConfigRow with key, value, version, updatedAt only',
+    function (): void {
+        /** @var PgsqlConfigStorage $storage */
+        $storage = $this->storage;
+        $key = 'markommerce/catalog.hydration_test';
+    
+        $storage->compareAndSave($key, makeRow($key, ['nested' => true]), 0);
+    
+        $loaded = $storage->load($key);
+    
+        expect($loaded)->not->toBeNull()
+            ->and($loaded)->toBeInstanceOf(ConfigRow::class)
+            ->and($loaded->key)->toBe($key)
+            ->and($loaded->value)->toBe(['nested' => true])
+            ->and($loaded->version)->toBe(1)
+            ->and($loaded->updatedAt)->toBeInstanceOf(DateTimeImmutable::class);
     }
-})->group('integration-destructive');
+)->group('integration-destructive');
+
+it(
+    'deletes the row from PgsqlConfigStorage compareAndSave when the new row has value=null and the version matches',
+    function (): void {
+        /** @var PgsqlConfigStorage $storage */
+        $storage = $this->storage;
+        $key = 'markommerce/catalog.delete_test';
+    
+        $storage->compareAndSave($key, makeRow($key, 'to_delete'), 0);
+    
+        $emptyRow = makeRow($key, null);
+        $result = $storage->compareAndSave($key, $emptyRow, 1);
+    
+        expect($result)->toBeTrue();
+        expect($storage->load($key))->toBeNull();
+    }
+)->group('integration-destructive');
+
+it(
+    'does not reference overrides or _overrides_gin in any SQL statement issued by PgsqlConfigStorage',
+    function (): void {
+        $source = file_get_contents(
+            dirname(__DIR__, 2) . '/src/PgsqlConfigStorage.php',
+        );
+    
+        expect($source)->toBeString()
+            ->and($source)->not->toContain('overrides')
+            ->and($source)->not->toContain('_overrides_gin');
+    }
+)->group('integration-destructive');
+
+it(
+    'does not import Markommerce\Scope\... namespaces from any file under packages/config-pgsql/src after task completes',
+    function (): void {
+        $srcDir = dirname(__DIR__, 2) . '/src';
+        $phpFiles = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($srcDir),
+        );
+    
+        foreach ($phpFiles as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+    
+            $contents = file_get_contents($file->getPathname());
+    
+            expect($contents)->not->toContain('Markommerce\\Scope\\');
+        }
+    }
+)->group('integration-destructive');

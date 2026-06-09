@@ -8,7 +8,10 @@ use Marko\Core\Exceptions\MarkoException;
 
 class CategoryHasPlacementsException extends MarkoException
 {
-    public static function forCategory(int $categoryId, int $placementCount): self
+    public static function forCategory(
+        int $categoryId,
+        int $placementCount,
+    ): self
     {
         return new self(
             message: "Cannot delete category $categoryId: it still has $placementCount placement(s)",

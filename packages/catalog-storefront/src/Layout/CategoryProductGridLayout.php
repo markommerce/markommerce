@@ -50,7 +50,10 @@ class CategoryProductGridLayout
      * @param string $template   the root grid template (full page vs fragment)
      * @param string $nameSuffix appended to placement names to keep them unique
      */
-    public static function gridPlacement(string $template, string $nameSuffix = ''): Place
+    public static function gridPlacement(
+        string $template,
+        string $nameSuffix = '',
+    ): Place
     {
         return new Place(
             component: ProductGridComponent::class,

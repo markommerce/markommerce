@@ -1,0 +1,85 @@
+# Self-contained test environment for markommerce.
+#
+# Unlike the workspace dev compose (~/www/marko/compose.yaml, which mounts a
+# developer's live ../marko + ../playground), this stack is standalone: it clones
+# the marko framework at the pinned .marko-version into the container, so the
+# suite runs with NO local checkout. This is what CI uses; use it locally for
+# CI-parity or when you don't have the workspace.
+#
+# IMPORTANT: marko is cloned into a NAMED VOLUME and dependencies install into a
+# SEPARATE vendor volume, so this stack never touches your host ../marko or the
+# host vendor/ used by the workspace dev compose.
+#
+# One-off run (clones marko + installs, runs, exits):
+#   docker compose up --abort-on-container-exit        # integration suite (default cmd)
+#   docker compose run --rm tests composer test        # unit suite
+#
+# Fast repeated runs (recommended for iterating): start an interactive shell once
+# — the entrypoint clones marko + installs deps, then both persist in volumes —
+# and run commands inside it:
+#   docker compose run --rm tests bash
+#     composer test:integration
+#     composer test
+#     php -d memory_limit=2G ./vendor/bin/phpstan analyse
+#
+# After bumping .marko-version, reset the cached clone:  docker compose down -v
+services:
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/workspace/markommerce
+      # Isolate vendor + the marko clone from the host so this stack never
+      # rewrites the workspace dev compose's vendor/ or ../marko.
+      - tests-vendor:/workspace/markommerce/vendor
+      - marko-src:/workspace/marko
+      - composer-cache:/root/.composer
+    working_dir: /workspace/markommerce
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: markommerce_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_ADMIN_DATABASE: postgres
+      # markommerce requires marko via `self.version`; composer derives the root
+      # version from git (the host's branch / a detached HEAD), which may not be
+      # `dev-develop`. setup-marko.sh puts the marko clone on branch `develop`
+      # (`dev-develop`), so pin the root version to match — otherwise `self.version`
+      # constraints can't resolve against the marko clone.
+      COMPOSER_ROOT_VERSION: dev-develop
+      # Override to point at a private mirror / token URL if marko is not public:
+      # MARKO_REPO: https://x-access-token:${GH_TOKEN}@github.com/marko-php/marko.git
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -e
+        MARKO_DIR=/workspace/marko ./bin/setup-marko.sh
+        composer install --no-interaction --prefer-dist
+        exec "$@"
+      - sh
+    # Default: run the integration suite self-contained. Override on the CLI for
+    # other commands (see header).
+    command: composer test:integration
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: markommerce_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  composer-cache:
+  tests-vendor:
+  marko-src:

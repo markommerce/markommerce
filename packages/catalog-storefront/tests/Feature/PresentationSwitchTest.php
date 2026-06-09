@@ -2,207 +2,183 @@
 
 declare(strict_types=1);
 
-use Latte\Engine;
-use Marko\Config\ConfigRepository;
-use Marko\Core\Module\ModuleManifest;
-use Marko\Core\Module\ModuleRepository;
-use Marko\View\Latte\LatteEngineFactory;
-use Marko\View\Latte\LatteViewConfig;
-use Marko\View\Latte\ModuleLoader;
-use Marko\View\ModuleTemplateResolver;
-use Marko\View\ViewConfig;
-use Markommerce\Catalog\Entity\Category;
-use Markommerce\Catalog\Pagination\PaginationPresentation;
+use Marko\Routing\Http\Request;
+use Markommerce\Catalog\Tests\Support\CategoryFactory;
+use Markommerce\Catalog\Tests\Support\ProductFactory;
+use Markommerce\Config\Contracts\ConfigWriterInterface;
+use Markommerce\Testing\IntegrationTestCase;
+use Markommerce\Testing\Profile\StoreProfile;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Harness helpers ──────────────────────────────────────────────────────────
 
-function presentationBuildLatte(): Engine
+function presentationVendorDir(): string
 {
-    $cacheDir = sys_get_temp_dir() . '/latte-catalog-presentation-test-' . bin2hex(random_bytes(8));
-    mkdir($cacheDir, 0755, true);
-
-    $catalogPath = dirname(__DIR__, 2);
-
-    $moduleRepository = new ModuleRepository([
-        new ModuleManifest(
-            name: 'markommerce/catalog-storefront',
-            version: '1.0.0',
-            path: $catalogPath,
-            source: 'vendor',
-        ),
-    ]);
-
-    $config = new ConfigRepository([
-        'view' => [
-            'cache_directory' => $cacheDir,
-            'extension' => '.latte',
-            'auto_refresh' => true,
-            'strict_types' => false,
-        ],
-    ]);
-
-    $viewConfig = new ViewConfig($config);
-    $latteViewConfig = new LatteViewConfig($config);
-    $templateResolver = new ModuleTemplateResolver($moduleRepository, $viewConfig);
-    $engine = (new LatteEngineFactory($viewConfig, $latteViewConfig))->create();
-    $engine->setLoader(new ModuleLoader($templateResolver));
-
-    return $engine;
+    // __DIR__ = packages/catalog-storefront/tests/Feature
+    // dirname 4 levels up = markommerce root
+    return dirname(__DIR__, 4) . '/vendor';
 }
 
-function presentationMakeCategory(string $name = 'Test Category'): Category
+function presentationEnsureConfigKey(): void
 {
-    $category = new Category();
-    $category->id = 1;
-    $category->name = $name;
+    if ((string) (getenv('MARKOMMERCE_CONFIG_SECRET_KEY') ?: '') === '') {
+        $testKey = base64_encode(str_repeat("\x01", SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
+        putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $testKey);
+    }
+}
 
-    return $category;
+function presentationMakeTestCase(): IntegrationTestCase
+{
+    presentationEnsureConfigKey();
+
+    return new IntegrationTestCase(
+        StoreProfile::storefront(presentationVendorDir()),
+    );
 }
 
 /**
- * @param list<string> $pageLinkUrls
+ * Write presentation config and page size, create a category with products, dispatch a request.
+ * Returns the response body.
+ *
+ * Each call creates its own fresh IntegrationTestCase so the config resolver's in-memory
+ * cache starts empty and picks up the DB-written values on the first request.
+ *
+ * @param string $presentation 'numbered', 'load_more', or 'infinite'
+ * @param int $productCount number of products to seed (must be >= 2 for pagination to appear with pageSize=1)
+ * @return string the rendered HTML body
  */
-function presentationRenderGrid(
-    PaginationPresentation $presentation,
-    array $pageLinkUrls = ['?page=1', '?page=2', '?page=3'],
-    int $currentPage = 1,
-    int $totalPages = 3,
-    bool $hasNext = true,
-    bool $hasPrevious = false,
-    ?string $nextPageUrl = '?page=2',
-    string $categoryName = 'Test Category',
-): string {
-    $engine = presentationBuildLatte();
-    $category = presentationMakeCategory($categoryName);
+function presentationHandleWithMode(string $presentation, int $productCount = 2, int $page = 1): string
+{
+    $testCase = presentationMakeTestCase();
+    $testCase->setUpIntegration();
 
-    return $engine->renderToString('catalog-storefront::components/product-grid', [
-        'category' => $category,
-        'products' => [],
-        'resolvedNames' => [],
-        'resolvedDescs' => [],
-        'formattedPrices' => [],
-        'presentation' => $presentation,
-        'pageLinkUrls' => $pageLinkUrls,
-        'currentPage' => $currentPage,
-        'totalPages' => $totalPages,
-        'hasNext' => $hasNext,
-        'hasPrevious' => $hasPrevious,
-        'nextPageUrl' => $nextPageUrl,
-    ]);
+    try {
+        $store = $testCase->store;
+
+        /** @var ConfigWriterInterface $writer */
+        $writer = $store->get(ConfigWriterInterface::class);
+        // Set presentation mode BEFORE first handle() so the resolver reads it fresh from DB
+        $writer->setGlobal('catalog/pagination.presentation', $presentation);
+        // Set page size to 1 so $productCount products span $productCount pages
+        $writer->setGlobal('catalog/pagination.defaultPageSize', 1);
+
+        $category = CategoryFactory::new($store)->withName('Category-' . $presentation)->create();
+
+        for ($i = 1; $i <= $productCount; $i++) {
+            ProductFactory::new($store)->withSku($presentation . '-' . $i)->inCategory($category)->create();
+        }
+
+        $request = new Request(
+            server: [
+                'REQUEST_METHOD' => 'GET',
+                'REQUEST_URI'    => '/catalog/category/' . $category->id . ($page > 1 ? '?page=' . $page : ''),
+                'HTTP_HOST'      => 'localhost',
+            ],
+            query: $page > 1 ? ['page' => (string) $page] : [],
+        );
+
+        return $store->handle($request)->body();
+    } finally {
+        $testCase->tearDownIntegration();
+    }
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
+it('migrates PresentationSwitchTest across presentation modes driven by real config writes', function (): void {
+    IntegrationTestCase::skipIfUnavailable();
+
+    // Verify all three modes via separate fresh stores (one config write per handle() call)
+    $numberedBody = presentationHandleWithMode('numbered');
+    expect($numberedBody)->toContain('catalog-pagination');
+    expect($numberedBody)->not->toContain('mk-load-more');
+    expect($numberedBody)->not->toContain('mk-infinite-scroll');
+
+    $loadMoreBody = presentationHandleWithMode('load_more');
+    expect($loadMoreBody)->toContain('mk-load-more');
+    expect($loadMoreBody)->not->toContain('mk-infinite-scroll');
+
+    $infiniteBody = presentationHandleWithMode('infinite');
+    expect($infiniteBody)->toContain('mk-infinite-scroll');
+    expect($infiniteBody)->not->toContain('mk-load-more');
+})->group('integration-destructive');
+
 it('renders numbered pagination controls when presentation is numbered', function (): void {
-    $output = presentationRenderGrid(
-        presentation: PaginationPresentation::Numbered,
-        pageLinkUrls: ['?page=1', '?page=2', '?page=3'],
-        currentPage: 1,
-        totalPages: 3,
-        hasNext: true,
-        hasPrevious: false,
-        nextPageUrl: '?page=2',
-    );
+    IntegrationTestCase::skipIfUnavailable();
+
+    $body = presentationHandleWithMode('numbered', productCount: 3);
 
     // The numbered pagination partial renders a nav with catalog-pagination class
-    expect($output)->toContain('catalog-pagination');
+    expect($body)->toContain('catalog-pagination');
     // Should NOT render load-more or infinite-scroll web components
-    expect($output)->not->toContain('mk-load-more');
-    expect($output)->not->toContain('mk-infinite-scroll');
-});
+    expect($body)->not->toContain('mk-load-more');
+    expect($body)->not->toContain('mk-infinite-scroll');
+})->group('integration-destructive');
 
 it('renders a load-more component when presentation is load_more', function (): void {
-    $output = presentationRenderGrid(
-        presentation: PaginationPresentation::LoadMore,
-        pageLinkUrls: ['?page=1', '?page=2', '?page=3'],
-        currentPage: 1,
-        totalPages: 3,
-        hasNext: true,
-        hasPrevious: false,
-        nextPageUrl: '?page=2',
-    );
+    IntegrationTestCase::skipIfUnavailable();
+
+    $body = presentationHandleWithMode('load_more', productCount: 2);
 
     // Should render an mk-load-more element
-    expect($output)->toContain('mk-load-more');
+    expect($body)->toContain('mk-load-more');
     // Should NOT render infinite-scroll
-    expect($output)->not->toContain('mk-infinite-scroll');
-});
+    expect($body)->not->toContain('mk-infinite-scroll');
+})->group('integration-destructive');
 
 it('renders an infinite-scroll component when presentation is infinite', function (): void {
-    $output = presentationRenderGrid(
-        presentation: PaginationPresentation::Infinite,
-        pageLinkUrls: ['?page=1', '?page=2', '?page=3'],
-        currentPage: 1,
-        totalPages: 3,
-        hasNext: true,
-        hasPrevious: false,
-        nextPageUrl: '?page=2',
-    );
+    IntegrationTestCase::skipIfUnavailable();
+
+    $body = presentationHandleWithMode('infinite', productCount: 2);
 
     // Should render an mk-infinite-scroll element
-    expect($output)->toContain('mk-infinite-scroll');
+    expect($body)->toContain('mk-infinite-scroll');
     // Should NOT render load-more
-    expect($output)->not->toContain('mk-load-more');
-});
+    expect($body)->not->toContain('mk-load-more');
+})->group('integration-destructive');
 
 it('always renders crawlable page links regardless of presentation mode', function (): void {
-    $pageLinkUrls = ['?page=1', '?page=2', '?page=3'];
+    IntegrationTestCase::skipIfUnavailable();
 
-    foreach ([PaginationPresentation::Numbered, PaginationPresentation::LoadMore, PaginationPresentation::Infinite] as $mode) {
-        $output = presentationRenderGrid(
-            presentation: $mode,
-            pageLinkUrls: $pageLinkUrls,
-            currentPage: 2,
-            totalPages: 3,
-            hasNext: true,
-            hasPrevious: true,
-            nextPageUrl: '?page=3',
-        );
+    // All modes must contain crawlable anchor links; test each with its own fresh store
+    foreach (['numbered', 'load_more', 'infinite'] as $mode) {
+        // Page 2 of a 3-page category — all page links should be present
+        $body = presentationHandleWithMode($mode, productCount: 3, page: 2);
 
-        // All modes must contain crawlable anchor links with ?page=N
-        expect($output)->toContain('href="?page=1"', 'href="?page=2"', 'href="?page=3"');
+        expect($body)->toContain('href="?page=1"');
+        expect($body)->toContain('href="?page=2"');
+        expect($body)->toContain('href="?page=3"');
     }
-});
+})->group('integration-destructive');
 
 it('exposes the next-page url to the load-more and infinite components', function (): void {
-    $nextUrl = '?page=4';
+    IntegrationTestCase::skipIfUnavailable();
 
-    $loadMoreOutput = presentationRenderGrid(
-        presentation: PaginationPresentation::LoadMore,
-        pageLinkUrls: ['?page=1', '?page=2', '?page=3', '?page=4'],
-        currentPage: 3,
-        totalPages: 4,
-        hasNext: true,
-        hasPrevious: true,
-        nextPageUrl: $nextUrl,
-    );
+    // For load-more on page 1: next page URL should point to the fragment endpoint
+    $loadMoreBody = presentationHandleWithMode('load_more', productCount: 4);
+    // For infinite-scroll on page 1: same
+    $infiniteBody = presentationHandleWithMode('infinite', productCount: 4);
 
-    $infiniteOutput = presentationRenderGrid(
-        presentation: PaginationPresentation::Infinite,
-        pageLinkUrls: ['?page=1', '?page=2', '?page=3', '?page=4'],
-        currentPage: 3,
-        totalPages: 4,
-        hasNext: true,
-        hasPrevious: true,
-        nextPageUrl: $nextUrl,
-    );
-
-    // Both load-more and infinite-scroll components should expose data-next
-    expect($loadMoreOutput)->toContain('data-next="' . $nextUrl . '"');
-    expect($infiniteOutput)->toContain('data-next="' . $nextUrl . '"');
-});
+    // Both load-more and infinite-scroll components should expose data-next pointing to the fragment endpoint
+    expect($loadMoreBody)->toContain('data-next=');
+    expect($loadMoreBody)->toContain('/page?page=2');
+    expect($infiniteBody)->toContain('data-next=');
+    expect($infiniteBody)->toContain('/page?page=2');
+})->group('integration-destructive');
 
 it('changes the rendered controls when the presentation config changes', function (): void {
-    $numberedOutput = presentationRenderGrid(presentation: PaginationPresentation::Numbered);
-    $loadMoreOutput = presentationRenderGrid(presentation: PaginationPresentation::LoadMore);
-    $infiniteOutput = presentationRenderGrid(presentation: PaginationPresentation::Infinite);
+    IntegrationTestCase::skipIfUnavailable();
+
+    // Verify each mode independently with its own fresh store
+    $numberedBody = presentationHandleWithMode('numbered', productCount: 2);
+    $loadMoreBody = presentationHandleWithMode('load_more', productCount: 2);
+    $infiniteBody = presentationHandleWithMode('infinite', productCount: 2);
 
     // Each mode renders different primary controls
-    expect($numberedOutput)->toContain('catalog-pagination');
-    expect($loadMoreOutput)->toContain('mk-load-more');
-    expect($infiniteOutput)->toContain('mk-infinite-scroll');
+    expect($numberedBody)->toContain('catalog-pagination');
+    expect($loadMoreBody)->toContain('mk-load-more');
+    expect($infiniteBody)->toContain('mk-infinite-scroll');
 
     // The numbered output should not have the web components
-    expect($numberedOutput)->not->toContain('mk-load-more');
-    expect($numberedOutput)->not->toContain('mk-infinite-scroll');
-});
+    expect($numberedBody)->not->toContain('mk-load-more');
+    expect($numberedBody)->not->toContain('mk-infinite-scroll');
+})->group('integration-destructive');

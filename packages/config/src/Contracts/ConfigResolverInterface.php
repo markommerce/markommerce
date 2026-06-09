@@ -23,5 +23,8 @@ interface ConfigResolverInterface
      *
      * @throws ConfigNotFoundException|InvalidConfigValueException|SecretCipherException
      */
-    public function resolved(string $configClass, string $field): mixed;
+    public function resolved(
+        string $configClass,
+        string $field,
+    ): mixed;
 }

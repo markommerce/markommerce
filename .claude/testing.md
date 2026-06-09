@@ -14,30 +14,59 @@ Each task follows strict Red → Green → Refactor:
 4. Repeat for the next requirement
 5. Commit when the task is complete
 
-## Commands
+## Test Environment (self-contained Docker — default)
+
+Tests run in the **self-contained Docker stack** defined by `compose.yaml` in the
+repo root. It clones the marko framework at the pinned `.marko-version` and runs
+its own Postgres — markommerce needs no local `../marko` checkout. This is what
+CI uses; use it locally too. (A developer with the full `~/www/marko` workspace
+may instead run inside the workspace `app` container — see `CLAUDE.local.md` —
+but the self-contained stack is the default reference.)
+
+Start an interactive container once (entrypoint clones marko + installs deps,
+which then persist in volumes), then run commands inside it:
 
 ```bash
-# Run all tests (parallel — default during development)
+docker compose run --rm tests bash
+# ...then inside the container:
+```
+
+Inside the container (or as one-off `docker compose run --rm tests <cmd>`):
+
+```bash
+# Run the unit / non-DB suite (parallel; excludes integration-destructive)
 composer test
 
-# Run all tests including destructive integration tests
+# Run ONLY the DB-backed integration suite (parallel, real Postgres)
+composer test:integration
+
+# Run everything (unit + integration)
 composer test:all
 
-# Run specific test file
+# Run a specific file / package / filter
 ./vendor/bin/pest packages/catalog/tests/Unit/ProductTest.php
-
-# Run tests in a specific package
 ./vendor/bin/pest packages/catalog/tests/
-
-# Run tests matching a filter
 ./vendor/bin/pest --filter="resolves product by id"
 
-# Run with coverage
+# Coverage / type coverage
 ./vendor/bin/pest --parallel --coverage --min=80
-
-# Type coverage
 ./vendor/bin/pest --type-coverage
+
+# Static analysis — REQUIRES the raised memory limit (default 128M OOMs)
+php -d memory_limit=2G ./vendor/bin/phpstan analyse
 ```
+
+One-off integration run without a shell: `docker compose up --abort-on-container-exit`.
+
+## Integration tests (`integration-destructive` group)
+
+DB-backed tests are tagged `->group('integration-destructive')` and use the
+`markommerce/testing` harness (`Markommerce\Testing\IntegrationTestCase` + a
+`StoreProfile`): schema is built from entity metadata into per-(profile × worker)
+Postgres template-clone databases, with transaction-rollback isolation — so they
+run parallel-safe and never touch dev data. `composer test` excludes this group;
+`composer test:integration` runs only it; `composer test:all` runs both. See the
+`markommerce/testing` docs page for writing them.
 
 ## Parallel Execution
 

@@ -11,5 +11,8 @@ interface CursorValueExtractorInterface
     /**
      * @return array<string, scalar>
      */
-    public function extract(object $entity, Sort $sort): array;
+    public function extract(
+        object $entity,
+        Sort $sort,
+    ): array;
 }

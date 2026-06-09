@@ -246,29 +246,32 @@ it('auto-injects ScopedFieldRegistry into the boot closure via container::call',
         ->and($injectedRegistry)->toBe($expectedRegistry);
 });
 
-it('boots after markommerce/scope and markommerce/locale so the locale axis is registered before the bridge runs', function (): void {
-    $resolver = new DependencyResolver();
-
-    // Pass catalog-locale first — DependencyResolver must reorder it after scope and locale
+it(
+    'boots after markommerce/scope and markommerce/locale so the locale axis is registered before the bridge runs',
+    function (): void {
+        $resolver = new DependencyResolver();
+    
+        // Pass catalog-locale first — DependencyResolver must reorder it after scope and locale
     $ordered = $resolver->resolve([
-        catalogLocaleModuleManifest(),
-        localeModuleManifest(),
-        localeTestScopeModuleManifest(),
-    ]);
-
-    $names = array_map(fn (ModuleManifest $m) => $m->name, $ordered);
-
-    $scopePosition = array_search('markommerce/scope', $names, true);
-    $localePosition = array_search('markommerce/locale', $names, true);
-    $bridgePosition = array_search('markommerce/catalog-locale', $names, true);
-
-    expect($scopePosition)->toBeInt()
-        ->and($localePosition)->toBeInt()
-        ->and($bridgePosition)->toBeInt();
-
-    /** @var int $scopePosition */
-    /** @var int $localePosition */
-    /** @var int $bridgePosition */
-    expect($scopePosition)->toBeLessThan($bridgePosition)
-        ->and($localePosition)->toBeLessThan($bridgePosition);
-});
+            catalogLocaleModuleManifest(),
+            localeModuleManifest(),
+            localeTestScopeModuleManifest(),
+        ]);
+    
+        $names = array_map(fn (ModuleManifest $m) => $m->name, $ordered);
+    
+        $scopePosition = array_search('markommerce/scope', $names, true);
+        $localePosition = array_search('markommerce/locale', $names, true);
+        $bridgePosition = array_search('markommerce/catalog-locale', $names, true);
+    
+        expect($scopePosition)->toBeInt()
+            ->and($localePosition)->toBeInt()
+            ->and($bridgePosition)->toBeInt();
+    
+        /** @var int $scopePosition */
+        /** @var int $localePosition */
+        /** @var int $bridgePosition */
+        expect($scopePosition)->toBeLessThan($bridgePosition)
+            ->and($localePosition)->toBeLessThan($bridgePosition);
+    }
+);

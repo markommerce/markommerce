@@ -74,6 +74,14 @@ The composite primary key `(config_key, signature)` enforces that only one overr
 
 `loadManyOverrides()` fetches all override rows for a set of keys in a single `IN (...)` query and returns a nested map of `configKey => (signature => value)`.
 
+## Schema Entity
+
+`markommerce/config-scope-pgsql` ships a `ConfigValueOverrideRecord` entity (annotated with `#[Table('config_value_overrides')]`) that declares the `config_value_overrides` table schema. `markommerce/testing`'s `SchemaProvisioner` discovers this entity automatically and creates the table in test databases without requiring migration files.
+
+Because `marko/database` does not support composite primary keys, `ConfigValueOverrideRecord` uses a surrogate autoincrement `id` column as the entity primary key. The business uniqueness constraint on `(config_key, signature)` is expressed as a `#[Index(..., unique: true)]` attribute, which causes `SchemaProvisioner` to emit the corresponding `UNIQUE` index. This unique index is required for `PgsqlScopedConfigStorage`'s `ON CONFLICT (config_key, signature)` upsert to work correctly.
+
+The `updated_at` column has no `DEFAULT` in the entity declaration because Marko cannot emit `DEFAULT NOW()`. `PgsqlScopedConfigStorage` always supplies the current timestamp at write time.
+
 ## API Reference
 
 ### `PgsqlScopedConfigStorage`

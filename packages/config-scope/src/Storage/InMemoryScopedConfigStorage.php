@@ -33,7 +33,11 @@ class InMemoryScopedConfigStorage implements ScopedConfigStorageInterface
         return $result;
     }
 
-    public function saveOverride(string $key, string $signature, mixed $value): void
+    public function saveOverride(
+        string $key,
+        string $signature,
+        mixed $value,
+    ): void
     {
         if (!isset($this->store[$key])) {
             $this->store[$key] = [];
@@ -42,7 +46,10 @@ class InMemoryScopedConfigStorage implements ScopedConfigStorageInterface
         $this->store[$key][$signature] = $value;
     }
 
-    public function deleteOverride(string $key, string $signature): void
+    public function deleteOverride(
+        string $key,
+        string $signature,
+    ): void
     {
         unset($this->store[$key][$signature]);
     }

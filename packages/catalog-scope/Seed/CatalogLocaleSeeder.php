@@ -83,7 +83,10 @@ class CatalogLocaleSeeder implements SeederInterface
         }
     }
 
-    private function extractSequenceNumber(string $name, string $prefix): ?int
+    private function extractSequenceNumber(
+        string $name,
+        string $prefix,
+    ): ?int
     {
         if (preg_match('/^' . preg_quote($prefix, '/') . ' (\d+)$/', $name, $matches)) {
             return (int) $matches[1];

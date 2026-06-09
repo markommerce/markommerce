@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Markommerce\Scope\PgSql\Tests\Feature;
 
-require_once __DIR__ . '/Helpers/PostgresTestConnection.php';
-
 use Marko\Database\Attributes\Column;
 use Marko\Database\Attributes\Table;
 use Marko\Database\Diff\DiffCalculator;
@@ -28,7 +26,6 @@ use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\PgSql\Query\PgSqlScopedFieldRenderer;
 use Markommerce\Scope\PgSql\Schema\ScopesGinIndexEmitter;
-use Markommerce\Scope\PgSql\Tests\Feature\Helpers\PostgresTestConnection;
 use Markommerce\Scope\Query\ScopedFieldExpression;
 use Markommerce\Scope\Query\ScopedOrderBy;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
@@ -39,6 +36,7 @@ use Markommerce\Scope\Signature\ScopeSignatureValidator;
 use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 use Markommerce\Scope\Storage\HasScopes;
 use Markommerce\Scope\Storage\HasScopesInterface;
+use Markommerce\Testing\Database\TestConnection;
 use PHPUnit\Framework\SkippedWithMessageException;
 
 // ─── Test-only entity fixtures ─────────────────────────────────────────────────
@@ -269,9 +267,9 @@ function buildPgIntResolver(): array
 // ─── Shared connection & lifecycle ────────────────────────────────────────────
 
 beforeEach(function (): void {
-    PostgresTestConnection::skipIfUnavailable();
+    TestConnection::skipIfUnavailable();
 
-    $conn = new PostgresTestConnection();
+    $conn = new TestConnection();
     $tableName = pgIntTableName();
 
     // DROP IF EXISTS first (crash resilience from previous failed runs)
@@ -299,7 +297,7 @@ afterEach(function (): void {
 it(
     'round-trips a composite override write through the walker and reads back the expected value',
     function (): void {
-        /** @var PostgresTestConnection $conn */
+        /** @var TestConnection $conn */
         $conn = $this->conn;
 
         [$resolver, $context] = buildPgIntResolver();
@@ -349,7 +347,7 @@ it(
 it(
     'orders rows by the resolved property using the COALESCE chain',
     function (): void {
-        /** @var PostgresTestConnection $conn */
+        /** @var TestConnection $conn */
         $conn = $this->conn;
         $tableName = $this->tableName;
 
@@ -482,7 +480,7 @@ it(
 it(
     'the schema apply creates the scopes JSONB column AND the jsonb_path_ops GIN index in a single sequence (column from PgSqlGenerator, index from the task-012 emitter)',
     function (): void {
-        /** @var PostgresTestConnection $conn */
+        /** @var TestConnection $conn */
         $conn = $this->conn;
         $tableName = $this->tableName;
 
@@ -517,7 +515,7 @@ it(
 it(
     'the GIN index is introspectable via pg_indexes after migration (the indexdef contains "USING gin" and "jsonb_path_ops")',
     function (): void {
-        /** @var PostgresTestConnection $conn */
+        /** @var TestConnection $conn */
         $conn = $this->conn;
         $tableName = $this->tableName;
 
@@ -541,7 +539,7 @@ it(
 it(
     're-running the schema apply twice is a no-op for the GIN index (the second run does not error and does not create a duplicate index)',
     function (): void {
-        /** @var PostgresTestConnection $conn */
+        /** @var TestConnection $conn */
         $conn = $this->conn;
         $tableName = $this->tableName;
 
@@ -571,7 +569,7 @@ it(
 it(
     'setOverride followed by clearOverride inside a transaction that rolls back leaves the database unchanged',
     function (): void {
-        /** @var PostgresTestConnection $conn */
+        /** @var TestConnection $conn */
         $conn = $this->conn;
         $tableName = $this->tableName;
 
@@ -622,7 +620,7 @@ it(
         $skipMessage = '';
 
         try {
-            PostgresTestConnection::skipIfUnavailable();
+            TestConnection::skipIfUnavailable();
         } catch (SkippedWithMessageException $e) {
             $skipped = true;
             $skipMessage = $e->getMessage();
@@ -654,7 +652,7 @@ it(
 it(
     'orders by a plain column with no scopes json access for an all-default context',
     function (): void {
-        /** @var PostgresTestConnection $conn */
+        /** @var TestConnection $conn */
         $conn = $this->conn;
         $tableName = $this->tableName;
 
@@ -706,7 +704,7 @@ it(
 it(
     'emits a COALESCE expression over scopes json when a non-default scope is active',
     function (): void {
-        /** @var PostgresTestConnection $conn */
+        /** @var TestConnection $conn */
         $conn = $this->conn;
         $tableName = $this->tableName;
 
@@ -760,7 +758,7 @@ it(
 it(
     'persists and resolves an override at a non-default scope',
     function (): void {
-        /** @var PostgresTestConnection $conn */
+        /** @var TestConnection $conn */
         $conn = $this->conn;
 
         [$resolver, $context] = buildPgIntResolver();

@@ -8,7 +8,10 @@ use Marko\Core\Exceptions\MarkoException;
 
 class PageOutOfRangeException extends MarkoException
 {
-    public static function forPage(int $requested, int $totalPages): self
+    public static function forPage(
+        int $requested,
+        int $totalPages,
+    ): self
     {
         return new self(
             message: "Page $requested is out of range; total pages: $totalPages",
