@@ -446,6 +446,59 @@ it('wires plugins so a plugin-decorated service method is intercepted', function
     }
 })->group('integration-destructive');
 
+it('keeps existing profiles booting unchanged when no base path is provided', function (): void {
+    \Markommerce\Testing\Database\TestConnection::skipIfUnavailable();
+    \Markommerce\Scope\Storage\DefaultScopeGuard::reset();
+
+    $envKey = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
+    putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $envKey);
+
+    try {
+        $conn = new \Markommerce\Testing\Database\TestConnection();
+        $profile = \Markommerce\Testing\Profile\StoreProfile::simple(bootstrapperVendorDir());
+
+        // boot() called WITHOUT base path — should behave exactly as before
+        $store = $profile->boot($conn);
+
+        $resolvedConn = $store->get(ConnectionInterface::class);
+        expect($resolvedConn)->toBe($conn);
+
+        // ProjectPaths should default to per-process temp dir
+        $projectPaths = $store->container()->get(ProjectPaths::class);
+        expect($projectPaths->base)->toBe(sys_get_temp_dir() . '/markommerce-bootstrapper-' . getmypid());
+    } finally {
+        putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
+        \Markommerce\Scope\Storage\DefaultScopeGuard::reset();
+    }
+})->group('integration-destructive');
+
+it('defaults ProjectPaths to a per-process temp base when no base path is given', function (): void {
+    $manifests = buildConfigScopeManifests();
+    $config = bootstrapperConfig();
+    $connection = new NullConnection();
+    $expectedDefault = sys_get_temp_dir() . '/markommerce-bootstrapper-' . getmypid();
+
+    $bootstrapper = new ContainerBootstrapper();
+    $container = $bootstrapper->build($manifests, $config, $connection);
+
+    $projectPaths = $container->get(ProjectPaths::class);
+    expect($projectPaths->base)->toBe($expectedDefault);
+});
+
+it('binds ProjectPaths to a caller-provided base path', function (): void {
+    $manifests = buildConfigScopeManifests();
+    $config = bootstrapperConfig();
+    $connection = new NullConnection();
+    $customBasePath = sys_get_temp_dir() . '/test-custom-base-' . getmypid();
+
+    $bootstrapper = new ContainerBootstrapper();
+    $container = $bootstrapper->build($manifests, $config, $connection, $customBasePath);
+
+    $projectPaths = $container->get(ProjectPaths::class);
+    expect($projectPaths)->toBeInstanceOf(ProjectPaths::class);
+    expect($projectPaths->base)->toBe($customBasePath);
+});
+
 it('skips the ConfigResolver and CachingConfigResolver preferences so the explicit factory binding wins', function (): void {
     // config/module.php binds SecretCipherInterface which reads MARKOMMERCE_CONFIG_SECRET_KEY
     $envKey = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));

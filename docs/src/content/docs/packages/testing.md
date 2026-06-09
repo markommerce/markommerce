@@ -63,6 +63,92 @@ Call `TestConnection::skipIfUnavailable()` at the top of every integration test.
 3. `tearDownIntegration()` --- rolls back the wrapping transaction (default) or truncates all tables (`IsolationMode::Truncate`).
 4. `tearDownClass()` --- drops the worker-clone database.
 
+## Full-Stack HTTP Testing with `BootedStore::handle()`
+
+`BootedStore::handle(Request): Response` dispatches an HTTP request through the **full** routing + middleware + Latte render pipeline: `CompileIfStaleMiddleware` compiles layout artifacts on demand, `MarkommerceLayoutMiddleware` matches the layout tree and renders real HTML, and the controller runs inside the pipeline. Short-circuit responses (302/410/404) are passed through unchanged.
+
+Use this method to write storefront integration tests that verify real rendered markup, SEO headers, redirect behavior, and pagination controls — all against a live Postgres database. No fake views, no fake containers, no hand-built routers.
+
+### `StoreProfile::storefront($vendorDir)`
+
+Adds the full Tier 1 storefront stack on top of the simple catalog profile: routing, layout, Latte view, Vite frontend, theme-blank, and the markommerce/config DB-backed configuration pipeline. Use this profile whenever your test calls `$store->handle()`.
+
+```php
+$profile = StoreProfile::storefront($vendorDir);
+```
+
+### Vite handling in tests
+
+The storefront profile sets `vite.useDevServer=true` so `Vite::headTags()` emits dev-server `<script type="module">` tags without reading a build manifest. Tests run without a compiled Vite bundle. Do **not** assert on specific Vite asset tags (they are dev-server URLs that vary by environment); assert on product/category markup instead.
+
+### Request → HTML assertion pattern
+
+The canonical example is `packages/testing/tests/Feature/Http/RequestDispatcherTest.php`. The pattern:
+
+1. Boot via `IntegrationTestCase` with `StoreProfile::storefront($vendorDir)`.
+2. Seed data with `CategoryFactory` / `ProductFactory`.
+3. (Optional) Write config knobs via `ConfigWriterInterface::setGlobal()` **before the first `handle()` call**.
+4. Dispatch via `$store->handle(new Request([...]))`.
+5. Assert on status code, response headers, and real `<mk-*>` markup in the body.
+
+```php title="packages/catalog-storefront/tests/Feature/CategorySeoTest.php (excerpt)"
+<?php
+
+declare(strict_types=1);
+
+use Marko\Routing\Http\Request;
+use Markommerce\Catalog\Tests\Support\CategoryFactory;
+use Markommerce\Config\Contracts\ConfigWriterInterface;
+use Markommerce\Testing\IntegrationTestCase;
+use Markommerce\Testing\Profile\StoreProfile;
+
+function catalogSeoVendorDir(): string
+{
+    return dirname(__DIR__, 4) . '/vendor';
+}
+
+function catalogSeoMakeTestCase(): IntegrationTestCase
+{
+    if ((string) (getenv('MARKOMMERCE_CONFIG_SECRET_KEY') ?: '') === '') {
+        putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . base64_encode(str_repeat("\x01", SODIUM_CRYPTO_SECRETBOX_KEYBYTES)));
+    }
+    return new IntegrationTestCase(StoreProfile::storefront(catalogSeoVendorDir()));
+}
+
+it('returns 410 gone when the requested page exceeds the max depth', function (): void {
+    IntegrationTestCase::skipIfUnavailable();
+
+    $testCase = catalogSeoMakeTestCase();
+    $testCase->setUpIntegration();
+
+    try {
+        $store = $testCase->store;
+
+        /** @var ConfigWriterInterface $writer */
+        $writer = $store->get(ConfigWriterInterface::class);
+        $writer->setGlobal('catalog/pagination.maxPageDepth', 5);
+
+        $category = CategoryFactory::new($store)->withName('Deep Category')->create();
+
+        $request = new Request(
+            server: ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/' . $category->id . '?page=6'],
+            query: ['page' => '6'],
+        );
+        $response = $store->handle($request);
+
+        expect($response->statusCode())->toBe(410);
+    } finally {
+        $testCase->tearDownIntegration();
+    }
+})->group('integration-destructive');
+```
+
+**Config writes and the resolver cache**: The real `ConfigResolver` uses a request-scoped `RequestConfigCache`. Write config **before** the first `handle()` call in a test; the `ConfigCacheResetMiddleware` (global middleware declared by `markommerce/config`) clears the resolver's in-request cache at the start of each request. If you need to test different config values in the same test file, create a fresh `IntegrationTestCase` per config variant so the resolver cache starts empty.
+
+**Body assertions**: assert on real `<mk-*>` markup (`<mk-heading>`, `<mk-load-more>`, `<mk-infinite-scroll>`, `catalog-pagination`, `catalog-product-card`, etc.) rather than fake-view `data-template=` strings.
+
+**Header assertions**: short-circuit responses (302, 410, 404) and SEO `Link` headers are set by the controller before the layout middleware runs. Assert them with `$response->headers()['Link']` or `$response->headers()['Location']`.
+
 ## Store Profiles
 
 A `StoreProfile` selects which Marko modules to load and which scope axes to declare. It is the single argument to `IntegrationTestCase`.

@@ -119,11 +119,16 @@ class ContainerBootstrapper
      * explicitly, in the right order for your use-case.
      *
      * @param array<ModuleManifest> $manifests
+     * @param string|null $projectBasePath Optional base path for ProjectPaths. When omitted,
+     *        defaults to a per-process temp dir (sys_get_temp_dir()/markommerce-bootstrapper-{pid}).
+     *        Pass a unique, per-worker path when running parallel tests that produce layout artifacts
+     *        or Vite manifests so workers don't collide on shared compiled files.
      */
     public function build(
         array $manifests,
         ConfigRepositoryInterface $config,
         ConnectionInterface $connection,
+        ?string $projectBasePath = null,
     ): Container {
         $preferenceRegistry = $this->discoverPreferences($manifests);
 
@@ -149,8 +154,9 @@ class ContainerBootstrapper
         // isolation transaction must share ONE connection for rollback to work.
         $container->instance(ConnectionInterface::class, $connection);
 
-        // ProjectPaths: use a temp dir so ProxyAutoloader has a writable base.
-        $basePath = sys_get_temp_dir() . '/markommerce-bootstrapper-' . getmypid();
+        // ProjectPaths: use the caller-supplied base path when given, otherwise fall back
+        // to a per-process temp dir so ProxyAutoloader has a writable base.
+        $basePath = $projectBasePath ?? sys_get_temp_dir() . '/markommerce-bootstrapper-' . getmypid();
         $container->instance(ProjectPaths::class, new ProjectPaths($basePath));
 
         // ModuleRepository so ConfigClassDiscovery and similar services can
@@ -253,13 +259,15 @@ class ContainerBootstrapper
      * Returns a fully-booted, plugin-interceptor-wired Container ready for use.
      *
      * @param array<ModuleManifest> $manifests
+     * @param string|null $projectBasePath Optional base path for ProjectPaths — forwarded to build().
      */
     public function bootedContainer(
         array $manifests,
         ConfigRepositoryInterface $config,
         ConnectionInterface $connection,
+        ?string $projectBasePath = null,
     ): Container {
-        $container = $this->build($manifests, $config, $connection);
+        $container = $this->build($manifests, $config, $connection, $projectBasePath);
         $this->wirePlugins($container, $manifests);
         $this->boot($container, $manifests);
 

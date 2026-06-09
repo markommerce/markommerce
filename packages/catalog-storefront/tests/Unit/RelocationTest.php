@@ -87,17 +87,17 @@ it(
         expect($layoutContents)->not->toContain("'catalog::components/");
         expect($layoutContents)->toContain("'catalog-storefront::components/");
 
-        // CategoryControllerTest
+        // CategoryControllerTest — migrated to harness (task 020); no inline template strings remain.
+        // Invariant: must NOT contain old catalog:: prefix; does not need to contain catalog-storefront::
+        // because the harness-style test has no template name literals at all.
         $controllerTestContents = file_get_contents($storefrontRoot . '/tests/Feature/CategoryControllerTest.php');
         expect($controllerTestContents)->not->toContain("'catalog::components/");
-        expect($controllerTestContents)->toContain("'catalog-storefront::components/");
 
-        // CategoryLayoutTest
+        // CategoryLayoutTest — migrated to harness (task 020); no inline template strings remain.
         $layoutTestContents = file_get_contents($storefrontRoot . '/tests/Feature/CategoryLayoutTest.php');
         expect($layoutTestContents)->not->toContain("'catalog::components/");
-        expect($layoutTestContents)->toContain("'catalog-storefront::components/");
 
-        // ProductGridComponentTest
+        // ProductGridComponentTest (unit test, not migrated) still has real template references
         $gridTestContents = file_get_contents($storefrontRoot . '/tests/Unit/Component/ProductGridComponentTest.php');
         expect($gridTestContents)->not->toContain("'catalog::components/");
         expect($gridTestContents)->toContain("'catalog-storefront::components/");
@@ -114,13 +114,13 @@ it(
         expect(file_exists($storefrontRoot . '/tests/Feature/CategoryLayoutTest.php'))->toBeTrue();
         expect(file_exists($storefrontRoot . '/tests/Unit/Component/ProductGridComponentTest.php'))->toBeTrue();
 
-        // ModuleManifest names updated
+        // ModuleManifest names — CategoryControllerTest and CategoryLayoutTest were migrated
+        // to the harness (task 020) and no longer contain inline ModuleManifest declarations.
+        // The invariant is that they do NOT reference the old 'markommerce/catalog' name.
         $controllerContents = file_get_contents($storefrontRoot . '/tests/Feature/CategoryControllerTest.php');
-        expect($controllerContents)->toContain("name: 'markommerce/catalog-storefront'");
         expect($controllerContents)->not->toContain("name: 'markommerce/catalog'");
 
         $layoutContents = file_get_contents($storefrontRoot . '/tests/Feature/CategoryLayoutTest.php');
-        expect($layoutContents)->toContain("name: 'markommerce/catalog-storefront'");
         expect($layoutContents)->not->toContain("name: 'markommerce/catalog'");
 
         $gridContents = file_get_contents($storefrontRoot . '/tests/Unit/Component/ProductGridComponentTest.php');

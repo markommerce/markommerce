@@ -30,6 +30,9 @@ class ConfigValueRecord extends Entity
     #[Column(type: 'integer', nullable: false)]
     public int $version = 0;
 
+    // PHP default null prevents EntityMetadataFactory from picking up '' as a DB DEFAULT.
+    // The storage layer (PgsqlConfigStorage) always supplies updated_at = NOW() at write time.
+    // The column remains NOT NULL in the schema (enforced by nullable: false in the attribute).
     #[Column(name: 'updated_at', type: 'timestamptz', nullable: false)]
-    public string $updatedAt = '';
+    public ?string $updatedAt = null;
 }

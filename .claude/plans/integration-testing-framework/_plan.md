@@ -6,6 +6,16 @@
 ## Status
 completed
 
+## Follow-up extension (added after the initial 17 tasks shipped)
+Tasks 018–021 extend the framework with a full-stack **request → rendered HTML**
+capability: a `BootedStore::handle(Request): Response` helper + a `storefront`
+profile, then migration of the storefront feature tests off fake in-memory
+repositories + hand-built router/middleware wiring onto the real harness. This
+gives the "set up entities/configs → request a path → assert rendered HTML"
+integration style against real data, and replaces ~600-line boilerplate
+preambles in the storefront tests. (post-implementation Docker/CI work is on the
+branch in commits a79e424 / 449ca34 / 0ba8947.)
+
 ## Objective
 Build a first-class, in-framework integration-testing package (`markommerce/testing`) that provisions DB schema directly from entity metadata, isolates tests with per-(profile × worker) databases + transaction rollback, composes "store profiles" (module sets + scope config) for behavioral/modularity testing, and runs against a dockerized Postgres in CI. Replaces the current ad-hoc setup (8 duplicated connection helpers, drift-prone hand-written DDL, parallel races, dev-DB wipes).
 
@@ -90,6 +100,10 @@ Note: tasks are numbered in creation order, not strict execution order — the o
 | 017 | Migrate Tier2/Tier3 end-to-end + delete 8 dup helpers | 006, 013 | completed |
 | 014 | CI: dockerized Postgres + run integration suite | 017 | completed |
 | 015 | Package README + docs (per standards) | all | completed |
+| 018 | `storefront` profile + injectable per-worker `ProjectPaths` base (harness plumbing) | 007 | pending |
+| 019 | `BootedStore::handle()` request→HTML (RoutingBootstrapper + GlobalMiddlewareResolver + real Latte view; Vite via dev-server tags — Approach A) | 018, 009, 010 | pending |
+| 020 | Migrate core storefront render tests to harness (real DB + handle(); REWRITE fake-view body assertions to real markup, keep status/header/short-circuit 1:1) | 019, 010 | pending |
+| 021 | Migrate remaining storefront tests (config-driven via real config pipeline) + audit/retain fakes (expect few/no deletions) + docs | 020 | pending |
 
 ## Architecture Notes
 - `markommerce/testing` is a plain composer library (NOT `extra.marko.module`), required as `require-dev`. PSR-4 `Markommerce\Testing\`.
@@ -111,3 +125,11 @@ Note: tasks are numbered in creation order, not strict execution order — the o
 - **Connection-instance invariant**: repositories + isolation transaction must share ONE `ConnectionInterface` instance or rollback isolates nothing (tasks 006/008/009 made explicit).
 - **Catalog require-dev ordering**: task 010 (first catalog code depending on testing) adds `markommerce/testing` to catalog's require-dev; task 017 adds it to the remaining packages. `markommerce/testing` never requires a markommerce module (no cycle).
 - **Worker token**: ParaTest `TEST_TOKEN`/`UNIQUE_TEST_TOKEN` (confirmed); single-worker fallback when non-parallel.
+
+**Follow-up (018–021) risks discovered in devil's-advocate review (verified against source):**
+- **Vite is a real blocker, not sidestepped (018)**: the existing fake-based storefront tests bind a FAKE `ViewInterface` (`Tier1FakeView`, `CatalogSeoFakeView`, …) that emits `<div data-template=…>` placeholders to avoid `base.latte`'s `{vite()}`. The harness uses the REAL view, so `handle()` must solve Vite: either `vite.useDevServer => true` in the profile config (dev-server tags, no manifest) OR a stub manifest under the per-worker `ProjectPaths` base. Frontend's `MarkommerceLatteEngineFactory` `#[Preference]` (auto-discovered by the bootstrapper) registers the `ViteExtension`, so the real view WILL call `vite()`.
+- **`ProjectPaths` not injectable (018)**: `ContainerBootstrapper::build()` hardcodes the base to `sys_get_temp_dir()/markommerce-bootstrapper-{pid}`. Layout artifacts (`var/cache/markommerce/layouts.php`) and the vite manifest (`public/build/.vite/manifest.json`) both derive from it. 018 must add a base-path hook (or rebind `ProjectPaths` in `handle()` before first render) for per-worker isolation. `CompileIfStaleMiddleware` only compiles when `APP_ENV !== 'production'`.
+- **Reuse marko bootstrappers (018)**: `Marko\Routing\RoutingBootstrapper::boot($globalMiddleware)` (discovers all module controllers, registers `RouteMatcher`/`Router`) and `Marko\Core\Module\GlobalMiddlewareResolver::resolve($manifests)` (ordered `[CompileIfStale, MarkommerceLayout]`) are confirmed present; `ManifestParser` captures `globalMiddleware`. Use them instead of hand-rolling per-controller wiring.
+- **Assertions can't be preserved 1:1 (019/020)**: many existing body assertions target fake-view placeholder strings (e.g. `CategoryLayoutTest`'s `toContain('catalog-storefront::components/product-grid')`). These MUST be rewritten to real markup. Status codes, the SEO `Link` header, and 404/410/302 short-circuits ARE preserved 1:1.
+- **Per-test config (020)**: SEO/PresentationSwitch tests injected a fake `ConfigResolver` with per-test overrides; with the real container they must write config into the DB (or rely on package defaults). Verify the real config write path works inside the isolation transaction.
+- **Fake deletion is mostly a no-op (020)**: `Fake*Repository` is referenced by ~13 unit-test files in catalog / catalog-storefront / catalog-storefront-scope that legitimately need fakes. Expect the catalog fakes to REMAIN; task 020 audits and documents rather than deletes.

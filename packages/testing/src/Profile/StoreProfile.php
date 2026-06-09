@@ -38,6 +38,14 @@ class StoreProfile
     private string $appConfigPath = '';
 
     /**
+     * Optional config overrides applied as the last merge step in buildConfig().
+     * Use withConfigOverrides() to inject test-specific values (e.g. vite dev-server).
+     *
+     * @var array<mixed>
+     */
+    private array $configOverrides = [];
+
+    /**
      * @param array<ModuleManifest> $manifests
      */
     private function __construct(array $manifests)
@@ -112,6 +120,48 @@ class StoreProfile
     }
 
     /**
+     * Storefront preset: full non-scoped rendering stack.
+     *
+     * Includes the marko rendering packages (routing, view, view-latte, vite)
+     * and the markommerce storefront modules (catalog, catalog-storefront,
+     * catalog-price-index, config, config-pgsql, layout, frontend, theme-blank).
+     * Does NOT include market/locale scope axes — scoped storefront is future work.
+     *
+     * Vite is configured in dev-server mode (useDevServer=true) so rendering tests
+     * emit <script type="module"> dev-server tags without requiring a built manifest.
+     * This is intentional for the testing harness — no manifest file is needed.
+     */
+    public static function storefront(string $vendorDir): self
+    {
+        $profile = self::of(
+            $vendorDir,
+            'markommerce/catalog-storefront',
+            'markommerce/theme-blank',
+            'marko/database-pgsql',
+            'markommerce/config-pgsql',
+        );
+
+        // Approach A: override vite config so Vite::headTags() emits dev-server
+        // <script type="module"> tags with NO manifest lookup — no manifest file needed,
+        // no filesystem writes, parallel-safe.
+        //
+        // devServerUrl and entry must be non-empty strings because Vite::headTags()
+        // throws ViteConfigurationException for empty values even in dev-server mode.
+        // marko/vite's config/vite.php uses env() which may resolve to '' if the env
+        // vars aren't set, overriding frontend/config/vite.php's non-empty defaults.
+        // We pin explicit fallback values here so tests work regardless of env state.
+        $profile->configOverrides = [
+            'vite' => [
+                'useDevServer' => true,
+                'devServerUrl' => 'http://localhost:5173',
+                'entry' => 'packages/frontend/resources/js/main.ts',
+            ],
+        ];
+
+        return $profile;
+    }
+
+    /**
      * Two-markets, two-locales preset:
      * catalog + market + locale axes with [us, eu] markets, one locale per market.
      */
@@ -167,6 +217,23 @@ class StoreProfile
     }
 
     /**
+     * Inject raw config overrides to be deep-merged after all module config discovery.
+     *
+     * Useful in the testing harness to set values like `vite.useDevServer = true`
+     * that are not appropriate for production but needed for rendering tests.
+     *
+     * @param array<mixed> $overrides Deep-merged over the full discovered config.
+     */
+    public function withConfigOverrides(array $overrides): self
+    {
+        $clone = clone $this;
+        $merger = new ConfigMerger();
+        $clone->configOverrides = $merger->merge($this->configOverrides, $overrides);
+
+        return $clone;
+    }
+
+    /**
      * Inject multiple locale values for a specific market.
      *
      * @param string ...$locales
@@ -188,17 +255,23 @@ class StoreProfile
      *
      * Builds the config (merging scope axis values), boots the container
      * via ContainerBootstrapper, and returns a BootedStore ready for use.
+     *
+     * @param string|null $projectBasePath Optional base path for the booted container's ProjectPaths.
+     *        When omitted, the ContainerBootstrapper default (per-process temp dir) is used.
+     *        Pass a unique, per-worker path (including getmypid() + a worker token) so parallel
+     *        workers don't collide on compiled layout artifacts or the Vite manifest path.
      */
-    public function boot(ConnectionInterface $connection): BootedStore
+    public function boot(ConnectionInterface $connection, ?string $projectBasePath = null): BootedStore
     {
         $config = $this->buildConfig();
         $bootstrapper = new ContainerBootstrapper();
-        $container = $bootstrapper->bootedContainer($this->manifests, $config, $connection);
+        $container = $bootstrapper->bootedContainer($this->manifests, $config, $connection, $projectBasePath);
 
         return new BootedStore(
             container: $container,
             declaredAxes: $this->declaredAxes,
             entityDirs: $this->resolveEntityDirs(),
+            manifests: $this->manifests,
         );
     }
 
@@ -287,6 +360,8 @@ class StoreProfile
                 rootConfigPath: $this->appConfigPath,
             );
 
+            $rawConfig = $this->applyConfigOverrides($rawConfig);
+
             return new ConfigRepository($rawConfig);
         }
 
@@ -297,8 +372,29 @@ class StoreProfile
         );
 
         $rawConfig = $this->mergeAxisValues($rawConfig);
+        $rawConfig = $this->applyConfigOverrides($rawConfig);
 
         return new ConfigRepository($rawConfig);
+    }
+
+    /**
+     * Apply any caller-supplied config overrides as the final merge step.
+     *
+     * These overrides win over everything else — module defaults, axis values, etc.
+     * Intended for test-harness use only (e.g. forcing vite.useDevServer=true).
+     *
+     * @param array<mixed> $config
+     * @return array<mixed>
+     */
+    private function applyConfigOverrides(array $config): array
+    {
+        if ($this->configOverrides === []) {
+            return $config;
+        }
+
+        $merger = new ConfigMerger();
+
+        return $merger->merge($config, $this->configOverrides);
     }
 
     /**

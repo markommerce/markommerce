@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Markommerce\Testing\Profile;
 
 use Marko\Core\Container\Container;
+use Marko\Core\Module\ModuleManifest;
+use Marko\Routing\Http\Request;
+use Marko\Routing\Http\Response;
 use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Testing\Http\RequestDispatcher;
 use Markommerce\Testing\Profile\Exceptions\UndeclaredAxisException;
 
 /**
@@ -18,14 +22,18 @@ use Markommerce\Testing\Profile\Exceptions\UndeclaredAxisException;
  */
 class BootedStore
 {
+    private ?RequestDispatcher $dispatcher = null;
+
     /**
      * @param array<string> $declaredAxes
      * @param array<string> $entityDirs
+     * @param array<ModuleManifest> $manifests
      */
     public function __construct(
         private readonly Container $container,
         private readonly array $declaredAxes,
         private readonly array $entityDirs,
+        private readonly array $manifests = [],
     ) {}
 
     /**
@@ -90,5 +98,42 @@ class BootedStore
     public function entityDirs(): array
     {
         return $this->entityDirs;
+    }
+
+    /**
+     * Return the module manifests for this booted store.
+     *
+     * Used by RequestDispatcher to discover routes and global middleware.
+     *
+     * @return array<ModuleManifest>
+     */
+    public function manifests(): array
+    {
+        return $this->manifests;
+    }
+
+    /**
+     * Dispatch an HTTP request through the full routing + middleware + Latte render pipeline.
+     *
+     * Uses RoutingBootstrapper to build the router (once, lazily) and GlobalMiddlewareResolver
+     * to source global middleware from module declarations. Renders real Latte HTML via the
+     * REAL ViewInterface bound in this store's container.
+     *
+     * Short-circuit responses (302/410/404) from the controller are passed through unchanged.
+     *
+     * Requires the store to have been booted from a profile that includes routing + layout
+     * modules (e.g. StoreProfile::storefront()).
+     *
+     * @throws \ReflectionException
+     * @throws \Marko\Routing\Exceptions\RouteException
+     * @throws \Marko\Routing\Exceptions\RouteConflictException
+     */
+    public function handle(Request $request): Response
+    {
+        if ($this->dispatcher === null) {
+            $this->dispatcher = new RequestDispatcher($this);
+        }
+
+        return $this->dispatcher->dispatch($request);
     }
 }
