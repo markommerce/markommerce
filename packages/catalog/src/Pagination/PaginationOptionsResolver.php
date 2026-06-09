@@ -7,6 +7,7 @@ namespace Markommerce\Catalog\Pagination;
 use Markommerce\Catalog\Config\CatalogPaginationConfig;
 use Markommerce\Catalog\Exceptions\InvalidPaginationConfigException;
 use Markommerce\Catalog\Exceptions\PageDepthExceededException;
+use Markommerce\Catalog\Exceptions\UnknownSortRequestedException;
 use Markommerce\Catalog\Sorting\CategorySortOrderInterface;
 use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
 use Markommerce\Catalog\Sorting\ColumnSortOrder;
@@ -169,14 +170,14 @@ class PaginationOptionsResolver
         // If enabledSorts is non-empty, apply gate filter first
         if ($enabledSorts !== [] && !in_array($sort, $enabledSorts, true)) {
             $available = $this->getAvailableKeys($enabledSorts);
-            throw InvalidPaginationConfigException::forInvalidSort($sort, implode(', ', $available));
+            throw UnknownSortRequestedException::forRequestedKey($sort, implode(', ', $available));
         }
 
         $order = $this->categorySortOrderRegistry->get($sort);
 
         if ($order === null) {
             $available = $this->getAvailableKeys($enabledSorts);
-            throw InvalidPaginationConfigException::forInvalidSort($sort, implode(', ', $available));
+            throw UnknownSortRequestedException::forRequestedKey($sort, implode(', ', $available));
         }
 
         return $order;

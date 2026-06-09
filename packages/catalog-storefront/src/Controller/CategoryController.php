@@ -10,6 +10,7 @@ use Marko\Routing\Http\Response;
 use Markommerce\Catalog\Config\CatalogPaginationConfig;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Exceptions\PageDepthExceededException;
+use Markommerce\Catalog\Exceptions\UnknownSortRequestedException;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
@@ -49,6 +50,8 @@ class CategoryController
                     $size > 0 ? $size : null,
                     $sort !== '' ? $sort : null,
                 );
+            } catch (UnknownSortRequestedException) {
+                return Response::redirect($this->redirectUrlWithoutSort($request, $id, $page, $size), 302);
             } catch (PageDepthExceededException) {
                 return Response::html('', 410);
             }
@@ -115,6 +118,31 @@ class CategoryController
             if ($sort !== '') {
                 $params['sort'] = $sort;
             }
+        }
+
+        $query = $params !== [] ? '?' . http_build_query($params) : '';
+
+        return $scheme . '://' . $host . $basePath . $query;
+    }
+
+    private function redirectUrlWithoutSort(
+        Request $request,
+        int $id,
+        int $page,
+        int $size,
+    ): string {
+        $host = $request->header('Host') ?? 'localhost';
+        $scheme = $request->header('X-Forwarded-Proto') ?? 'http';
+        $basePath = '/catalog/category/' . $id;
+
+        $params = [];
+
+        if ($page > 1) {
+            $params['page'] = $page;
+        }
+
+        if ($size > 0) {
+            $params['size'] = $size;
         }
 
         $query = $params !== [] ? '?' . http_build_query($params) : '';
@@ -207,6 +235,8 @@ class CategoryController
                     $size > 0 ? $size : null,
                     $sort !== '' ? $sort : null,
                 );
+            } catch (UnknownSortRequestedException) {
+                return Response::redirect($this->redirectUrlWithoutSort($request, $id, $page, $size), 302);
             } catch (PageDepthExceededException) {
                 return Response::html('', 410);
             }

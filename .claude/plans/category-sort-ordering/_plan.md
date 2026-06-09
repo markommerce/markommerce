@@ -77,6 +77,9 @@ Key technical findings from discovery:
 | 007 | catalog-price-index-market: market-scoped price override via #[Preference] | 001, 006 | completed |
 | 008 | catalog-storefront: sort dropdown from registry, wired through grid | 003, 004, 005 | completed |
 | 009 | end-to-end integration tests across the stack | 005, 006, 008 | completed |
+| 010 | catalog-storefront: redirect to default on invalid `?sort=` (follow-up) | 004, 008 | completed |
+
+> **Follow-up note:** Tasks 001–009 were implemented, validated, and committed (`00963be`). Task 010 was added afterward, prompted by manual frontend testing: an unknown/disabled `?sort=` (incl. now-removed keys `name`/`sku`/`price`) currently 500s; it should 302-redirect to the default order. Run it via `plan-orchestrate category-sort-ordering` (only 010 is pending) or implement standalone.
 
 ## Architecture Notes
 - `CategorySortOrderInterface`: `key(): string`, `label(): string`, `supportsKeyset(): bool`, `prepareQuery(RepositoryQueryBuilder $query): void` (adds JOINs), `sortFields(): list<SortField>`.

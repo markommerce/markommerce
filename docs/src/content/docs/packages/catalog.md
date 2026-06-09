@@ -106,7 +106,7 @@ if ($page instanceof RandomAccessPageInterface) {
 }
 ```
 
-`PaginationOptionsResolver::resolve()` reads all values from `CatalogPaginationConfig` via the config system and validates the combination of strategy and presentation. It throws `InvalidPaginationConfigException` for invalid config values and `PageDepthExceededException` when the requested page number exceeds `maxPageDepth`.
+`PaginationOptionsResolver::resolve()` reads all values from `CatalogPaginationConfig` via the config system and validates the combination of strategy and presentation. It throws `InvalidPaginationConfigException` for invalid config values, `UnknownSortRequestedException` when the requested `sort` key is not registered or not in `enabledSorts`, and `PageDepthExceededException` when the requested page number exceeds `maxPageDepth`.
 
 ### Pagination configuration
 
@@ -762,7 +762,7 @@ Translates raw HTTP request parameters into a `ResolvedPaginationOptions` value 
 
 | Method | Return type | Throws | Description |
 |---|---|---|---|
-| `resolve(?int $page, ?int $size, ?string $sort)` | `ResolvedPaginationOptions` | `InvalidPaginationConfigException`, `PageDepthExceededException` | Resolve and validate pagination options. Pass `null` for any parameter to use the configured default. |
+| `resolve(?int $page, ?int $size, ?string $sort)` | `ResolvedPaginationOptions` | `InvalidPaginationConfigException`, `UnknownSortRequestedException`, `PageDepthExceededException` | Resolve and validate pagination options. Pass `null` for any parameter to use the configured default. Throws `UnknownSortRequestedException` when `$sort` is set but is not a registered key or is excluded by `enabledSorts`; the storefront catches this and redirects to the same URL without the `sort` parameter. |
 
 #### `ResolvedPaginationOptions`
 
@@ -863,7 +863,8 @@ All exceptions extend `MarkoException` and carry a `message`, `context`, and `su
 | `CategoryTreeNodeNotFoundException` | `forId(int $id)` | A `CategoryTreeService` method cannot find the requested node |
 | `NodeNotInTreeException` | `forNodeAndTree(int $nodeId, int $expectedTreeId, int $actualTreeId)`, `forParentMismatch(int $nodeId, ?int $expectedParentNodeId, ?int $actualParentNodeId)` | A node is referenced against the wrong tree, or a sibling group contains a node with a mismatched parent |
 | `CircularNodeReferenceException` | `forNodeAndParent(int $nodeId, int $proposedParentId)` | `CategoryTreeService::moveNode()` detects that the proposed parent is a descendant of the node being moved |
-| `InvalidPaginationConfigException` | `forUnknownStrategy()`, `forUnknownPresentation()`, `forUnsupportedCountMode()`, `forInvalidSort()`, `forNumberedKeysetCombination()`, `forKeysetIncompatibleSort(string $sortKey)` | `PaginationOptionsResolver::resolve()` receives an invalid config value, an incompatible strategy+presentation combination, or a sort order that does not support keyset pagination when `strategy=keyset` is active |
+| `InvalidPaginationConfigException` | `forUnknownStrategy()`, `forUnknownPresentation()`, `forUnsupportedCountMode()`, `forNumberedKeysetCombination()`, `forKeysetIncompatibleSort(string $sortKey)` | `PaginationOptionsResolver::resolve()` receives an invalid config value, an incompatible strategy+presentation combination, or a sort order that does not support keyset pagination when `strategy=keyset` is active |
+| `UnknownSortRequestedException` | `forRequestedKey(string $sort, string $allowedKeys)` | `PaginationOptionsResolver::resolve()` is called with a `$sort` value that is not registered in `CategorySortOrderRegistry` or is excluded by `enabledSorts`. Extends `InvalidPaginationConfigException`. The storefront catches this and issues a **302 redirect** to the category URL with the invalid `sort` parameter removed, applying the default sort order instead. Keyset-incompatibility errors (`forKeysetIncompatibleSort`) remain as the base type and still propagate. |
 | `PageDepthExceededException` | `forDepth(int $page, int $max)` | `PaginationOptionsResolver::resolve()` is called with a page number exceeding `maxPageDepth` |
 
 ### Pricing

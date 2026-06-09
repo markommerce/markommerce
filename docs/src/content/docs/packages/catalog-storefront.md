@@ -24,9 +24,9 @@ GET /catalog/category/{id}
 GET /catalog/category/{id}/page
 ```
 
-`CategoryController::show()` performs a category lookup by `id`, resolves pagination options from the `page`, `size`, and `sort` query parameters, and returns a `404` when the category does not exist. Page numbers exceeding `maxPageDepth` return `410 Gone`. The response includes a `Link: <url>; rel="canonical"` header that normalises redundant query parameters and points small categories (below `viewAllThreshold`) to their `?view=all` URL.
+`CategoryController::show()` performs a category lookup by `id`, resolves pagination options from the `page`, `size`, and `sort` query parameters, and returns a `404` when the category does not exist. Page numbers exceeding `maxPageDepth` return `410 Gone`. When the `sort` parameter refers to a key that is not registered or is excluded by `enabledSorts`, the controller issues a **302 redirect** to the same category URL with the `sort` parameter removed (preserving `page` if `> 1` and `size` if `> 0`), so the page renders with the default sort order rather than returning an error. The response includes a `Link: <url>; rel="canonical"` header that normalises redundant query parameters and points small categories (below `viewAllThreshold`) to their `?view=all` URL.
 
-`CategoryController::pageFragment()` at `GET /catalog/category/{id}/page` is a server-rendered fragment endpoint consumed by the `load_more` and `infinite` presentation modes. It accepts the same `page`, `size`, and `sort` parameters and also returns `410 Gone` when the page depth cap is exceeded.
+`CategoryController::pageFragment()` at `GET /catalog/category/{id}/page` is a server-rendered fragment endpoint consumed by the `load_more` and `infinite` presentation modes. It accepts the same `page`, `size`, and `sort` parameters and also returns `410 Gone` when the page depth cap is exceeded. An unknown `sort` value issues the same **302 redirect** as `show()`.
 
 Both routes are rendered by `markommerce/layout` --- `CategoryController` carries no `#[Layout]` attribute; placement is declared entirely in the layout definition files.
 
@@ -122,8 +122,8 @@ The layout definition extends `OneColumnLayout` from `markommerce/theme-blank`. 
 
 | Method | Route | Description |
 |---|---|---|
-| `show(int $id, Request $request)` | `GET /catalog/category/{id}` | Resolve the category by `id`, resolve pagination from `page`/`size`/`sort` query params, and render the product grid page. Returns `404` when the category does not exist; `410` when the page number exceeds `maxPageDepth`. Sets a `Link: rel=canonical` response header. |
-| `pageFragment(int $id, Request $request)` | `GET /catalog/category/{id}/page` | Server-rendered page fragment for `load_more` and `infinite` presentation modes. Returns `404` for unknown categories; `410` for depth cap violations. |
+| `show(int $id, Request $request)` | `GET /catalog/category/{id}` | Resolve the category by `id`, resolve pagination from `page`/`size`/`sort` query params, and render the product grid page. Returns `404` when the category does not exist; `410` when the page number exceeds `maxPageDepth`; **302** when `sort` is unknown or disabled (redirects to the same URL without `sort`). Sets a `Link: rel=canonical` response header. |
+| `pageFragment(int $id, Request $request)` | `GET /catalog/category/{id}/page` | Server-rendered page fragment for `load_more` and `infinite` presentation modes. Returns `404` for unknown categories; `410` for depth cap violations; **302** when `sort` is unknown or disabled. |
 
 ### `ProductGridComponent`
 

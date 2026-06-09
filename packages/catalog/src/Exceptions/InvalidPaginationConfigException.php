@@ -35,17 +35,6 @@ class InvalidPaginationConfigException extends MarkoException
         );
     }
 
-    public static function forInvalidSort(
-        string $sort,
-        string $allowed,
-    ): self {
-        return new self(
-            message: "Sort '$sort' is not in the allowed list",
-            context: 'While resolving pagination sort from request',
-            suggestion: "Use one of the allowed sort keys: $allowed",
-        );
-    }
-
     public static function forNumberedKeysetCombination(): self
     {
         return new self(
