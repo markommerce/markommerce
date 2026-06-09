@@ -67,24 +67,23 @@ it('registers the allowed page sizes as an array definition', function (): void 
         ->and($definition->defaultValue)->toBe([12, 24, 48, 96]);
 });
 
-it('defaults the sort to position and limits allowed sorts to real columns', function (): void {
+it('defaults the sort to position and exposes an empty enabledSorts gate', function (): void {
     $config = new CatalogPaginationConfig();
 
     expect($config->defaultSort)->toBe('position')
-        ->and($config->allowedSorts)->toBe(['position', 'name', 'sku', 'price'])
-        ->and($config->allowedSorts)->not->toContain('created_at');
+        ->and($config->enabledSorts)->toBe([]);
 
     $builder = new ConfigRegistryBuilder();
     $registry = $builder->build([CatalogPaginationConfig::class]);
 
     $defaultSortDef = $registry->definition(CatalogPaginationConfig::class, 'defaultSort');
-    $allowedSortsDef = $registry->definition(CatalogPaginationConfig::class, 'allowedSorts');
+    $enabledSortsDef = $registry->definition(CatalogPaginationConfig::class, 'enabledSorts');
 
     expect($defaultSortDef->key)->toBe('catalog/pagination.defaultSort')
         ->and($defaultSortDef->defaultValue)->toBe('position')
-        ->and($allowedSortsDef->key)->toBe('catalog/pagination.allowedSorts')
-        ->and($allowedSortsDef->type)->toBe('array')
-        ->and($allowedSortsDef->defaultValue)->toBe(['position', 'name', 'sku', 'price']);
+        ->and($enabledSortsDef->key)->toBe('catalog/pagination.enabledSorts')
+        ->and($enabledSortsDef->type)->toBe('array')
+        ->and($enabledSortsDef->defaultValue)->toBe([]);
 });
 
 it('registers the max page depth default', function (): void {

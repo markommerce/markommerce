@@ -7,16 +7,18 @@ namespace Markommerce\Catalog\Pagination;
 use Markommerce\Catalog\Config\CatalogPaginationConfig;
 use Markommerce\Catalog\Exceptions\InvalidPaginationConfigException;
 use Markommerce\Catalog\Exceptions\PageDepthExceededException;
+use Markommerce\Catalog\Exceptions\UnknownSortRequestedException;
+use Markommerce\Catalog\Sorting\CategorySortOrderInterface;
+use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
+use Markommerce\Catalog\Sorting\ColumnSortOrder;
 use Markommerce\Config\Contracts\ConfigResolverInterface;
-use Markommerce\Criteria\Page\PageRequest;
-use Markommerce\Criteria\Sort\Sort;
 use Markommerce\Criteria\Sort\SortDirection;
-use Markommerce\Criteria\Sort\SortField;
 
 class PaginationOptionsResolver
 {
     public function __construct(
         private ConfigResolverInterface $configResolver,
+        private CategorySortOrderRegistry $categorySortOrderRegistry,
     ) {}
 
     /**
@@ -42,8 +44,8 @@ class PaginationOptionsResolver
         /** @var string $defaultSort */
         $defaultSort = $this->configResolver->resolved(CatalogPaginationConfig::class, 'defaultSort');
 
-        /** @var list<string> $allowedSorts */
-        $allowedSorts = $this->configResolver->resolved(CatalogPaginationConfig::class, 'allowedSorts');
+        /** @var list<string> $enabledSorts */
+        $enabledSorts = $this->configResolver->resolved(CatalogPaginationConfig::class, 'enabledSorts');
 
         /** @var string $strategyString */
         $strategyString = $this->configResolver->resolved(CatalogPaginationConfig::class, 'strategy');
@@ -61,18 +63,17 @@ class PaginationOptionsResolver
         }
 
         $resolvedSize = $this->resolveSize($size, $defaultPageSize, $allowedPageSizes, $maxPageSize);
-        $resolvedSort = $this->resolveSort($sort, $defaultSort, $allowedSorts);
         $strategyKind = $this->resolveStrategyKind($strategyString);
         $presentation = $this->resolvePresentation($presentationString);
         $countMode = $this->resolveCountMode($countModeString);
 
         $this->validateCombination($presentation, $strategyKind);
 
-        $sortObj = new Sort(new SortField($resolvedSort, SortDirection::Ascending));
-        $pageRequest = PageRequest::first($resolvedSize, $sortObj);
+        $sortOrder = $this->resolveSortOrder($sort, $defaultSort, $enabledSorts, $strategyKind);
 
         return new ResolvedPaginationOptions(
-            pageRequest: $pageRequest,
+            sortOrder: $sortOrder,
+            size: $resolvedSize,
             page: $resolvedPage,
             presentation: $presentation,
             strategyKind: $strategyKind,
@@ -101,27 +102,105 @@ class PaginationOptionsResolver
     }
 
     /**
-     * @param list<string> $allowedSorts
+     * @param list<string> $enabledSorts
      *
      * @throws InvalidPaginationConfigException
      */
-    private function resolveSort(
+    private function resolveSortOrder(
         ?string $sort,
         string $defaultSort,
-        array $allowedSorts,
-    ): string {
+        array $enabledSorts,
+        PaginationStrategyKind $strategyKind,
+    ): CategorySortOrderInterface {
         if ($sort === null) {
-            return $defaultSort;
+            $order = $this->resolveDefaultSortOrder($defaultSort);
+        } else {
+            $order = $this->resolveRequestedSortOrder($sort, $enabledSorts);
         }
 
-        if (!in_array($sort, $allowedSorts, true)) {
-            throw InvalidPaginationConfigException::forInvalidSort(
-                $sort,
-                implode(', ', $allowedSorts),
-            );
+        if ($strategyKind === PaginationStrategyKind::Keyset && !$order->supportsKeyset()) {
+            throw InvalidPaginationConfigException::forKeysetIncompatibleSort($order->key());
         }
 
-        return $sort;
+        return $order;
+    }
+
+    /**
+     * Resolves default sort order — falls back to registry default (position or first registered) on miss.
+     */
+    private function resolveDefaultSortOrder(string $defaultSort): CategorySortOrderInterface
+    {
+        $order = $this->categorySortOrderRegistry->get($defaultSort);
+
+        if ($order !== null) {
+            return $order;
+        }
+
+        // Fallback: position or first registered
+        $fallback = $this->categorySortOrderRegistry->get('position');
+
+        if ($fallback !== null) {
+            return $fallback;
+        }
+
+        $all = $this->categorySortOrderRegistry->all();
+
+        if ($all !== []) {
+            return $all[0];
+        }
+
+        // Registry is empty — return a no-op position placeholder so other validation can still run
+        // (keyset check will fire if needed; sort order contract requires at least position)
+        return new ColumnSortOrder(
+            key: $defaultSort,
+            label: $defaultSort,
+            column: 'catalog_product_category.position',
+            direction: SortDirection::Ascending,
+            supportsKeyset: false,
+        );
+    }
+
+    /**
+     * @param list<string> $enabledSorts
+     *
+     * @throws InvalidPaginationConfigException
+     */
+    private function resolveRequestedSortOrder(string $sort, array $enabledSorts): CategorySortOrderInterface
+    {
+        // If enabledSorts is non-empty, apply gate filter first
+        if ($enabledSorts !== [] && !in_array($sort, $enabledSorts, true)) {
+            $available = $this->getAvailableKeys($enabledSorts);
+            throw UnknownSortRequestedException::forRequestedKey($sort, implode(', ', $available));
+        }
+
+        $order = $this->categorySortOrderRegistry->get($sort);
+
+        if ($order === null) {
+            $available = $this->getAvailableKeys($enabledSorts);
+            throw UnknownSortRequestedException::forRequestedKey($sort, implode(', ', $available));
+        }
+
+        return $order;
+    }
+
+    /**
+     * Returns the list of available sort keys, filtered by enabledSorts if non-empty.
+     *
+     * @param list<string> $enabledSorts
+     * @return list<string>
+     */
+    private function getAvailableKeys(array $enabledSorts): array
+    {
+        $registeredKeys = array_map(
+            fn (CategorySortOrderInterface $order): string => $order->key(),
+            $this->categorySortOrderRegistry->all(),
+        );
+
+        if ($enabledSorts === []) {
+            return $registeredKeys;
+        }
+
+        return array_values(array_intersect($registeredKeys, $enabledSorts));
     }
 
     /**

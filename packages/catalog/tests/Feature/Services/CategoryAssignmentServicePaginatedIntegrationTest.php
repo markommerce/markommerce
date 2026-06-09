@@ -9,7 +9,6 @@ require_once __DIR__ . '/../Helpers/PostgresTestConnection.php';
 use Marko\Database\Entity\EntityHydrator;
 use Marko\Database\Entity\EntityMetadataFactory;
 use Marko\Database\PgSql\Query\PgSqlQueryBuilderFactory;
-use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Exceptions\CategoryNotFoundException;
 use Markommerce\Catalog\Pagination\CountMode;
@@ -20,13 +19,12 @@ use Markommerce\Catalog\Repositories\CategoryRepository;
 use Markommerce\Catalog\Repositories\ProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Repositories\ProductRepository;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
+use Markommerce\Catalog\Sorting\CategorySortOrderInterface;
+use Markommerce\Catalog\Sorting\ColumnSortOrder;
 use Markommerce\Catalog\Tests\Feature\Helpers\PostgresTestConnection;
 use Markommerce\Criteria\Page\Page;
-use Markommerce\Criteria\Page\PageRequest;
 use Markommerce\Criteria\Position\PositionCodec;
-use Markommerce\Criteria\Sort\Sort;
 use Markommerce\Criteria\Sort\SortDirection;
-use Markommerce\Criteria\Sort\SortField;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
 
 // ─── Schema helpers ───────────────────────────────────────────────────────────
@@ -131,13 +129,25 @@ function assignProductToCategory(PostgresTestConnection $conn, int $productId, i
     );
 }
 
-function makeOffsetOptions(int $pageSize = 10, int $page = 1, string $sortColumn = 'catalog_product_category.position'): ResolvedPaginationOptions
+function makePositionOrder(): ColumnSortOrder
 {
-    $sort = new Sort(new SortField($sortColumn, SortDirection::Ascending));
-    $pageRequest = PageRequest::first($pageSize, $sort);
+    return new ColumnSortOrder(
+        key: 'position',
+        label: 'Position',
+        column: 'catalog_product_category.position',
+        direction: SortDirection::Ascending,
+        supportsKeyset: false,
+    );
+}
 
+function makeOffsetOptions(
+    int $pageSize = 10,
+    int $page = 1,
+    ?CategorySortOrderInterface $sortOrder = null,
+): ResolvedPaginationOptions {
     return new ResolvedPaginationOptions(
-        pageRequest: $pageRequest,
+        sortOrder: $sortOrder ?? makePositionOrder(),
+        size: $pageSize,
         page: $page,
         presentation: PaginationPresentation::Numbered,
         strategyKind: PaginationStrategyKind::Offset,
@@ -271,16 +281,15 @@ it('orders products by the configured sort column with an id tie-break', functio
     assignProductToCategory($this->conn, $productIdA, $categoryId, 2);
     assignProductToCategory($this->conn, $productIdB, $categoryId, 3);
 
-    // Sort by name column
-    $sort = new Sort(new SortField('catalog_products.name', SortDirection::Ascending));
-    $pageRequest = PageRequest::first(10, $sort);
-    $options = new ResolvedPaginationOptions(
-        pageRequest: $pageRequest,
-        page: 1,
-        presentation: PaginationPresentation::Numbered,
-        strategyKind: PaginationStrategyKind::Offset,
-        countMode: CountMode::Exact,
+    // Sort by name column using a ColumnSortOrder
+    $nameOrder = new ColumnSortOrder(
+        key: 'name',
+        label: 'Name',
+        column: 'catalog_products.name',
+        direction: SortDirection::Ascending,
+        supportsKeyset: false,
     );
+    $options = makeOffsetOptions(pageSize: 10, sortOrder: $nameOrder);
 
     $page = $service->paginatedProductsInCategory($categoryId, $options);
     $products = $page->items->toArray();
@@ -345,4 +354,171 @@ it('derives the offset total from a join-safe count not from the joined builder'
 
     // The page must know there's a next page (4 products, page size 3)
     expect($page->hasNext())->toBeTrue();
+})->group('integration-destructive');
+
+// ─── Task 005 requirements ───────────────────────────────────────────────────
+
+it('it orders products by assignment position by default without a hand-qualified column', function (): void {
+    $service = makeAssignmentService($this->conn);
+
+    $categoryId = insertCategory($this->conn, 'Position Order');
+
+    $productId3 = insertProduct($this->conn, 'Third', 'POS-003');
+    $productId1 = insertProduct($this->conn, 'First', 'POS-001');
+    $productId2 = insertProduct($this->conn, 'Second', 'POS-002');
+
+    assignProductToCategory($this->conn, $productId3, $categoryId, 30);
+    assignProductToCategory($this->conn, $productId1, $categoryId, 10);
+    assignProductToCategory($this->conn, $productId2, $categoryId, 20);
+
+    // Default position order (no hand-crafted sort column string)
+    $options = makeOffsetOptions(pageSize: 10);
+
+    $page = $service->paginatedProductsInCategory($categoryId, $options);
+    $products = $page->items->toArray();
+
+    expect($products)->toHaveCount(3)
+        ->and($products[0]->name)->toBe('First')
+        ->and($products[1]->name)->toBe('Second')
+        ->and($products[2]->name)->toBe('Third');
+})->group('integration-destructive');
+
+it('it orders products using the sort fields contributed by the selected order', function (): void {
+    $service = makeAssignmentService($this->conn);
+
+    $categoryId = insertCategory($this->conn, 'SKU Sort');
+
+    $productIdZ = insertProduct($this->conn, 'Zeta', 'SKU-ZZZ');
+    $productIdA = insertProduct($this->conn, 'Alpha', 'SKU-AAA');
+    $productIdM = insertProduct($this->conn, 'Mu', 'SKU-MMM');
+
+    assignProductToCategory($this->conn, $productIdZ, $categoryId, 1);
+    assignProductToCategory($this->conn, $productIdA, $categoryId, 2);
+    assignProductToCategory($this->conn, $productIdM, $categoryId, 3);
+
+    $skuOrder = new ColumnSortOrder(
+        key: 'sku',
+        label: 'SKU',
+        column: 'catalog_products.sku',
+        direction: SortDirection::Ascending,
+        supportsKeyset: false,
+    );
+    $options = makeOffsetOptions(pageSize: 10, sortOrder: $skuOrder);
+
+    $page = $service->paginatedProductsInCategory($categoryId, $options);
+    $products = $page->items->toArray();
+
+    expect($products)->toHaveCount(3)
+        ->and($products[0]->sku)->toBe('SKU-AAA')
+        ->and($products[1]->sku)->toBe('SKU-MMM')
+        ->and($products[2]->sku)->toBe('SKU-ZZZ');
+})->group('integration-destructive');
+
+it('it applies joins contributed by the selected sort order before paginating', function (): void {
+    $service = makeAssignmentService($this->conn);
+
+    $categoryId = insertCategory($this->conn, 'Join Test');
+
+    for ($i = 1; $i <= 3; $i++) {
+        $productId = insertProduct($this->conn, "JoinProd $i", "JOIN-00$i");
+        assignProductToCategory($this->conn, $productId, $categoryId, $i);
+    }
+
+    $prepareCallCount = 0;
+
+    // A sort order that tracks how many times prepareQuery is called
+    $trackingOrder = new class ('position', 'Position', 'catalog_product_category.position', SortDirection::Ascending, false, $prepareCallCount) extends ColumnSortOrder
+    {
+        public function __construct(
+            string $key,
+            string $label,
+            string $column,
+            SortDirection $direction,
+            bool $supportsKeyset,
+            public int &$prepareCallCount,
+        ) {
+            parent::__construct($key, $label, $column, $direction, $supportsKeyset);
+        }
+
+        public function prepareQuery(\Marko\Database\Repository\RepositoryQueryBuilder $repositoryQueryBuilder): void
+        {
+            $this->prepareCallCount++;
+            parent::prepareQuery($repositoryQueryBuilder);
+        }
+    };
+
+    $options = makeOffsetOptions(pageSize: 10, sortOrder: $trackingOrder);
+
+    $service->paginatedProductsInCategory($categoryId, $options);
+
+    expect($prepareCallCount)->toBe(1);
+})->group('integration-destructive');
+
+it('it preserves the id ascending tie-break for equal sort values', function (): void {
+    $service = makeAssignmentService($this->conn);
+
+    $categoryId = insertCategory($this->conn, 'Tie Break');
+
+    // Three products all with the same name (tie on sort column)
+    $productId1 = insertProduct($this->conn, 'Same', 'TIE-001');
+    $productId2 = insertProduct($this->conn, 'Same', 'TIE-002');
+    $productId3 = insertProduct($this->conn, 'Same', 'TIE-003');
+
+    assignProductToCategory($this->conn, $productId1, $categoryId, 1);
+    assignProductToCategory($this->conn, $productId2, $categoryId, 1);
+    assignProductToCategory($this->conn, $productId3, $categoryId, 1);
+
+    // Sort by name (all same) — id tie-break should determine order
+    $nameOrder = new ColumnSortOrder(
+        key: 'name',
+        label: 'Name',
+        column: 'catalog_products.name',
+        direction: SortDirection::Ascending,
+        supportsKeyset: false,
+    );
+    $options = makeOffsetOptions(pageSize: 10, sortOrder: $nameOrder);
+
+    $page = $service->paginatedProductsInCategory($categoryId, $options);
+    $products = $page->items->toArray();
+
+    expect($products)->toHaveCount(3);
+    // IDs should be in ascending order (tie-break by id)
+    expect($products[0]->id)->toBeLessThan($products[1]->id);
+    expect($products[1]->id)->toBeLessThan($products[2]->id);
+})->group('integration-destructive');
+
+it('it encodes the offset position token for pages beyond the first', function (): void {
+    $service = makeAssignmentService($this->conn);
+
+    $categoryId = insertCategory($this->conn, 'Offset Token');
+
+    for ($i = 1; $i <= 10; $i++) {
+        $productId = insertProduct($this->conn, "Token Prod $i", "TOKPROD-$i");
+        assignProductToCategory($this->conn, $productId, $categoryId, $i);
+    }
+
+    // Page 2 with size 3 → offset token should be encoded
+    $options = makeOffsetOptions(pageSize: 3, page: 2);
+
+    $page = $service->paginatedProductsInCategory($categoryId, $options);
+
+    // Page 2 of 10 products (size 3) → items 4,5,6
+    expect($page->items->toArray())->toHaveCount(3);
+})->group('integration-destructive');
+
+it('it returns the requested page size of products', function (): void {
+    $service = makeAssignmentService($this->conn);
+
+    $categoryId = insertCategory($this->conn, 'Page Size');
+
+    for ($i = 1; $i <= 20; $i++) {
+        $productId = insertProduct($this->conn, "Prod $i", "PSIZEPROD-$i");
+        assignProductToCategory($this->conn, $productId, $categoryId, $i);
+    }
+
+    $options = makeOffsetOptions(pageSize: 7);
+
+    $page = $service->paginatedProductsInCategory($categoryId, $options);
+
+    expect($page->items->toArray())->toHaveCount(7);
 })->group('integration-destructive');

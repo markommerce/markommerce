@@ -94,7 +94,7 @@ Extends `ProductGridComponent`. Overrides `data()` to resolve locale-aware names
 
 | Method | Return type | Description |
 |---|---|---|
-| `data(Category $category)` | `ProductGridData` | Returns product grid data with locale-resolved `resolvedNames` and `resolvedDescs` maps, replacing the raw values from the base component. |
+| `data(Category $category, int $page, int $size, string $sort)` | `ProductGridData` | Returns product grid data with locale-resolved `resolvedNames` and `resolvedDescs` maps, replacing the raw values from the base component. Passes through `sortOptions` and `activeSort` from the parent unmodified. |
 
 The returned `ProductGridData` is structurally identical to the one produced by the base `ProductGridComponent` --- only the values in `resolvedNames` and `resolvedDescs` differ, reflecting locale overrides stored in the `scopes` column.
 

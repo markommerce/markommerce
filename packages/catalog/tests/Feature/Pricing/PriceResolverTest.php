@@ -117,7 +117,7 @@ it('binds the base resolver to the price resolver interface', function (): void 
     $container->bind(ConfigResolverInterface::class, fn () => featureBuildPlainConfigResolver());
     $container->bind(CurrencyRegistryInterface::class, DefaultCurrencyRegistry::class);
 
-    $catalogModule['boot']($container->get(PriceContributorRegistry::class), $container->get(BasePriceContributor::class));
+    $container->call($catalogModule['boot']);
 
     $resolver = $container->get(PriceResolverInterface::class);
 

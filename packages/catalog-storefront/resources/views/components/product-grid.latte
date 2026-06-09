@@ -1,5 +1,17 @@
 <mk-stack gap="5">
     <mk-heading size="2xl"><h1>{$category->name}</h1></mk-heading>
+    {var $sortItems = $sortOptions ?? []}
+    {if count($sortItems) > 1}
+        <form method="get" class="catalog-sort-form">
+            <label for="catalog-sort-select">Sort by</label>
+            <select id="catalog-sort-select" name="sort" onchange="this.form.submit()">
+                {foreach $sortItems as $sortItem}
+                    <option value="{$sortItem['key']}" {if ($activeSort ?? '') === $sortItem['key']}selected{/if}>{$sortItem['label']}</option>
+                {/foreach}
+            </select>
+            <noscript><button type="submit">Apply</button></noscript>
+        </form>
+    {/if}
     {var $paginationUrls = $pageLinkUrls ?? []}
     {var $mode = isset($presentation) ? $presentation->value : 'numbered'}
     {if ($paginationUrls) && ($mode === 'load_more' || $mode === 'infinite') && ($previousPageUrl ?? null) !== null}

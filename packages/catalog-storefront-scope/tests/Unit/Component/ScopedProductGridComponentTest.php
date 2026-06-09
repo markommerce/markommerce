@@ -12,6 +12,9 @@ use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
+use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
+use Markommerce\Catalog\Sorting\ColumnSortOrder;
+use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
 use Markommerce\Catalog\Pricing\PriceContext;
@@ -174,7 +177,7 @@ function scopedGridMakeConfigResolver(array $overrides = []): ConfigResolverInte
         'countMode'        => 'exact',
         'maxPageDepth'     => 100,
         'defaultSort'      => 'position',
-        'allowedSorts'     => ['position', 'name', 'sku', 'price'],
+        'enabledSorts'     => [],
         'viewAllThreshold' => 0,
         'countCacheTtl'    => 0,
     ];
@@ -193,9 +196,23 @@ function scopedGridMakeConfigResolver(array $overrides = []): ConfigResolverInte
     };
 }
 
+function scopedGridMakeSortRegistry(): CategorySortOrderRegistry
+{
+    $registry = new CategorySortOrderRegistry();
+    $registry->register(new ColumnSortOrder(
+        key: 'position',
+        label: 'Position',
+        column: 'catalog_product_category.position',
+        direction: SortDirection::Ascending,
+        supportsKeyset: false,
+    ), 0);
+
+    return $registry;
+}
+
 function scopedGridMakePaginationOptionsResolver(): PaginationOptionsResolver
 {
-    return new PaginationOptionsResolver(scopedGridMakeConfigResolver());
+    return new PaginationOptionsResolver(scopedGridMakeConfigResolver(), scopedGridMakeSortRegistry());
 }
 
 /**
@@ -222,7 +239,7 @@ function scopedGridMakeAssignmentService(
 
             return new OffsetPage(
                 items: new EntityCollection($products),
-                size: $options->pageRequest->size,
+                size: $options->size,
                 nextPosition: null,
                 previousPosition: null,
                 currentPage: $options->page,

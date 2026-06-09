@@ -13,6 +13,7 @@ use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
 use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
+use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
 use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
 use Markommerce\Criteria\Contracts\RandomAccessPageInterface;
@@ -30,6 +31,7 @@ class ProductGridComponent
         private MoneyFormatter $moneyFormatter,
         private ProductPriceIndexRepositoryInterface $productPriceIndexRepository,
         private CurrencyResolver $currencyResolver,
+        private CategorySortOrderRegistry $categorySortOrderRegistry = new CategorySortOrderRegistry(),
     ) {}
 
     /**
@@ -110,7 +112,7 @@ class ProductGridComponent
             $totalPages = $page->totalPages();
             $pageLinkUrls = $this->buildPageLinkUrls(
                 $page->totalPages(),
-                $options->pageRequest->size,
+                $options->size,
                 $sort,
                 $size,
             );
@@ -177,6 +179,11 @@ class ProductGridComponent
             $nextPageUrl = sprintf('/catalog/category/%d/page?%s', $id, http_build_query($params));
         }
 
+        $sortOptions = array_map(
+            fn ($order) => ['key' => $order->key(), 'label' => $order->label()],
+            $this->categorySortOrderRegistry->all(),
+        );
+
         return new ProductGridData(
             category: $category,
             products: $products,
@@ -192,6 +199,8 @@ class ProductGridComponent
             nextPageUrl: $nextPageUrl,
             previousPageUrl: $previousPageUrl,
             canonicalPageUrl: $canonicalPageUrl,
+            sortOptions: $sortOptions,
+            activeSort: $options->sortOrder->key(),
             extensions: new ExtensionBag(),
         );
     }

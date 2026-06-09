@@ -20,6 +20,9 @@ use Markommerce\Catalog\Repositories\CategoryTreeNodeRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeRepository;
 use Markommerce\Catalog\Repositories\ProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Repositories\ProductRepository;
+use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
+use Markommerce\Catalog\Sorting\ColumnSortOrder;
+use Markommerce\Criteria\Sort\SortDirection;
 
 return [
     'bindings' => [
@@ -34,8 +37,21 @@ return [
     ],
     'singletons' => [
         PriceContributorRegistry::class,
+        CategorySortOrderRegistry::class,
     ],
-    'boot' => function (PriceContributorRegistry $priceContributorRegistry, BasePriceContributor $basePriceContributor): void {
+    'boot' => function (
+        PriceContributorRegistry $priceContributorRegistry,
+        BasePriceContributor $basePriceContributor,
+        CategorySortOrderRegistry $categorySortOrderRegistry,
+    ): void {
         $priceContributorRegistry->register($basePriceContributor, 0);
+
+        $categorySortOrderRegistry->register(new ColumnSortOrder(
+            key: 'position',
+            label: 'Position',
+            column: 'catalog_product_category.position',
+            direction: SortDirection::Ascending,
+            supportsKeyset: false,
+        ), 0);
     },
 ];

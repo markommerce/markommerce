@@ -25,6 +25,7 @@ class OffsetPaginationStrategy implements PaginationStrategyInterface
     public function __construct(
         private readonly PositionCodec $positionCodec,
         private readonly RowCounterInterface $rowCounter,
+        private readonly SortFieldApplier $sortFieldApplier = new SortFieldApplier(),
     ) {}
 
     /**
@@ -45,7 +46,7 @@ class OffsetPaginationStrategy implements PaginationStrategyInterface
 
         // Apply sort fields + deterministic tie-break.
         foreach ($pageRequest->sort->fields as $field) {
-            $query->orderBy($field->column, $field->direction->value);
+            $this->sortFieldApplier->apply($query, $field);
         }
         $query->orderBy('id', 'ASC');
 

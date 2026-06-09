@@ -29,6 +29,9 @@ class FakeOffsetQueryBuilder extends RepositoryQueryBuilder
     /** @var list<array{column: string, direction: string}> */
     public array $orderByCalls = [];
 
+    /** @var list<array{expression: string, direction: string}> */
+    public array $orderByRawCalls = [];
+
     public ?int $appliedLimit = null;
 
     public ?int $appliedOffset = null;
@@ -43,6 +46,13 @@ class FakeOffsetQueryBuilder extends RepositoryQueryBuilder
     public function orderBy(string $column, string $direction = 'ASC'): static
     {
         $this->orderByCalls[] = ['column' => $column, 'direction' => $direction];
+
+        return $this;
+    }
+
+    public function orderByRaw(string $expression, string $direction = 'ASC'): static
+    {
+        $this->orderByRawCalls[] = ['expression' => $expression, 'direction' => $direction];
 
         return $this;
     }
@@ -249,4 +259,68 @@ it('applies the sort fields and a deterministic id tie-break to the query', func
         ['column' => 'created_at', 'direction' => 'DESC'],
         ['column' => 'id', 'direction' => 'ASC'],
     ]);
+});
+
+it('applies a plain column sort field via orderBy when no raw expression or nulls placement is set', function (): void {
+    $query = makeQuery(fakeEntityCount: 10);
+    $strategy = makeStrategy(total: 30);
+    $sort = new Sort(new SortField('price', SortDirection::Ascending));
+    $request = PageRequest::first(size: 10, sort: $sort);
+
+    $strategy->paginate($query, $request);
+
+    expect($query->orderByCalls)->toContain(['column' => 'price', 'direction' => 'ASC'])
+        ->and($query->orderByRawCalls)->toBeEmpty();
+});
+
+it('expands a nulls-last sort field into an IS NULL companion clause followed by the real ordering in the offset strategy', function (): void {
+    $query = makeQuery(fakeEntityCount: 10);
+    $strategy = makeStrategy(total: 30);
+    $sort = new Sort(new SortField('price', SortDirection::Ascending, nulls: \Markommerce\Criteria\Sort\NullsPlacement::Last));
+    $request = PageRequest::first(size: 10, sort: $sort);
+
+    $strategy->paginate($query, $request);
+
+    expect($query->orderByRawCalls)->toHaveCount(2)
+        ->and($query->orderByRawCalls[0])->toBe(['expression' => '(price) IS NULL', 'direction' => 'ASC'])
+        ->and($query->orderByRawCalls[1])->toBe(['expression' => 'price', 'direction' => 'ASC']);
+});
+
+it('keeps the IS NULL companion ascending so non-null values sort first in both directions', function (): void {
+    // Descending real field — companion IS NULL must still be ASC
+    $query = makeQuery(fakeEntityCount: 10);
+    $strategy = makeStrategy(total: 30);
+    $sort = new Sort(new SortField('price', SortDirection::Descending, nulls: \Markommerce\Criteria\Sort\NullsPlacement::Last));
+    $request = PageRequest::first(size: 10, sort: $sort);
+
+    $strategy->paginate($query, $request);
+
+    expect($query->orderByRawCalls[0])->toBe(['expression' => '(price) IS NULL', 'direction' => 'ASC'])
+        ->and($query->orderByRawCalls[1])->toBe(['expression' => 'price', 'direction' => 'DESC']);
+});
+
+it('applies a raw-expression sort field via orderByRaw in the offset strategy', function (): void {
+    $query = makeQuery(fakeEntityCount: 10);
+    $strategy = makeStrategy(total: 30);
+    $sort = new Sort(new SortField('price', SortDirection::Ascending, expression: "COALESCE(price_index->>'amount', price)"));
+    $request = PageRequest::first(size: 10, sort: $sort);
+
+    $strategy->paginate($query, $request);
+
+    expect($query->orderByRawCalls)->toHaveCount(1)
+        ->and($query->orderByRawCalls[0])->toBe(['expression' => "COALESCE(price_index->>'amount', price)", 'direction' => 'ASC'])
+        ->and($query->orderByCalls)->not->toContain(['column' => 'price', 'direction' => 'ASC']);
+});
+
+it('preserves the id ascending tie-break after applying sort fields', function (): void {
+    $query = makeQuery(fakeEntityCount: 10);
+    $strategy = makeStrategy(total: 30);
+    // Use nulls-last sort (expands to 2 orderByRaw) to ensure id tie-break still comes last
+    $sort = new Sort(new SortField('price', SortDirection::Ascending, nulls: \Markommerce\Criteria\Sort\NullsPlacement::Last));
+    $request = PageRequest::first(size: 10, sort: $sort);
+
+    $strategy->paginate($query, $request);
+
+    // id ASC must still be the last orderBy call
+    expect($query->orderByCalls)->toBe([['column' => 'id', 'direction' => 'ASC']]);
 });

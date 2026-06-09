@@ -24,9 +24,9 @@ GET /catalog/category/{id}
 GET /catalog/category/{id}/page
 ```
 
-`CategoryController::show()` performs a category lookup by `id`, resolves pagination options from the `page`, `size`, and `sort` query parameters, and returns a `404` when the category does not exist. Page numbers exceeding `maxPageDepth` return `410 Gone`. The response includes a `Link: <url>; rel="canonical"` header that normalises redundant query parameters and points small categories (below `viewAllThreshold`) to their `?view=all` URL.
+`CategoryController::show()` performs a category lookup by `id`, resolves pagination options from the `page`, `size`, and `sort` query parameters, and returns a `404` when the category does not exist. Page numbers exceeding `maxPageDepth` return `410 Gone`. When the `sort` parameter refers to a key that is not registered or is excluded by `enabledSorts`, the controller issues a **302 redirect** to the same category URL with the `sort` parameter removed (preserving `page` if `> 1` and `size` if `> 0`), so the page renders with the default sort order rather than returning an error. The response includes a `Link: <url>; rel="canonical"` header that normalises redundant query parameters and points small categories (below `viewAllThreshold`) to their `?view=all` URL.
 
-`CategoryController::pageFragment()` at `GET /catalog/category/{id}/page` is a server-rendered fragment endpoint consumed by the `load_more` and `infinite` presentation modes. It accepts the same `page`, `size`, and `sort` parameters and also returns `410 Gone` when the page depth cap is exceeded.
+`CategoryController::pageFragment()` at `GET /catalog/category/{id}/page` is a server-rendered fragment endpoint consumed by the `load_more` and `infinite` presentation modes. It accepts the same `page`, `size`, and `sort` parameters and also returns `410 Gone` when the page depth cap is exceeded. An unknown `sort` value issues the same **302 redirect** as `show()`.
 
 Both routes are rendered by `markommerce/layout` --- `CategoryController` carries no `#[Layout]` attribute; placement is declared entirely in the layout definition files.
 
@@ -122,12 +122,12 @@ The layout definition extends `OneColumnLayout` from `markommerce/theme-blank`. 
 
 | Method | Route | Description |
 |---|---|---|
-| `show(int $id, Request $request)` | `GET /catalog/category/{id}` | Resolve the category by `id`, resolve pagination from `page`/`size`/`sort` query params, and render the product grid page. Returns `404` when the category does not exist; `410` when the page number exceeds `maxPageDepth`. Sets a `Link: rel=canonical` response header. |
-| `pageFragment(int $id, Request $request)` | `GET /catalog/category/{id}/page` | Server-rendered page fragment for `load_more` and `infinite` presentation modes. Returns `404` for unknown categories; `410` for depth cap violations. |
+| `show(int $id, Request $request)` | `GET /catalog/category/{id}` | Resolve the category by `id`, resolve pagination from `page`/`size`/`sort` query params, and render the product grid page. Returns `404` when the category does not exist; `410` when the page number exceeds `maxPageDepth`; **302** when `sort` is unknown or disabled (redirects to the same URL without `sort`). Sets a `Link: rel=canonical` response header. |
+| `pageFragment(int $id, Request $request)` | `GET /catalog/category/{id}/page` | Server-rendered page fragment for `load_more` and `infinite` presentation modes. Returns `404` for unknown categories; `410` for depth cap violations; **302** when `sort` is unknown or disabled. |
 
 ### `ProductGridComponent`
 
-A placement-agnostic component that resolves a paginated product page for a category and builds `ProductGridData`. Its `data()` method delegates to `PaginationOptionsResolver` to translate request parameters into a `ResolvedPaginationOptions`, then calls `CategoryAssignmentService::paginatedProductsInCategory()`. It populates `resolvedNames` and `resolvedDescs` with the raw entity values and fills the pagination fields (`currentPage`, `totalPages`, `hasNext`, `hasPrevious`, `pageLinkUrls`, `nextPageUrl`) from the returned `Page`.
+A placement-agnostic component that resolves a paginated product page for a category and builds `ProductGridData`. Its `data()` method delegates to `PaginationOptionsResolver` to translate request parameters into a `ResolvedPaginationOptions`, then calls `CategoryAssignmentService::paginatedProductsInCategory()`. It populates `resolvedNames` and `resolvedDescs` with the raw entity values and fills the pagination fields (`currentPage`, `totalPages`, `hasNext`, `hasPrevious`, `pageLinkUrls`, `nextPageUrl`) from the returned `Page`. The component also reads all registered sort orders from `CategorySortOrderRegistry` and exposes them as `sortOptions` (a list of `{key, label}` maps) together with `activeSort` (the key of the currently active sort order), which the Latte template uses to render a sort dropdown.
 
 For prices, the component first batch-loads index entries for all product IDs on the current page via `ProductPriceIndexRepositoryInterface::findByProductIds()` --- one query per page regardless of page size. Products found in the index have their `amount` wrapped in a `Money` object using the base currency from `CurrencyResolver` and formatted by `MoneyFormatter`. Products not yet present in the index fall back to `PriceResolverInterface` per product. Products with no resolvable price receive a `null` entry in `formattedPrices`.
 
@@ -135,7 +135,7 @@ When [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-sc
 
 | Method | Return type | Description |
 |---|---|---|
-| `data(Category $category, int $page, int $size, string $sort)` | `ProductGridData` | Load a paginated product page for the category; return a `ProductGridData` DTO with raw name and description values, a formatted price map, and pagination metadata. |
+| `data(Category $category, int $page, int $size, string $sort)` | `ProductGridData` | Load a paginated product page for the category; return a `ProductGridData` DTO with raw name and description values, a formatted price map, sort dropdown data, and pagination metadata. |
 
 ### `ProductCard`
 
@@ -171,6 +171,8 @@ DTO returned by `ProductGridComponent::data()`. Extends `ExtensibleData`.
 | `$hasPrevious` | `bool` | Whether a previous page exists |
 | `$pageLinkUrls` | `list<string>` | Crawlable numbered page URLs (e.g. `['?page=1', '?page=2', ...]`); populated only for `numbered` presentation |
 | `$nextPageUrl` | `?string` | URL for the next page; a `?page=N` query string for offset or a `?position=TOKEN` for keyset; `null` on the last page |
+| `$sortOptions` | `list<array{key: string, label: string}>` | All sort orders registered in `CategorySortOrderRegistry`, in priority order; used to render the sort dropdown |
+| `$activeSort` | `string` | Key of the currently active sort order (e.g. `'position'`, `'price_asc'`) |
 | `$extensions` | `ExtensionBag` | Typed extension attributes (third-party use) |
 
 ### `ProductCardData`
