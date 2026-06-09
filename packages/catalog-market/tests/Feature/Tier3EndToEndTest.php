@@ -2,25 +2,16 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/Helpers/PostgresTestConnection.php';
-
 use Marko\Config\ConfigRepository;
-use Marko\Config\ConfigRepositoryInterface;
-use Marko\Core\Container\Container;
-use Marko\Core\Container\ContainerInterface;
-use Marko\Core\Module\DependencyResolver;
 use Marko\Core\Module\ModuleManifest;
-use Marko\Core\Plugin\InterceptorClassGenerator;
 use Marko\Core\Plugin\PluginDiscovery;
 use Marko\Core\Plugin\PluginInterceptedInterface;
-use Marko\Core\Plugin\PluginInterceptor;
-use Marko\Core\Plugin\PluginRegistry;
+use Marko\Database\Connection\ConnectionInterface;
 use Marko\Database\Entity\EntityHydrator;
 use Marko\Database\Entity\EntityMetadataFactory;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Contracts\CategoryTreeNodeRepositoryInterface;
 use Markommerce\Catalog\Contracts\CategoryTreeRepositoryInterface;
-use Markommerce\Catalog\Exceptions\DefaultTreeMissingException;
 use Markommerce\Catalog\Repositories\CategoryRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeNodeRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeRepository;
@@ -31,24 +22,27 @@ use Markommerce\CatalogMarket\Plugins\CategoryTreeServiceDeletePlugin;
 use Markommerce\CatalogMarket\Repositories\CategoryTreeMarketAssignmentRepository;
 use Markommerce\CatalogMarket\Services\CategoryTreeMarketAssignmentService;
 use Markommerce\CatalogMarket\Services\CategoryTreeMarketResolver;
-use Markommerce\CatalogMarket\Tests\Feature\Helpers\PostgresTestConnection;
+use Markommerce\Catalog\Exceptions\DefaultTreeMissingException;
 use Markommerce\Scope\Storage\DefaultScopeGuard;
+use Markommerce\Testing\Container\ContainerBootstrapper;
+use Markommerce\Testing\Database\TestConnection;
+use Markommerce\Testing\IntegrationTestCase;
+use Markommerce\Testing\Module\ModuleResolver;
+use Markommerce\Testing\Profile\StoreProfile;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Build a Container pre-wired with all Tier 3 module bindings/singletons.
- *
- * Includes:
- * - scope module singletons and bindings
- * - catalog repository interfaces bound to pre-built instances (so the container
- *   can resolve CategoryTreeService without needing a database driver binding)
- * - catalog-market repository interface bound as instance
- * - PluginInterceptor + PluginRegistry wired BEFORE any service resolution
- */
-function buildTier3ContainerForCatalogMarket(PostgresTestConnection $connection): Container
+function tier3VendorDir(): string
 {
-    $config = new ConfigRepository([
+    return dirname(__DIR__, 4) . '/vendor';
+}
+
+/**
+ * Build the config repository for the Tier 3 end-to-end test.
+ */
+function tier3BuildConfig(): ConfigRepository
+{
+    return new ConfigRepository([
         'scope' => [
             'axes' => [
                 'locale' => [
@@ -62,263 +56,99 @@ function buildTier3ContainerForCatalogMarket(PostgresTestConnection $connection)
             ],
         ],
     ]);
-
-    $container = new Container();
-    $container->instance(ConfigRepositoryInterface::class, $config);
-    $container->instance(ContainerInterface::class, $container);
-
-    // ── Scope module singletons ──────────────────────────────────────────────
-    $scopeModule = require dirname(__DIR__, 3) . '/scope/module.php';
-
-    foreach ($scopeModule['singletons'] as $singleton) {
-        $container->singleton($singleton);
-    }
-
-    foreach ($scopeModule['bindings'] as $interface => $implementation) {
-        $container->bind($interface, $implementation);
-    }
-
-    // ── Catalog repository instances (avoid database driver auto-wiring issue) ─
-    // Repositories require ConnectionInterface + nullable dependencies that the
-    // container's auto-wiring cannot satisfy without a full driver binding.
-    // Pre-build instances and register them so CategoryTreeService resolves cleanly.
-    $metadataFactory = new EntityMetadataFactory();
-    $hydrator = new EntityHydrator($metadataFactory);
-
-    $treeRepository = new CategoryTreeRepository($connection, $metadataFactory, $hydrator);
-    $treeNodeRepository = new CategoryTreeNodeRepository($connection, $metadataFactory, $hydrator);
-    $categoryRepository = new CategoryRepository($connection, $metadataFactory, $hydrator);
-    $assignmentRepository = new CategoryTreeMarketAssignmentRepository($connection, $metadataFactory, $hydrator);
-
-    $container->instance(CategoryTreeRepositoryInterface::class, $treeRepository);
-    $container->instance(CategoryTreeNodeRepositoryInterface::class, $treeNodeRepository);
-    $container->instance(CategoryRepositoryInterface::class, $categoryRepository);
-    $container->instance(CategoryTreeMarketAssignmentRepositoryInterface::class, $assignmentRepository);
-
-    // ── Wire PluginInterceptor BEFORE any service resolution ─────────────────
-    $pluginRegistry = new PluginRegistry();
-    $interceptor = new PluginInterceptor($container, $pluginRegistry, new InterceptorClassGenerator());
-    $container->setPluginInterceptor($interceptor);
-    $container->instance(PluginInterceptor::class, $interceptor);
-    $container->instance(PluginRegistry::class, $pluginRegistry);
-
-    // ── Discover and register CategoryTreeServiceDeletePlugin ────────────────
-    $bridgeModule = require dirname(__DIR__, 2) . '/module.php';
-
-    $bridgeManifest = new ModuleManifest(
-        name: 'markommerce/catalog-market',
-        version: '1.0.0',
-        require: $bridgeModule['require'] ?? ['markommerce/catalog' => '*', 'markommerce/market' => '*'],
-        path: dirname(__DIR__, 2),
-    );
-
-    $pluginDiscovery = new PluginDiscovery();
-
-    foreach ($pluginDiscovery->discoverInModule($bridgeManifest) as $definition) {
-        $pluginRegistry->register($definition);
-    }
-
-    return $container;
 }
 
 /**
- * Build a ModuleManifest for the scope module.
- */
-function tier3ScopeManifestForCatalogMarket(): ModuleManifest
-{
-    $module = require dirname(__DIR__, 3) . '/scope/module.php';
-
-    return new ModuleManifest(
-        name: 'markommerce/scope',
-        version: '1.0.0',
-        boot: $module['boot'],
-    );
-}
-
-/**
- * Build a ModuleManifest for the locale module.
- */
-function tier3LocaleManifestForCatalogMarket(): ModuleManifest
-{
-    return new ModuleManifest(
-        name: 'markommerce/locale',
-        version: '1.0.0',
-        require: ['markommerce/scope' => '*'],
-    );
-}
-
-/**
- * Build a ModuleManifest for the market module (provides market scope axis config).
- */
-function tier3MarketManifestForCatalogMarket(): ModuleManifest
-{
-    return new ModuleManifest(
-        name: 'markommerce/market',
-        version: '1.0.0',
-        require: ['markommerce/scope' => '*'],
-    );
-}
-
-/**
- * Build a ModuleManifest for the catalog module.
- */
-function tier3CatalogManifestForCatalogMarket(): ModuleManifest
-{
-    return new ModuleManifest(
-        name: 'markommerce/catalog',
-        version: '1.0.0',
-    );
-}
-
-/**
- * Build a ModuleManifest for the catalog-scope module.
- */
-function tier3CatalogScopeManifestForCatalogMarket(): ModuleManifest
-{
-    return new ModuleManifest(
-        name: 'markommerce/catalog-scope',
-        version: '1.0.0',
-        require: [
-            'markommerce/catalog' => '*',
-            'markommerce/scope' => '*',
-        ],
-    );
-}
-
-/**
- * Build a ModuleManifest for the catalog-locale module.
- */
-function tier3CatalogLocaleManifestForCatalogMarket(): ModuleManifest
-{
-    $bridgeModule = require dirname(__DIR__, 3) . '/catalog-locale/module.php';
-
-    return new ModuleManifest(
-        name: 'markommerce/catalog-locale',
-        version: '1.0.0',
-        require: $bridgeModule['require'],
-        boot: $bridgeModule['boot'],
-    );
-}
-
-/**
- * Build a ModuleManifest for the catalog-market module.
- * The path is set to the absolute package path so PluginDiscovery can scan src/Plugins/.
- */
-function tier3BridgeManifestForCatalogMarket(): ModuleManifest
-{
-    $bridgeModule = require dirname(__DIR__, 2) . '/module.php';
-
-    return new ModuleManifest(
-        name: 'markommerce/catalog-market',
-        version: '1.0.0',
-        require: $bridgeModule['require'] ?? ['markommerce/catalog' => '*', 'markommerce/market' => '*'],
-        boot: $bridgeModule['boot'] ?? null,
-        path: dirname(__DIR__, 2),
-    );
-}
-
-/**
- * Boot all modules in dependency order.
+ * Build the manifest list for the Tier 3 end-to-end test.
  *
- * @param ModuleManifest[] $ordered
+ * Uses ModuleResolver to get the transitive closure of catalog-market dependencies.
+ *
+ * @return list<ModuleManifest>
  */
-function runTier3BootLoopForCatalogMarket(array $ordered, ContainerInterface $container): void
+function tier3BuildManifests(): array
 {
-    foreach ($ordered as $module) {
-        if ($module->boot !== null) {
-            $container->call($module->boot);
+    $resolver = new ModuleResolver(tier3VendorDir());
+
+    return $resolver->resolveFrom(['markommerce/catalog-market']);
+}
+
+/**
+ * Extract the catalog-market ModuleManifest from the resolved manifest list.
+ *
+ * Used by tests that verify PluginDiscovery against the bridge manifest.
+ *
+ * @param list<ModuleManifest> $manifests
+ */
+function tier3FindBridgeManifest(array $manifests): ModuleManifest
+{
+    foreach ($manifests as $manifest) {
+        if ($manifest->name === 'markommerce/catalog-market') {
+            return $manifest;
         }
     }
+
+    throw new RuntimeException('catalog-market manifest not found in resolved manifest list');
 }
 
 /**
- * Resolve manifests via DependencyResolver and run boot closures.
+ * StoreProfile for the Tier 3 database provisioning.
+ *
+ * Uses catalog-market + pgsql driver so the DatabaseProvisioner can provision
+ * the full catalog-market schema into a per-worker cloned database.
  */
-function bootTier3ForCatalogMarket(Container $container): void
+function tier3StoreProfile(): StoreProfile
 {
-    $resolver = new DependencyResolver();
-    $ordered = $resolver->resolve([
-        tier3ScopeManifestForCatalogMarket(),
-        tier3LocaleManifestForCatalogMarket(),
-        tier3MarketManifestForCatalogMarket(),
-        tier3CatalogManifestForCatalogMarket(),
-        tier3CatalogScopeManifestForCatalogMarket(),
-        tier3CatalogLocaleManifestForCatalogMarket(),
-        tier3BridgeManifestForCatalogMarket(),
-    ]);
-
-    runTier3BootLoopForCatalogMarket($ordered, $container);
-}
-
-/**
- * Create the required database tables for the Tier 3 test.
- */
-function createTier3TablesForCatalogMarket(PostgresTestConnection $conn): void
-{
-    $conn->execute('DROP TABLE IF EXISTS catalog_category_tree_market_assignments CASCADE');
-    $conn->execute('DROP TABLE IF EXISTS catalog_category_tree_nodes CASCADE');
-    $conn->execute('DROP TABLE IF EXISTS catalog_categories CASCADE');
-    $conn->execute('DROP TABLE IF EXISTS catalog_category_trees CASCADE');
-
-    $conn->execute(
-        'CREATE TABLE IF NOT EXISTS catalog_category_trees (
-            id         SERIAL PRIMARY KEY,
-            code       VARCHAR(64) NOT NULL UNIQUE,
-            name       VARCHAR(255) NOT NULL,
-            is_default BOOLEAN NOT NULL DEFAULT FALSE
-        )',
+    return StoreProfile::of(
+        tier3VendorDir(),
+        'markommerce/catalog-market',
+        'marko/database-pgsql',
     );
-
-    $conn->execute(
-        'CREATE TABLE IF NOT EXISTS catalog_categories (
-            id          SERIAL PRIMARY KEY,
-            name        VARCHAR(255) NOT NULL,
-            description TEXT
-        )',
-    );
-
-    $conn->execute(
-        'CREATE TABLE IF NOT EXISTS catalog_category_tree_nodes (
-            id             SERIAL PRIMARY KEY,
-            tree_id        INTEGER NOT NULL REFERENCES catalog_category_trees(id) ON DELETE CASCADE,
-            category_id    INTEGER NOT NULL REFERENCES catalog_categories(id) ON DELETE RESTRICT,
-            parent_node_id INTEGER REFERENCES catalog_category_tree_nodes(id) ON DELETE CASCADE,
-            position       INTEGER NOT NULL DEFAULT 0
-        )',
-    );
-
-    $conn->execute(
-        'CREATE TABLE IF NOT EXISTS catalog_category_tree_market_assignments (
-            market  VARCHAR(64) PRIMARY KEY,
-            tree_id INTEGER REFERENCES catalog_category_trees(id) ON DELETE RESTRICT
-        )',
-    );
-}
-
-/**
- * Drop the Tier 3 tables.
- */
-function dropTier3TablesForCatalogMarket(PostgresTestConnection $conn): void
-{
-    $conn->execute('DROP TABLE IF EXISTS catalog_category_tree_market_assignments CASCADE');
-    $conn->execute('DROP TABLE IF EXISTS catalog_category_tree_nodes CASCADE');
-    $conn->execute('DROP TABLE IF EXISTS catalog_categories CASCADE');
-    $conn->execute('DROP TABLE IF EXISTS catalog_category_trees CASCADE');
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 beforeEach(function (): void {
-    PostgresTestConnection::skipIfUnavailable();
+    TestConnection::skipIfUnavailable();
     DefaultScopeGuard::reset();
 
-    $this->conn = new PostgresTestConnection();
-    createTier3TablesForCatalogMarket($this->conn);
+    // Use IntegrationTestCase to provision the database schema via per-worker clone.
+    // This eliminates cross-worker table conflicts in parallel execution.
+    $dbTestCase = new IntegrationTestCase(tier3StoreProfile());
+    $dbTestCase->setUpIntegration();
+    $this->dbTestCase = $dbTestCase;
 
-    // buildTier3ContainerForCatalogMarket creates repositories internally and registers them as
-    // instances. PluginInterceptor is wired before CategoryTreeService is resolved.
-    $this->container = buildTier3ContainerForCatalogMarket($this->conn);
-    bootTier3ForCatalogMarket($this->container);
+    // Extract the shared connection from the provisioned store.
+    // This is the same connection the DatabaseProvisioner's worker clone uses.
+    /** @var ConnectionInterface $conn */
+    $conn = $dbTestCase->store->container()->get(ConnectionInterface::class);
+
+    $metadataFactory = new EntityMetadataFactory();
+    $hydrator = new EntityHydrator($metadataFactory);
+
+    $treeRepository = new CategoryTreeRepository($conn, $metadataFactory, $hydrator);
+    $treeNodeRepository = new CategoryTreeNodeRepository($conn, $metadataFactory, $hydrator);
+    $categoryRepository = new CategoryRepository($conn, $metadataFactory, $hydrator);
+    $assignmentRepository = new CategoryTreeMarketAssignmentRepository($conn, $metadataFactory, $hydrator);
+
+    $manifests = tier3BuildManifests();
+    $config = tier3BuildConfig();
+
+    $bootstrapper = new ContainerBootstrapper();
+
+    // Build the container without booting yet so we can pre-bind repository instances.
+    // The repositories require ConnectionInterface + EntityMetadataFactory + EntityHydrator;
+    // pre-building them avoids needing a full pgsql driver in the manifest set.
+    $this->container = $bootstrapper->build($manifests, $config, $conn);
+
+    $this->container->instance(CategoryTreeRepositoryInterface::class, $treeRepository);
+    $this->container->instance(CategoryTreeNodeRepositoryInterface::class, $treeNodeRepository);
+    $this->container->instance(CategoryRepositoryInterface::class, $categoryRepository);
+    $this->container->instance(CategoryTreeMarketAssignmentRepositoryInterface::class, $assignmentRepository);
+
+    // Wire plugins BEFORE resolving CategoryTreeService — otherwise the delete-guard plugin
+    // will not intercept deleteTree() calls.
+    $bootstrapper->wirePlugins($this->container, $manifests);
+    $bootstrapper->boot($this->container, $manifests);
 
     // Retrieve the pre-built repository instances from the container.
     $this->treeRepository = $this->container->get(CategoryTreeRepositoryInterface::class);
@@ -328,24 +158,27 @@ beforeEach(function (): void {
     $this->treeService = $this->container->get(CategoryTreeService::class);
 
     $this->assignmentService = new CategoryTreeMarketAssignmentService(
-        categoryTreeMarketAssignmentRepository: $this->assignmentRepository,
-        categoryTreeRepository: $this->treeRepository,
+        categoryTreeMarketAssignmentRepository: $assignmentRepository,
+        categoryTreeRepository: $treeRepository,
     );
 
     $this->resolver = new CategoryTreeMarketResolver(
-        categoryTreeMarketAssignmentRepository: $this->assignmentRepository,
-        categoryTreeRepository: $this->treeRepository,
+        categoryTreeMarketAssignmentRepository: $assignmentRepository,
+        categoryTreeRepository: $treeRepository,
     );
 });
 
 afterEach(function (): void {
-    if (isset($this->conn)) {
-        dropTier3TablesForCatalogMarket($this->conn);
+    DefaultScopeGuard::reset();
+
+    if (isset($this->dbTestCase)) {
+        $this->dbTestCase->tearDownIntegration();
+        $this->dbTestCase->tearDownClass();
     }
 });
 
 it('wires PluginInterceptor into the test container BEFORE resolving CategoryTreeService (otherwise the delete-guard test is meaningless)', function (): void {
-    // The container was built by buildTier3ContainerForCatalogMarket() which wires PluginInterceptor
+    // The container was built by the ContainerBootstrapper which wires PluginInterceptor
     // before any CategoryTreeService resolution. Verify the returned service is a
     // plugin proxy (not the raw CategoryTreeService class itself).
     $service = $this->container->get(CategoryTreeService::class);
@@ -358,16 +191,21 @@ it('wires PluginInterceptor into the test container BEFORE resolving CategoryTre
 })->group('integration-destructive');
 
 it('constructs the bridge ModuleManifest with the absolute filesystem path so PluginDiscovery can scan src/Plugins/', function (): void {
-    $manifest = tier3BridgeManifestForCatalogMarket();
+    $manifests = tier3BuildManifests();
+    $manifest = tier3FindBridgeManifest($manifests);
 
-    $expectedPath = dirname(__DIR__, 2);
+    // The manifest path points to catalog-market (either direct source path or via vendor symlink).
+    // Resolve symlinks to compare canonical paths.
+    $expectedPath = (string) realpath(dirname(__DIR__, 2));
+    $actualPath = (string) realpath($manifest->path);
 
-    expect($manifest->path)->toBe($expectedPath)
+    expect($actualPath)->toBe($expectedPath)
         ->and(is_dir($manifest->path . '/src/Plugins'))->toBeTrue();
 })->group('integration-destructive');
 
 it('discovers and registers CategoryTreeServiceDeletePlugin via PluginDiscovery::discoverInModule against the bridge manifest', function (): void {
-    $manifest = tier3BridgeManifestForCatalogMarket();
+    $manifests = tier3BuildManifests();
+    $manifest = tier3FindBridgeManifest($manifests);
 
     $pluginDiscovery = new PluginDiscovery();
     $definitions = $pluginDiscovery->discoverInModule($manifest);

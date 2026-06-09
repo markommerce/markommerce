@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Markommerce\Config\PgSql\Tests\Feature;
 
-require_once __DIR__ . '/Helpers/PostgresTestConnection.php';
-
 use DateTimeImmutable;
 use Markommerce\Config\PgSql\PgsqlConfigStorage;
 use Markommerce\Config\PgSql\Schema\ConfigValuesTableEmitter;
-use Markommerce\Config\PgSql\Tests\Feature\Helpers\PostgresTestConnection;
 use Markommerce\Config\ValueObjects\ConfigRow;
+use Markommerce\Testing\Database\TestConnection;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
@@ -39,9 +37,9 @@ function makeRow(string $key, mixed $value = null, int $version = 0): ConfigRow
 // ─── Shared connection & lifecycle ────────────────────────────────────────────
 
 beforeEach(function (): void {
-    PostgresTestConnection::skipIfUnavailable();
+    TestConnection::skipIfUnavailable();
 
-    $this->conn = new PostgresTestConnection();
+    $this->conn = new TestConnection();
     $this->tableName = configStorageTableName();
 
     // Ensure table exists
@@ -185,9 +183,9 @@ it('sets updated_at to NOW() on every successful compareAndSave', function (): v
 it(
     'is safe under concurrent compareAndSave calls — only one of two simultaneous writers with the same expectedVersion succeeds',
     function (): void {
-        /** @var PostgresTestConnection $conn */
-        $connA = new PostgresTestConnection();
-        $connB = new PostgresTestConnection();
+        /** @var TestConnection $conn */
+        $connA = new TestConnection();
+        $connB = new TestConnection();
         $tableName = $this->tableName;
 
         $storageA = new PgsqlConfigStorage($connA, $tableName);
@@ -243,8 +241,8 @@ it(
 it(
     'serializes two simultaneous INSERTs to a brand-new key — exactly one succeeds, the other returns false',
     function (): void {
-        $connA = new PostgresTestConnection();
-        $connB = new PostgresTestConnection();
+        $connA = new TestConnection();
+        $connB = new TestConnection();
         $tableName = $this->tableName;
 
         $storageA = new PgsqlConfigStorage($connA, $tableName);

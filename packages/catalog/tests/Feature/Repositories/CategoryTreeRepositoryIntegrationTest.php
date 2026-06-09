@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace Markommerce\Catalog\Tests\Feature\Repositories;
 
-require_once __DIR__ . '/../Helpers/PostgresTestConnection.php';
-
-use Marko\Database\Entity\EntityHydrator;
-use Marko\Database\Entity\EntityMetadataFactory;
 use Markommerce\Catalog\Entity\CategoryTree;
 use Markommerce\Catalog\Exceptions\DefaultTreeMissingException;
 use Markommerce\Catalog\Repositories\CategoryTreeRepository;
-use Markommerce\Catalog\Tests\Feature\Helpers\PostgresTestConnection;
+use Markommerce\Testing\Database\TestConnection;
+use Markommerce\Testing\IntegrationTestCase;
+use Markommerce\Testing\Profile\StoreProfile;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function catTreeRepoVendorDir(): string
+{
+    return dirname(__DIR__, 5) . '/vendor';
+}
 
 function makeCategoryTree(string $code, string $name, bool $isDefault = false): CategoryTree
 {
@@ -25,117 +28,167 @@ function makeCategoryTree(string $code, string $name, bool $isDefault = false): 
     return $tree;
 }
 
-// ─── Shared connection & lifecycle ───────────────────────────────────────────
-
-beforeEach(function (): void {
-    PostgresTestConnection::skipIfUnavailable();
-
-    $this->conn = new PostgresTestConnection();
-
-    $this->conn->execute(
-        'CREATE TABLE IF NOT EXISTS catalog_category_trees (
-            id         SERIAL PRIMARY KEY,
-            code       VARCHAR(64) NOT NULL UNIQUE,
-            name       VARCHAR(255) NOT NULL,
-            is_default BOOLEAN NOT NULL DEFAULT FALSE
-        )',
-    );
-
-    $metadataFactory = new EntityMetadataFactory();
-    $hydrator = new EntityHydrator($metadataFactory);
-
-    $this->repository = new CategoryTreeRepository($this->conn, $metadataFactory, $hydrator);
-});
-
-afterEach(function (): void {
-    if (isset($this->conn)) {
-        $this->conn->execute('DELETE FROM catalog_category_trees');
-    }
-});
-
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 it('persists a tree and reads it back by id', function (): void {
-    /** @var CategoryTreeRepository $repository */
-    $repository = $this->repository;
+    TestConnection::skipIfUnavailable();
 
-    $tree = makeCategoryTree('main', 'Main Tree', true);
-    $repository->save($tree);
+    $profile  = StoreProfile::simple(catTreeRepoVendorDir());
+    $testCase = new IntegrationTestCase($profile);
+    $testCase->setUpIntegration();
 
-    expect($tree->id)->not->toBeNull();
+    try {
+        $store = $testCase->store;
 
-    $found = $repository->find($tree->id);
+        /** @var CategoryTreeRepository $repository */
+        $repository = $store->get(CategoryTreeRepository::class);
 
-    expect($found)->not->toBeNull()
-        ->and($found->id)->toBe($tree->id)
-        ->and($found->code)->toBe('main')
-        ->and($found->name)->toBe('Main Tree')
-        ->and($found->isDefault)->toBeTrue();
+        $tree = makeCategoryTree('main', 'Main Tree', true);
+        $repository->save($tree);
+
+        expect($tree->id)->not->toBeNull();
+
+        $found = $repository->find($tree->id);
+
+        expect($found)->not->toBeNull()
+            ->and($found->id)->toBe($tree->id)
+            ->and($found->code)->toBe('main')
+            ->and($found->name)->toBe('Main Tree')
+            ->and($found->isDefault)->toBeTrue();
+    } finally {
+        $testCase->tearDownIntegration();
+        $testCase->tearDownClass();
+    }
 })->group('integration-destructive');
 
 it('finds a tree by its unique code', function (): void {
-    /** @var CategoryTreeRepository $repository */
-    $repository = $this->repository;
+    TestConnection::skipIfUnavailable();
 
-    $tree = makeCategoryTree('sale', 'Sale Tree');
-    $repository->save($tree);
+    $profile  = StoreProfile::simple(catTreeRepoVendorDir());
+    $testCase = new IntegrationTestCase($profile);
+    $testCase->setUpIntegration();
 
-    $found = $repository->findByCode('sale');
+    try {
+        $store = $testCase->store;
 
-    expect($found)->not->toBeNull()
-        ->and($found->code)->toBe('sale')
-        ->and($found->name)->toBe('Sale Tree');
+        /** @var CategoryTreeRepository $repository */
+        $repository = $store->get(CategoryTreeRepository::class);
+
+        $tree = makeCategoryTree('sale', 'Sale Tree');
+        $repository->save($tree);
+
+        $found = $repository->findByCode('sale');
+
+        expect($found)->not->toBeNull()
+            ->and($found->code)->toBe('sale')
+            ->and($found->name)->toBe('Sale Tree');
+    } finally {
+        $testCase->tearDownIntegration();
+        $testCase->tearDownClass();
+    }
 })->group('integration-destructive');
 
 it('returns null when finding by an unknown code', function (): void {
-    /** @var CategoryTreeRepository $repository */
-    $repository = $this->repository;
+    TestConnection::skipIfUnavailable();
 
-    $result = $repository->findByCode('nonexistent');
+    $profile  = StoreProfile::simple(catTreeRepoVendorDir());
+    $testCase = new IntegrationTestCase($profile);
+    $testCase->setUpIntegration();
 
-    expect($result)->toBeNull();
+    try {
+        $store = $testCase->store;
+
+        /** @var CategoryTreeRepository $repository */
+        $repository = $store->get(CategoryTreeRepository::class);
+
+        $result = $repository->findByCode('nonexistent');
+
+        expect($result)->toBeNull();
+    } finally {
+        $testCase->tearDownIntegration();
+        $testCase->tearDownClass();
+    }
 })->group('integration-destructive');
 
 it('finds the default tree when one exists', function (): void {
-    /** @var CategoryTreeRepository $repository */
-    $repository = $this->repository;
+    TestConnection::skipIfUnavailable();
 
-    $tree = makeCategoryTree('default', 'Default Tree', true);
-    $repository->save($tree);
+    $profile  = StoreProfile::simple(catTreeRepoVendorDir());
+    $testCase = new IntegrationTestCase($profile);
+    $testCase->setUpIntegration();
 
-    $nonDefault = makeCategoryTree('other', 'Other Tree', false);
-    $repository->save($nonDefault);
+    try {
+        $store = $testCase->store;
 
-    $found = $repository->findDefault();
+        /** @var CategoryTreeRepository $repository */
+        $repository = $store->get(CategoryTreeRepository::class);
 
-    expect($found)->not->toBeNull()
-        ->and($found->code)->toBe('default')
-        ->and($found->isDefault)->toBeTrue();
+        $tree = makeCategoryTree('default', 'Default Tree', true);
+        $repository->save($tree);
+
+        $nonDefault = makeCategoryTree('other', 'Other Tree', false);
+        $repository->save($nonDefault);
+
+        $found = $repository->findDefault();
+
+        expect($found)->not->toBeNull()
+            ->and($found->code)->toBe('default')
+            ->and($found->isDefault)->toBeTrue();
+    } finally {
+        $testCase->tearDownIntegration();
+        $testCase->tearDownClass();
+    }
 })->group('integration-destructive');
 
 it('throws DefaultTreeMissingException when no default tree exists', function (): void {
-    /** @var CategoryTreeRepository $repository */
-    $repository = $this->repository;
+    TestConnection::skipIfUnavailable();
 
-    $tree = makeCategoryTree('nodefs', 'No Default Tree', false);
-    $repository->save($tree);
+    $profile  = StoreProfile::simple(catTreeRepoVendorDir());
+    $testCase = new IntegrationTestCase($profile);
+    $testCase->setUpIntegration();
 
-    expect(fn () => $repository->findDefault())
-        ->toThrow(DefaultTreeMissingException::class);
+    try {
+        $store = $testCase->store;
+
+        /** @var CategoryTreeRepository $repository */
+        $repository = $store->get(CategoryTreeRepository::class);
+
+        $tree = makeCategoryTree('nodefs', 'No Default Tree', false);
+        $repository->save($tree);
+
+        expect(fn () => $repository->findDefault())
+            ->toThrow(DefaultTreeMissingException::class);
+    } finally {
+        $testCase->tearDownIntegration();
+        $testCase->tearDownClass();
+    }
 })->group('integration-destructive');
 
 it('deletes a tree', function (): void {
-    /** @var CategoryTreeRepository $repository */
-    $repository = $this->repository;
+    TestConnection::skipIfUnavailable();
 
-    $tree = makeCategoryTree('todelete', 'Tree To Delete');
-    $repository->save($tree);
+    $profile  = StoreProfile::simple(catTreeRepoVendorDir());
+    $testCase = new IntegrationTestCase($profile);
+    $testCase->setUpIntegration();
 
-    $id = $tree->id;
-    expect($id)->not->toBeNull();
+    try {
+        $store = $testCase->store;
 
-    $repository->delete($tree);
+        /** @var CategoryTreeRepository $repository */
+        $repository = $store->get(CategoryTreeRepository::class);
 
-    $found = $repository->find($id);
-    expect($found)->toBeNull();
+        $tree = makeCategoryTree('todelete', 'Tree To Delete');
+        $repository->save($tree);
+
+        $id = $tree->id;
+        expect($id)->not->toBeNull();
+
+        $repository->delete($tree);
+
+        $found = $repository->find($id);
+        expect($found)->toBeNull();
+    } finally {
+        $testCase->tearDownIntegration();
+        $testCase->tearDownClass();
+    }
 })->group('integration-destructive');

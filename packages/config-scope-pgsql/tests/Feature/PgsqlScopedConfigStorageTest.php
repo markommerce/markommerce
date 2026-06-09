@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Markommerce\ConfigScope\PgSql\Tests\Feature;
 
-require_once __DIR__ . '/Helpers/PostgresTestConnection.php';
-
 use Markommerce\ConfigScope\PgSql\PgsqlScopedConfigStorage;
 use Markommerce\ConfigScope\PgSql\Schema\ConfigValueOverridesTableEmitter;
-use Markommerce\ConfigScope\PgSql\Tests\Feature\Helpers\PostgresTestConnection;
+use Markommerce\Testing\Database\TestConnection;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -26,9 +24,9 @@ function configScopedStorageTableName(): string
 // ─── Shared connection & lifecycle ────────────────────────────────────────────
 
 beforeEach(function (): void {
-    PostgresTestConnection::skipIfUnavailable();
+    TestConnection::skipIfUnavailable();
 
-    $this->conn = new PostgresTestConnection();
+    $this->conn = new TestConnection();
     $this->tableName = configScopedStorageTableName();
 
     // Ensure table exists

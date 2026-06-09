@@ -69,7 +69,8 @@
             "Markommerce\\MoneyIntl\\Tests\\": "packages/money-intl/tests/",
             "Markommerce\\Scope\\Tests\\": "packages/scope/tests/",
             "Markommerce\\Tax\\Tests\\": "packages/tax/tests/",
-            "Markommerce\\TaxMarket\\Tests\\": "packages/tax-market/tests/"
+            "Markommerce\\TaxMarket\\Tests\\": "packages/tax-market/tests/",
+            "Markommerce\\Testing\\Tests\\": "packages/testing/tests/"
         }
     },
     "require-dev": {
@@ -77,6 +78,7 @@
         "marko/log": "self.version",
         "markommerce/frontend-demo": "self.version",
         "markommerce/layout-demo": "self.version",
+        "markommerce/testing": "self.version",
         "markommerce/theme-blank-demo": "self.version",
         "pestphp/pest": "^4.3",
         "phpstan/phpstan": "^2.0",
@@ -87,6 +89,7 @@
     "scripts": {
         "test": "pest -c phpunit.xml --parallel --exclude-group=integration-destructive",
         "test:all": "pest -c phpunit.xml --parallel",
+        "test:integration": "pest -c phpunit.xml --parallel --group=integration-destructive",
         "cs:check": "phpcs --standard=phpcs.xml",
         "cs:fix": [
             "php-cs-fixer fix --config=.php-cs-fixer.php",

@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Markommerce\ConfigScope\PgSql\Tests\Feature;
 
-require_once __DIR__ . '/Helpers/PostgresTestConnection.php';
-
 use Markommerce\ConfigScope\PgSql\Schema\ConfigValueOverridesTableEmitter;
-use Markommerce\ConfigScope\PgSql\Tests\Feature\Helpers\PostgresTestConnection;
+use Markommerce\Testing\Database\TestConnection;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -25,9 +23,9 @@ function configValueOverridesTableName(): string
 // ─── Shared connection & lifecycle ────────────────────────────────────────────
 
 beforeEach(function (): void {
-    PostgresTestConnection::skipIfUnavailable();
+    TestConnection::skipIfUnavailable();
 
-    $conn = new PostgresTestConnection();
+    $conn = new TestConnection();
     $tableName = configValueOverridesTableName();
 
     // DROP IF EXISTS first (crash resilience from previous failed runs)
@@ -51,7 +49,7 @@ afterEach(function (): void {
 it(
     'emits a CREATE TABLE config_value_overrides statement with config_key, signature, value, version, updated_at columns and a composite PRIMARY KEY (config_key, signature)',
     function (): void {
-        /** @var PostgresTestConnection $conn */
+        /** @var TestConnection $conn */
         $conn = $this->conn;
         $tableName = $this->tableName;
 

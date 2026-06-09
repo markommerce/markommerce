@@ -6,23 +6,16 @@ namespace Markommerce\CatalogPriceIndexMarket\Sorting;
 
 use Marko\Core\Attributes\Preference;
 use Markommerce\CatalogPriceIndex\Sorting\DescendingIndexedPriceSortOrder;
-use Markommerce\Criteria\Sort\SortDirection;
+use Markommerce\Criteria\Sort\SortField;
 
 #[Preference(replaces: DescendingIndexedPriceSortOrder::class)]
-class ScopedDescendingIndexedPriceSortOrder extends ScopedIndexedPriceSortOrder
+class ScopedDescendingIndexedPriceSortOrder extends DescendingIndexedPriceSortOrder
 {
-    public function key(): string
-    {
-        return 'price_desc';
-    }
+    public function __construct(private MarketScopedPriceExpression $marketScopedPriceExpression) {}
 
-    public function label(): string
+    /** @return list<SortField> */
+    public function sortFields(): array
     {
-        return 'Price: High to Low';
-    }
-
-    protected function direction(): SortDirection
-    {
-        return SortDirection::Descending;
+        return $this->marketScopedPriceExpression->sortFields($this->direction());
     }
 }
