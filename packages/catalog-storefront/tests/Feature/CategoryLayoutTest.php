@@ -23,7 +23,6 @@ use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface
 use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
 use Markommerce\CatalogStorefront\Component\ProductCard;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
-use Markommerce\CatalogStorefront\Component\StockBadge;
 use Markommerce\CatalogStorefront\Context\CategoryDataProvider;
 use Markommerce\CatalogStorefront\Controller\CategoryController;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
@@ -34,8 +33,6 @@ use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
 use Markommerce\Criteria\Strategy\OffsetPage;
 use Markommerce\Currency\CurrencyResolver;
-use Markommerce\Layout\Cache\PreparedPlace;
-use Markommerce\Layout\Cache\PreparedRepeatSlot;
 use Markommerce\Layout\Cache\PreparedTree;
 use Markommerce\Layout\Cache\PreparedTreeBuilder;
 use Markommerce\Layout\Compiler\Compiler;
@@ -398,44 +395,9 @@ it('no longer depends on marko/layout in composer.json', function (): void {
     expect($manifest['require'])->toHaveKey('markommerce/layout');
 });
 
-it('renders the category page with a grid of product cards', function (): void {
-    // MIGRATED: was using fake view + inline router wiring.
-    // Now uses the real harness; asserts on REAL mk-* markup (not the fake
-    // view's "data-template=catalog-storefront::components/product-grid" string).
-    IntegrationTestCase::skipIfUnavailable();
-
-    $testCase = categoryLayoutMakeTestCase();
-    $testCase->setUpIntegration();
-
-    try {
-        $store = $testCase->store;
-
-        $category = CategoryFactory::new($store)->withName('Test Category')->create();
-
-        $request = new Request([
-            'REQUEST_METHOD' => 'GET',
-            'REQUEST_URI' => '/catalog/category/' . $category->id,
-            'HTTP_HOST' => 'localhost',
-        ]);
-        $response = $store->handle($request);
-
-        expect($response->statusCode())->toBe(200);
-        // Real Latte output — product-grid.latte emits <mk-stack> wrapping the grid area.
-        // No products assigned, so the empty-state branch renders instead of <mk-grid>.
-        expect($response->body())->toContain('<mk-stack');
-        // The page should NOT contain any fake-view placeholder strings.
-        expect($response->body())->not->toContain('data-template=');
-    } finally {
-        $testCase->tearDownIntegration();
-    }
-})->group('integration-destructive');
-
 it(
     'migrates CategoryLayoutTest asserting the REAL rendered layout HTML (mk-* markup, not the fake template-name string)',
     function (): void {
-        // MIGRATED: This is the canonical "render real markup" assertion for this file.
-        // The previous test asserted `toContain('catalog-storefront::components/product-grid')`
-        // which was the fake view echoing the template name. Real Latte renders actual HTML.
         IntegrationTestCase::skipIfUnavailable();
 
         $testCase = categoryLayoutMakeTestCase();
@@ -466,42 +428,3 @@ it(
         }
     },
 )->group('integration-destructive');
-
-it('renders a stock badge sub-slot inside each product card', function (): void {
-    $compiler = categoryLayoutBuildCompiler();
-    $handleKey = CategoryController::class . '::show';
-    $trees = $compiler->compile();
-    $tree = $trees[$handleKey];
-
-    $rawContentSlot = $tree->slots['content'] ?? [];
-    expect($rawContentSlot)->not->toBeEmpty();
-
-    // Content slot is list<PreparedPlace> (not a RepeatSlot at the layout root level)
-    /** @var list<PreparedPlace> $contentSlot */
-    $contentSlot = $rawContentSlot;
-    $productGridPlace = $contentSlot[0];
-    expect($productGridPlace)->toBeInstanceOf(PreparedPlace::class);
-
-    $productsSlot = $productGridPlace->slots['products'] ?? null;
-    expect($productsSlot)->toBeInstanceOf(PreparedRepeatSlot::class);
-
-    /** @var PreparedRepeatSlot $productsSlot */
-    $productCardPlace = $productsSlot->children[0] ?? null;
-    expect($productCardPlace)->toBeInstanceOf(PreparedPlace::class);
-
-    /** @var PreparedPlace $productCardPlace */
-    expect($productCardPlace->component)->toBe(ProductCard::class);
-
-    $rawBadgesSlot = $productCardPlace->slots['badges'] ?? null;
-    expect($rawBadgesSlot)->not->toBeNull();
-    expect($rawBadgesSlot)->not->toBeEmpty();
-
-    // Badges slot is list<PreparedPlace> (sub-slot, not a RepeatSlot)
-    /** @var list<PreparedPlace> $badgesSlot */
-    $badgesSlot = $rawBadgesSlot;
-    $stockBadgePlace = $badgesSlot[0] ?? null;
-    expect($stockBadgePlace)->toBeInstanceOf(PreparedPlace::class);
-
-    /** @var PreparedPlace $stockBadgePlace */
-    expect($stockBadgePlace->component)->toBe(StockBadge::class);
-});

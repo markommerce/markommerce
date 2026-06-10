@@ -13,13 +13,11 @@ it(
 );
 
 it(
-    'contains expected Feature test file packages/scope-pgsql/tests/Feature/AutoMigrationTest.php',
+    'contains expected Unit test file packages/scope-pgsql/tests/Unit/AutoMigrationTest.php',
     function (): void {
-        // dirname(__DIR__) = packages/scope-pgsql/tests
-        $localTestsFeature = dirname(__DIR__) . '/Feature';
-
-        expect(file_exists($localTestsFeature . '/AutoMigrationTest.php'))->toBeTrue(
-            'Missing: packages/scope-pgsql/tests/Feature/AutoMigrationTest.php',
+        // __DIR__ = packages/scope-pgsql/tests/Unit
+        expect(file_exists(__DIR__ . '/AutoMigrationTest.php'))->toBeTrue(
+            'Missing: packages/scope-pgsql/tests/Unit/AutoMigrationTest.php',
         );
     },
 );
@@ -64,8 +62,8 @@ it('has no remaining upstream-namespace references in packages/scope-pgsql/tests
 });
 
 it('the AutoMigrationTest carries no ->group(\'integration-destructive\') tag', function (): void {
-    // dirname(__DIR__) = packages/scope-pgsql/tests
-    $path = dirname(__DIR__) . '/Feature/AutoMigrationTest.php';
+    // __DIR__ = packages/scope-pgsql/tests/Unit
+    $path = __DIR__ . '/AutoMigrationTest.php';
 
     if (!file_exists($path)) {
         $this->markTestSkipped('AutoMigrationTest.php not yet created');

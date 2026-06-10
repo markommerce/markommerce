@@ -57,16 +57,6 @@ function writeExtensionFile(string $dir, string $filename, LayoutExtension $exte
     return $path;
 }
 
-// --- Helper: write a file that returns a wrong type ---
-
-function writeWrongTypeFile(string $dir, string $filename, string $subdir = 'layout'): string
-{
-    $path = $dir . '/' . $subdir . '/' . $filename;
-    file_put_contents($path, '<?php return "this is a string, not a Layout";');
-
-    return $path;
-}
-
 // --- Helper: cleanup a temp directory recursively ---
 
 function removeTempDir(string $dir): void

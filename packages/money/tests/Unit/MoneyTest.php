@@ -18,11 +18,6 @@ function eur(): Currency
     return new Currency(code: 'EUR', scale: 2, symbol: '€', name: 'Euro');
 }
 
-function jpy(): Currency
-{
-    return new Currency(code: 'JPY', scale: 0, symbol: '¥', name: 'Japanese Yen');
-}
-
 it('creates money from a decimal string and a currency', function (): void {
     $money = Money::of('10.00', usd());
 

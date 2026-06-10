@@ -15,61 +15,6 @@ use Markommerce\CatalogScope\Entity\CategoryScopedOverrides;
 use Markommerce\CatalogScope\Entity\ProductScopedOverrides;
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * @param array<array{sql: string, bindings: array<mixed>}> $sqlLog
- */
-function makeScopedLoggingConnection(array &$sqlLog): ConnectionInterface
-{
-    return new class ($sqlLog) implements ConnectionInterface
-    {
-        private int $lastId = 0;
-
-        public function __construct(
-            private array &$sqlLog,
-        ) {}
-
-        public function connect(): void {}
-
-        public function disconnect(): void {}
-
-        public function isConnected(): bool
-        {
-            return true;
-        }
-
-        public function query(
-            string $sql,
-            array $bindings = [],
-        ): array {
-            return [];
-        }
-
-        public function execute(
-            string $sql,
-            array $bindings = [],
-        ): int {
-            $this->sqlLog[] = ['sql' => $sql, 'bindings' => $bindings];
-            $this->lastId++;
-
-            return 1;
-        }
-
-        public function prepare(string $sql): StatementInterface
-        {
-            throw new RuntimeException('Not implemented');
-        }
-
-        public function lastInsertId(): int
-        {
-            return $this->lastId;
-        }
-    };
-}
-
-// ---------------------------------------------------------------------------
 // Tests: Requirements 5–6 (linkExtendersFrom)
 // ---------------------------------------------------------------------------
 

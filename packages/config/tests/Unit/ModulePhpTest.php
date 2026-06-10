@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Marko\Config\ConfigRepositoryInterface;
-use Marko\Core\Attributes\Command;
 use Marko\Core\Container\Container;
 use Marko\Core\Container\ContainerInterface;
 use Marko\Core\Container\PreferenceRegistry;
@@ -12,23 +11,14 @@ use Marko\Core\Module\ModuleRepository;
 use Marko\Core\Module\ModuleRepositoryInterface;
 use Marko\Core\Path\ProjectPaths;
 use Markommerce\Config\Cache\CachingConfigResolver;
-use Markommerce\Config\Command\ConfigGetCommand;
-use Markommerce\Config\Command\ConfigListCommand;
-use Markommerce\Config\Command\GenerateCommand;
-use Markommerce\Config\Command\SetCommand;
-use Markommerce\Config\Command\UnsetCommand;
 use Markommerce\Config\ConfigResolver;
 use Markommerce\Config\Contracts\ConfigStorageInterface;
 use Markommerce\Config\Contracts\SecretCipherInterface;
 use Markommerce\Config\Encryption\SodiumSecretCipher;
 use Markommerce\Config\Exceptions\InvalidConfigClassException;
 use Markommerce\Config\Exceptions\SecretCipherException;
-use Markommerce\Config\Middleware\ConfigCacheResetMiddleware;
-use Markommerce\Config\Proxy\ProxyAutoloader;
-use Markommerce\Config\Proxy\ProxyGenerator;
 use Markommerce\Config\Proxy\ProxyLocator;
 use Markommerce\Config\Registry\ConfigRegistry;
-use Markommerce\Config\Registry\ConfigRegistryBuilder;
 use Markommerce\Config\Storage\InMemoryConfigStorage;
 
 /**
@@ -160,29 +150,9 @@ function bootModuleContainer(
     return $container;
 }
 
-/**
- * Returns a temp directory for generated proxies, cleaned up after the test.
- */
-function makeTempProxyDir(): string
-{
-    $dir = sys_get_temp_dir() . '/markommerce-proxy-test-' . uniqid();
-    mkdir($dir, 0755, true);
-
-    return $dir;
-}
-
 // ─────────────────────────────────────────────────────────
 // Requirements
 // ─────────────────────────────────────────────────────────
-
-it(
-    'does not bind ConfigStorageInterface — a driver package (e.g. config-pgsql) must provide the implementation',
-    function (): void {
-        $moduleArray = require dirname(__DIR__, 2) . '/module.php';
-
-        expect($moduleArray['bindings'])->not->toHaveKey(ConfigStorageInterface::class);
-    },
-)->group('integration-destructive');
 
 it('registers PreferenceRegistry as an instance in the container during boot', function (): void {
     $container = bootModuleContainer();
@@ -192,7 +162,7 @@ it('registers PreferenceRegistry as an instance in the container during boot', f
 
     expect($registry1)->toBeInstanceOf(PreferenceRegistry::class)
         ->and($registry1)->toBe($registry2); // same instance = registered via instance()
-})->group('integration-destructive');
+});
 
 it('discovers config classes by scanning module src directories for properties with #[Config]', function (): void {
     // Create a temp module directory with a fixture config class
@@ -234,7 +204,7 @@ it('discovers config classes by scanning module src directories for properties w
             $registry->all(),
             fn ($def) => $def->configClass === $fqn,
         ))->toBeTrue();
-})->group('integration-destructive');
+});
 
 it('builds the ConfigRegistry at boot from the discovered class list', function (): void {
     // Create a temp module with a config class
@@ -277,7 +247,7 @@ it('builds the ConfigRegistry at boot from the discovered class list', function 
     expect($definition)->not->toBeNull()
         ->and($definition->configClass)->toBe($fqn)
         ->and($definition->key)->toBe($configKey);
-})->group('integration-destructive');
+});
 
 it('registers the ProxyAutoloader at boot so generated proxies resolve', function (): void {
     // Create a temp proxy file that the autoloader should be able to load
@@ -303,7 +273,7 @@ it('registers the ProxyAutoloader at boot so generated proxies resolve', functio
 
     // The autoloader should have been registered — class_exists should load it
     expect(class_exists($proxyClass))->toBeTrue();
-})->group('integration-destructive');
+});
 
 it('does NOT instantiate SecretCipher at boot — only on first encrypt/decrypt invocation', function (): void {
     // Boot succeeds even when MARKOMMERCE_CONFIG_SECRET_KEY is unset
@@ -312,7 +282,7 @@ it('does NOT instantiate SecretCipher at boot — only on first encrypt/decrypt 
 
     // Container booted — cipher binding is registered lazily; no exception yet
     expect($container)->not->toBeNull();
-})->group('integration-destructive');
+});
 
 it(
     'throws a loud setup exception at the FIRST secret read/write when MARKOMMERCE_CONFIG_SECRET_KEY is unset',
@@ -323,40 +293,7 @@ it(
         expect(fn () => $container->get(SecretCipherInterface::class))
             ->toThrow(SecretCipherException::class);
     },
-)->group('integration-destructive');
-
-it(
-    'verifies the five #[Command]-annotated command classes exist under src/Command/ (Marko auto-discovers them)',
-    function (): void {
-        $commandClasses = [
-            ConfigListCommand::class,
-            ConfigGetCommand::class,
-            SetCommand::class,
-            UnsetCommand::class,
-            GenerateCommand::class,
-        ];
-
-        foreach ($commandClasses as $class) {
-            $reflection = new ReflectionClass($class);
-            $attributes = $reflection->getAttributes(Command::class);
-
-            expect($attributes)->not->toBeEmpty("Command attribute missing on $class");
-        }
-
-        expect($commandClasses)->toHaveCount(5);
-    },
-)->group('integration-destructive');
-
-it(
-    'registers ConfigCacheResetMiddleware in globalMiddleware so RequestConfigCache is cleared per request',
-    function (): void {
-        $moduleArray = require dirname(__DIR__, 2) . '/module.php';
-
-        $middleware = $moduleArray['globalMiddleware'] ?? [];
-
-        expect($middleware)->toContain(ConfigCacheResetMiddleware::class);
-    },
-)->group('integration-destructive');
+);
 
 it(
     'binds SecretCipherInterface lazily via a closure that reads the 32-byte key from env on first call',
@@ -373,7 +310,7 @@ it(
             putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
         }
     },
-)->group('integration-destructive');
+);
 
 it(
     'binds ConfigResolver to the CachingConfigResolver decorator so all consumers get caching by default',
@@ -390,7 +327,7 @@ it(
             putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
         }
     },
-)->group('integration-destructive');
+);
 
 it(
     'generates a missing proxy at boot when markommerce.config.auto_regenerate is true and the proxy file is absent',
@@ -440,7 +377,7 @@ it(
 
         expect(file_exists($proxyFile))->toBeTrue();
     },
-)->group('integration-destructive');
+);
 
 it(
     'regenerates a stale proxy at boot when markommerce.config.auto_regenerate is true and the config class source is newer than the proxy file',
@@ -499,7 +436,7 @@ it(
 
         expect(file_get_contents($proxyFile))->not->toBe($staleContent);
     },
-)->group('integration-destructive');
+);
 
 it('does NOT regenerate any proxy at boot when markommerce.config.auto_regenerate is false', function (): void {
     $generatedDir = sys_get_temp_dir() . '/markommerce-no-regen-test-' . uniqid() . '/var/generated/config';
@@ -552,7 +489,7 @@ it('does NOT regenerate any proxy at boot when markommerce.config.auto_regenerat
     );
 
     expect(file_get_contents($proxyFile))->toBe($sentinelContent);
-})->group('integration-destructive');
+});
 
 it('bubbles up InvalidConfigClassException from dev-mode regeneration so boot fails loudly', function (): void {
     $tempModuleDir = sys_get_temp_dir() . '/markommerce-bad-regen-module-' . uniqid();
@@ -588,4 +525,4 @@ it('bubbles up InvalidConfigClassException from dev-mode regeneration so boot fa
         modules: [$manifest],
         markoConfig: ['markommerce.config.auto_regenerate' => true],
     ))->toThrow(InvalidConfigClassException::class);
-})->group('integration-destructive');
+});

@@ -33,21 +33,6 @@ function buildUnsetCommandRegistry(): ConfigRegistry
     );
 }
 
-function buildUnsetCommand(InMemoryConfigStorage $storage): UnsetCommand
-{
-    $registry = buildUnsetCommandRegistry();
-    $writer = new ConfigWriter(
-        registry: $registry,
-        storage: $storage,
-        cipher: new NullSecretCipher(),
-    );
-
-    return new UnsetCommand(
-        registry: $registry,
-        writer: $writer,
-    );
-}
-
 function makeUnsetInput(string ...$args): Input
 {
     return new Input(['marko', 'config:unset', ...$args]);

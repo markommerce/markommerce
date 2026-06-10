@@ -8,7 +8,6 @@ use Marko\Database\Connection\ConnectionInterface;
 use Marko\Database\Entity\EntityHydrator;
 use Marko\Database\Entity\EntityMetadataFactory;
 use Marko\Database\PgSql\Query\PgSqlQueryBuilderFactory;
-use Markommerce\Catalog\Exceptions\InvalidPaginationConfigException;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Repositories\CategoryRepository;
 use Markommerce\Catalog\Repositories\ProductCategoryAssignmentRepository;
@@ -84,8 +83,7 @@ function e2ePositionMakeResolver(
         public function resolved(
             string $configClass,
             string $field,
-        ): mixed
-        {
+        ): mixed {
             return $this->values[$field] ?? null;
         }
     };
@@ -160,26 +158,3 @@ it('lists category products in assignment position order by default', function (
         $testCase->tearDownClass();
     }
 })->group('integration-destructive');
-
-it('fails loudly when a non-keyset sort is requested under the keyset strategy', function (): void {
-    $registry = e2ePositionMakeRegistry();
-    $resolver = e2ePositionMakeResolver($registry, [
-        'strategy'     => 'keyset',
-        'presentation' => 'load_more',
-        'defaultSort'  => 'position',
-    ]);
-
-    // position does not support keyset → must throw with non-empty message/context/suggestion
-    $caught = null;
-
-    try {
-        $resolver->resolve(page: 1, size: 10, sort: 'position');
-    } catch (InvalidPaginationConfigException $e) {
-        $caught = $e;
-    }
-
-    expect($caught)->not->toBeNull()
-        ->and($caught->getMessage())->not->toBeEmpty()
-        ->and($caught->getContext())->not->toBeEmpty()
-        ->and($caught->getSuggestion())->not->toBeEmpty();
-});

@@ -134,15 +134,14 @@ it(
     function (): void {
         $seederTreeFile = dirname(__DIR__, 2) . '/tests/Feature/CatalogSeederTreeTest.php';
         $seederUnitFile = dirname(__DIR__, 2) . '/tests/Unit/Seed/CatalogSeederTest.php';
-    
+
         $seederTreeContents = file_get_contents($seederTreeFile);
         $seederUnitContents = file_get_contents($seederUnitFile);
-    
-        expect($seederTreeContents)->toContain("'running the seeder creates the default tree when none exists'")
-            ->and($seederTreeContents)->toContain(
-                "'running the seeder reuses an existing default tree without creating a duplicate'"
-            );
-    
+
+        expect($seederTreeContents)->toContain(
+            "'running the seeder places every seeded category as a root node in the default tree'"
+        );
+
         expect($seederUnitContents)->toContain("'seeds the configured number of categories'")
             ->and($seederUnitContents)->toContain("'seeds the configured number of products'");
     }

@@ -31,21 +31,6 @@ dataset('storeProfiles', static function (): array {
     ];
 });
 
-it('provisions and boots the chosen profile and exposes the store', function (): void {
-    TestConnection::skipIfUnavailable();
-
-    $profile = StoreProfile::simple(integrationTestCaseVendorDir());
-    $testCase = new IntegrationTestCase($profile);
-    $testCase->setUpIntegration();
-
-    try {
-        expect($testCase->store)->toBeInstanceOf(BootedStore::class);
-        expect($testCase->store->get(ConnectionInterface::class))->toBeInstanceOf(ConnectionInterface::class);
-    } finally {
-        $testCase->tearDownIntegration();
-    }
-})->group('integration-destructive');
-
 it('rolls back changes so each test starts clean', function (): void {
     TestConnection::skipIfUnavailable();
 

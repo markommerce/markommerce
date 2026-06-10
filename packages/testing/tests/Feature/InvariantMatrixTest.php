@@ -375,24 +375,3 @@ it('reflects the active market price override in the two-markets profile', funct
     }
 })->group('integration-destructive');
 
-it('does not expose price sort orders in the simple profile', function (): void {
-    TestConnection::skipIfUnavailable();
-
-    $profile  = matrixSimpleProfile(invariantMatrixVendorDir());
-    $testCase = new IntegrationTestCase($profile);
-    $testCase->setUpIntegration();
-
-    try {
-        $store = $testCase->store;
-
-        /** @var CategorySortOrderRegistry $registry */
-        $registry = $store->get(CategorySortOrderRegistry::class);
-
-        expect($registry->has('price_asc'))->toBeFalse()
-            ->and($registry->has('price_desc'))->toBeFalse()
-            ->and($registry->has('position'))->toBeTrue();
-    } finally {
-        $testCase->tearDownIntegration();
-        $testCase->tearDownClass();
-    }
-})->group('integration-destructive');

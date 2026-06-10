@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Markommerce\Layout\Cache\PreparedPlace;
 use Markommerce\Layout\Cache\PreparedTree;
-use Markommerce\Layout\Provide;
 use Markommerce\Layout\Runtime\TreeMerger;
 
 // =============================================================================
@@ -35,15 +34,6 @@ function tm_makePlace(string $component = 'SomeComponent', ?string $name = null)
         slots: [],
         decorators: [],
         template: '',
-    );
-}
-
-function tm_makeProvide(string $token = 'MyToken', string $provider = 'SomeProvider'): Provide
-{
-    return new Provide(
-        token: $token,
-        provider: $provider,
-        props: [],
     );
 }
 

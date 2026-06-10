@@ -59,23 +59,6 @@ function httpTestEnsureConfigKey(): string
     return $current;
 }
 
-/**
- * Restore MARKOMMERCE_CONFIG_SECRET_KEY to a previously captured value.
- * Call in a finally block after httpTestEnsureConfigKey().
- */
-function httpTestRestoreConfigKey(string $previous): void
-{
-    if ($previous === '') {
-        // We set it — leave it; the docker env might have already set it.
-        // Only unset if this process set it to a dummy value.
-        // Actually, we don't unset: keeping a test key is harmless and avoids
-        // breaking any subsequent test in the same worker that needs it.
-        return;
-    }
-
-    putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $previous);
-}
-
 // Ensure the config secret key is always set for this test file.
 // The storefront profile includes markommerce/config which binds SecretCipherInterface
 // that reads MARKOMMERCE_CONFIG_SECRET_KEY from the env. Docker sets it globally, but

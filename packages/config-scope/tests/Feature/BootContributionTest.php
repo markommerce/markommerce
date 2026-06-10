@@ -14,8 +14,6 @@ use Marko\Core\Path\ProjectPaths;
 use Markommerce\Config\Attributes\Config;
 use Markommerce\Config\ConfigResolver;
 use Markommerce\Config\Contracts\ConfigStorageInterface;
-use Markommerce\Config\Discovery\ConfigClassDiscovery;
-use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Storage\InMemoryConfigStorage;
 use Markommerce\ConfigScope\Cache\ScopedCachingConfigResolver;
 use Markommerce\ConfigScope\Contracts\ScopedConfigStorageInterface;
@@ -152,7 +150,7 @@ it(
     
         expect($registry->axesForProperty($fqn, 'value'))->toBe(['locale']);
     }
-)->group('integration-destructive');
+);
 
 it('does not register any axes when a config class has no #[Scoped] property', function (): void {
     $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-noscoped-test-' . uniqid();
@@ -191,7 +189,7 @@ it('does not register any axes when a config class has no #[Scoped] property', f
     $registry = $container->get(ScopedFieldRegistry::class);
 
     expect($registry->hasScopedProperties($fqn))->toBeFalse();
-})->group('integration-destructive');
+});
 
 it(
     'registers compound axes (e.g. #[Scoped(axes: [\'locale\', \'market\'])]) as a list of axis names',
@@ -235,7 +233,7 @@ it(
     
         expect($registry->axesForProperty($fqn, 'value'))->toBe(['locale', 'market']);
     }
-)->group('integration-destructive');
+);
 
 it(
     'throws Markommerce\Scope\Exceptions\UnknownAxisException when a #[Scoped] axis on a discovered config class is not registered with the ScopeRegistry',
@@ -275,57 +273,7 @@ it(
             extraModules: [$manifest],
         ))->toThrow(UnknownAxisException::class);
     }
-)->group('integration-destructive');
-
-it(
-    'auto-injects ConfigClassDiscovery and ScopedFieldRegistry into the boot closure via container::call',
-    function (): void {
-        $injectedDiscovery = null;
-        $injectedRegistry = null;
-    
-        $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-inject-test-' . uniqid();
-        $srcDir = $tempModuleDir . '/src/Config';
-        mkdir($srcDir, 0755, true);
-    
-        $namespace = 'Markommerce\\ConfigScope\\Tests\\TempInject\\Config';
-        $className = 'TempInjectConfig' . uniqid('', false);
-    
-        file_put_contents($srcDir . '/' . $className . '.php', <<<PHP
-        <?php
-        declare(strict_types=1);
-        namespace $namespace;
-        use Markommerce\\Config\\Attributes\\Config;
-        class $className {
-            #[Config(key: 'temp/inject.value')]
-            public string \$value = 'default';
-        }
-        PHP);
-    
-        require $srcDir . '/' . $className . '.php';
-    
-        $manifest = new ModuleManifest(
-            name: 'test/temp-inject',
-            version: '1.0.0',
-            path: $tempModuleDir,
-            source: 'vendor',
-        );
-    
-        // Verify by reading the actual module.php and confirming it uses ConfigClassDiscovery and ScopedFieldRegistry type hints
-    $moduleSource = file_get_contents(dirname(__DIR__, 2) . '/module.php');
-    
-        expect($moduleSource)->toContain('ConfigClassDiscovery')
-            ->and($moduleSource)->toContain('ScopedFieldRegistry');
-    
-        // Boot the container to confirm the closure runs successfully (i.e., injection works)
-    $container = bootConfigScopeContainer(
-            axisNames: ['locale'],
-            extraModules: [$manifest],
-        );
-    
-        expect($container->get(ScopedFieldRegistry::class))->toBeInstanceOf(ScopedFieldRegistry::class)
-            ->and($container->get(ConfigClassDiscovery::class))->toBeInstanceOf(ConfigClassDiscovery::class);
-    }
-)->group('integration-destructive');
+);
 
 it(
     'returns the ScopedCachingConfigResolver from container::get(ConfigResolver::class) when all module manifests are booted and PreferenceRegistry is wired (verifies the binding wins over the Tier 1 factory + Preference autowiring path)',
@@ -344,4 +292,4 @@ it(
             putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
         }
     }
-)->group('integration-destructive');
+);

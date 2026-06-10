@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Markommerce\Scope\PgSql\Tests\Feature;
+namespace Markommerce\Scope\PgSql\Tests\Unit;
 
 use Marko\Database\Attributes\Column;
 use Marko\Database\Attributes\Table;

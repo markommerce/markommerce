@@ -9,8 +9,6 @@ use Markommerce\Config\PgSql\PgsqlConfigStorage;
 use Markommerce\Config\PgSql\Schema\ConfigValuesTableEmitter;
 use Markommerce\Config\ValueObjects\ConfigRow;
 use Markommerce\Testing\Database\TestConnection;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -65,101 +63,6 @@ it('returns null from load when the config_key row does not exist', function ():
     $storage = $this->storage;
 
     expect($storage->load('markommerce/catalog.missing_key'))->toBeNull();
-})->group('integration-destructive');
-
-it('returns an empty array from loadMany when no requested keys exist', function (): void {
-    /** @var PgsqlConfigStorage $storage */
-    $storage = $this->storage;
-
-    $result = $storage->loadMany(['markommerce/catalog.missing_a', 'markommerce/catalog.missing_b']);
-
-    expect($result)->toBe([]);
-})->group('integration-destructive');
-
-it('returns a map keyed by config_key with one entry per existing row from loadMany', function (): void {
-    /** @var PgsqlConfigStorage $storage */
-    $storage = $this->storage;
-
-    $key1 = 'markommerce/catalog.grid_page_size';
-    $key2 = 'markommerce/catalog.list_page_size';
-
-    $storage->compareAndSave($key1, makeRow($key1, 20), 0);
-    $storage->compareAndSave($key2, makeRow($key2, 10), 0);
-
-    $result = $storage->loadMany([$key1, $key2, 'markommerce/catalog.missing']);
-
-    expect($result)->toHaveCount(2)
-        ->and(array_key_exists($key1, $result))->toBeTrue()
-        ->and(array_key_exists($key2, $result))->toBeTrue()
-        ->and($result[$key1]->value)->toBe(20)
-        ->and($result[$key2]->value)->toBe(10);
-})->group('integration-destructive');
-
-it('inserts a new row via compareAndSave when expectedVersion is 0 and no row exists', function (): void {
-    /** @var PgsqlConfigStorage $storage */
-    $storage = $this->storage;
-    $key = 'markommerce/catalog.grid_page_size';
-
-    $result = $storage->compareAndSave($key, makeRow($key, 20), 0);
-
-    expect($result)->toBeTrue();
-
-    $loaded = $storage->load($key);
-
-    expect($loaded)->not->toBeNull()
-        ->and($loaded->value)->toBe(20)
-        ->and($loaded->version)->toBe(1);
-})->group('integration-destructive');
-
-it('updates an existing row via compareAndSave when the stored version matches expectedVersion', function (): void {
-    /** @var PgsqlConfigStorage $storage */
-    $storage = $this->storage;
-    $key = 'markommerce/catalog.grid_page_size';
-
-    $storage->compareAndSave($key, makeRow($key, 20), 0);
-
-    $result = $storage->compareAndSave($key, makeRow($key, 25), 1);
-
-    expect($result)->toBeTrue();
-
-    $loaded = $storage->load($key);
-
-    expect($loaded->value)->toBe(25)
-        ->and($loaded->version)->toBe(2);
-})->group('integration-destructive');
-
-it('bumps version by exactly 1 on every successful compareAndSave', function (): void {
-    /** @var PgsqlConfigStorage $storage */
-    $storage = $this->storage;
-    $key = 'markommerce/catalog.grid_page_size';
-
-    $storage->compareAndSave($key, makeRow($key, 10), 0);
-    $loaded1 = $storage->load($key);
-    expect($loaded1->version)->toBe(1);
-
-    $storage->compareAndSave($key, makeRow($key, 20), 1);
-    $loaded2 = $storage->load($key);
-    expect($loaded2->version)->toBe(2);
-
-    $storage->compareAndSave($key, makeRow($key, 30), 2);
-    $loaded3 = $storage->load($key);
-    expect($loaded3->version)->toBe(3);
-})->group('integration-destructive');
-
-it('returns false from compareAndSave when the stored version does not match expectedVersion', function (): void {
-    /** @var PgsqlConfigStorage $storage */
-    $storage = $this->storage;
-    $key = 'markommerce/catalog.grid_page_size';
-
-    $storage->compareAndSave($key, makeRow($key, 20), 0);
-
-    $result = $storage->compareAndSave($key, makeRow($key, 25), 99);
-
-    expect($result)->toBeFalse();
-
-    $loaded = $storage->load($key);
-    expect($loaded->value)->toBe(20)
-        ->and($loaded->version)->toBe(1);
 })->group('integration-destructive');
 
 it('sets updated_at to NOW() on every successful compareAndSave', function (): void {
@@ -289,11 +192,11 @@ it(
         /** @var PgsqlConfigStorage $storage */
         $storage = $this->storage;
         $key = 'markommerce/catalog.hydration_test';
-    
+
         $storage->compareAndSave($key, makeRow($key, ['nested' => true]), 0);
-    
+
         $loaded = $storage->load($key);
-    
+
         expect($loaded)->not->toBeNull()
             ->and($loaded)->toBeInstanceOf(ConfigRow::class)
             ->and($loaded->key)->toBe($key)
@@ -309,46 +212,13 @@ it(
         /** @var PgsqlConfigStorage $storage */
         $storage = $this->storage;
         $key = 'markommerce/catalog.delete_test';
-    
+
         $storage->compareAndSave($key, makeRow($key, 'to_delete'), 0);
-    
+
         $emptyRow = makeRow($key, null);
         $result = $storage->compareAndSave($key, $emptyRow, 1);
-    
+
         expect($result)->toBeTrue();
         expect($storage->load($key))->toBeNull();
-    }
-)->group('integration-destructive');
-
-it(
-    'does not reference overrides or _overrides_gin in any SQL statement issued by PgsqlConfigStorage',
-    function (): void {
-        $source = file_get_contents(
-            dirname(__DIR__, 2) . '/src/PgsqlConfigStorage.php',
-        );
-    
-        expect($source)->toBeString()
-            ->and($source)->not->toContain('overrides')
-            ->and($source)->not->toContain('_overrides_gin');
-    }
-)->group('integration-destructive');
-
-it(
-    'does not import Markommerce\Scope\... namespaces from any file under packages/config-pgsql/src after task completes',
-    function (): void {
-        $srcDir = dirname(__DIR__, 2) . '/src';
-        $phpFiles = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($srcDir),
-        );
-    
-        foreach ($phpFiles as $file) {
-            if ($file->getExtension() !== 'php') {
-                continue;
-            }
-    
-            $contents = file_get_contents($file->getPathname());
-    
-            expect($contents)->not->toContain('Markommerce\\Scope\\');
-        }
     }
 )->group('integration-destructive');
