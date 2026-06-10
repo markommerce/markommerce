@@ -153,22 +153,6 @@ function makeGridNoPricePriceResolver(): PriceResolverInterface
     };
 }
 
-function productGridMakeAssignmentService(
-    FakeProductRepository $productRepository,
-    FakeCategoryRepository $categoryRepository,
-    FakeProductCategoryAssignmentRepository $assignmentRepository,
-): CategoryAssignmentService {
-    $positionCodec = new PositionCodec();
-
-    return new CategoryAssignmentService(
-        productRepository: $productRepository,
-        categoryRepository: $categoryRepository,
-        productCategoryAssignmentRepository: $assignmentRepository,
-        positionCodec: $positionCodec,
-        keysetPaginationStrategy: new KeysetPaginationStrategy($positionCodec),
-    );
-}
-
 /**
  * @param array<string, mixed> $overrides
  */

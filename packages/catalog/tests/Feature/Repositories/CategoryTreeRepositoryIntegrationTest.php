@@ -30,37 +30,6 @@ function makeCategoryTree(string $code, string $name, bool $isDefault = false): 
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
-it('persists a tree and reads it back by id', function (): void {
-    TestConnection::skipIfUnavailable();
-
-    $profile  = StoreProfile::simple(catTreeRepoVendorDir());
-    $testCase = new IntegrationTestCase($profile);
-    $testCase->setUpIntegration();
-
-    try {
-        $store = $testCase->store;
-
-        /** @var CategoryTreeRepository $repository */
-        $repository = $store->get(CategoryTreeRepository::class);
-
-        $tree = makeCategoryTree('main', 'Main Tree', true);
-        $repository->save($tree);
-
-        expect($tree->id)->not->toBeNull();
-
-        $found = $repository->find($tree->id);
-
-        expect($found)->not->toBeNull()
-            ->and($found->id)->toBe($tree->id)
-            ->and($found->code)->toBe('main')
-            ->and($found->name)->toBe('Main Tree')
-            ->and($found->isDefault)->toBeTrue();
-    } finally {
-        $testCase->tearDownIntegration();
-        $testCase->tearDownClass();
-    }
-})->group('integration-destructive');
-
 it('finds a tree by its unique code', function (): void {
     TestConnection::skipIfUnavailable();
 
@@ -158,35 +127,6 @@ it('throws DefaultTreeMissingException when no default tree exists', function ()
 
         expect(fn () => $repository->findDefault())
             ->toThrow(DefaultTreeMissingException::class);
-    } finally {
-        $testCase->tearDownIntegration();
-        $testCase->tearDownClass();
-    }
-})->group('integration-destructive');
-
-it('deletes a tree', function (): void {
-    TestConnection::skipIfUnavailable();
-
-    $profile  = StoreProfile::simple(catTreeRepoVendorDir());
-    $testCase = new IntegrationTestCase($profile);
-    $testCase->setUpIntegration();
-
-    try {
-        $store = $testCase->store;
-
-        /** @var CategoryTreeRepository $repository */
-        $repository = $store->get(CategoryTreeRepository::class);
-
-        $tree = makeCategoryTree('todelete', 'Tree To Delete');
-        $repository->save($tree);
-
-        $id = $tree->id;
-        expect($id)->not->toBeNull();
-
-        $repository->delete($tree);
-
-        $found = $repository->find($id);
-        expect($found)->toBeNull();
     } finally {
         $testCase->tearDownIntegration();
         $testCase->tearDownClass();

@@ -64,34 +64,6 @@ it('reports zero schema diff after provisioning entities', function (): void {
         ->and($diff->tablesToDrop)->toBeEmpty();
 });
 
-it('applies the entity schema to a fresh scratch database', function (): void {
-    TestConnection::skipIfUnavailable();
-
-    $admin = new AdminConnection();
-    $dbName = 'marko_test_migration_apply_' . getmypid();
-    $admin->createDatabase($dbName);
-
-    try {
-        $conn = $admin->connectionFor($dbName);
-        $provisioner = new SchemaProvisioner();
-
-        $fixtureEntityDir = realpath(__DIR__ . '/../../Fixture/Entity');
-        expect($fixtureEntityDir)->not->toBeFalse();
-
-        $provisioner->provision($conn, [(string) $fixtureEntityDir]);
-
-        $tables = $conn->query(
-            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
-        );
-        $tableNames = array_map(static fn (array $row): string => (string) $row['table_name'], $tables);
-
-        expect($tableNames)->toContain('fixture_parents')
-            ->and($tableNames)->toContain('fixture_children');
-    } finally {
-        $admin->dropDatabase($dbName);
-    }
-})->group('integration-destructive');
-
 it('creates the expected tables after applying', function (): void {
     TestConnection::skipIfUnavailable();
 
@@ -107,6 +79,15 @@ it('creates the expected tables after applying', function (): void {
         expect($fixtureEntityDir)->not->toBeFalse();
 
         $provisioner->provision($conn, [(string) $fixtureEntityDir]);
+
+        // Verify both tables were created
+        $tables = $conn->query(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
+        );
+        $tableNames = array_map(static fn (array $row): string => (string) $row['table_name'], $tables);
+
+        expect($tableNames)->toContain('fixture_parents')
+            ->and($tableNames)->toContain('fixture_children');
 
         // Verify fixture_parents columns
         $parentColumns = $conn->query(

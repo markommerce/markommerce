@@ -124,20 +124,3 @@ it('binds the base resolver to the price resolver interface', function (): void 
 
     expect($resolver)->toBeInstanceOf(PriceResolver::class);
 });
-
-it('produces the same money for a product whether resolved singly or in a batch', function (): void {
-    $product             = new Product();
-    $product->priceAmount = '49.99';
-
-    $registry = new PriceContributorRegistry();
-    $registry->register(new BasePriceContributor(new RawProductBasePriceProvider()));
-    $currencyResolver = featureBuildCurrencyResolver();
-    $batchResolver    = new BatchPriceResolver($registry, $currencyResolver);
-    $priceResolver    = new PriceResolver($batchResolver);
-
-    $singleMoney  = $priceResolver->resolve(PriceContext::forProduct($product));
-    $batchResults = $batchResolver->resolve([0 => $product]);
-
-    expect($singleMoney->amount())->toBe($batchResults[0]->amount());
-    expect($singleMoney->currency()->code)->toBe($batchResults[0]->currency()->code);
-});

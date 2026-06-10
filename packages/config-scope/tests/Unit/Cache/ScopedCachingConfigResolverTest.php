@@ -252,10 +252,10 @@ it(
             ->and($moduleArray['bindings'])->toHaveKey(ConfigResolver::class);
     
         $factory = $moduleArray['bindings'][ConfigResolver::class];
-    
+
         expect($factory)->toBeInstanceOf(Closure::class);
     }
-)->group('integration-destructive');
+);
 
 it(
     'caches resolution results per (configKey, axis context) pair, so changing the ScopeContext returns a freshly-resolved value',

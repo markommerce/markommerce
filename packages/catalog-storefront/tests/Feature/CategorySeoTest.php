@@ -41,17 +41,17 @@ it(
     'migrates CategorySeoTest asserting canonical and SEO headers from real data (config-driven view-all set via the real config pipeline)',
     function (): void {
         IntegrationTestCase::skipIfUnavailable();
-    
+
         $testCase = catalogSeoMakeTestCase();
         $testCase->setUpIntegration();
-    
+
         try {
             $store = $testCase->store;
-    
+
             $category = CategoryFactory::new($store)->withName('Electronics')->create();
-    
+
             // defaultPageSize=24, defaultSort=position — requesting defaults should omit them from canonical
-        $request = new Request(
+            $request = new Request(
                 server: [
                     'REQUEST_METHOD' => 'GET',
                     'REQUEST_URI'    => '/catalog/category/' . $category->id . '?page=1&size=24&sort=position',
@@ -60,18 +60,18 @@ it(
                 query: ['page' => '1', 'size' => '24', 'sort' => 'position'],
             );
             $response = $store->handle($request);
-    
+
             expect($response->statusCode())->toBe(200);
             $canonical = $response->headers()['Link'] ?? null;
             expect($canonical)->not->toBeNull();
             // page=1 is default — canonical should NOT include page param
-        expect($canonical)->not->toContain('page=1');
+            expect($canonical)->not->toContain('page=1');
             // size=24 is the default page size — should NOT be included in canonical
-        expect($canonical)->not->toContain('size=24');
+            expect($canonical)->not->toContain('size=24');
             // sort=position is the default — should NOT be included in canonical
-        expect($canonical)->not->toContain('sort=position');
+            expect($canonical)->not->toContain('sort=position');
             // Canonical URL should be just the bare category path
-        expect($canonical)->toContain('/catalog/category/' . $category->id . '>');
+            expect($canonical)->toContain('/catalog/category/' . $category->id . '>');
         } finally {
             $testCase->tearDownIntegration();
         }
@@ -123,87 +123,6 @@ it('renders all products on one page when under the view-all threshold', functio
     }
 })->group('integration-destructive');
 
-it('canonicalizes paginated pages to the view-all url when view-all is active', function (): void {
-    IntegrationTestCase::skipIfUnavailable();
-
-    $testCase = catalogSeoMakeTestCase();
-    $testCase->setUpIntegration();
-
-    try {
-        $store = $testCase->store;
-
-        // viewAllThreshold=5, defaultPageSize=2: a category with 3 products qualifies for view=all
-        // A paginated request (page=2) should get a canonical pointing to view=all
-        /** @var ConfigWriterInterface $writer */
-        $writer = $store->get(ConfigWriterInterface::class);
-        $writer->setGlobal('catalog/pagination.viewAllThreshold', 5);
-        $writer->setGlobal('catalog/pagination.defaultPageSize', 2);
-
-        $category = CategoryFactory::new($store)->withName('Small Category')->create();
-
-        for ($i = 1; $i <= 3; $i++) {
-            ProductFactory::new($store)->withSku('VIEW-ALL-' . $i)->inCategory($category)->create();
-        }
-
-        $request = new Request(
-            server: [
-                'REQUEST_METHOD' => 'GET',
-                'REQUEST_URI'    => '/catalog/category/' . $category->id . '?page=2',
-                'HTTP_HOST'      => 'example.com',
-            ],
-            query: ['page' => '2'],
-        );
-        $response = $store->handle($request);
-
-        expect($response->statusCode())->toBe(200);
-        $canonical = $response->headers()['Link'] ?? null;
-        expect($canonical)->not->toBeNull();
-        // Paginated page should canonicalize to view=all when threshold allows
-        expect($canonical)->toContain('view=all');
-        expect($canonical)->not->toContain('page=2');
-    } finally {
-        $testCase->tearDownIntegration();
-    }
-})->group('integration-destructive');
-
-it('ignores the view-all param when the threshold is disabled', function (): void {
-    IntegrationTestCase::skipIfUnavailable();
-
-    $testCase = catalogSeoMakeTestCase();
-    $testCase->setUpIntegration();
-
-    try {
-        $store = $testCase->store;
-
-        // viewAllThreshold=0 means disabled (already the default, but be explicit)
-        /** @var ConfigWriterInterface $writer */
-        $writer = $store->get(ConfigWriterInterface::class);
-        $writer->setGlobal('catalog/pagination.viewAllThreshold', 0);
-
-        $category = CategoryFactory::new($store)->withName('Category')->create();
-
-        $request = new Request(
-            server: [
-                'REQUEST_METHOD' => 'GET',
-                'REQUEST_URI'    => '/catalog/category/' . $category->id . '?view=all',
-                'HTTP_HOST'      => 'example.com',
-            ],
-            query: ['view' => 'all'],
-        );
-        $response = $store->handle($request);
-
-        expect($response->statusCode())->toBe(200);
-        $canonical = $response->headers()['Link'] ?? null;
-        expect($canonical)->not->toBeNull();
-        // view=all should be ignored — canonical should NOT contain view=all
-        expect($canonical)->not->toContain('view=all');
-        // Canonical should be the bare category URL (no params since page=1 is default)
-        expect($canonical)->toContain('/catalog/category/' . $category->id);
-    } finally {
-        $testCase->tearDownIntegration();
-    }
-})->group('integration-destructive');
-
 it('returns 410 gone when the requested page exceeds the max depth', function (): void {
     IntegrationTestCase::skipIfUnavailable();
 
@@ -236,14 +155,53 @@ it('returns 410 gone when the requested page exceeds the max depth', function ()
     }
 })->group('integration-destructive');
 
-it('sets a self-referencing canonical pointing at the current page', function (): void {
+it('sets a self-referencing canonical for the current page (with and without view-all active)', function (): void {
     IntegrationTestCase::skipIfUnavailable();
 
-    $testCase = catalogSeoMakeTestCase();
-    $testCase->setUpIntegration();
+    // Case A: view-all active — paginated page 2 should canonicalize to view=all
+    $testCaseA = catalogSeoMakeTestCase();
+    $testCaseA->setUpIntegration();
 
     try {
-        $store = $testCase->store;
+        $store = $testCaseA->store;
+
+        /** @var ConfigWriterInterface $writer */
+        $writer = $store->get(ConfigWriterInterface::class);
+        $writer->setGlobal('catalog/pagination.viewAllThreshold', 5);
+        $writer->setGlobal('catalog/pagination.defaultPageSize', 2);
+
+        $category = CategoryFactory::new($store)->withName('Small Category')->create();
+
+        for ($i = 1; $i <= 3; $i++) {
+            ProductFactory::new($store)->withSku('VIEW-ALL-' . $i)->inCategory($category)->create();
+        }
+
+        $request = new Request(
+            server: [
+                'REQUEST_METHOD' => 'GET',
+                'REQUEST_URI'    => '/catalog/category/' . $category->id . '?page=2',
+                'HTTP_HOST'      => 'example.com',
+            ],
+            query: ['page' => '2'],
+        );
+        $response = $store->handle($request);
+
+        expect($response->statusCode())->toBe(200);
+        $canonical = $response->headers()['Link'] ?? null;
+        expect($canonical)->not->toBeNull();
+        // Paginated page should canonicalize to view=all when threshold allows
+        expect($canonical)->toContain('view=all');
+        expect($canonical)->not->toContain('page=2');
+    } finally {
+        $testCaseA->tearDownIntegration();
+    }
+
+    // Case B: view-all disabled — paginated page 2 should canonicalize to itself
+    $testCaseB = catalogSeoMakeTestCase();
+    $testCaseB->setUpIntegration();
+
+    try {
+        $store = $testCaseB->store;
 
         $category = CategoryFactory::new($store)->withName('Electronics')->create();
 
@@ -264,6 +222,6 @@ it('sets a self-referencing canonical pointing at the current page', function ()
         expect($canonical)->toContain('page=2');
         expect($canonical)->toContain('/catalog/category/' . $category->id);
     } finally {
-        $testCase->tearDownIntegration();
+        $testCaseB->tearDownIntegration();
     }
 })->group('integration-destructive');

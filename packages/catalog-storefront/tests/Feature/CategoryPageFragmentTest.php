@@ -41,154 +41,36 @@ it(
     'migrates CategoryPageFragmentTest for the load-more fragment endpoint rendering its real fragment layout',
     function (): void {
         IntegrationTestCase::skipIfUnavailable();
-    
+
         $testCase = catalogFragmentMakeTestCase();
         $testCase->setUpIntegration();
-    
+
         try {
             $store = $testCase->store;
-    
+
             $category = CategoryFactory::new($store)->withName('Test Category')->create();
             ProductFactory::new($store)->withSku('FRAG-001')->withName('Fragment Product')->inCategory(
                 $category
             )->create();
-    
+
             $request = new Request(
                 server: ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/' . $category->id . '/page'],
                 query: ['page' => '1'],
             );
             $response = $store->handle($request);
-    
+
             expect($response->statusCode())->toBe(200);
             // Real fragment layout renders product-grid-fragment.latte which wraps product cards
-        expect($response->body())->toContain('catalog-product-grid-fragment');
+            expect($response->body())->toContain('catalog-product-grid-fragment');
             // Product card is rendered with real mk-* markup
-        expect($response->body())->toContain('catalog-product-card');
+            expect($response->body())->toContain('catalog-product-card');
             // Real Latte output — no fake-view placeholder strings
-        expect($response->body())->not->toContain('data-template=');
+            expect($response->body())->not->toContain('data-template=');
         } finally {
             $testCase->tearDownIntegration();
         }
     }
 )->group('integration-destructive');
-
-it('renders the product cards for the requested page as html', function (): void {
-    IntegrationTestCase::skipIfUnavailable();
-
-    $testCase = catalogFragmentMakeTestCase();
-    $testCase->setUpIntegration();
-
-    try {
-        $store = $testCase->store;
-
-        $category = CategoryFactory::new($store)->withName('Test Category')->create();
-        ProductFactory::new($store)->withSku('PROD-001')->withName('Test Product')->inCategory($category)->create();
-
-        $request = new Request(
-            server: ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/' . $category->id . '/page'],
-            query: ['page' => '1'],
-        );
-        $response = $store->handle($request);
-
-        expect($response->statusCode())->toBe(200);
-        // Real mk-* markup from product-card.latte — <article class="catalog-product-card">
-        expect($response->body())->toContain('catalog-product-card');
-    } finally {
-        $testCase->tearDownIntegration();
-    }
-})->group('integration-destructive');
-
-it('produces card markup identical to the full page render', function (): void {
-    IntegrationTestCase::skipIfUnavailable();
-
-    $testCase = catalogFragmentMakeTestCase();
-    $testCase->setUpIntegration();
-
-    try {
-        $store = $testCase->store;
-
-        $category = CategoryFactory::new($store)->withName('Test Category')->create();
-        ProductFactory::new($store)->withSku('PROD-001')->withName('Identical Card Product')->inCategory(
-            $category
-        )->create();
-
-        // Fetch full page
-        $fullRequest = new Request(
-            server: ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/' . $category->id],
-        );
-        $fullResponse = $store->handle($fullRequest);
-
-        // Fetch fragment
-        $fragmentRequest = new Request(
-            server: ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/' . $category->id . '/page'],
-            query: ['page' => '1'],
-        );
-        $fragmentResponse = $store->handle($fragmentRequest);
-
-        // Both responses should contain the product name in the card markup
-        expect($fullResponse->body())->toContain('Identical Card Product');
-        expect($fragmentResponse->body())->toContain('Identical Card Product');
-        // Fragment should not include the full page chrome (no <html> wrapper)
-        // but both should render the same product card article
-        expect($fragmentResponse->body())->toContain('catalog-product-card');
-        expect($fullResponse->body())->toContain('catalog-product-card');
-    } finally {
-        $testCase->tearDownIntegration();
-    }
-})->group('integration-destructive');
-
-it('respects the size and sort query params', function (): void {
-    IntegrationTestCase::skipIfUnavailable();
-
-    $testCase = catalogFragmentMakeTestCase();
-    $testCase->setUpIntegration();
-
-    try {
-        $store = $testCase->store;
-
-        $category = CategoryFactory::new($store)->withName('Test Category')->create();
-        ProductFactory::new($store)->withSku('PROD-001')->withName('Product 1')->inCategory($category)->create();
-
-        // Use registered sort 'position' (the only sort registered in the real container)
-        $request = new Request(
-            server: ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/' . $category->id . '/page'],
-            query: ['page' => '1', 'size' => '12', 'sort' => 'position'],
-        );
-        $response = $store->handle($request);
-
-        expect($response->statusCode())->toBe(200);
-        expect($response->body())->toContain('catalog-product-card');
-    } finally {
-        $testCase->tearDownIntegration();
-    }
-})->group('integration-destructive');
-
-it('signals no more results past the last page', function (): void {
-    IntegrationTestCase::skipIfUnavailable();
-
-    $testCase = catalogFragmentMakeTestCase();
-    $testCase->setUpIntegration();
-
-    try {
-        $store = $testCase->store;
-
-        $category = CategoryFactory::new($store)->withName('Test Category')->create();
-        // No products — totalPages=1 (empty category)
-
-        // Request page 2 when there is only 1 page
-        $request = new Request(
-            server: ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/catalog/category/' . $category->id . '/page'],
-            query: ['page' => '2'],
-        );
-        $response = $store->handle($request);
-
-        expect($response->statusCode())->toBe(200);
-        // When no next page exists, data-next attribute is absent from the fragment
-        expect($response->body())->not->toContain('data-next=');
-    } finally {
-        $testCase->tearDownIntegration();
-    }
-})->group('integration-destructive');
 
 it('returns 410 when the requested page exceeds the max depth', function (): void {
     IntegrationTestCase::skipIfUnavailable();

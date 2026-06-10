@@ -37,9 +37,9 @@ it(
 );
 
 it(
-    'does not bind ScopeRegistryInterface inside bootModuleContainer in tests/Feature/ModulePhpTest.php',
+    'does not bind ScopeRegistryInterface inside bootModuleContainer in tests/Unit/ModulePhpTest.php',
     function (): void {
-        $file = dirname(__DIR__, 2) . '/tests/Feature/ModulePhpTest.php';
+        $file = __DIR__ . '/ModulePhpTest.php';
         $contents = file_get_contents($file);
 
         expect($contents)->not->toContain('ScopeRegistryInterface');

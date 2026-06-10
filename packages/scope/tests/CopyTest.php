@@ -24,6 +24,8 @@ it('copies every Unit test file from marko/scope/tests/Unit/ into packages/scope
         'Query/ScopedOrderByFactoryTest.php',
         'Metadata/ScopeMetadataFactoryTest.php',
         'Exceptions/ScopeExceptionsTest.php',
+        'ScopedOverridesPersistenceTest.php',
+        'DefaultScopeResolutionTest.php',
     ];
 
     foreach ($expectedFiles as $file) {
@@ -37,8 +39,7 @@ it(
         $testsDir = __DIR__ . '/Feature';
 
         $expectedFiles = [
-            'ScopedOverridesPersistenceTest.php',
-            'ScopedOverridesEntityDirtyTrackingTest.php',
+            'BridgeContributionTest.php',
         ];
 
         foreach ($expectedFiles as $file) {

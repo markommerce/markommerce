@@ -180,26 +180,26 @@ it(
     'resolves the per market price amount from the product scoped overrides companion under the ambient market',
     function (): void {
         DefaultScopeGuard::reset();
-    
+
         $container = buildMarketPricingContainer();
         bootMarketPricingModules($container);
-    
+
         $scopeContext = $container->get(ScopeContext::class);
         $scopeContext->clearAll();
         $scopeContext->in('market', 'us');
-    
+
         $product = new Product();
         $product->priceAmount = '99.99';
-    
+
         $overrides = new ProductScopedOverrides();
         $overrides->setOverride('market:us', 'priceAmount', '79.99');
         $product->attachCompanion($overrides);
-    
+
         $provider = new ScopedProductBasePriceProvider($container->get(ScopeResolver::class));
         $amounts  = $provider->amountsFor([$product]);
-    
+
         expect($amounts[0])->toBe('79.99');
-    }
+    },
 );
 
 it('falls back to the raw price amount when the product has no market override', function (): void {
@@ -282,6 +282,56 @@ it('overrides the raw base price provider via preference', function (): void {
 
     expect($match)->not->toBeNull();
     expect($match->replacement)->toBe(ScopedProductBasePriceProvider::class);
+});
+
+// ─── Folded from PriceAmountScopeResolutionTest (lower-layer ScopeResolver assertions) ──
+
+it('resolves a per market product price override when one is set', function (): void {
+    DefaultScopeGuard::reset();
+
+    $container = buildMarketPricingContainer();
+    bootMarketPricingModules($container);
+
+    $scopeResolver = $container->get(ScopeResolver::class);
+    $scopeContext = $container->get(ScopeContext::class);
+
+    $product = new Product();
+    $product->priceAmount = '99.9900';
+
+    $overrides = new ProductScopedOverrides();
+    $overrides->setOverride('market:us', 'priceAmount', '79.9900');
+    $product->attachCompanion($overrides);
+
+    $scopeContext->clearAll();
+    $scopeContext->in('market', 'us');
+
+    $result = $scopeResolver->resolved($product, 'priceAmount');
+
+    expect($result)->toBe('79.9900');
+});
+
+it('falls back to the global product price when no market override exists', function (): void {
+    DefaultScopeGuard::reset();
+
+    $container = buildMarketPricingContainer();
+    bootMarketPricingModules($container);
+
+    $scopeResolver = $container->get(ScopeResolver::class);
+    $scopeContext = $container->get(ScopeContext::class);
+
+    $product = new Product();
+    $product->priceAmount = '99.9900';
+
+    $overrides = new ProductScopedOverrides();
+    $overrides->setOverride('market:us', 'priceAmount', '79.9900');
+    $product->attachCompanion($overrides);
+
+    $scopeContext->clearAll();
+    $scopeContext->in('market', 'default');
+
+    $result = $scopeResolver->resolved($product, 'priceAmount');
+
+    expect($result)->toBe('99.9900');
 });
 
 it('resolves base amounts for a batch of products preserving keys under the ambient market', function (): void {

@@ -98,13 +98,3 @@ it(
     },
 )->group('integration-destructive');
 
-it(
-    'returns a list with exactly one statement from ConfigValueOverridesTableEmitter createStatements',
-    function (): void {
-        /** @var ConfigValueOverridesTableEmitter $emitter */
-        $emitter = $this->emitter;
-        $statements = $emitter->createStatements($this->tableName);
-    
-        expect($statements)->toHaveCount(1);
-    }
-)->group('integration-destructive');

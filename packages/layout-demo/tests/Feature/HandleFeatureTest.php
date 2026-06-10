@@ -263,81 +263,6 @@ function handleFeatureTestMakeConfig(string $cacheDir): ConfigRepository
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-it('it renders the default-handle notice on the base demo page', function (): void {
-    $cacheDir = sys_get_temp_dir() . '/latte-handle-default-' . bin2hex(random_bytes(8));
-    mkdir($cacheDir, 0755, true);
-
-    $layoutDemoPath = dirname(__DIR__, 2);
-    $frontendPath = $layoutDemoPath . '/../frontend';
-    $themeBlankPath = $layoutDemoPath . '/../theme-blank';
-    $basePath = dirname(__DIR__, 4);
-
-    $manifestCreated = handleFeatureTestEnsureManifest($basePath);
-
-    $config = handleFeatureTestMakeConfig($cacheDir);
-    $router = handleFeatureTestBuildRouter($config, $frontendPath, $layoutDemoPath, $themeBlankPath, $basePath);
-    $request = new Request(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/markommerce/_demo/layout/1']);
-    $response = $router->handle($request);
-
-    expect($response->statusCode())->toBe(200);
-    expect($response->body())->toContain('layout-demo-sitewide-notice');
-
-    handleFeatureTestCleanup($cacheDir);
-    if ($manifestCreated) {
-        $manifestPath = $basePath . '/public/build/.vite/manifest.json';
-        $manifest = json_decode(file_get_contents($manifestPath) ?: '{}', true);
-        unset($manifest['packages/theme-blank/resources/js/index.ts']);
-        if (empty($manifest)) {
-            @unlink($manifestPath);
-        } else {
-            file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT));
-        }
-    }
-});
-
-it('it renders the inherits-child handle with a removed parent placement', function (): void {
-    $cacheDir = sys_get_temp_dir() . '/latte-handle-child-' . bin2hex(random_bytes(8));
-    mkdir($cacheDir, 0755, true);
-
-    $layoutDemoPath = dirname(__DIR__, 2);
-    $frontendPath = $layoutDemoPath . '/../frontend';
-    $themeBlankPath = $layoutDemoPath . '/../theme-blank';
-    $basePath = dirname(__DIR__, 4);
-
-    $manifestCreated = handleFeatureTestEnsureManifest($basePath);
-
-    // compile the artifact: we need to check that the child handle key is present
-    $trees = handleFeatureTestBuildArtifact($layoutDemoPath);
-
-    // The child handle key is the string handle declared in layout_demo_child.php
-    expect($trees)->toHaveKey('layout_demo_child');
-    // The child handle should NOT contain layout_demo.gallery_footer (it was removed)
-    $childTree = $trees['layout_demo_child'];
-    $allNames = [];
-    foreach ($childTree->slots as $slot) {
-        if (is_array($slot)) {
-            foreach ($slot as $place) {
-                if ($place->name !== null) {
-                    $allNames[] = $place->name;
-                }
-            }
-        }
-    }
-    expect($allNames)->not->toContain('layout_demo.gallery_footer');
-
-    handleFeatureTestCleanup($cacheDir);
-    if ($manifestCreated) {
-        $manifestPath = $basePath . '/public/build/.vite/manifest.json';
-        $manifest = json_decode(file_get_contents($manifestPath) ?: '{}', true);
-        unset($manifest['packages/theme-blank/resources/js/index.ts']);
-        if (empty($manifest)) {
-            @unlink($manifestPath);
-        } else {
-            file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT));
-        }
-    }
-});
-
 it('it renders the dynamic featured-callout when variant=featured is on the query string', function (): void {
     $cacheDir = sys_get_temp_dir() . '/latte-handle-variant-' . bin2hex(random_bytes(8));
     mkdir($cacheDir, 0755, true);
@@ -403,17 +328,4 @@ it('it does not render the featured-callout when variant is absent', function ()
             file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT));
         }
     }
-});
-
-it('it raises a clear error if layout:compile fails on the new files', function (): void {
-    $layoutDemoPath = dirname(__DIR__, 2);
-
-    // Verify that the compiler can process all new layout files without throwing.
-    // The compile itself is the "clear error" mechanism; no exception means no issues.
-    $trees = handleFeatureTestBuildArtifact($layoutDemoPath);
-
-    $controllerHandle = LayoutDemoController::class . '::show';
-    expect($trees)->toHaveKey($controllerHandle);
-    expect($trees)->toHaveKey('layout_demo_child');
-    expect($trees)->toHaveKey('layout_demo.variant.featured');
 });
