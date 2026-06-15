@@ -11,6 +11,7 @@ use Markommerce\Attribute\Exceptions\DuplicateAttributeCodeException;
 use Markommerce\Attribute\Exceptions\OptionsNotAllowedException;
 use Markommerce\Attribute\Exceptions\ReservedAttributeCodeException;
 use Markommerce\Attribute\Exceptions\UnknownAttributeTypeException;
+use Markommerce\Attribute\Registry\AttributeEntityClassMap;
 use Markommerce\Attribute\Registry\AttributeTypeRegistry;
 use Markommerce\Attribute\Reserved\ReservedCodeProvider;
 
@@ -23,12 +24,14 @@ class AttributeDefinitionService
      * @param array<string, class-string> $entityTypeMap  Maps entity-type strings to entity classes.
      *                                                     When an entity type has no mapped class,
      *                                                     reserved-code checking is skipped for that type.
+     *                                                     Takes precedence over $entityClassMap.
      */
     public function __construct(
         private AttributeDefinitionRepositoryInterface $attributeDefinitionRepository,
         private AttributeTypeRegistry $attributeTypeRegistry,
         private ReservedCodeProvider $reservedCodeProvider,
         private array $entityTypeMap = [],
+        private ?AttributeEntityClassMap $entityClassMap = null,
     ) {}
 
     /**
@@ -41,8 +44,7 @@ class AttributeDefinitionService
     public function create(
         AttributeDefinition $definition,
         array $options = [],
-    ): void
-    {
+    ): void {
         $this->guardType($definition->type);
         $this->guardReservedCode($definition->entityType, $definition->code);
         $this->guardDuplicateCode($definition->entityType, $definition->code);
@@ -84,9 +86,8 @@ class AttributeDefinitionService
     private function guardReservedCode(
         string $entityType,
         string $code,
-    ): void
-    {
-        $entityClass = $this->entityTypeMap[$entityType] ?? null;
+    ): void {
+        $entityClass = $this->entityTypeMap[$entityType] ?? $this->entityClassMap?->all()[$entityType] ?? null;
 
         if ($entityClass === null) {
             // No mapped class for this entity type — skip reserved-code checking.
@@ -106,8 +107,7 @@ class AttributeDefinitionService
     private function guardDuplicateCode(
         string $entityType,
         string $code,
-    ): void
-    {
+    ): void {
         $existing = $this->attributeDefinitionRepository->findByCode($entityType, $code);
 
         if ($existing !== null) {

@@ -200,7 +200,12 @@ class AttributeCodeChecker
 }
 ```
 
-`AttributeDefinitionService` calls `ReservedCodeProvider` automatically when an `entityTypeMap` is supplied in its constructor. The map is an array of `['entity_type_string' => EntityClass::class]` entries. Entity types with no mapped class skip reserved-code checking.
+`AttributeDefinitionService` calls `ReservedCodeProvider` automatically when it can resolve an entity class for the definition's entity type. Two mechanisms supply that mapping:
+
+- **Constructor `entityTypeMap`** --- a plain `array<string, class-string>` passed directly to `AttributeDefinitionService`. Takes precedence over the registry.
+- **`AttributeEntityClassMap` singleton** --- a module-level registry that other packages populate during their `boot` phase via `$entityClassMap->register('entity_type', EntityClass::class)`. `markommerce/catalog-attribute` uses this to register `product → Product::class` without needing to rebuild `AttributeDefinitionService`.
+
+Entity types with no mapped class (in either source) skip reserved-code checking entirely.
 
 ### `AttributeBacking` and `FacetKind` enums
 
@@ -209,7 +214,7 @@ class AttributeCodeChecker
 | Case | Meaning |
 |---|---|
 | `Json` | Value is stored in a JSON/JSONB blob alongside the entity |
-| `Column` | Value is stored in a dedicated column (Phase 2; not yet exercised) |
+| `Column` | Value is stored in a dedicated column on the entity (used by static attribute definitions) |
 
 `FacetKind` declares what kind of faceted search the type supports:
 
@@ -220,6 +225,26 @@ class AttributeCodeChecker
 | `None` | No faceting |
 
 ## API Reference
+
+### `AttributeValueAccessorInterface`
+
+Generic contract for reading and writing attribute values on an entity. Implement this interface to provide entity-specific accessor behaviour. `markommerce/catalog-attribute` ships `ProductAttributeAccessor` as the `Product` implementation.
+
+| Method | Description |
+|---|---|
+| `set(object $entity, string $code, mixed $raw): void` | Validate, cast, and store a raw value on the entity. Throws `AttributeDefinitionNotFoundException` if the code is not registered, or a validation exception if the value is invalid. |
+| `get(object $entity, string $code): mixed` | Retrieve the current value for a code. Returns the definition's `defaultValue` (cast) if no value has been stored. Throws `AttributeDefinitionNotFoundException`. |
+| `all(object $entity): array<string, mixed>` | Return all attribute values for the entity as a `{code: value}` map. |
+| `clear(object $entity, string $code): void` | Remove a stored value for a code. No-op for `Column`-backed (static) attributes. Throws `AttributeDefinitionNotFoundException`. |
+
+### `AttributeEntityClassMap`
+
+Singleton registered by the module. Downstream packages call `register()` from their `boot` closure to associate an entity-type string with a PHP entity class. `AttributeDefinitionService` consults this map (as a fallback to its constructor `entityTypeMap`) when checking reserved codes.
+
+| Method | Description |
+|---|---|
+| `register(string $entityType, string $entityClass): void` | Associate an entity type with a class. Re-registering the same pair is a no-op. Registering a different class for an already-mapped type throws `DuplicateEntityClassRegistrationException`. |
+| `all(): array<string, class-string>` | Return the full map of registered entity types to classes. |
 
 ### `AttributeTypeInterface`
 
@@ -320,7 +345,9 @@ Mapped to the `attribute_options` table.
 | `InvalidAttributeValueException` | A raw value fails type-level validation or casting. |
 | `InvalidAttributeOptionException` | A `select`/`multiselect` value is not in the allowed options list. |
 | `AttributeDefinitionNotFoundException` | A definition lookup by code returns no result (thrown by callers that treat a missing definition as fatal). |
+| `DuplicateEntityClassRegistrationException` | `AttributeEntityClassMap::register()` was called with a different class for an already-mapped entity type. |
 
 ## Related Packages
 
 - [markommerce/attribute-pgsql](/docs/packages/attribute-pgsql/) --- PostgreSQL storage driver
+- [markommerce/catalog-attribute](/docs/packages/catalog-attribute/) --- binds the attribute kernel to `Product`; ships `ProductAttributeAccessor`

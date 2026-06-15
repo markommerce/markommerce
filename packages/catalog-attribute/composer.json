@@ -1,0 +1,36 @@
+{
+    "name": "markommerce/catalog-attribute",
+    "description": "Attribute binding for catalog entities — binds the markommerce/attribute kernel to Product",
+    "license": "MIT",
+    "type": "marko-module",
+    "require": {
+        "php": "^8.5",
+        "markommerce/attribute": "self.version",
+        "markommerce/catalog": "self.version"
+    },
+    "require-dev": {
+        "marko/testing": "self.version",
+        "markommerce/testing": "self.version",
+        "pestphp/pest": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Markommerce\\CatalogAttribute\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Markommerce\\CatalogAttribute\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "marko": {
+            "module": true
+        }
+    }
+}

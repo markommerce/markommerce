@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Marko\Core\Container\ContainerInterface;
+use Markommerce\Attribute\Registry\AttributeEntityClassMap;
 use Markommerce\Attribute\Registry\AttributeTypeRegistry;
 use Markommerce\Attribute\Type\BoolType;
 use Markommerce\Attribute\Type\DateType;
@@ -17,6 +18,7 @@ return [
     'bindings' => [],
     'singletons' => [
         AttributeTypeRegistry::class,
+        AttributeEntityClassMap::class,
     ],
     'boot' => static function (ContainerInterface $container): void {
         $registry = $container->get(AttributeTypeRegistry::class);
