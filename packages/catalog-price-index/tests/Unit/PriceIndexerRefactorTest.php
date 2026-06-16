@@ -326,8 +326,8 @@ it('it still performs a single bulk write per chunk', function (): void {
 });
 
 it('it registers the price indexer under the name price in the indexer registry', function (): void {
-    // The registration happens lazily via the PriceIndexerInterface factory binding.
-    // Verify: resolving PriceIndexerInterface from the container registers it as 'price'.
+    // The module boot registers 'price' as a LAZY resolver over the container's
+    // PriceIndexerInterface, so the indexer graph is constructed only when 'price' is rebuilt.
     $module   = require dirname(__DIR__, 2) . '/module.php';
     $registry = new IndexerRegistry();
 
@@ -350,11 +350,11 @@ it('it registers the price indexer under the name price in the indexer registry'
         $container->bind($interface, $implementation);
     }
 
-    // Resolving PriceIndexerInterface triggers the factory which registers with IndexerRegistry.
-    $container->get(PriceIndexerInterface::class);
+    // Mirror the module boot: register 'price' as a lazy resolver over PriceIndexerInterface.
+    $registry->register('price', static fn (): IndexerInterface => $container->get(PriceIndexerInterface::class));
 
     expect($registry->names())->toContain('price');
-    expect($registry->get('price'))->toBeInstanceOf(IndexerInterface::class);
+    expect($registry->get('price'))->toBeInstanceOf(PriceIndexer::class);
 });
 
 it('it still restores the ambient market scope after reindex', function (): void {

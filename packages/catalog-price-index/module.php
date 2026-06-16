@@ -30,31 +30,25 @@ return [
     'bindings' => [
         ProductPriceIndexRepositoryInterface::class => ProductPriceIndexRepository::class,
         IndexedMarketsProviderInterface::class      => DefaultIndexedMarketsProvider::class,
-        // Bind PriceIndexerInterface via a factory that also registers with IndexerRegistry.
-        // Registration is deferred until PriceIndexerInterface is first resolved, so
-        // integration test profiles that only need sort orders are unaffected.
         PriceIndexerInterface::class => static function (ContainerInterface $c): PriceIndexer {
-            $indexer = new PriceIndexer(
+            return new PriceIndexer(
                 $c->get(ProductRepositoryInterface::class),
                 $c->get(BatchPriceResolverInterface::class),
                 $c->get(ProductPriceIndexRepositoryInterface::class),
                 $c->get(IndexedMarketsProviderInterface::class),
                 $c->get(ScopePassRunner::class),
             );
-            $c->get(IndexerRegistry::class)->register('price', $indexer);
-
-            return $indexer;
         },
-    ],
-    'singletons' => [
-        IndexerRegistry::class,
     ],
     'boot' => function (
         CategorySortOrderRegistry $categorySortOrderRegistry,
         AscendingIndexedPriceSortOrder $ascendingIndexedPriceSortOrder,
         DescendingIndexedPriceSortOrder $descendingIndexedPriceSortOrder,
+        IndexerRegistry $indexerRegistry,
+        ContainerInterface $container,
     ): void {
         $categorySortOrderRegistry->register($ascendingIndexedPriceSortOrder);
         $categorySortOrderRegistry->register($descendingIndexedPriceSortOrder);
+        $indexerRegistry->register('price', static fn (): PriceIndexer => $container->get(PriceIndexerInterface::class));
     },
 ];

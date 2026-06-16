@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
+use Marko\Core\Container\ContainerInterface;
 use Markommerce\CatalogAttributeIndex\AttributeIndexer;
 use Markommerce\CatalogAttributeIndex\IndexedAttributeReader;
 use Markommerce\CatalogAttributeIndex\Repository\ProductAttributeIndexRepository;
 use Markommerce\Indexer\Registry\IndexerRegistry;
-use Markommerce\Indexer\ServedScopes\CartesianServedScopesProvider;
-use Markommerce\Indexer\ServedScopes\ServedScopesProviderInterface;
 
 return [
     'require' => [
@@ -24,12 +23,11 @@ return [
         AttributeIndexer::class                => AttributeIndexer::class,
         IndexedAttributeReader::class          => IndexedAttributeReader::class,
         ProductAttributeIndexRepository::class => ProductAttributeIndexRepository::class,
-        ServedScopesProviderInterface::class   => CartesianServedScopesProvider::class,
     ],
     'boot' => function (
         IndexerRegistry $indexerRegistry,
-        AttributeIndexer $attributeIndexer,
+        ContainerInterface $container,
     ): void {
-        $indexerRegistry->register('attribute', $attributeIndexer);
+        $indexerRegistry->register('attribute', static fn (): AttributeIndexer => $container->get(AttributeIndexer::class));
     },
 ];

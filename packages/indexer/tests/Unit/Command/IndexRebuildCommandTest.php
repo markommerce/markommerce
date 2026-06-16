@@ -49,8 +49,8 @@ function makeCountingIndexer(int $count): IndexerInterface
 
 it('rebuilds only the named index when a name is given', function (): void {
     $registry = new IndexerRegistry();
-    $registry->register('product_flat', makeCountingIndexer(10));
-    $registry->register('price_index', makeCountingIndexer(20));
+    $registry->register('product_flat', fn (): IndexerInterface => makeCountingIndexer(10));
+    $registry->register('price_index', fn (): IndexerInterface => makeCountingIndexer(20));
 
     $command = new IndexRebuildCommand($registry);
     $output = makeIndexRebuildOutput();
@@ -69,8 +69,8 @@ it('rebuilds only the named index when a name is given', function (): void {
 
 it('rebuilds all registered indexes when no name is given', function (): void {
     $registry = new IndexerRegistry();
-    $registry->register('product_flat', makeCountingIndexer(10));
-    $registry->register('price_index', makeCountingIndexer(20));
+    $registry->register('product_flat', fn (): IndexerInterface => makeCountingIndexer(10));
+    $registry->register('price_index', fn (): IndexerInterface => makeCountingIndexer(20));
 
     $command = new IndexRebuildCommand($registry);
     $output = makeIndexRebuildOutput();

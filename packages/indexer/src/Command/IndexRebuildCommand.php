@@ -45,8 +45,8 @@ readonly class IndexRebuildCommand implements CommandInterface
 
         $total = 0;
 
-        foreach ($this->indexerRegistry->all() as $indexName => $indexer) {
-            $count = $indexer->rebuildAll($chunkSize);
+        foreach ($this->indexerRegistry->names() as $indexName) {
+            $count = $this->indexerRegistry->get($indexName)->rebuildAll($chunkSize);
             $output->writeLine(sprintf('  %s: %d rows rebuilt.', $indexName, $count));
             $total += $count;
         }
