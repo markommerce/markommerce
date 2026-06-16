@@ -351,3 +351,4 @@ Mapped to the `attribute_options` table.
 
 - [markommerce/attribute-pgsql](/docs/packages/attribute-pgsql/) --- PostgreSQL storage driver
 - [markommerce/catalog-attribute](/docs/packages/catalog-attribute/) --- binds the attribute kernel to `Product`; ships `ProductAttributeAccessor`
+- [markommerce/attribute-scope](/docs/packages/attribute-scope/) --- adds per-scope label overrides to `AttributeOption`

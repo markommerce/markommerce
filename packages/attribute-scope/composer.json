@@ -1,0 +1,36 @@
+{
+    "name": "markommerce/attribute-scope",
+    "description": "Scope storage bridge for attribute entities — adds scoped override support to attribute option labels",
+    "license": "MIT",
+    "type": "marko-module",
+    "require": {
+        "php": "^8.5",
+        "markommerce/attribute": "self.version",
+        "markommerce/scope": "self.version"
+    },
+    "require-dev": {
+        "marko/testing": "self.version",
+        "markommerce/testing": "self.version",
+        "pestphp/pest": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Markommerce\\AttributeScope\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Markommerce\\AttributeScope\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "marko": {
+            "module": true
+        }
+    }
+}
