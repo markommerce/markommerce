@@ -130,3 +130,4 @@ Companion entity (`#[Table(extends: Product::class)]`) that stores custom attrib
 - [markommerce/attribute-pgsql](/docs/packages/attribute-pgsql/) --- PostgreSQL storage driver
 - [markommerce/catalog](/docs/packages/catalog/) --- provides the `Product` entity
 - [markommerce/catalog-attribute-scope](/docs/packages/catalog-attribute-scope/) --- adds per-scope overrides to product attribute values
+- [markommerce/catalog-attribute-index](/docs/packages/catalog-attribute-index/) --- denormalized EAV read-model for fast filtering and faceting of attribute values

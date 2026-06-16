@@ -26,8 +26,7 @@ class PriceIndexSpyQueryBuilder extends RepositoryQueryBuilder
         string $first,
         string $operator,
         string $second,
-    ): static
-    {
+    ): static {
         $this->leftJoinCalls[] = compact('table', 'first', 'operator', 'second');
 
         return $this;

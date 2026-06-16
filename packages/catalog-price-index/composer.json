@@ -9,6 +9,7 @@
         "marko/database": "self.version",
         "markommerce/catalog": "self.version",
         "markommerce/currency": "self.version",
+        "markommerce/indexer": "self.version",
         "markommerce/money": "self.version",
         "markommerce/scope": "self.version"
     },

@@ -15,6 +15,7 @@ use Markommerce\Config\Contracts\SecretCipherInterface;
 use Markommerce\Config\Encryption\NullSecretCipher;
 use Markommerce\Config\Proxy\ProxyLocator;
 use Markommerce\Config\Storage\InMemoryConfigStorage;
+use Markommerce\Indexer\Registry\IndexerRegistry;
 use Markommerce\Money\Contracts\CurrencyRegistryInterface;
 use Markommerce\Money\DefaultCurrencyRegistry;
 
@@ -30,6 +31,7 @@ function buildPriceIndexModuleContainer(): Container
     $container->instance(SecretCipherInterface::class, new NullSecretCipher());
     $container->instance(ProxyLocator::class, new ProxyLocator());
     $container->instance(CurrencyRegistryInterface::class, new DefaultCurrencyRegistry());
+    $container->singleton(IndexerRegistry::class);
 
     $container->bind(ConfigResolver::class, ConfigResolver::class);
     $container->bind(ConfigResolverInterface::class, ConfigResolver::class);

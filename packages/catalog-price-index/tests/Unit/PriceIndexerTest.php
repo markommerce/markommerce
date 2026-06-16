@@ -17,6 +17,7 @@ use Markommerce\CatalogPriceIndex\Contracts\IndexedMarketsProviderInterface;
 use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
 use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
 use Markommerce\CatalogPriceIndex\PriceIndexer;
+use Markommerce\Indexer\ScopePassRunner;
 use Markommerce\Money\Currency;
 use Markommerce\Money\Money;
 use Markommerce\Scope\Context\ScopeContext;
@@ -42,16 +43,14 @@ class IndexerFakeQueryBuilder extends RepositoryQueryBuilder
     public function selectRaw(
         string $expression,
         array $bindings = [],
-    ): static
-    {
+    ): static {
         return $this;
     }
 
     public function whereIn(
         string $column,
         array $values,
-    ): static
-    {
+    ): static {
         $this->filteredIds = $values;
 
         return $this;
@@ -252,14 +251,16 @@ function indexerBuildIndexer(
     IndexedMarketsProviderInterface $marketsProvider,
     ScopeContext $scopeContext,
 ): PriceIndexer {
-    return new PriceIndexer($productRepo, $batchResolver, $indexRepo, $marketsProvider, $scopeContext);
+    $runner = new ScopePassRunner($scopeContext);
+
+    return new PriceIndexer($productRepo, $batchResolver, $indexRepo, $marketsProvider, $runner);
 }
 
 function indexerMakeScopeContext(): ScopeContext
 {
     DefaultScopeGuard::reset();
     $config = new ConfigRepository(
-        ['scope' => ['axes' => ['market' => ['default' => 'default', 'scopes' => ['default' => [], 'us' => [], 'eu' => []]]]]]
+        ['scope' => ['axes' => ['market' => ['default' => 'default', 'scopes' => ['default' => [], 'us' => [], 'eu' => []]]]]],
     );
     $container = new Container();
     $container->instance(ConfigRepositoryInterface::class, $config);
@@ -290,7 +291,7 @@ it('writes one index row per product with the base amount and currency', functio
         $resolver,
         $indexRepo,
         new StubMarketsProvider([]),
-        $scopeContext
+        $scopeContext,
     );
 
     $count = $indexer->reindexProducts([1, 2]);
@@ -340,7 +341,7 @@ it('writes per market amounts into the scopes json for each indexed market', fun
         $resolver,
         $indexRepo,
         new StubMarketsProvider(['us', 'eu']),
-        $scopeContext
+        $scopeContext,
     );
 
     $indexer->reindexProducts([1]);
@@ -361,7 +362,7 @@ it('writes only the base amount when no markets are indexed', function (): void 
         $resolver,
         $indexRepo,
         new StubMarketsProvider([]),
-        $scopeContext
+        $scopeContext,
     );
 
     $indexer->reindexProducts([1]);
@@ -382,7 +383,7 @@ it('reindexes a single product by id', function (): void {
         $resolver,
         $indexRepo,
         new StubMarketsProvider([]),
-        $scopeContext
+        $scopeContext,
     );
 
     $count = $indexer->reindexProduct(42);
@@ -408,7 +409,7 @@ it('rebuilds the whole index in chunks after truncating', function (): void {
         $resolver,
         $indexRepo,
         new StubMarketsProvider([]),
-        $scopeContext
+        $scopeContext,
     );
 
     $indexer->rebuildAll(chunkSize: 2);
@@ -435,7 +436,7 @@ it('returns the count of index rows written from rebuildAll', function (): void 
         $resolver,
         $indexRepo,
         new StubMarketsProvider([]),
-        $scopeContext
+        $scopeContext,
     );
 
     $total = $indexer->rebuildAll(chunkSize: 2);
@@ -459,7 +460,7 @@ it('loads each chunk of products with a single query regardless of chunk size', 
         $resolver,
         $indexRepo,
         new StubMarketsProvider([]),
-        $scopeContext
+        $scopeContext,
     );
 
     $productRepo->loadCallCount = 0;
@@ -491,7 +492,7 @@ it('runs the pricing pipeline once per market pass not once per product', functi
         $resolver,
         $indexRepo,
         new StubMarketsProvider(['us', 'eu']),
-        $scopeContext
+        $scopeContext,
     );
 
     $indexer->reindexProducts(range(1, 5));
@@ -513,7 +514,7 @@ it('restores the ambient market scope after indexing', function (): void {
         $resolver,
         $indexRepo,
         new StubMarketsProvider(['us']),
-        $scopeContext
+        $scopeContext,
     );
 
     $indexer->reindexProducts([1]);
@@ -537,7 +538,7 @@ it('upserts each chunk in a single bulk statement', function (): void {
         $resolver,
         $indexRepo,
         new StubMarketsProvider([]),
-        $scopeContext
+        $scopeContext,
     );
 
     $indexer->reindexProducts([1, 2, 3]);

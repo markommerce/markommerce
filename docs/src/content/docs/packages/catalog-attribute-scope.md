@@ -215,3 +215,4 @@ Companion entity (`#[Table(extends: Product::class)]`) that stores per-scope att
 - [markommerce/scope](/docs/packages/scope/) --- scope kernel: `ScopeContext`, `ScopeWalker`, `ScopeResolver`, `HasScopesInterface`
 - [markommerce/attribute-scope](/docs/packages/attribute-scope/) --- scoped option label resolution (the `AttributeOption`-side counterpart)
 - [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- native-field scoping bridge for `Product`; required if you want scoped writes to column-backed (static) attributes
+- [markommerce/catalog-attribute-index](/docs/packages/catalog-attribute-index/) --- denormalized EAV read-model built on top of this package's `ScopedProductAttributeAccessor`

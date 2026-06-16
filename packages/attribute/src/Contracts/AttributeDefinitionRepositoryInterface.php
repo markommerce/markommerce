@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Markommerce\Attribute\Contracts;
 
 use Marko\Database\Repository\RepositoryInterface;
+use Marko\Database\Repository\RepositoryQueryBuilder;
 use Markommerce\Attribute\Entity\AttributeDefinition;
 use Markommerce\Attribute\Entity\AttributeOption;
 
@@ -17,6 +18,11 @@ interface AttributeDefinitionRepositoryInterface extends RepositoryInterface
         string $entityType,
         string $code,
     ): ?AttributeDefinition;
+
+    /**
+     * Query builder scoped to the attribute_definitions table (e.g. list by entity type / flags).
+     */
+    public function query(): RepositoryQueryBuilder;
 
     /**
      * @return list<AttributeOption>

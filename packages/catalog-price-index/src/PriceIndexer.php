@@ -11,34 +11,39 @@ use Markommerce\CatalogPriceIndex\Contracts\IndexedMarketsProviderInterface;
 use Markommerce\CatalogPriceIndex\Contracts\PriceIndexerInterface;
 use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
 use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
-use Markommerce\Scope\Context\ScopeContext;
+use Markommerce\Indexer\Contracts\IndexerInterface;
+use Markommerce\Indexer\ScopePassRunner;
+use Markommerce\Scope\Signature\ScopeSignature;
 
-class PriceIndexer implements PriceIndexerInterface
+class PriceIndexer implements PriceIndexerInterface, IndexerInterface
 {
     public function __construct(
         private ProductRepositoryInterface $productRepository,
         private BatchPriceResolverInterface $batchPriceResolver,
         private ProductPriceIndexRepositoryInterface $indexRepository,
         private IndexedMarketsProviderInterface $indexedMarketsProvider,
-        private ScopeContext $scopeContext,
+        private ScopePassRunner $scopePassRunner,
     ) {}
+
+    /**
+     * @param list<int> $ids
+     */
+    public function reindex(array $ids): int
+    {
+        return $this->reindexProducts($ids);
+    }
+
+    public function reindexOne(int $id): int
+    {
+        return $this->reindexProduct($id);
+    }
 
     /**
      * @param list<int> $ids
      */
     public function reindexProducts(array $ids): int
     {
-        $previousMarket = $this->scopeContext->get('market');
-
-        try {
-            return $this->doReindexProducts($ids);
-        } finally {
-            if ($previousMarket !== null) {
-                $this->scopeContext->in('market', $previousMarket);
-            } else {
-                $this->scopeContext->clear('market');
-            }
-        }
+        return $this->doReindexProducts($ids);
     }
 
     public function reindexProduct(int $id): int
@@ -84,34 +89,41 @@ class PriceIndexer implements PriceIndexerInterface
             $products[$product->id] = $product;
         }
 
-        // Base pass: clear market so no scoped override is applied.
-        $this->scopeContext->clear('market');
-        $baseResults = $this->batchPriceResolver->resolve($products);
-
         /** @var array<int, ProductPriceIndexEntry> $entries */
         $entries = [];
 
-        foreach ($baseResults as $productId => $money) {
-            $entry             = new ProductPriceIndexEntry();
-            $entry->productId  = (int) $productId;
-            $entry->amount     = $money->amount();
-            $entry->currencyCode = $money->currency()->code;
-            $entries[(int) $productId] = $entry;
-        }
+        // Build one ScopeSignature per indexed market.
+        $signatures = array_map(
+            fn (string $market): ScopeSignature => new ScopeSignature(['market' => $market]),
+            $this->indexedMarketsProvider->markets(),
+        );
 
-        // Per-market passes: one set-wise pipeline run per market.
-        foreach ($this->indexedMarketsProvider->markets() as $market) {
-            $this->scopeContext->in('market', $market);
-            $marketResults = $this->batchPriceResolver->resolve($products);
+        $this->scopePassRunner->each(
+            $signatures,
+            function (?ScopeSignature $signature) use ($products, &$entries): void {
+                $results = $this->batchPriceResolver->resolve($products);
 
-            foreach ($marketResults as $productId => $money) {
-                if (isset($entries[(int) $productId])) {
-                    $entries[(int) $productId]->setOverride("market:$market", 'amount', $money->amount());
+                if ($signature === null) {
+                    // Base pass — populate entries with base amount and currency.
+                    foreach ($results as $productId => $money) {
+                        $entry               = new ProductPriceIndexEntry();
+                        $entry->productId    = (int) $productId;
+                        $entry->amount       = $money->amount();
+                        $entry->currencyCode = $money->currency()->code;
+                        $entries[(int) $productId] = $entry;
+                    }
+                } else {
+                    // Market pass — store per-market override using the key from the signature.
+                    $market = $signature->get('market');
+
+                    foreach ($results as $productId => $money) {
+                        if (isset($entries[(int) $productId]) && $market !== null) {
+                            $entries[(int) $productId]->setOverride("market:$market", 'amount', $money->amount());
+                        }
+                    }
                 }
-            }
-
-            $this->scopeContext->clear('market');
-        }
+            },
+        );
 
         if ($entries !== []) {
             $this->indexRepository->upsertMany(array_values($entries));
