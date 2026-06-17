@@ -1,0 +1,23 @@
+{var $activeFilterList = $activeFilters ?? []}
+{var $allClearUrl = $clearAllUrl ?? null}
+{if count($activeFilterList) > 0}
+    <div class="catalog-facet-active" role="region" aria-label="Active filters">
+        <span class="catalog-facet-active__label">Filters:</span>
+        <mk-cluster gap="2" class="catalog-facet-active__chips">
+            {foreach $activeFilterList as $activeFilter}
+                {foreach $activeFilter->values as $index => $value}
+                    {var $label = $activeFilter->labels[$index] ?? $value}
+                    <mk-badge variant="neutral" size="base" class="catalog-facet-active__chip">
+                        <span class="catalog-facet-active__chip-label">{$activeFilter->code}: {$label}</span>
+                        {if isset($toggleUrls[$activeFilter->code][$value])}
+                            <a href="{$toggleUrls[$activeFilter->code][$value]|noescape}" class="catalog-facet-active__remove" aria-label="Remove {$label}">×</a>
+                        {/if}
+                    </mk-badge>
+                {/foreach}
+            {/foreach}
+        </mk-cluster>
+        {if $allClearUrl !== null}
+            <a href="{$allClearUrl|noescape}" class="catalog-facet-active__clear">Clear all</a>
+        {/if}
+    </div>
+{/if}

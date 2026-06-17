@@ -119,17 +119,28 @@
         border: 0;
     }
 
-    /* ── Active-filter chips ─────────────────────────────────────────────── */
+    /* ── Active-filter chips bar (top of the main content column) ────────── */
 
     .catalog-facet-active {
         display: flex;
-        flex-direction: column;
+        flex-wrap: wrap;
+        align-items: center;
         gap: var(--mk-space-2, 0.5rem);
-        padding-block-end: var(--mk-space-3, 0.75rem);
-        border-block-end: 1px solid var(--mk-color-border, currentColor);
+        margin-block-end: var(--mk-space-4, 1rem);
+        padding-block: var(--mk-space-2, 0.5rem);
+        padding-inline: var(--mk-space-3, 0.75rem);
+        background-color: var(--mk-color-surface-subtle, transparent);
+        border: 1px solid var(--mk-color-border, currentColor);
+        border-radius: var(--mk-radius-md, 0.375rem);
     }
 
-    /* Row layout comes from <mk-cluster>; the pill (padding/radius/bg/font) from <mk-badge>. */
+    .catalog-facet-active__label {
+        font-size: var(--mk-font-size-sm, 0.875rem);
+        font-weight: var(--mk-font-weight-medium, 500);
+        color: var(--mk-color-text-muted, currentColor);
+    }
+
+    /* Chip row layout comes from <mk-cluster>; the pill (padding/radius/bg/font) from <mk-badge>. */
 
     .catalog-facet-active__chip-label {
         white-space: nowrap;

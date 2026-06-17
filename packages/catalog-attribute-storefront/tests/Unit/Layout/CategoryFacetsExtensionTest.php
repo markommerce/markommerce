@@ -32,6 +32,19 @@ it('places the facet sidebar into the sidebar-left slot', function (): void {
     expect($prependOps[0]->slotPath)->toBe('sidebar-left');
 });
 
+it('places the active-filter bar into the main content slot', function (): void {
+    $extension = categoryFacetsExtensionLoad();
+
+    $contentPrepends = array_values(array_filter(
+        $extension->operations,
+        fn (mixed $op): bool => $op instanceof Prepend && $op->slotPath === 'content',
+    ));
+
+    expect($contentPrepends)->not->toBeEmpty();
+    expect($contentPrepends[0]->placement->template)
+        ->toBe('catalog-attribute-storefront::components/active-filters');
+});
+
 it('still feeds the filter query param into the product grid placement', function (): void {
     $extension = categoryFacetsExtensionLoad();
 

@@ -87,6 +87,28 @@ function facetSidebarRender(
     );
 }
 
+/**
+ * Render the active-filters bar template (the chips + Clear all), now a separate
+ * placement in the main content column.
+ *
+ * @param list<object>                         $activeFilters
+ * @param array<string, array<string, string>> $toggleUrls
+ */
+function activeFiltersRender(
+    array $activeFilters = [],
+    array $toggleUrls = [],
+    ?string $clearAllUrl = null,
+): string {
+    return facetSidebarMakeLatteEngine()->renderToString(
+        'catalog-attribute-storefront::components/active-filters',
+        array_filter([
+            'activeFilters' => $activeFilters,
+            'toggleUrls'    => $toggleUrls ?: null,
+            'clearAllUrl'   => $clearAllUrl,
+        ], fn (mixed $v): bool => $v !== null),
+    );
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function facetSidebarMakeEmptyRegistry(): ScopeRegistryInterface
@@ -675,7 +697,7 @@ it('renders an active filter chip per selected value', function (): void {
         ],
     ];
 
-    $output = facetSidebarRender(activeFilters: $activeFilters, toggleUrls: $toggleUrls);
+    $output = activeFiltersRender(activeFilters: $activeFilters, toggleUrls: $toggleUrls);
 
     // One chip per value
     expect($output)->toContain('catalog-facet-active__chip');
@@ -702,7 +724,7 @@ it('links each chip remove control to the url that deselects that value', functi
         ],
     ];
 
-    $output = facetSidebarRender(activeFilters: $activeFilters, toggleUrls: $toggleUrls);
+    $output = activeFiltersRender(activeFilters: $activeFilters, toggleUrls: $toggleUrls);
 
     // The chip's remove link points to the toggle URL for that value
     expect($output)->toContain('href="/catalog/category/1"');
@@ -741,7 +763,7 @@ it('renders a clear-all link that removes all attribute filters preserving sort'
     expect($data->clearAllUrl)->toStartWith('/catalog/category/5');
 
     // Render it — the clear-all link must appear in the template
-    $output = facetSidebarRender(
+    $output = activeFiltersRender(
         activeFilters: $data->activeFilters,
         toggleUrls: $data->toggleUrls,
         clearAllUrl: $data->clearAllUrl,
@@ -752,7 +774,7 @@ it('renders a clear-all link that removes all attribute filters preserving sort'
 });
 
 it('hides the active filters block when no filters are selected', function (): void {
-    $output = facetSidebarRender(activeFilters: []);
+    $output = activeFiltersRender(activeFilters: []);
 
     expect($output)->not->toContain('catalog-facet-active');
     expect($output)->not->toContain('catalog-facet-active__chip');
@@ -774,7 +796,7 @@ it('gives each remove control an accessible label', function (): void {
         ],
     ];
 
-    $output = facetSidebarRender(activeFilters: $activeFilters, toggleUrls: $toggleUrls);
+    $output = activeFiltersRender(activeFilters: $activeFilters, toggleUrls: $toggleUrls);
 
     // The remove link carries an aria-label naming what is being removed
     expect($output)->toContain('aria-label="Remove Red"');
@@ -798,7 +820,7 @@ it('still renders a chip whose value has no toggle url without erroring', functi
     ];
 
     // Must not throw; must still render both chip labels
-    $output = facetSidebarRender(activeFilters: $activeFilters, toggleUrls: $toggleUrls);
+    $output = activeFiltersRender(activeFilters: $activeFilters, toggleUrls: $toggleUrls);
 
     expect($output)->toContain('Red');
     expect($output)->toContain('Green');

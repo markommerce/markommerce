@@ -1,27 +1,5 @@
 {var $facetGroups = $facets ?? []}
-{var $activeFilterList = $activeFilters ?? []}
-{var $allClearUrl = $clearAllUrl ?? null}
 <div class="catalog-facet-sidebar">
-    {if count($activeFilterList) > 0}
-        <div class="catalog-facet-active">
-            <mk-cluster gap="2" class="catalog-facet-active__chips">
-                {foreach $activeFilterList as $activeFilter}
-                    {foreach $activeFilter->values as $index => $value}
-                        {var $label = $activeFilter->labels[$index] ?? $value}
-                        <mk-badge variant="neutral" size="base" class="catalog-facet-active__chip">
-                            <span class="catalog-facet-active__chip-label">{$activeFilter->code}: {$label}</span>
-                            {if isset($toggleUrls[$activeFilter->code][$value])}
-                                <a href="{$toggleUrls[$activeFilter->code][$value]|noescape}" class="catalog-facet-active__remove" aria-label="Remove {$label}">×</a>
-                            {/if}
-                        </mk-badge>
-                    {/foreach}
-                {/foreach}
-            </mk-cluster>
-            {if $allClearUrl !== null}
-                <a href="{$allClearUrl|noescape}" class="catalog-facet-active__clear">Clear all</a>
-            {/if}
-        </div>
-    {/if}
     {foreach $facetGroups as $facet}
         <div class="catalog-facet-sidebar__group" data-facet-code="{$facet->code}" role="group" aria-labelledby="facet-title-{$facet->code}">
             <p class="catalog-facet-sidebar__group-title" id="facet-title-{$facet->code}">{$facet->code}</p>
