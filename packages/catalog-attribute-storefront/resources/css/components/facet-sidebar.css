@@ -97,7 +97,7 @@
     }
 
     .catalog-facet-sidebar__count {
-        font-size: var(--mk-font-size-xs, 0.75rem);
+        font-size: var(--mk-font-size-sm, 0.875rem);
         color: var(--mk-color-text-muted, currentColor);
         flex-shrink: 0;
     }
@@ -151,7 +151,7 @@
 
     .catalog-facet-active__clear {
         display: inline-block;
-        font-size: var(--mk-font-size-xs, 0.75rem);
+        font-size: var(--mk-font-size-sm, 0.875rem);
         color: var(--mk-color-text-muted, currentColor);
         text-decoration: underline;
     }

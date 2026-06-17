@@ -8,8 +8,8 @@
                 {foreach $activeFilterList as $activeFilter}
                     {foreach $activeFilter->values as $index => $value}
                         {var $label = $activeFilter->labels[$index] ?? $value}
-                        <mk-badge variant="neutral" size="lg" class="catalog-facet-active__chip">
-                            <span class="catalog-facet-active__chip-label">{$label}</span>
+                        <mk-badge variant="neutral" size="base" class="catalog-facet-active__chip">
+                            <span class="catalog-facet-active__chip-label">{$activeFilter->code}: {$label}</span>
                             {if isset($toggleUrls[$activeFilter->code][$value])}
                                 <a href="{$toggleUrls[$activeFilter->code][$value]|noescape}" class="catalog-facet-active__remove" aria-label="Remove {$label}">×</a>
                             {/if}
