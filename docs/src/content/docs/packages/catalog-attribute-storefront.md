@@ -99,6 +99,32 @@ $url = $facetToggleUrlBuilder->toggle(
 
 The Latte component template at `resources/views/components/facet-sidebar.latte` renders active filter badges and per-attribute facet groups. Each facet value shows its display label, product count, and a toggle link. The template consumes `$facets` and `$activeFilters` from `ProductGridData` as populated by `ProductGridComponent`.
 
+## Storefront UI
+
+### Frontend Assets
+
+The package ships `resources/css/components/facet-sidebar.css` and exposes it through the frontend extension declared in `package.json` (`"markommerce.extension": "./resources/js/index.ts"`). The entry point imports the CSS:
+
+```ts title="resources/js/index.ts"
+import '../css/components/facet-sidebar.css';
+```
+
+The CSS is inside `@layer components` and uses `--mk-*` design tokens (`--mk-space-*`, `--mk-color-*`, `--mk-radius-*`, etc.), so it inherits from the active theme. A `{vite(...)}` call in `theme-blank`'s `base.latte` loads the compiled bundle on every storefront page.
+
+### Facet Sidebar
+
+`FacetSidebarComponent` orchestrates the data side: it resolves facet groups and active filters through `LayeredNavigationAssembler`, builds a `toggleUrls[code][value] => url` map via `FacetToggleUrlBuilder`, and computes `clearAllUrl` (a URL that drops all attribute filters). It passes all of this as `FacetSidebarData` to `catalog-attribute-storefront::components/facet-sidebar`.
+
+The Latte template (`facet-sidebar.latte`) renders:
+
+- **Facet groups** --- one group per attribute, with a titled section (`<p class="catalog-facet-sidebar__group-title">`) and a list of value rows.
+- **Checkbox-style no-JS rows** --- each value is a pure-CSS checkbox rendered as an `<a>` anchor link (no JavaScript required). The toggle link preserves all current query parameters and resets the `page` param.
+- **Selected state** --- selected rows receive the `catalog-facet-sidebar__value--selected` modifier class, `aria-current="true"` on the `<li>`, `aria-pressed="true"` on the anchor, and a visually-hidden "selected" text for screen readers.
+- **Active filter chips** --- when any filter is active, a chip strip appears above the facet groups showing one chip per active value with a remove link (`aria-label="Remove {label}"`).
+- **"Clear all" link** --- a plain anchor link (`FacetSidebarData::$clearAllUrl`) that removes all attribute filters at once. Only rendered when at least one filter is active.
+
+The sidebar is contributed into the `sidebar-left` slot of `TwoColumnsLeftLayout` (from [markommerce/catalog-storefront](/docs/packages/catalog-storefront/)) via the `layout/extensions/category_facets.php` layout extension. This extension is discovered automatically when the package is installed; no changes to application code are required. The `<mk-sidebar>` element from `theme-blank` handles the responsive collapse on narrow viewports.
+
 ## Disjunctive Faceting
 
 Facet counts are computed **disjunctively**: for each attribute, all other active filters are applied but the attribute's own filter is ignored. This ensures all values for an attribute remain visible and countable even when that attribute is already filtered — matching standard e-commerce behavior.

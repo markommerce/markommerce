@@ -29,6 +29,64 @@ use Markommerce\Scope\Registry\ScopeRegistryInterface;
 use Markommerce\Scope\Resolution\ScopeWalker;
 use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 
+// ─── Render Engine Helper ─────────────────────────────────────────────────────
+
+function facetSidebarMakeLatteEngine(): \Latte\Engine
+{
+    $cacheDir = sys_get_temp_dir() . '/latte-facet-sidebar-test-' . bin2hex(random_bytes(8));
+    mkdir($cacheDir, 0755, true);
+
+    $packagePath = dirname(__DIR__, 3);
+
+    $moduleRepository = new \Marko\Core\Module\ModuleRepository([
+        new \Marko\Core\Module\ModuleManifest(
+            name: 'markommerce/catalog-attribute-storefront',
+            version: '1.0.0',
+            path: $packagePath,
+            source: 'vendor',
+        ),
+    ]);
+
+    $config = new \Marko\Config\ConfigRepository([
+        'view' => [
+            'cache_directory' => $cacheDir,
+            'extension' => '.latte',
+            'auto_refresh' => true,
+            'strict_types' => false,
+        ],
+    ]);
+
+    $viewConfig = new \Marko\View\ViewConfig($config);
+    $latteViewConfig = new \Marko\View\Latte\LatteViewConfig($config);
+    $templateResolver = new \Marko\View\ModuleTemplateResolver($moduleRepository, $viewConfig);
+    $engine = (new \Marko\View\Latte\LatteEngineFactory($viewConfig, $latteViewConfig))->create();
+    $engine->setLoader(new \Marko\View\Latte\ModuleLoader($templateResolver));
+
+    return $engine;
+}
+
+/**
+ * @param list<LabeledFacet> $facets
+ * @param list<ActiveFilter>  $activeFilters
+ * @param array<string, array<string, string>> $toggleUrls
+ */
+function facetSidebarRender(
+    array $facets = [],
+    array $activeFilters = [],
+    array $toggleUrls = [],
+    ?string $clearAllUrl = null,
+): string {
+    return facetSidebarMakeLatteEngine()->renderToString(
+        'catalog-attribute-storefront::components/facet-sidebar',
+        array_filter([
+            'facets'        => $facets,
+            'activeFilters' => $activeFilters,
+            'toggleUrls'    => $toggleUrls ?: null,
+            'clearAllUrl'   => $clearAllUrl,
+        ], fn (mixed $v): bool => $v !== null),
+    );
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function facetSidebarMakeEmptyRegistry(): ScopeRegistryInterface
@@ -197,6 +255,54 @@ function facetSidebarMakeComponent(Page $page, array $facets): FacetSidebarCompo
 {
     return new FacetSidebarComponent(
         layeredNavigationAssembler: facetSidebarMakeAssembler($page, $facets),
+        paginationOptionsResolver: facetSidebarMakePaginationOptionsResolver(),
+        facetToggleUrlBuilder: new FacetToggleUrlBuilder(),
+    );
+}
+
+/**
+ * Build a LayeredNavigationAssembler with a pre-seeded 'color' attribute definition
+ * so the FilterParamParser recognises 'color' as a known facetable code.
+ *
+ * @param Page<Product> $page
+ * @param list<Facet>   $facets
+ */
+function facetSidebarMakeAssemblerWithColorAttr(Page $page, array $facets): LayeredNavigationAssembler
+{
+    $registry      = facetSidebarMakeEmptyRegistry();
+    $context       = new ScopeContext($registry);
+    $enumerator    = new SignatureCandidateEnumerator($registry);
+    $walker        = new ScopeWalker($enumerator);
+    $defRepo       = new QueryableAttributeDefinitionRepository();
+    $labelResolver = new \Markommerce\AttributeScope\ScopedOptionLabelResolver($defRepo, $walker);
+
+    // Register 'color' as a facetable product attribute so FilterParamParser keeps it.
+    $colorDef             = new \Markommerce\Attribute\Entity\AttributeDefinition();
+    $colorDef->code       = 'color';
+    $colorDef->entityType = 'product';
+    $colorDef->type       = 'select';
+    $colorDef->label      = 'Color';
+    $colorDef->facetable  = true;
+    $defRepo->save($colorDef);
+
+    return new LayeredNavigationAssembler(
+        categoryAssignmentService: facetSidebarMakeListing($page),
+        attributeFacetQuery: facetSidebarMakeFacetQuery($facets),
+        scopedOptionLabelResolver: $labelResolver,
+        attributeDefinitionRepository: $defRepo,
+        scopeContext: $context,
+        filterParamParser: new FilterParamParser($defRepo),
+    );
+}
+
+/**
+ * @param Page<Product> $page
+ * @param list<Facet>   $facets
+ */
+function facetSidebarMakeComponentWithColorAttr(Page $page, array $facets): FacetSidebarComponent
+{
+    return new FacetSidebarComponent(
+        layeredNavigationAssembler: facetSidebarMakeAssemblerWithColorAttr($page, $facets),
         paginationOptionsResolver: facetSidebarMakePaginationOptionsResolver(),
         facetToggleUrlBuilder: new FacetToggleUrlBuilder(),
     );
@@ -404,4 +510,298 @@ it('builds a toggle url that removes an already-selected value', function (): vo
     // 'red' should be gone, 'blue' should remain
     expect($url)->not->toContain('red');
     expect($url)->toContain('blue');
+});
+
+// ─── Task 003: Restyle tests ──────────────────────────────────────────────────
+
+it('renders each facet group with a titled group container', function (): void {
+    $facets = [
+        new LabeledFacet(
+            code: 'color',
+            type: 'select',
+            values: [
+                new LabeledFacetValue(value: 'red', label: 'Red', count: 3, selected: false),
+            ],
+        ),
+        new LabeledFacet(
+            code: 'size',
+            type: 'select',
+            values: [
+                new LabeledFacetValue(value: 'L', label: 'Large', count: 2, selected: false),
+            ],
+        ),
+    ];
+
+    $output = facetSidebarRender(facets: $facets);
+
+    // Each group must have a container with data-facet-code
+    expect($output)
+        ->toContain('catalog-facet-sidebar__group')
+        ->toContain('data-facet-code="color"')
+        ->toContain('data-facet-code="size"')
+        // Each group must have a titled header (group-title class)
+        ->toContain('catalog-facet-sidebar__group-title')
+        ->toContain('color')
+        ->toContain('size');
+});
+
+it('renders facet values as checkbox-style rows with label and count', function (): void {
+    $facets = [
+        new LabeledFacet(
+            code: 'color',
+            type: 'select',
+            values: [
+                new LabeledFacetValue(value: 'red', label: 'Red', count: 3, selected: false),
+                new LabeledFacetValue(value: 'blue', label: 'Blue', count: 5, selected: false),
+            ],
+        ),
+    ];
+
+    $output = facetSidebarRender(facets: $facets);
+
+    // Each value row has the base value class
+    expect($output)->toContain('catalog-facet-sidebar__value');
+    // Checkbox glyph element
+    expect($output)->toContain('catalog-facet-sidebar__checkbox');
+    // Label is present
+    expect($output)->toContain('catalog-facet-sidebar__value-label');
+    expect($output)->toContain('Red');
+    expect($output)->toContain('Blue');
+    // Count is present
+    expect($output)->toContain('catalog-facet-sidebar__count');
+    expect($output)->toContain('3');
+    expect($output)->toContain('5');
+});
+
+it('marks selected facet values with a selected state and aria attribute', function (): void {
+    $facets = [
+        new LabeledFacet(
+            code: 'color',
+            type: 'select',
+            values: [
+                new LabeledFacetValue(value: 'red', label: 'Red', count: 3, selected: false),
+                new LabeledFacetValue(value: 'blue', label: 'Blue', count: 5, selected: true),
+            ],
+        ),
+    ];
+
+    $output = facetSidebarRender(facets: $facets);
+
+    // Selected value gets the --selected modifier class
+    expect($output)->toContain('catalog-facet-sidebar__value--selected');
+    // Selected value has an aria attribute indicating selection
+    expect($output)->toMatch('/aria-(pressed|current)="true"/');
+    // Non-selected value does NOT get the --selected modifier
+    expect($output)->not->toContain('catalog-facet-sidebar__value--selected" data-facet-code');
+});
+
+it('keeps facet toggles as no-js anchor links', function (): void {
+    $facets = [
+        new LabeledFacet(
+            code: 'color',
+            type: 'select',
+            values: [
+                new LabeledFacetValue(value: 'red', label: 'Red', count: 3, selected: false),
+            ],
+        ),
+    ];
+
+    $toggleUrls = [
+        'color' => ['red' => '/catalog/category/1?filter%5Bcolor%5D%5B0%5D=red'],
+    ];
+
+    $output = facetSidebarRender(facets: $facets, toggleUrls: $toggleUrls);
+
+    // Toggle is an anchor link, not a button or form submit
+    expect($output)->toContain('<a ');
+    expect($output)->toContain('href=');
+    expect($output)->toContain('catalog-facet-sidebar__toggle');
+    // No onclick, no JS event handlers
+    expect($output)->not->toContain('onclick');
+    expect($output)->not->toContain('javascript:');
+});
+
+it('renders an empty sidebar gracefully when there are no facets', function (): void {
+    $output = facetSidebarRender(facets: []);
+
+    // Must not emit group chrome
+    expect($output)->not->toContain('catalog-facet-sidebar__group');
+    expect($output)->not->toContain('catalog-facet-sidebar__value');
+    // The outer container should still be present (for CSS anchoring) or render nothing heavy
+    // Either way, no active-filter chrome should appear when there are no active filters
+    expect($output)->not->toContain('catalog-facet-sidebar__active-filters');
+});
+
+it('defines facet sidebar styles in the components layer using mk design tokens', function (): void {
+    $cssPath = dirname(__DIR__, 3) . '/resources/css/components/facet-sidebar.css';
+
+    expect(file_exists($cssPath))->toBeTrue();
+
+    $css = file_get_contents($cssPath);
+
+    // Must use @layer components
+    expect($css)->toContain('@layer components');
+    // Must define the sidebar class
+    expect($css)->toContain('.catalog-facet-sidebar');
+    // Must define the group and value classes
+    expect($css)->toContain('.catalog-facet-sidebar__group');
+    expect($css)->toContain('.catalog-facet-sidebar__value');
+    // Checkbox glyph
+    expect($css)->toContain('.catalog-facet-sidebar__checkbox');
+    // Count class
+    expect($css)->toContain('.catalog-facet-sidebar__count');
+    // Selected modifier
+    expect($css)->toContain('.catalog-facet-sidebar__value--selected');
+    // Must use --mk-* design tokens
+    expect($css)->toMatch('/--mk-[a-z][-a-z0-9]*/');
+});
+
+// ─── Task 004: Active-filter chips tests ─────────────────────────────────────
+
+it('renders an active filter chip per selected value', function (): void {
+    $activeFilters = [
+        new ActiveFilter(
+            code: 'color',
+            type: 'select',
+            labels: ['Red', 'Blue'],
+            values: ['red', 'blue'],
+        ),
+    ];
+
+    $toggleUrls = [
+        'color' => [
+            'red'  => '/catalog/category/1?filter%5Bcolor%5D%5B0%5D=blue',
+            'blue' => '/catalog/category/1?filter%5Bcolor%5D%5B0%5D=red',
+        ],
+    ];
+
+    $output = facetSidebarRender(activeFilters: $activeFilters, toggleUrls: $toggleUrls);
+
+    // One chip per value
+    expect($output)->toContain('catalog-facet-active__chip');
+    // Both value labels appear in chips
+    expect($output)->toContain('Red');
+    expect($output)->toContain('Blue');
+    // Active filters container rendered
+    expect($output)->toContain('catalog-facet-active');
+});
+
+it('links each chip remove control to the url that deselects that value', function (): void {
+    $activeFilters = [
+        new ActiveFilter(
+            code: 'color',
+            type: 'select',
+            labels: ['Red'],
+            values: ['red'],
+        ),
+    ];
+
+    $toggleUrls = [
+        'color' => [
+            'red' => '/catalog/category/1',
+        ],
+    ];
+
+    $output = facetSidebarRender(activeFilters: $activeFilters, toggleUrls: $toggleUrls);
+
+    // The chip's remove link points to the toggle URL for that value
+    expect($output)->toContain('href="/catalog/category/1"');
+    // Remove affordance is present
+    expect($output)->toContain('catalog-facet-active__remove');
+});
+
+it('renders a clear-all link that removes all attribute filters preserving sort', function (): void {
+    $category = new Category();
+    $category->id   = 5;
+    $category->name = 'Shoes';
+
+    $page = facetSidebarMakeProductPage();
+
+    $facets = [
+        new Facet(
+            code: 'color',
+            type: 'select',
+            values: [
+                new FacetValue(value: 'red', count: 2, selected: true),
+            ],
+        ),
+    ];
+
+    // Use the helper that seeds 'color' as a facetable attribute so the filter is recognised.
+    $component = facetSidebarMakeComponentWithColorAttr($page, $facets);
+
+    // color=red is active, sort=position is set
+    $data = $component->data($category, 1, 0, 'position', ['color' => ['red']]);
+
+    // clearAllUrl must be set because a filter is active
+    expect($data->clearAllUrl)->not->toBeNull();
+    // It preserves sort but omits filter
+    expect($data->clearAllUrl)->toContain('sort=position');
+    expect($data->clearAllUrl)->not->toContain('filter');
+    expect($data->clearAllUrl)->toStartWith('/catalog/category/5');
+
+    // Render it — the clear-all link must appear in the template
+    $output = facetSidebarRender(
+        activeFilters: $data->activeFilters,
+        toggleUrls: $data->toggleUrls,
+        clearAllUrl: $data->clearAllUrl,
+    );
+
+    expect($output)->toContain('catalog-facet-active__clear');
+    expect($output)->toContain('href="' . $data->clearAllUrl . '"');
+});
+
+it('hides the active filters block when no filters are selected', function (): void {
+    $output = facetSidebarRender(activeFilters: []);
+
+    expect($output)->not->toContain('catalog-facet-active');
+    expect($output)->not->toContain('catalog-facet-active__chip');
+});
+
+it('gives each remove control an accessible label', function (): void {
+    $activeFilters = [
+        new ActiveFilter(
+            code: 'color',
+            type: 'select',
+            labels: ['Red'],
+            values: ['red'],
+        ),
+    ];
+
+    $toggleUrls = [
+        'color' => [
+            'red' => '/catalog/category/1',
+        ],
+    ];
+
+    $output = facetSidebarRender(activeFilters: $activeFilters, toggleUrls: $toggleUrls);
+
+    // The remove link carries an aria-label naming what is being removed
+    expect($output)->toContain('aria-label="Remove Red"');
+});
+
+it('still renders a chip whose value has no toggle url without erroring', function (): void {
+    $activeFilters = [
+        new ActiveFilter(
+            code: 'color',
+            type: 'select',
+            labels: ['Red', 'Green'],
+            values: ['red', 'green'],
+        ),
+    ];
+
+    // Only 'red' has a toggle URL; 'green' is absent from $toggleUrls
+    $toggleUrls = [
+        'color' => [
+            'red' => '/catalog/category/1',
+        ],
+    ];
+
+    // Must not throw; must still render both chip labels
+    $output = facetSidebarRender(activeFilters: $activeFilters, toggleUrls: $toggleUrls);
+
+    expect($output)->toContain('Red');
+    expect($output)->toContain('Green');
+    // 'green' chip still appears but without a remove link
+    expect($output)->toContain('catalog-facet-active__chip');
 });

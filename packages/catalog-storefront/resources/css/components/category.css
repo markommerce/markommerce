@@ -1,0 +1,46 @@
+@layer components {
+    /* ── Sort control toolbar ───────────────────────────────────────────────── */
+
+    .catalog-sort-form {
+        display: flex;
+        align-items: center;
+        gap: var(--mk-space-2, 0.5rem);
+        flex-wrap: wrap;
+    }
+
+    .catalog-sort-form label {
+        font-size: var(--mk-font-size-sm, 0.875rem);
+        color: var(--mk-color-fg-muted, currentColor);
+        white-space: nowrap;
+    }
+
+    .catalog-sort-form select {
+        padding-block: var(--mk-space-1, 0.25rem);
+        padding-inline: var(--mk-space-2, 0.5rem);
+        border: 1px solid var(--mk-color-border, currentColor);
+        border-radius: var(--mk-radius-base, 0.5rem);
+        background: var(--mk-color-surface, transparent);
+        color: var(--mk-color-fg, currentColor);
+        font: inherit;
+        font-size: var(--mk-font-size-sm, 0.875rem);
+        cursor: pointer;
+    }
+
+    .catalog-sort-form select:focus-visible {
+        outline: 2px solid var(--mk-color-focus-ring, currentColor);
+        outline-offset: 2px;
+    }
+
+    /* ── Product grid ───────────────────────────────────────────────────────── */
+
+    .catalog-product-grid {
+        --mk-grid-gap: var(--mk-space-4, 1.5rem);
+    }
+
+    /* ── Empty state ────────────────────────────────────────────────────────── */
+
+    .catalog-product-grid-empty {
+        padding-block: var(--mk-space-6, 2.5rem);
+        text-align: center;
+    }
+}

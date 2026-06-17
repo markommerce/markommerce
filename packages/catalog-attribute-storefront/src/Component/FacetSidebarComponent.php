@@ -70,7 +70,41 @@ class FacetSidebarComponent
             facets: $facets,
             activeFilters: $activeFilters,
             toggleUrls: $this->buildToggleUrls($id, $page, $size, $sort, $filter, $facets),
+            clearAllUrl: $this->buildClearAllUrl($id, $size, $sort, $activeFilters),
         );
+    }
+
+    /**
+     * Build a URL that clears all attribute filters while preserving sort and size.
+     * Returns null when no filters are active.
+     *
+     * @param list<ActiveFilter> $activeFilters
+     */
+    private function buildClearAllUrl(
+        int $categoryId,
+        int $size,
+        string $sort,
+        array $activeFilters,
+    ): ?string {
+        if ($activeFilters === []) {
+            return null;
+        }
+
+        $baseUrl = '/catalog/category/' . $categoryId;
+
+        $params = [];
+
+        if ($sort !== '') {
+            $params['sort'] = $sort;
+        }
+
+        if ($size > 0) {
+            $params['size'] = $size;
+        }
+
+        $query = $params !== [] ? '?' . http_build_query($params) : '';
+
+        return $baseUrl . $query;
     }
 
     /**

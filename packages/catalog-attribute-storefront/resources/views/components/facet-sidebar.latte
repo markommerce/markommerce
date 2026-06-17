@@ -1,35 +1,55 @@
 {var $facetGroups = $facets ?? []}
 {var $activeFilterList = $activeFilters ?? []}
-<mk-stack gap="4" class="catalog-facet-sidebar">
+{var $allClearUrl = $clearAllUrl ?? null}
+<div class="catalog-facet-sidebar">
     {if count($activeFilterList) > 0}
-        <mk-stack gap="2" class="catalog-facet-sidebar__active-filters">
-            <mk-text variant="label">Active filters:</mk-text>
-            {foreach $activeFilterList as $activeFilter}
-                <mk-inline gap="1">
-                    {foreach $activeFilter->labels as $label}
-                        <mk-badge class="catalog-facet-sidebar__active-filter">{$activeFilter->code}: {$label}</mk-badge>
+        <div class="catalog-facet-active">
+            <div class="catalog-facet-active__chips">
+                {foreach $activeFilterList as $activeFilter}
+                    {foreach $activeFilter->values as $index => $value}
+                        {var $label = $activeFilter->labels[$index] ?? $value}
+                        <span class="catalog-facet-active__chip">
+                            <span class="catalog-facet-active__chip-label">{$label}</span>
+                            {if isset($toggleUrls[$activeFilter->code][$value])}
+                                <a href="{$toggleUrls[$activeFilter->code][$value]|noescape}" class="catalog-facet-active__remove" aria-label="Remove {$label}">×</a>
+                            {/if}
+                        </span>
                     {/foreach}
-                </mk-inline>
-            {/foreach}
-        </mk-stack>
+                {/foreach}
+            </div>
+            {if $allClearUrl !== null}
+                <a href="{$allClearUrl|noescape}" class="catalog-facet-active__clear">Clear all</a>
+            {/if}
+        </div>
     {/if}
     {foreach $facetGroups as $facet}
-        <mk-stack gap="2" class="catalog-facet-sidebar__group" data-facet-code="{$facet->code}">
-            <mk-text variant="label">{$facet->code}</mk-text>
-            <mk-stack gap="1">
+        <div class="catalog-facet-sidebar__group" data-facet-code="{$facet->code}" role="group" aria-labelledby="facet-title-{$facet->code}">
+            <p class="catalog-facet-sidebar__group-title" id="facet-title-{$facet->code}">{$facet->code}</p>
+            <ul class="catalog-facet-sidebar__values">
                 {foreach $facet->values as $facetValue}
-                    <mk-inline gap="2" class="catalog-facet-sidebar__value{if $facetValue->selected} catalog-facet-sidebar__value--selected{/if}">
-                        <span class="catalog-facet-sidebar__value-label">{$facetValue->label}</span>
-                        <span class="catalog-facet-sidebar__value-count">({$facetValue->count})</span>
-                        {if $facetValue->selected}
-                            <span class="catalog-facet-sidebar__value-selected" aria-label="selected">selected</span>
-                        {/if}
+                    <li class="catalog-facet-sidebar__value{if $facetValue->selected} catalog-facet-sidebar__value--selected{/if}"{if $facetValue->selected} aria-current="true"{/if}>
                         {if isset($toggleUrls[$facet->code][$facetValue->value])}
-                            <a href="{$toggleUrls[$facet->code][$facetValue->value]|noescape}" class="catalog-facet-sidebar__toggle">{if $facetValue->selected}Remove{else}Add{/if}</a>
+                            <a href="{$toggleUrls[$facet->code][$facetValue->value]|noescape}" class="catalog-facet-sidebar__toggle"{if $facetValue->selected} aria-pressed="true"{/if}>
+                                <span class="catalog-facet-sidebar__checkbox" aria-hidden="true"></span>
+                                <span class="catalog-facet-sidebar__value-label">{$facetValue->label}</span>
+                                <span class="catalog-facet-sidebar__count">({$facetValue->count})</span>
+                                {if $facetValue->selected}
+                                    <span class="catalog-facet-sidebar__value-selected visually-hidden">selected</span>
+                                {/if}
+                            </a>
+                        {else}
+                            <span class="catalog-facet-sidebar__toggle">
+                                <span class="catalog-facet-sidebar__checkbox" aria-hidden="true"></span>
+                                <span class="catalog-facet-sidebar__value-label">{$facetValue->label}</span>
+                                <span class="catalog-facet-sidebar__count">({$facetValue->count})</span>
+                                {if $facetValue->selected}
+                                    <span class="catalog-facet-sidebar__value-selected visually-hidden">selected</span>
+                                {/if}
+                            </span>
                         {/if}
-                    </mk-inline>
+                    </li>
                 {/foreach}
-            </mk-stack>
-        </mk-stack>
+            </ul>
+        </div>
     {/foreach}
-</mk-stack>
+</div>

@@ -79,6 +79,7 @@ export default defineConfig(({ command }) => ({
         // be a build input or the manifest lacks it (ViteManifestException at render).
         themeBlank: path.join(repoRoot, 'packages/theme-blank/resources/js/index.ts'),
         catalogStorefront: path.join(repoRoot, 'packages/catalog-storefront/resources/js/index.ts'),
+        catalogAttributeStorefront: path.join(repoRoot, 'packages/catalog-attribute-storefront/resources/js/index.ts'),
       },
       output: {
         assetFileNames: 'assets/[name].[hash].[ext]',

@@ -31,9 +31,9 @@ return new LayoutExtension(
                 'filter' => Source::query('filter', [], 'array'),
             ],
         ),
-        // Render the facet sidebar ahead of the grid.
+        // Render the facet sidebar in the sidebar-left slot (beside the content slot).
         new Prepend(
-            slotPath: 'content',
+            slotPath: 'sidebar-left',
             placement: new Place(
                 component: FacetSidebarComponent::class,
                 name: 'catalog.facet_sidebar',

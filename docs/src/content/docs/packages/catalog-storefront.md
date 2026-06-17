@@ -32,7 +32,7 @@ Both routes are rendered by `markommerce/layout` --- `CategoryController` carrie
 
 ### Layout definition
 
-The category page layout is declared in `layout/category_show.php`. It extends `OneColumnLayout` from `markommerce/theme-blank`, provides the category via `CategoryDataProvider`, places `ProductGridComponent` in the `content` slot, and uses a `Slot::repeat()` to render a `ProductCard` for each product:
+The category page layout is declared in `layout/category_show.php`. It extends `TwoColumnsLeftLayout` from `markommerce/theme-blank`, which provides a `sidebar-left` slot (for the layered-navigation facet sidebar when [markommerce/catalog-attribute-storefront](/docs/packages/catalog-attribute-storefront/) is installed) and a `content` slot (where the product grid lives). The category context is provided via `CategoryDataProvider` and the grid uses a `Slot::repeat()` to render a `ProductCard` for each product:
 
 ```php title="packages/catalog-storefront/layout/category_show.php"
 <?php
@@ -42,11 +42,11 @@ declare(strict_types=1);
 use Markommerce\CatalogStorefront\Controller\CategoryController;
 use Markommerce\CatalogStorefront\Layout\CategoryProductGridLayout;
 use Markommerce\Layout\Layout;
-use Markommerce\ThemeBlank\Layout\OneColumnLayout;
+use Markommerce\ThemeBlank\Layout\TwoColumnsLeftLayout;
 
 return new Layout(
     handle: [CategoryController::class, 'show'],
-    extends: OneColumnLayout::class,
+    extends: TwoColumnsLeftLayout::class,
     context: CategoryProductGridLayout::context(),
     slots: [
         'content' => [
@@ -58,13 +58,28 @@ return new Layout(
 
 The shared layout helpers live in `CategoryProductGridLayout`. `context()` returns the category context provider and `gridPlacement()` returns a pre-configured `Place` for `ProductGridComponent` with `page`, `size`, and `sort` sourced from query parameters, and a nested repeat slot for `ProductCard` / `StockBadge`. Both the full-page layout (`category_show`) and the fragment layout (`category_page_fragment`) reuse these helpers; they differ only in their root template and placement-name suffix.
 
+The `sidebar-left` slot is empty when only this package is installed; [markommerce/catalog-attribute-storefront](/docs/packages/catalog-attribute-storefront/) contributes `FacetSidebarComponent` into that slot via a `LayoutExtension`, enabling the full two-column category page with a facet sidebar without any changes to application code.
+
+### Frontend styling
+
+The package ships CSS files in `resources/css/components/` that provide cohesive visual styling for the sort control, product grid, and pagination. The CSS is delivered via the package's frontend extension (declared in `package.json`) and loaded by `theme-blank`'s `base.latte`.
+
+Shipped stylesheets:
+
+| File | Description |
+|---|---|
+| `category.css` | Sort form toolbar (`.catalog-sort-form`), product grid wrapper (`.catalog-product-grid`), and empty-state style |
+| `pagination.css` | Numbered pagination links, "Load more" button, and `<mk-load-more>` / `<mk-infinite-scroll>` custom-element integration |
+
+Both files use `@layer components` and `--mk-*` design tokens (e.g. `--mk-color-primary`, `--mk-space-4`, `--mk-radius-base`), so they inherit from the active theme and can be overridden by downstream CSS layers.
+
 ### Template overrides
 
 The package ships Latte templates for the category page, product grid, product card, and stock badge. To override a template, place a file at the same relative path inside your application's template directory. Marko resolves templates using the same override chain as module Preferences --- the last registered template wins.
 
 ### Swapping the theme
 
-The layout definition extends `OneColumnLayout` from `markommerce/theme-blank`. To swap themes, override the layout definition in your application's `module.php` by binding your own `Layout` instance for the `CategoryController::show` handle. No forking required.
+The layout definition extends `TwoColumnsLeftLayout` from `markommerce/theme-blank`. To swap themes, override the layout definition in your application's `module.php` by binding your own `Layout` instance for the `CategoryController::show` handle. No forking required.
 
 ## API Reference
 

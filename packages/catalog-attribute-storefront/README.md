@@ -104,6 +104,27 @@ The disjunctive logic is handled by `AttributeFacetQuery` from `markommerce/cata
 
 Both `AttributeProductListFilter` and `LayeredNavigationAssembler` resolve scope signatures from the active `ScopeContext` using `SignatureCandidateEnumerator`. The most-specific candidate signature with rows in the index wins; the base (`''`) signature is used as a fallback. This ensures filter and facet counts reflect the correct scoped attribute values for the current locale or market.
 
+## Storefront UI
+
+### Frontend Assets
+
+The package ships a CSS file at `resources/css/components/facet-sidebar.css` which is automatically bundled via the package's frontend extension. The `package.json` declares `"markommerce.extension": "./resources/js/index.ts"` so the asset pipeline picks it up automatically; `resources/js/index.ts` imports the CSS:
+
+```ts
+import '../css/components/facet-sidebar.css';
+```
+
+The CSS is written inside `@layer components` and uses `--mk-*` design tokens (e.g. `--mk-space-2`, `--mk-color-primary`, `--mk-radius-full`) so it inherits from the active theme and can be overridden by downstream layers. A `{vite(...)}` call in `theme-blank`'s `base.latte` loads the compiled bundle on every storefront page.
+
+### Facet Sidebar
+
+`FacetSidebarComponent` collects facet groups + active filters + toggle URLs and passes `FacetSidebarData` to `facet-sidebar.latte`. The template (`resources/views/components/facet-sidebar.latte`) renders:
+
+- **Facet groups** — one group per attribute; each row is a checkbox-style no-JS anchor link (value label + product count). A custom CSS checkbox is drawn in pure CSS; no JavaScript is required for toggling.
+- **Selected state** — selected rows receive the `catalog-facet-sidebar__value--selected` modifier class, `aria-current="true"` on the `<li>`, and `aria-pressed="true"` on the toggle link, plus a visually-hidden "selected" text for screen readers.
+- **Active filter chips** — when any filter is active, a chip strip appears above the facet groups. Each chip shows the resolved label and a remove link (`aria-label="Remove {label}"`). A **"Clear all"** link (`FacetSidebarData::$clearAllUrl`) removes all attribute filters at once.
+- **Responsive layout** — the sidebar is placed in the `sidebar-left` slot of `TwoColumnsLeftLayout` (from `theme-blank`), so it collapses to a single column on small viewports via `<mk-sidebar>`.
+
 ## Facet Sidebar Template
 
 The Latte component template at `resources/views/components/facet-sidebar.latte` renders:
