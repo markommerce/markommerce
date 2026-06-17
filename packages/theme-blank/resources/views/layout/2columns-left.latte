@@ -4,7 +4,10 @@
 <mk-container>
     <mk-sidebar>
         <aside>{slot sidebar-left}{/slot}</aside>
-        {slot content}{/slot}
+        {* Wrap the content slot in a single element so <mk-sidebar> always sees exactly two
+           children (aside + main); otherwise extra content placements become orphan flex
+           items and break the two-column layout. *}
+        <div class="mk-sidebar__main">{slot content}{/slot}</div>
     </mk-sidebar>
 </mk-container>
 {/block}

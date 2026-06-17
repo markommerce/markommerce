@@ -9,6 +9,12 @@
                     <option value="{$sortItem['key']}" {if ($activeSort ?? '') === $sortItem['key']}selected{/if}>{$sortItem['label']}</option>
                 {/foreach}
             </select>
+            {* Preserve the active attribute filters so changing the sort order keeps them. *}
+            {foreach ($appliedFilters ?? []) as $filterCode => $filterValues}
+                {foreach $filterValues as $filterValue}
+                    <input type="hidden" n:attr="name => 'filter[' . $filterCode . '][]'" value="{$filterValue}">
+                {/foreach}
+            {/foreach}
             <noscript><button type="submit">Apply</button></noscript>
         </form>
     {/if}

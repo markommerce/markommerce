@@ -3,7 +3,7 @@ title: markommerce/catalog-price-index
 description: Denormalized product price index for fast sorting and filtering — one row per product, populated by the full pricing pipeline, with per-market amounts stored in a JSONB scopes column.
 ---
 
-Denormalized product price index for fast sorting and filtering. `markommerce/catalog-price-index` provides a single bulk-upsert table keyed on `product_id` with per-market scope overrides in a `scopes` JSON column via `HasScopes`. The indexer runs the full `BatchPriceResolverInterface` pipeline over chunks of products and writes results in a single SQL upsert per chunk --- N+1-free by design.
+Denormalized product price index for fast sorting and filtering. `markommerce/catalog-price-index` provides a single bulk-upsert table keyed on `product_id` with per-market scope overrides in a `scopes` JSON column via `HasScopes`. The indexer runs the full `BatchPriceResolverInterface` pipeline over chunks of products and writes results in a single SQL upsert per chunk --- N+1-free by design. The package is built on `markommerce/indexer` and its `PriceIndexer` is registered as the `price` index in the shared `IndexerRegistry`.
 
 ## Installation
 
@@ -23,13 +23,13 @@ composer require markommerce/catalog-price-index-market
 
 ```bash
 # Full rebuild with default chunk size (500)
-php marko catalog:price-index:rebuild
+php marko index:rebuild price
 
 # Full rebuild with a custom chunk size
-php marko catalog:price-index:rebuild --chunk=200
+php marko index:rebuild price --chunk=200
 ```
 
-The command truncates the existing index and rebuilds it in chunks. It prints the total number of upserted entries when complete.
+The command is provided by `markommerce/indexer` and dispatches to the `PriceIndexer` registered under the name `price`. It truncates the existing index and rebuilds it in chunks. It prints the total number of upserted entries when complete.
 
 ### Rebuilding programmatically
 
@@ -166,13 +166,13 @@ There is no automatic invalidation, dirty-tracking, or observer in v1. Rebuild t
 
 ## Module Bindings
 
-`module.php` registers the following default bindings:
+`module.php` registers the following default bindings and performs boot-time registration:
 
-| Interface | Default Implementation |
-|---|---|
-| `ProductPriceIndexRepositoryInterface` | `ProductPriceIndexRepository` |
-| `IndexedMarketsProviderInterface` | `DefaultIndexedMarketsProvider` |
-| `PriceIndexerInterface` | `PriceIndexer` |
+| Interface / Class | Default Implementation | Notes |
+|---|---|---|
+| `ProductPriceIndexRepositoryInterface` | `ProductPriceIndexRepository` | |
+| `IndexedMarketsProviderInterface` | `DefaultIndexedMarketsProvider` | |
+| `PriceIndexerInterface` | `PriceIndexer` | Also registered as `price` in `IndexerRegistry` on first resolution |
 
 ## API Reference
 
@@ -213,9 +213,9 @@ Table: `catalog_product_price_index`. Implements `HasScopesInterface`.
 
 ### CLI Command
 
-| Command | Option | Description |
-|---|---|---|
-| `catalog:price-index:rebuild` | `--chunk=N` | Rebuild the full product price index. Defaults to chunk size `500`. |
+| Command | Arguments | Options | Description |
+|---|---|---|---|
+| `index:rebuild` | `price` | `--chunk=N` | Rebuild the full product price index. Defaults to chunk size `500`. Provided by `markommerce/indexer`. |
 
 ## markommerce/catalog-price-index-market
 
@@ -242,6 +242,7 @@ Replaces (via `#[Preference]`) `DefaultIndexedMarketsProvider`. Implements `Inde
 
 ## Related Packages
 
+- [markommerce/indexer](/docs/packages/indexer/) --- shared indexer kernel; provides `ScopePassRunner`, `IndexerRegistry`, and the `index:rebuild` CLI command
 - [markommerce/catalog](/docs/packages/catalog/) --- Provides `BatchPriceResolverInterface` and `PriceContributorInterface`; the pricing pipeline that populates the index
 - [markommerce/catalog-market](/docs/packages/catalog-market/) --- Registers `Product.priceAmount` on the `market` axis; required by `markommerce/catalog-price-index-market`
 - [markommerce/scope](/docs/packages/scope/) --- `HasScopes`, `ScopeResolver`, and `ScopedFieldRegistry` used to store and read per-market amounts

@@ -43,15 +43,7 @@ The route resolves the category by `id`, renders the product grid using `Product
 
 ## Layout
 
-The module registers a layout definition that wraps category pages in the `theme-blank` base layout. To swap themes, replace the layout definition using Marko's module system or supply your own theme package.
-
-```php title="module.php"
-use Markommerce\CatalogStorefront\Component\ProductGridComponent;
-use Markommerce\Layout\LayoutDefinition;
-
-// Override the default layout by binding your own LayoutDefinition
-// in your module's boot closure — no forking required.
-```
+The category page extends `TwoColumnsLeftLayout` from `theme-blank`, providing a `sidebar-left` slot (where `catalog-attribute-storefront` places the facet sidebar) and a `content` slot (the product grid). To swap themes, replace the layout definition using Marko's module system or supply your own theme package.
 
 ## Components
 

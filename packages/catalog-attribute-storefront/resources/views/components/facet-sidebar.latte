@@ -1,0 +1,33 @@
+{var $facetGroups = $facets ?? []}
+<div class="catalog-facet-sidebar">
+    {foreach $facetGroups as $facet}
+        <div class="catalog-facet-sidebar__group" data-facet-code="{$facet->code}" role="group" aria-labelledby="facet-title-{$facet->code}">
+            <p class="catalog-facet-sidebar__group-title" id="facet-title-{$facet->code}">{$facet->code}</p>
+            <ul class="catalog-facet-sidebar__values">
+                {foreach $facet->values as $facetValue}
+                    <li class="catalog-facet-sidebar__value{if $facetValue->selected} catalog-facet-sidebar__value--selected{/if}"{if $facetValue->selected} aria-current="true"{/if}>
+                        {if isset($toggleUrls[$facet->code][$facetValue->value])}
+                            <a href="{$toggleUrls[$facet->code][$facetValue->value]|noescape}" class="catalog-facet-sidebar__toggle"{if $facetValue->selected} aria-pressed="true"{/if}>
+                                <span class="catalog-facet-sidebar__checkbox" aria-hidden="true"></span>
+                                <span class="catalog-facet-sidebar__value-label">{$facetValue->label}</span>
+                                <span class="catalog-facet-sidebar__count">({$facetValue->count})</span>
+                                {if $facetValue->selected}
+                                    <span class="catalog-facet-sidebar__value-selected visually-hidden">selected</span>
+                                {/if}
+                            </a>
+                        {else}
+                            <span class="catalog-facet-sidebar__toggle">
+                                <span class="catalog-facet-sidebar__checkbox" aria-hidden="true"></span>
+                                <span class="catalog-facet-sidebar__value-label">{$facetValue->label}</span>
+                                <span class="catalog-facet-sidebar__count">({$facetValue->count})</span>
+                                {if $facetValue->selected}
+                                    <span class="catalog-facet-sidebar__value-selected visually-hidden">selected</span>
+                                {/if}
+                            </span>
+                        {/if}
+                    </li>
+                {/foreach}
+            </ul>
+        </div>
+    {/foreach}
+</div>

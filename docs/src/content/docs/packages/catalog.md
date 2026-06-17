@@ -108,6 +108,82 @@ if ($page instanceof RandomAccessPageInterface) {
 
 `PaginationOptionsResolver::resolve()` reads all values from `CatalogPaginationConfig` via the config system and validates the combination of strategy and presentation. It throws `InvalidPaginationConfigException` for invalid config values, `UnknownSortRequestedException` when the requested `sort` key is not registered or not in `enabledSorts`, and `PageDepthExceededException` when the requested page number exceeds `maxPageDepth`.
 
+### Product list filter extension point
+
+`markommerce/catalog` ships a generic, attribute-agnostic extension point that allows any package to add WHERE conditions to the category product listing query. The three components are `ProductListFilterInterface`, `ProductListFilterRegistry`, and `FilterSelection`.
+
+#### `FilterSelection`
+
+A readonly value object carrying the active filter keys and their selected values:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Catalog\Filtering\FilterSelection;
+
+$selection = new FilterSelection(['color' => ['red', 'blue'], 'size' => ['L']]);
+
+$selection->forKey('color');   // ['red', 'blue']
+$selection->keys();            // ['color', 'size']
+$selection->isEmpty();         // false
+$selection->without('color'); // new FilterSelection(['size' => ['L']])
+```
+
+#### Implementing `ProductListFilterInterface`
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Marko\Database\Repository\RepositoryQueryBuilder;
+use Markommerce\Catalog\Filtering\FilterSelection;
+use Markommerce\Catalog\Filtering\ProductListFilterInterface;
+
+class MyAttributeFilter implements ProductListFilterInterface
+{
+    public function apply(
+        RepositoryQueryBuilder $repositoryQueryBuilder,
+        FilterSelection $filterSelection,
+    ): void {
+        $values = $filterSelection->forKey('my_attribute');
+
+        if ($values === []) {
+            return; // no-op when key not active
+        }
+
+        $repositoryQueryBuilder->whereIn('my_column', $values);
+    }
+}
+```
+
+#### Registering a filter
+
+Register the filter in your `module.php` boot closure:
+
+```php title="module.php"
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Catalog\Filtering\ProductListFilterRegistry;
+
+return [
+    'boot' => function (
+        ProductListFilterRegistry $productListFilterRegistry,
+        MyAttributeFilter $myAttributeFilter,
+    ): void {
+        $productListFilterRegistry->register($myAttributeFilter);
+    },
+];
+```
+
+`CategoryAssignmentService::paginatedProductsInCategory()` accepts an optional `FilterSelection $selection` parameter (defaults to empty). All registered filters are applied before paginating — the constraints are pushed into the SQL query, not applied in PHP after fetching.
+
+[markommerce/catalog-attribute-storefront](/docs/packages/catalog-attribute-storefront/) uses this extension point to register `AttributeProductListFilter`, which adds EXISTS constraints over `catalog_product_attribute_index` for attribute-based layered navigation.
+
 ### Pagination configuration
 
 Pagination defaults are controlled through the `catalog/pagination` config scope. Publish or create `config/catalog/pagination.php` in your application to override any value:
@@ -584,7 +660,7 @@ php artisan db:seed --seeder=catalog-locale
 | `PriceResolverInterface` | `PriceResolver` |
 | `ProductBasePriceProviderInterface` | `RawProductBasePriceProvider` |
 
-`PriceContributorRegistry` and `CategorySortOrderRegistry` are registered as singletons. `BasePriceContributor` is registered with priority `0` at boot. The `position` sort order (`ColumnSortOrder`, key `'position'`) is registered in `CategorySortOrderRegistry` at priority `0` at boot.
+`PriceContributorRegistry`, `CategorySortOrderRegistry`, and `ProductListFilterRegistry` are registered as singletons. `BasePriceContributor` is registered with priority `0` at boot. The `position` sort order (`ColumnSortOrder`, key `'position'`) is registered in `CategorySortOrderRegistry` at priority `0` at boot.
 
 ## API Reference
 
@@ -732,7 +808,7 @@ The primary contract for category tree lifecycle management. Implemented by `Cat
 | `assign(int $productId, int $categoryId)` | `void` | `ProductNotFoundException`, `CategoryNotFoundException` | Assign a product to a category. No-op if already assigned. |
 | `detach(int $productId, int $categoryId)` | `void` | --- | Remove a product-category assignment. No-op if no assignment exists. |
 | `productsInCategory(int $categoryId)` | `list<Product>` | `CategoryNotFoundException` | Return all products assigned to the given category (N+1 per-product lookup). |
-| `paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $resolvedPaginationOptions)` | `Page<Product>` | `CategoryNotFoundException`, `RepositoryException` | Return a paginated page of products via a single JOIN query. The returned `Page` implements `RandomAccessPageInterface` when the offset strategy is active. |
+| `paginatedProductsInCategory(int $categoryId, ResolvedPaginationOptions $resolvedPaginationOptions, FilterSelection $filters = new FilterSelection())` | `Page<Product>` | `CategoryNotFoundException`, `RepositoryException` | Return a paginated page of products via a single JOIN query. All registered `ProductListFilterInterface` implementations are applied before paginating. The returned `Page` implements `RandomAccessPageInterface` when the offset strategy is active. |
 
 #### `CategoryTreeService`
 
@@ -951,3 +1027,4 @@ Default implementation: `RawProductBasePriceProvider` --- reads `Product::$price
 - [markommerce/catalog-price-index](/docs/packages/catalog-price-index/) --- Denormalized price index table for fast sorting and filtering; populated by the `BatchPriceResolverInterface` pipeline built into this package
 - [markommerce/scope](/docs/packages/scope/) --- Scoped attribute resolution engine
 - [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver required to persist and query scoped overrides
+- [markommerce/catalog-attribute-storefront](/docs/packages/catalog-attribute-storefront/) --- Uses `ProductListFilterInterface`/`ProductListFilterRegistry` to register `AttributeProductListFilter`; provides the full layered navigation (disjunctive facets + filter sidebar) for category pages

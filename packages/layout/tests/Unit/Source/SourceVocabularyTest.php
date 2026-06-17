@@ -47,6 +47,13 @@ it('builds a service source with a class name', function (): void {
     expect($source->class)->toBe('SomeService::class');
 });
 
+it('allows an array cast on a query source', function (): void {
+    $source = Source::query('filter', [], 'array');
+    expect($source->name)->toBe('filter');
+    expect($source->default)->toBe([]);
+    expect($source->as)->toBe('array');
+});
+
 it('rejects an unknown cast keyword on a route source', function (): void {
     expect(fn () => Source::route('id', 'float'))
         ->toThrow(InvalidArgumentException::class);

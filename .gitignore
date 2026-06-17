@@ -25,3 +25,6 @@ packages/*/resources/js/.generated/
 test-results/
 playwright-report/
 .playwright/
+
+# Local code-review evidence / gate markers (not versioned)
+.code-reviews/

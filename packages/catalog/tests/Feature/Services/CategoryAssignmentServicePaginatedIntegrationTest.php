@@ -57,6 +57,7 @@ function makeAssignmentServiceFromConn(ConnectionInterface $conn): CategoryAssig
         productCategoryAssignmentRepository: $assignmentRepository,
         positionCodec: $positionCodec,
         keysetPaginationStrategy: $keysetStrategy,
+        connection: $conn,
     );
 }
 

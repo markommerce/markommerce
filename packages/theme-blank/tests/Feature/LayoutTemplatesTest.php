@@ -49,20 +49,31 @@ function themeBlankTestEnsureManifest(string $basePath): ?string
     $manifestPath = $manifestDir . '/manifest.json';
 
     $themeBlankEntry = 'packages/theme-blank/resources/js/index.ts';
+    $catalogAttributeStorefrontEntry = 'packages/catalog-attribute-storefront/resources/js/index.ts';
 
     if (file_exists($manifestPath)) {
         $original = file_get_contents($manifestPath);
         $manifest = json_decode($original, true);
 
-        if (isset($manifest[$themeBlankEntry])) {
+        if (isset($manifest[$themeBlankEntry]) && isset($manifest[$catalogAttributeStorefrontEntry])) {
             return null;
         }
 
-        $manifest[$themeBlankEntry] = [
-            'file' => 'assets/theme-blank-abc123.js',
-            'css' => ['assets/theme-blank-abc123.css'],
-            'isEntry' => true,
-        ];
+        if (!isset($manifest[$themeBlankEntry])) {
+            $manifest[$themeBlankEntry] = [
+                'file' => 'assets/theme-blank-abc123.js',
+                'css' => ['assets/theme-blank-abc123.css'],
+                'isEntry' => true,
+            ];
+        }
+
+        if (!isset($manifest[$catalogAttributeStorefrontEntry])) {
+            $manifest[$catalogAttributeStorefrontEntry] = [
+                'file' => 'assets/catalog-attribute-storefront-abc123.js',
+                'isEntry' => true,
+            ];
+        }
+
         file_put_contents($manifestPath, json_encode($manifest));
 
         return $original;
@@ -73,6 +84,10 @@ function themeBlankTestEnsureManifest(string $basePath): ?string
         $themeBlankEntry => [
             'file' => 'assets/theme-blank-abc123.js',
             'css' => ['assets/theme-blank-abc123.css'],
+            'isEntry' => true,
+        ],
+        $catalogAttributeStorefrontEntry => [
+            'file' => 'assets/catalog-attribute-storefront-abc123.js',
             'isEntry' => true,
         ],
     ]));

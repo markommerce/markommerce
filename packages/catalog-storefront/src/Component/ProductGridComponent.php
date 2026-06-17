@@ -8,6 +8,7 @@ use Marko\Database\Exceptions\RepositoryException;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Exceptions\InvalidPaginationConfigException;
 use Markommerce\Catalog\Exceptions\PageDepthExceededException;
+use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
@@ -35,13 +36,38 @@ class ProductGridComponent
     ) {}
 
     /**
+     * Normalize the raw bracketed `filter[...]` query array into a FilterSelection.
+     *
+     * @param array<string, mixed> $filter
+     */
+    private function selectionFromFilter(array $filter): FilterSelection
+    {
+        $normalized = [];
+
+        foreach ($filter as $key => $value) {
+            $values = is_array($value)
+                ? array_values(array_map(strval(...), $value))
+                : [(string) $value];
+
+            $normalized[(string) $key] = $values;
+        }
+
+        return new FilterSelection($normalized);
+    }
+
+    /**
      * @throws RepositoryException|InvalidPaginationConfigException|PageDepthExceededException
+     */
+    /**
+     * @param array<string, mixed> $filter Raw bracketed `filter[...]` query array (parsed into a
+     *                                      FilterSelection by the layered-navigation assembler).
      */
     public function data(
         Category $category,
         int $page,
         int $size,
         string $sort,
+        array $filter = [],
     ): ProductGridData {
         $id = $category->id;
 
@@ -62,7 +88,27 @@ class ProductGridComponent
             $sort !== '' ? $sort : null,
         );
 
-        $page = $this->categoryAssignmentService->paginatedProductsInCategory($id, $options);
+        // Build the filter selection straight from the bracketed `filter[...]` query array and let the
+        // catalog ProductListFilterRegistry apply it (catalog-attribute-storefront registers the
+        // AttributeProductListFilter, which narrows by valid facetable attribute codes and ignores the
+        // rest). This keeps catalog-storefront attribute-agnostic — no dependency on the assembler.
+        $selection = $this->selectionFromFilter($filter);
+
+        // Carried into the view so the sort/pagination forms can re-emit the active filters as hidden
+        // inputs — otherwise changing the sort order would drop the selection.
+        $appliedFilters = [];
+
+        foreach ($selection->keys() as $filterKey) {
+            $appliedFilters[$filterKey] = $selection->forKey($filterKey);
+        }
+
+        // Facets/active filters are rendered by the dedicated facet-sidebar component
+        // (catalog-attribute-storefront); the grid only lists the (filtered) products.
+        $facets = [];
+        $activeFilters = [];
+
+        $page = $this->categoryAssignmentService->paginatedProductsInCategory($id, $options, $selection);
+
         $products = array_values($page->items->toArray());
 
         $resolvedNames = [];
@@ -115,6 +161,7 @@ class ProductGridComponent
                 $options->size,
                 $sort,
                 $size,
+                $appliedFilters,
             );
 
             if ($currentPage < $totalPages) {
@@ -126,6 +173,10 @@ class ProductGridComponent
 
                 if ($sort !== '') {
                     $params['sort'] = $sort;
+                }
+
+                if ($appliedFilters !== []) {
+                    $params['filter'] = $appliedFilters;
                 }
 
                 // Load-more / infinite scroll fetch the chrome-less fragment
@@ -142,6 +193,10 @@ class ProductGridComponent
 
                 if ($sort !== '') {
                     $params['sort'] = $sort;
+                }
+
+                if ($appliedFilters !== []) {
+                    $params['filter'] = $appliedFilters;
                 }
 
                 $previousPageUrl = sprintf('/catalog/category/%d/page?%s', $id, http_build_query($params));
@@ -162,6 +217,10 @@ class ProductGridComponent
                 $canonicalParams['sort'] = $sort;
             }
 
+            if ($appliedFilters !== []) {
+                $canonicalParams['filter'] = $appliedFilters;
+            }
+
             $canonicalPageUrl = $canonicalParams === []
                 ? sprintf('/catalog/category/%d', $id)
                 : sprintf('/catalog/category/%d?%s', $id, http_build_query($canonicalParams));
@@ -174,6 +233,10 @@ class ProductGridComponent
 
             if ($sort !== '') {
                 $params['sort'] = $sort;
+            }
+
+            if ($appliedFilters !== []) {
+                $params['filter'] = $appliedFilters;
             }
 
             $nextPageUrl = sprintf('/catalog/category/%d/page?%s', $id, http_build_query($params));
@@ -202,14 +265,18 @@ class ProductGridComponent
             sortOptions: $sortOptions,
             activeSort: $options->sortOrder->key(),
             extensions: new ExtensionBag(),
+            facets: $facets,
+            activeFilters: $activeFilters,
+            appliedFilters: $appliedFilters,
         );
     }
 
     /**
      * Build crawlable page link URLs for numbered pagination.
      *
-     * Preserves non-default size and sort query params.
+     * Preserves non-default size and sort query params, plus the active attribute filters.
      *
+     * @param array<string, list<string>> $appliedFilters
      * @return list<string>
      */
     private function buildPageLinkUrls(
@@ -217,6 +284,7 @@ class ProductGridComponent
         int $resolvedSize,
         string $sort,
         int $requestedSize,
+        array $appliedFilters,
     ): array {
         $urls = [];
 
@@ -229,6 +297,10 @@ class ProductGridComponent
 
             if ($sort !== '') {
                 $params['sort'] = $sort;
+            }
+
+            if ($appliedFilters !== []) {
+                $params['filter'] = $appliedFilters;
             }
 
             $urls[] = '?' . http_build_query($params);

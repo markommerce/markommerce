@@ -6,6 +6,8 @@ use Latte\Engine;
 use Marko\Config\ConfigRepository;
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
+use Marko\Database\Connection\ConnectionInterface;
+use Marko\Database\Connection\StatementInterface;
 use Marko\Database\Entity\EntityCollection;
 use Marko\View\Latte\LatteEngineFactory;
 use Marko\View\Latte\LatteViewConfig;
@@ -22,6 +24,7 @@ use Markommerce\Catalog\Pagination\PaginationPresentation;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
@@ -243,10 +246,66 @@ function productGridMakeFakeOffsetPage(
 }
 
 /**
+ * Build a no-op ConnectionInterface for fakes that never touch the database.
+ */
+function productGridMakeFakeConnection(): ConnectionInterface
+{
+    return new class () implements ConnectionInterface
+    {
+        public function connect(): void {}
+
+        public function disconnect(): void {}
+
+        public function isConnected(): bool
+        {
+            return true;
+        }
+
+        /**
+         * @param array<mixed> $bindings
+         * @return array<array<string, mixed>>
+         */
+        public function query(
+            string $sql,
+            array $bindings = [],
+        ): array
+        {
+            return [];
+        }
+
+        /**
+         * @param array<mixed> $bindings
+         */
+        public function execute(
+            string $sql,
+            array $bindings = [],
+        ): int
+        {
+            return 0;
+        }
+
+        public function prepare(string $sql): StatementInterface
+        {
+            throw new RuntimeException('Not implemented in fake connection.');
+        }
+
+        public function lastInsertId(): int
+        {
+            return 0;
+        }
+    };
+}
+
+/**
  * Build a fake CategoryAssignmentService that returns a controlled OffsetPage.
+ *
+ * The optional $captured reference receives the FilterSelection passed to
+ * paginatedProductsInCategory, so tests can assert the active query-param
+ * selection reaches the service.
  */
 function productGridMakeFakeService(
     OffsetPage $page,
+    ?FilterSelection &$captured = null,
 ): CategoryAssignmentService {
     $positionCodec = new PositionCodec();
     $productRepository = new FakeProductRepository();
@@ -259,7 +318,9 @@ function productGridMakeFakeService(
         $assignmentRepository,
         $positionCodec,
         new KeysetPaginationStrategy($positionCodec),
+        productGridMakeFakeConnection(),
         $page,
+        $captured,
     ) extends CategoryAssignmentService
     {
         public function __construct(
@@ -268,7 +329,9 @@ function productGridMakeFakeService(
             ProductCategoryAssignmentRepositoryInterface $assignmentRepository,
             PositionCodec $positionCodec,
             KeysetPaginationStrategy $keysetPaginationStrategy,
+            ConnectionInterface $connection,
             private readonly OffsetPage $fakePage,
+            private ?FilterSelection &$captured,
         ) {
             parent::__construct(
                 $productRepository,
@@ -276,14 +339,18 @@ function productGridMakeFakeService(
                 $assignmentRepository,
                 $positionCodec,
                 $keysetPaginationStrategy,
+                $connection,
             );
         }
 
         public function paginatedProductsInCategory(
             int $categoryId,
             ResolvedPaginationOptions $options,
+            FilterSelection $filters = new FilterSelection(),
         ): Page
         {
+            $this->captured = $filters;
+
             return $this->fakePage;
         }
     };
@@ -911,6 +978,38 @@ it('fetches only the current page of products', function (): void {
     expect($data->totalPages)->toBe(3);
 });
 
+it('preserves the active filters in pagination urls', function (): void {
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Shoes';
+
+    $product = new Product();
+    $product->id = 5;
+    $product->sku = 'P-005';
+    $product->name = 'Sneaker';
+
+    $fakePage = productGridMakeFakeOffsetPage([$product], currentPage: 2, totalPages: 3);
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
+    );
+
+    $data = $component->data($category, 2, 0, '', filter: ['color' => ['red']]);
+
+    // http_build_query encodes filter[color][0]=red as filter%5Bcolor%5D%5B0%5D=red
+    $encoded = 'filter%5Bcolor%5D';
+
+    expect(implode(' ', $data->pageLinkUrls))->toContain($encoded)
+        ->and($data->nextPageUrl)->toContain($encoded)
+        ->and($data->previousPageUrl)->toContain($encoded)
+        ->and($data->canonicalPageUrl)->toContain($encoded);
+});
+
 it('exposes the resolved presentation mode on the grid data', function (): void {
     $category = new Category();
     $category->id = 1;
@@ -1269,6 +1368,66 @@ it('it returns no formatted price when neither the index nor PriceResolver can r
     // No price available — should be null, not throw
     expect($data->formattedPrices)->toHaveKey($product->id)
         ->and($data->formattedPrices[$product->id])->toBeNull();
+});
+
+// ─── Filtering (query-param selection) ────────────────────────────────────────
+
+it('filters the product grid by the active query-param selection', function (): void {
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Shoes';
+
+    $fakePage = productGridMakeFakeOffsetPage([]);
+    $captured = null;
+    $service = productGridMakeFakeService($fakePage, $captured);
+
+    $component = new ProductGridComponent(
+        $service,
+        productGridMakePaginationOptionsResolver(),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
+    );
+
+    $data = $component->data($category, 1, 0, '', filter: ['color' => ['red']]);
+
+    // The grid no longer populates facets/active filters itself.
+    expect($data->facets)->toBe([]);
+    expect($data->activeFilters)->toBe([]);
+
+    // The selection built from the raw filter[...] array reaches the service.
+    expect($captured)->not->toBeNull();
+    expect($captured->forKey('color'))->toBe(['red']);
+
+    // The applied filters are carried into the view so the sort form can re-emit them
+    // as hidden inputs (otherwise changing the sort order would drop the selection).
+    expect($data->appliedFilters)->toBe(['color' => ['red']]);
+});
+
+it('normalizes a scalar filter value into a single-element list', function (): void {
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Shoes';
+
+    $fakePage = productGridMakeFakeOffsetPage([]);
+    $captured = null;
+    $service = productGridMakeFakeService($fakePage, $captured);
+
+    $component = new ProductGridComponent(
+        $service,
+        productGridMakePaginationOptionsResolver(),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
+    );
+
+    // A scalar (non-array) value is normalized into a single-element list.
+    $component->data($category, 1, 0, '', filter: ['color' => 'red']);
+
+    expect($captured)->not->toBeNull();
+    expect($captured->forKey('color'))->toBe(['red']);
 });
 
 // ─── Sort dropdown requirements ───────────────────────────────────────────────

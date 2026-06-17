@@ -47,13 +47,17 @@ class ScopedProductGridComponent extends ProductGridComponent
     /**
      * @throws RepositoryException|ScopeContextException|UnknownAxisException|UnknownScopeException|InvalidPaginationConfigException|PageDepthExceededException
      */
+    /**
+     * @param array<string, mixed> $filter
+     */
     public function data(
         Category $category,
         int $page,
         int $size,
         string $sort,
+        array $filter = [],
     ): ProductGridData {
-        $data = parent::data($category, $page, $size, $sort);
+        $data = parent::data($category, $page, $size, $sort, $filter);
 
         $resolvedNames = $data->resolvedNames;
         $resolvedDescs = $data->resolvedDescs;
@@ -85,6 +89,9 @@ class ScopedProductGridComponent extends ProductGridComponent
             sortOptions: $data->sortOptions,
             activeSort: $data->activeSort,
             extensions: $data->extensions,
+            facets: $data->facets,
+            activeFilters: $data->activeFilters,
+            appliedFilters: $data->appliedFilters,
         );
     }
 }

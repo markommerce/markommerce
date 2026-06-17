@@ -1,0 +1,38 @@
+{
+    "name": "markommerce/catalog-attribute-scope",
+    "description": "Scope storage bridge for catalog attribute entities — adds scoped override support to product attribute values",
+    "license": "MIT",
+    "type": "marko-module",
+    "require": {
+        "php": "^8.5",
+        "markommerce/attribute": "self.version",
+        "markommerce/catalog": "self.version",
+        "markommerce/catalog-attribute": "self.version",
+        "markommerce/scope": "self.version"
+    },
+    "require-dev": {
+        "marko/testing": "self.version",
+        "markommerce/testing": "self.version",
+        "pestphp/pest": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Markommerce\\CatalogAttributeScope\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Markommerce\\CatalogAttributeScope\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "marko": {
+            "module": true
+        }
+    }
+}

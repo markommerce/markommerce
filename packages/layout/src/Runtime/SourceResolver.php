@@ -145,6 +145,7 @@ class SourceResolver
             ),
             'bool' => (bool) $value,
             'string' => (string) $value,
+            'array' => is_array($value) ? $value : [],
             default => $value,
         };
     }

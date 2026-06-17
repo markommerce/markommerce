@@ -29,8 +29,8 @@ $priceIndexer->reindexProducts(ids: [1, 2, 3]);
 
 ```bash
 # Rebuild from the CLI
-php marko catalog:price-index:rebuild
-php marko catalog:price-index:rebuild --chunk=200
+php marko index:rebuild price
+php marko index:rebuild price --chunk=200
 ```
 
 ## Documentation
