@@ -129,25 +129,7 @@
         border-block-end: 1px solid var(--mk-color-border, currentColor);
     }
 
-    .catalog-facet-active__chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--mk-space-1, 0.25rem);
-    }
-
-    .catalog-facet-active__chip {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--mk-space-1, 0.25rem);
-        padding-block: var(--mk-space-0-5, 0.125rem);
-        padding-inline: var(--mk-space-2, 0.5rem);
-        background-color: var(--mk-color-primary-subtle, #e8f0fe);
-        color: var(--mk-color-primary, currentColor);
-        border-radius: var(--mk-radius-full, 9999px);
-        font-size: var(--mk-font-size-xs, 0.75rem);
-        font-weight: var(--mk-font-weight-medium, 500);
-        line-height: 1.5;
-    }
+    /* Row layout comes from <mk-cluster>; the pill (padding/radius/bg/font) from <mk-badge>. */
 
     .catalog-facet-active__chip-label {
         white-space: nowrap;
