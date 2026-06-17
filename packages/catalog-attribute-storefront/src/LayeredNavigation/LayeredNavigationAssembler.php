@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Markommerce\CatalogAttributeStorefront\LayeredNavigation;
 
-use Marko\Core\Attributes\Preference;
 use Markommerce\Attribute\Contracts\AttributeDefinitionRepositoryInterface;
 use Markommerce\Attribute\Entity\AttributeDefinition;
 use Markommerce\Attribute\Entity\AttributeOption;
@@ -19,10 +18,8 @@ use Markommerce\CatalogAttributeIndex\Facet\Facet;
 use Markommerce\CatalogAttributeIndex\Facet\FacetValue;
 use Markommerce\CatalogStorefront\Contracts\LayeredNavigationAssemblerInterface;
 use Markommerce\CatalogStorefront\Data\LayeredNavigationData;
-use Markommerce\CatalogStorefront\LayeredNavigation\NullLayeredNavigationAssembler;
 use Markommerce\Scope\Context\ScopeContext;
 
-#[Preference(replaces: NullLayeredNavigationAssembler::class)]
 class LayeredNavigationAssembler implements LayeredNavigationAssemblerInterface
 {
     public function __construct(
@@ -31,7 +28,13 @@ class LayeredNavigationAssembler implements LayeredNavigationAssemblerInterface
         private readonly ScopedOptionLabelResolver $scopedOptionLabelResolver,
         private readonly AttributeDefinitionRepositoryInterface $attributeDefinitionRepository,
         private readonly ScopeContext $scopeContext,
+        private readonly FilterParamParser $filterParamParser,
     ) {}
+
+    public function selectionFromQuery(array $filter): FilterSelection
+    {
+        return $this->filterParamParser->fromArray($filter);
+    }
 
     /**
      * @throws CategoryNotFoundException

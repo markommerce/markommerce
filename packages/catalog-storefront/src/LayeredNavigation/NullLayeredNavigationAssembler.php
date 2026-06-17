@@ -44,4 +44,10 @@ class NullLayeredNavigationAssembler implements LayeredNavigationAssemblerInterf
             activeFilters: [],
         );
     }
+
+    public function selectionFromQuery(array $filter): FilterSelection
+    {
+        // No attribute knowledge without catalog-attribute-storefront — ignore all filters.
+        return new FilterSelection();
+    }
 }

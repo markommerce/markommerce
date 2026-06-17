@@ -7,6 +7,8 @@ use Marko\Core\Container\Container;
 use Marko\Core\Container\PreferenceDiscovery;
 use Marko\Core\Container\PreferenceRegistry;
 use Marko\Core\Module\ModuleManifest;
+use Marko\Database\Connection\ConnectionInterface;
+use Marko\Database\Connection\StatementInterface;
 use Marko\Database\Entity\EntityCollection;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
@@ -23,8 +25,6 @@ use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
 use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
-use Markommerce\CatalogStorefront\Contracts\LayeredNavigationAssemblerInterface;
-use Markommerce\CatalogStorefront\LayeredNavigation\NullLayeredNavigationAssembler;
 use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
 use Markommerce\CatalogScope\Entity\ProductScopedOverrides;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
@@ -224,6 +224,54 @@ function scopedGridMakePaginationOptionsResolver(): PaginationOptionsResolver
 /**
  * Build a CategoryAssignmentService that wraps paginatedProductsInCategory via productsInCategory.
  */
+function scopedGridMakeFakeConnection(): ConnectionInterface
+{
+    return new class () implements ConnectionInterface
+    {
+        public function connect(): void {}
+
+        public function disconnect(): void {}
+
+        public function isConnected(): bool
+        {
+            return true;
+        }
+
+        /**
+         * @param array<mixed> $bindings
+         * @return array<array<string, mixed>>
+         */
+        public function query(
+            string $sql,
+            array $bindings = [],
+        ): array
+        {
+            return [];
+        }
+
+        /**
+         * @param array<mixed> $bindings
+         */
+        public function execute(
+            string $sql,
+            array $bindings = [],
+        ): int
+        {
+            return 0;
+        }
+
+        public function prepare(string $sql): StatementInterface
+        {
+            throw new RuntimeException('Not implemented in fake connection.');
+        }
+
+        public function lastInsertId(): int
+        {
+            return 0;
+        }
+    };
+}
+
 function scopedGridMakeAssignmentService(
     FakeProductRepository $productRepository,
     FakeCategoryRepository $categoryRepository,
@@ -237,6 +285,7 @@ function scopedGridMakeAssignmentService(
         $assignmentRepository,
         $positionCodec,
         new KeysetPaginationStrategy($positionCodec),
+        scopedGridMakeFakeConnection(),
     ) extends CategoryAssignmentService
     {
         public function paginatedProductsInCategory(
@@ -352,8 +401,8 @@ it('accepts CategoryAssignmentService and ScopeResolver in its constructor (no d
     expect($paramNames)->toContain('scopeResolver');
     expect($paramNames)->toContain('priceResolver');
     expect($paramNames)->toContain('moneyFormatter');
-    expect($paramNames)->toContain('layeredNavigationAssembler');
-    expect($params)->toHaveCount(8);
+    expect($paramNames)->not->toContain('layeredNavigationAssembler');
+    expect($params)->toHaveCount(7);
 });
 
 it(
@@ -559,10 +608,6 @@ it(
         $container->bind(
             CurrencyResolver::class,
             fn () => scopedGridMakeCurrencyResolver(),
-        );
-        $container->bind(
-            LayeredNavigationAssemblerInterface::class,
-            fn ($c) => $c->get(NullLayeredNavigationAssembler::class),
         );
 
         $instance = $container->get(ProductGridComponent::class);

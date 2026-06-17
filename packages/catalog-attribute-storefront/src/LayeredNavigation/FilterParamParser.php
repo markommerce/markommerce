@@ -29,7 +29,18 @@ class FilterParamParser
         /** @var mixed $raw */
         $raw = $request->query('filter', []);
 
-        if (!is_array($raw) || $raw === []) {
+        return is_array($raw) ? $this->fromArray($raw) : new FilterSelection();
+    }
+
+    /**
+     * Build a FilterSelection from an already-extracted bracketed `filter[...]` array,
+     * keeping only keys that are known facetable attribute codes.
+     *
+     * @param array<array-key, mixed> $raw
+     */
+    public function fromArray(array $raw): FilterSelection
+    {
+        if ($raw === []) {
             return new FilterSelection();
         }
 

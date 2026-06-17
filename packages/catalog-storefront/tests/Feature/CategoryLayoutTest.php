@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
+use Marko\Database\Connection\ConnectionInterface;
+use Marko\Database\Connection\StatementInterface;
 use Marko\Database\Entity\EntityCollection;
 use Marko\Routing\Http\Request;
 use Markommerce\Catalog\Entity\Category;
@@ -228,6 +230,54 @@ function categoryLayoutMakePaginationOptionsResolver(): PaginationOptionsResolve
     return new PaginationOptionsResolver(categoryLayoutMakeConfigResolver(), $sortRegistry);
 }
 
+function categoryLayoutMakeFakeConnection(): ConnectionInterface
+{
+    return new class () implements ConnectionInterface
+    {
+        public function connect(): void {}
+
+        public function disconnect(): void {}
+
+        public function isConnected(): bool
+        {
+            return true;
+        }
+
+        /**
+         * @param array<mixed> $bindings
+         * @return array<array<string, mixed>>
+         */
+        public function query(
+            string $sql,
+            array $bindings = [],
+        ): array
+        {
+            return [];
+        }
+
+        /**
+         * @param array<mixed> $bindings
+         */
+        public function execute(
+            string $sql,
+            array $bindings = [],
+        ): int
+        {
+            return 0;
+        }
+
+        public function prepare(string $sql): StatementInterface
+        {
+            throw new RuntimeException('Not implemented in fake connection.');
+        }
+
+        public function lastInsertId(): int
+        {
+            return 0;
+        }
+    };
+}
+
 function categoryLayoutMakeAssignmentService(
     FakeProductRepository $productRepository,
     FakeCategoryRepository $categoryRepository,
@@ -241,6 +291,7 @@ function categoryLayoutMakeAssignmentService(
         $assignmentRepository,
         $positionCodec,
         new KeysetPaginationStrategy($positionCodec),
+        categoryLayoutMakeFakeConnection(),
     ) extends CategoryAssignmentService
     {
         public function paginatedProductsInCategory(

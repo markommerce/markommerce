@@ -26,4 +26,12 @@ interface LayeredNavigationAssemblerInterface
         ResolvedPaginationOptions $options,
         FilterSelection $selection = new FilterSelection(),
     ): LayeredNavigationData;
+
+    /**
+     * Build a FilterSelection from the raw bracketed `filter[...]` query array,
+     * keeping only keys that are known facetable attribute codes.
+     *
+     * @param array<string, mixed> $filter
+     */
+    public function selectionFromQuery(array $filter): FilterSelection;
 }

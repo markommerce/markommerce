@@ -60,6 +60,7 @@ function e2ePriceMakeServiceFromConn(ConnectionInterface $conn): CategoryAssignm
         productCategoryAssignmentRepository: $assignmentRepository,
         positionCodec: $positionCodec,
         keysetPaginationStrategy: $keysetStrategy,
+        connection: $conn,
     );
 }
 

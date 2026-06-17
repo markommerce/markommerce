@@ -43,6 +43,57 @@ it('resolves a query source falling back to the default when absent', function (
     expect($result)->toBe(1);
 });
 
+it('resolves an array query param to the nested array', function (): void {
+    $context = new ResolutionContext(
+        request: new Request(query: ['filter' => ['color' => ['red', 'blue']]]),
+        routeParams: [],
+        contextMap: [],
+        iterationItem: null,
+        parentData: null,
+        container: null,
+        placementChain: 'storefront > catalog_list',
+    );
+    $resolver = new SourceResolver();
+
+    $result = $resolver->resolve(Source::query('filter', [], 'array'), $context);
+
+    expect($result)->toBe(['color' => ['red', 'blue']]);
+});
+
+it('resolves a missing array query param to an empty array', function (): void {
+    $context = new ResolutionContext(
+        request: new Request(query: []),
+        routeParams: [],
+        contextMap: [],
+        iterationItem: null,
+        parentData: null,
+        container: null,
+        placementChain: 'storefront > catalog_list',
+    );
+    $resolver = new SourceResolver();
+
+    $result = $resolver->resolve(Source::query('filter', [], 'array'), $context);
+
+    expect($result)->toBe([]);
+});
+
+it('resolves a non-array value for an array cast to an empty array', function (): void {
+    $context = new ResolutionContext(
+        request: new Request(query: ['filter' => 'red']),
+        routeParams: [],
+        contextMap: [],
+        iterationItem: null,
+        parentData: null,
+        container: null,
+        placementChain: 'storefront > catalog_list',
+    );
+    $resolver = new SourceResolver();
+
+    $result = $resolver->resolve(Source::query('filter', [], 'array'), $context);
+
+    expect($result)->toBe([]);
+});
+
 it('resolves a context source by token', function (): void {
     $product = new stdClass();
     $product->sku = 'ABC-123';

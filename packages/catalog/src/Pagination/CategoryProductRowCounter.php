@@ -4,32 +4,40 @@ declare(strict_types=1);
 
 namespace Markommerce\Catalog\Pagination;
 
+use Marko\Database\Connection\ConnectionInterface;
 use Marko\Database\Repository\RepositoryQueryBuilder;
-use Markommerce\Catalog\Contracts\ProductCategoryAssignmentRepositoryInterface;
 use Markommerce\Criteria\Contracts\RowCounterInterface;
 
 /**
- * Join-safe row counter for the category-products query.
+ * Join-safe, filter-aware row counter for the category-products query.
  *
- * The joined query builder's count() drops JOIN clauses, so counting on it
- * would return wrong totals. This counter performs a simple single-table
- * count on catalog_product_category filtered by category_id — no JOINs
- * required, always accurate.
+ * The query builder's own `count()` drops JOIN clauses, so counting on it
+ * directly returns wrong totals for the joined category query. Instead this
+ * counter compiles the fully-built query (JOINs, WHEREs, and any
+ * ProductListFilter EXISTS constraints) into a subquery and counts its rows:
+ *
+ *     SELECT COUNT(*) FROM ( <the category query> ) AS sub
+ *
+ * This keeps the total accurate whether or not attribute filters are applied.
+ * The previous implementation counted raw category assignments and ignored the
+ * query entirely, over-reporting totals (and page counts) for filtered listings.
  */
 class CategoryProductRowCounter implements RowCounterInterface
 {
     public function __construct(
-        private readonly ProductCategoryAssignmentRepositoryInterface $productCategoryAssignmentRepository,
-        private readonly int $categoryId,
+        private readonly ConnectionInterface $connection,
     ) {}
 
-    /**
-     * Count assignments for the category directly from the assignment table,
-     * ignoring the passed query builder entirely (which may have JOIN clauses
-     * that would corrupt a standard COUNT).
-     */
     public function count(RepositoryQueryBuilder $query): int
     {
-        return count($this->productCategoryAssignmentRepository->findByCategory($this->categoryId));
+        $bindings = [];
+        $subquery = $query->compileSubquery($bindings);
+
+        $rows = $this->connection->query(
+            'SELECT COUNT(*) AS aggregate FROM (' . $subquery . ') AS category_products_count',
+            $bindings,
+        );
+
+        return (int) ($rows[0]['aggregate'] ?? 0);
     }
 }

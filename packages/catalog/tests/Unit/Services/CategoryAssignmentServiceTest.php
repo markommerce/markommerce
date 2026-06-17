@@ -7,6 +7,7 @@ use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Exceptions\CategoryNotFoundException;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
+use Markommerce\Catalog\Tests\Support\FakeCountConnection;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
 use Markommerce\Criteria\Position\PositionCodec;
@@ -25,6 +26,7 @@ function makeService(
         productCategoryAssignmentRepository: $assignmentRepository,
         positionCodec: $positionCodec,
         keysetPaginationStrategy: new KeysetPaginationStrategy($positionCodec),
+        connection: new FakeCountConnection(),
     );
 }
 

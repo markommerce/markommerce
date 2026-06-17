@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Markommerce\Catalog\Services;
 
+use Marko\Database\Connection\ConnectionInterface;
 use Marko\Database\Exceptions\RepositoryException;
 use Markommerce\Catalog\Contracts\CategoryRepositoryInterface;
 use Markommerce\Catalog\Contracts\ProductCategoryAssignmentRepositoryInterface;
@@ -37,6 +38,7 @@ class CategoryAssignmentService
         private ProductCategoryAssignmentRepositoryInterface $productCategoryAssignmentRepository,
         private PositionCodec $positionCodec,
         private KeysetPaginationStrategy $keysetPaginationStrategy,
+        private ConnectionInterface $connection,
         private ProductListFilterRegistry $filterRegistry = new ProductListFilterRegistry(),
     ) {}
 
@@ -158,15 +160,11 @@ class CategoryAssignmentService
             return $this->keysetPaginationStrategy->paginate($query, $pageRequest, $extractor);
         }
 
-        // Offset strategy with join-safe counter.
-        // The join-safe counter counts assignments directly from the assignment table,
-        // avoiding the count-drops-JOINs problem with the standard ExactRowCounter.
-        // Both Exact and Estimated modes use the join-safe counter since the
-        // catalog-specific join makes standard COUNT() unreliable.
-        $joinSafeCounter = new CategoryProductRowCounter(
-            $this->productCategoryAssignmentRepository,
-            $categoryId,
-        );
+        // Offset strategy with a join-safe, filter-aware counter.
+        // The query builder's own count() drops JOINs, so the counter compiles the fully-built
+        // query (joins + where + filter EXISTS constraints) into a subquery and counts its rows.
+        // This keeps the total correct whether or not attribute filters narrow the listing.
+        $joinSafeCounter = new CategoryProductRowCounter($this->connection);
 
         $strategy = new OffsetPaginationStrategy($this->positionCodec, $joinSafeCounter);
 

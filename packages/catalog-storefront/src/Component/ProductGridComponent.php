@@ -16,7 +16,6 @@ use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
 use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
-use Markommerce\CatalogStorefront\Contracts\LayeredNavigationAssemblerInterface;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
 use Markommerce\Criteria\Contracts\RandomAccessPageInterface;
 use Markommerce\Currency\CurrencyResolver;
@@ -34,18 +33,41 @@ class ProductGridComponent
         private ProductPriceIndexRepositoryInterface $productPriceIndexRepository,
         private CurrencyResolver $currencyResolver,
         private CategorySortOrderRegistry $categorySortOrderRegistry = new CategorySortOrderRegistry(),
-        private ?LayeredNavigationAssemblerInterface $layeredNavigationAssembler = null,
     ) {}
 
     /**
+     * Normalize the raw bracketed `filter[...]` query array into a FilterSelection.
+     *
+     * @param array<string, mixed> $filter
+     */
+    private function selectionFromFilter(array $filter): FilterSelection
+    {
+        $normalized = [];
+
+        foreach ($filter as $key => $value) {
+            $values = is_array($value)
+                ? array_values(array_map(strval(...), $value))
+                : [(string) $value];
+
+            $normalized[(string) $key] = $values;
+        }
+
+        return new FilterSelection($normalized);
+    }
+
+    /**
      * @throws RepositoryException|InvalidPaginationConfigException|PageDepthExceededException
+     */
+    /**
+     * @param array<string, mixed> $filter Raw bracketed `filter[...]` query array (parsed into a
+     *                                      FilterSelection by the layered-navigation assembler).
      */
     public function data(
         Category $category,
         int $page,
         int $size,
         string $sort,
-        FilterSelection $selection = new FilterSelection(),
+        array $filter = [],
     ): ProductGridData {
         $id = $category->id;
 
@@ -66,17 +88,18 @@ class ProductGridComponent
             $sort !== '' ? $sort : null,
         );
 
+        // Build the filter selection straight from the bracketed `filter[...]` query array and let the
+        // catalog ProductListFilterRegistry apply it (catalog-attribute-storefront registers the
+        // AttributeProductListFilter, which narrows by valid facetable attribute codes and ignores the
+        // rest). This keeps catalog-storefront attribute-agnostic — no dependency on the assembler.
+        $selection = $this->selectionFromFilter($filter);
+
+        // Facets/active filters are rendered by the dedicated facet-sidebar component
+        // (catalog-attribute-storefront); the grid only lists the (filtered) products.
         $facets = [];
         $activeFilters = [];
 
-        if ($this->layeredNavigationAssembler !== null) {
-            $navData = $this->layeredNavigationAssembler->forCategory($id, $options, $selection);
-            $page = $navData->page;
-            $facets = $navData->facets;
-            $activeFilters = $navData->activeFilters;
-        } else {
-            $page = $this->categoryAssignmentService->paginatedProductsInCategory($id, $options, $selection);
-        }
+        $page = $this->categoryAssignmentService->paginatedProductsInCategory($id, $options, $selection);
 
         $products = array_values($page->items->toArray());
 

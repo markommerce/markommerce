@@ -15,6 +15,7 @@ use Markommerce\CatalogAttributeIndex\Facet\AttributeFacetQuery;
 use Markommerce\CatalogAttributeIndex\Facet\Facet;
 use Markommerce\CatalogAttributeIndex\Facet\FacetValue;
 use Markommerce\CatalogAttributeIndex\Tests\Support\QueryableAttributeDefinitionRepository;
+use Markommerce\CatalogAttributeStorefront\LayeredNavigation\FilterParamParser;
 use Markommerce\CatalogAttributeStorefront\LayeredNavigation\LabeledFacet;
 use Markommerce\CatalogAttributeStorefront\LayeredNavigation\LayeredNavigationAssembler;
 use Markommerce\CatalogStorefront\Data\LayeredNavigationData;
@@ -166,13 +167,15 @@ function makeAssembler(Page $page, array $facets, ?ScopedOptionLabelResolver $re
 {
     $registry = makeEmptyRegistry();
     $context  = new ScopeContext($registry);
+    $defRepo  = new QueryableAttributeDefinitionRepository();
 
     return new LayeredNavigationAssembler(
         categoryAssignmentService: makeFakeListing($page),
         attributeFacetQuery: makeFakeFacetQuery($facets),
         scopedOptionLabelResolver: $resolver ?? makeFakeLabelResolver(),
-        attributeDefinitionRepository: new QueryableAttributeDefinitionRepository(),
+        attributeDefinitionRepository: $defRepo,
         scopeContext: $context,
+        filterParamParser: new FilterParamParser($defRepo),
     );
 }
 
@@ -268,6 +271,7 @@ return $this->getAxis($axisName)->hierarchy;
         scopedOptionLabelResolver: $resolver,
         attributeDefinitionRepository: $defRepo,
         scopeContext: $context,
+        filterParamParser: new FilterParamParser($defRepo),
     );
 
     $result = $assembler->forCategory(1, makeAssemblerPaginationOptions(), new FilterSelection());
@@ -295,4 +299,36 @@ it('returns the active filters alongside the facets', function (): void {
     expect($result->activeFilters)->toHaveCount(1)
         ->and($result->activeFilters[0]->code)->toBe('color')
         ->and($result->activeFilters[0]->values)->toBe(['red']);
+});
+
+it('parses a raw filter array into a selection via selectionFromQuery', function (): void {
+    $registry = makeEmptyRegistry();
+    $context  = new ScopeContext($registry);
+
+    // The parser keeps only known facetable attribute codes — register 'color'.
+    $defRepo = new QueryableAttributeDefinitionRepository();
+
+    $colorDef = new AttributeDefinition();
+    $colorDef->code = 'color';
+    $colorDef->entityType = 'product';
+    $colorDef->type = 'select';
+    $colorDef->backing = 'Json';
+    $colorDef->facetable = true;
+    $defRepo->save($colorDef);
+
+    $assembler = new LayeredNavigationAssembler(
+        categoryAssignmentService: makeFakeListing(makeProductPage()),
+        attributeFacetQuery: makeFakeFacetQuery([]),
+        scopedOptionLabelResolver: makeFakeLabelResolver(),
+        attributeDefinitionRepository: $defRepo,
+        scopeContext: $context,
+        filterParamParser: new FilterParamParser($defRepo),
+    );
+
+    // 'color' is known (kept), 'unknown' is dropped, scalar normalized to a list.
+    $selection = $assembler->selectionFromQuery(['color' => 'red', 'unknown' => ['x']]);
+
+    expect($selection)->toBeInstanceOf(FilterSelection::class)
+        ->and($selection->keys())->toBe(['color'])
+        ->and($selection->forKey('color'))->toBe(['red']);
 });

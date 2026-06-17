@@ -23,6 +23,7 @@ use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Sorting\ColumnSortOrder;
 use Markommerce\Catalog\Tests\Support\CategoryFactory;
 use Markommerce\Catalog\Tests\Support\ProductFactory;
+use Markommerce\Criteria\Contracts\RandomAccessPageInterface;
 use Markommerce\Criteria\Position\PositionCodec;
 use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Criteria\Strategy\KeysetPaginationStrategy;
@@ -80,6 +81,7 @@ function makeFilterServiceFromConn(
         productCategoryAssignmentRepository: $assignmentRepository,
         positionCodec: $positionCodec,
         keysetPaginationStrategy: $keysetStrategy,
+        connection: $conn,
         filterRegistry: $filterRegistry,
     );
 }
@@ -320,6 +322,78 @@ it('narrows the result set when a filter contributor adds a constraint', functio
 
         expect($products)->toHaveCount(1)
             ->and($products[0]->sku)->toBe('NARR-002');
+    } finally {
+        $testCase->tearDownIntegration();
+        $testCase->tearDownClass();
+    }
+})->group('integration-destructive');
+
+it('reports the filtered total — not the full category count — in the page totals', function (): void {
+    TestConnection::skipIfUnavailable();
+
+    $testCase = new IntegrationTestCase(catFilterProfile());
+    $testCase->setUpIntegration();
+
+    try {
+        $store = $testCase->store;
+
+        /** @var ConnectionInterface $conn */
+        $conn = $store->container()->get(ConnectionInterface::class);
+
+        $categoryFactory = CategoryFactory::new($store);
+        $productFactory = ProductFactory::new($store);
+
+        // Seed a category with 6 products. The filter narrows to a subset of 2.
+        $category = $categoryFactory->withName('Filtered Total Category')->create();
+
+        $allowedSkus = ['FTOT-002', 'FTOT-004'];
+
+        for ($i = 1; $i <= 6; $i++) {
+            $sku = sprintf('FTOT-%03d', $i);
+            $product = $productFactory->withName("Filtered Total $i")->withSku($sku)->create();
+            $conn->execute(
+                'INSERT INTO catalog_product_category (product_id, category_id, position) VALUES (?, ?, ?)',
+                [(int) $product->id, (int) $category->id, $i],
+            );
+        }
+
+        // A filter that narrows the listing to the selected SKUs via a JOIN-safe WHERE IN.
+        $skuFilter = new class implements ProductListFilterInterface {
+            public function apply(
+                RepositoryQueryBuilder $repositoryQueryBuilder,
+                FilterSelection $filterSelection,
+            ): void
+            {
+                $skus = $filterSelection->forKey('sku');
+
+                if ($skus === []) {
+                    return;
+                }
+
+                $repositoryQueryBuilder->whereIn('catalog_products.sku', $skus);
+            }
+        };
+
+        $filterRegistry = new ProductListFilterRegistry();
+        $filterRegistry->register($skuFilter);
+
+        $service = makeFilterServiceFromConn($conn, $filterRegistry);
+
+        // Page size 1 so totalPages is sensitive to whether the count is filtered.
+        $selection = new FilterSelection(['sku' => $allowedSkus]);
+        $page = $service->paginatedProductsInCategory(
+            (int) $category->id,
+            makeFilterPositionSortOptions(pageSize: 1),
+            $selection,
+        );
+
+        expect($page)->toBeInstanceOf(RandomAccessPageInterface::class);
+
+        /** @var RandomAccessPageInterface<\Markommerce\Catalog\Entity\Product> $page */
+        // The total must reflect the FILTERED set (2), NOT the full category (6).
+        expect($page->totalItems())->toBe(2)
+            // 2 items at page size 1 → 2 pages (full count of 6 would give 6 pages).
+            ->and($page->totalPages())->toBe(2);
     } finally {
         $testCase->tearDownIntegration();
         $testCase->tearDownClass();

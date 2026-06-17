@@ -9,7 +9,7 @@ use InvalidArgumentException;
 class Source
 {
     /** @var array<int, string> */
-    private const array ALLOWED_CASTS = ['int', 'string', 'bool'];
+    private const array ALLOWED_CASTS = ['int', 'string', 'bool', 'array'];
 
     public static function route(
         string $name,

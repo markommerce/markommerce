@@ -49,6 +49,7 @@ function e2ePositionMakeServiceFromConn(ConnectionInterface $conn): CategoryAssi
         productCategoryAssignmentRepository: $assignmentRepository,
         positionCodec: $positionCodec,
         keysetPaginationStrategy: $keysetStrategy,
+        connection: $conn,
     );
 }
 
