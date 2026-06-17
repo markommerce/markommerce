@@ -39,8 +39,7 @@ class ProductAttributeIndexRepository
     public function replaceForProducts(
         array $productIds,
         array $rows,
-    ): void
-    {
+    ): void {
         $this->indexRepository->deleteByEntityIds(self::TABLE, self::ID_COLUMN, $productIds);
 
         if ($rows === []) {
@@ -78,8 +77,7 @@ class ProductAttributeIndexRepository
         int $productId,
         string $code,
         string $signature,
-    ): array
-    {
+    ): array {
         $sql = sprintf(
             'SELECT "id", "product_id", "attribute_code", "scope_signature", "value_text", "value_number", "value_bool", "value_kind"'
             . ' FROM "%s"'

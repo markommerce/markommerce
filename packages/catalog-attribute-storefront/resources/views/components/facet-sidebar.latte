@@ -1,0 +1,35 @@
+{var $facetGroups = $facets ?? []}
+{var $activeFilterList = $activeFilters ?? []}
+<mk-stack gap="4" class="catalog-facet-sidebar">
+    {if count($activeFilterList) > 0}
+        <mk-stack gap="2" class="catalog-facet-sidebar__active-filters">
+            <mk-text variant="label">Active filters:</mk-text>
+            {foreach $activeFilterList as $activeFilter}
+                <mk-inline gap="1">
+                    {foreach $activeFilter->labels as $label}
+                        <mk-badge class="catalog-facet-sidebar__active-filter">{$activeFilter->code}: {$label}</mk-badge>
+                    {/foreach}
+                </mk-inline>
+            {/foreach}
+        </mk-stack>
+    {/if}
+    {foreach $facetGroups as $facet}
+        <mk-stack gap="2" class="catalog-facet-sidebar__group" data-facet-code="{$facet->code}">
+            <mk-text variant="label">{$facet->code}</mk-text>
+            <mk-stack gap="1">
+                {foreach $facet->values as $facetValue}
+                    <mk-inline gap="2" class="catalog-facet-sidebar__value{if $facetValue->selected} catalog-facet-sidebar__value--selected{/if}">
+                        <span class="catalog-facet-sidebar__value-label">{$facetValue->label}</span>
+                        <span class="catalog-facet-sidebar__value-count">({$facetValue->count})</span>
+                        {if $facetValue->selected}
+                            <span class="catalog-facet-sidebar__value-selected" aria-label="selected">selected</span>
+                        {/if}
+                        {if isset($toggleUrls[$facet->code][$facetValue->value])}
+                            <a href="{$toggleUrls[$facet->code][$facetValue->value]|noescape}" class="catalog-facet-sidebar__toggle">{if $facetValue->selected}Remove{else}Add{/if}</a>
+                        {/if}
+                    </mk-inline>
+                {/foreach}
+            </mk-stack>
+        </mk-stack>
+    {/foreach}
+</mk-stack>

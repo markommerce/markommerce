@@ -8,6 +8,7 @@ use Marko\Database\Exceptions\RepositoryException;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Exceptions\InvalidPaginationConfigException;
 use Markommerce\Catalog\Exceptions\PageDepthExceededException;
+use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
@@ -15,6 +16,7 @@ use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
 use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
+use Markommerce\CatalogStorefront\Contracts\LayeredNavigationAssemblerInterface;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
 use Markommerce\Criteria\Contracts\RandomAccessPageInterface;
 use Markommerce\Currency\CurrencyResolver;
@@ -32,6 +34,7 @@ class ProductGridComponent
         private ProductPriceIndexRepositoryInterface $productPriceIndexRepository,
         private CurrencyResolver $currencyResolver,
         private CategorySortOrderRegistry $categorySortOrderRegistry = new CategorySortOrderRegistry(),
+        private ?LayeredNavigationAssemblerInterface $layeredNavigationAssembler = null,
     ) {}
 
     /**
@@ -42,6 +45,7 @@ class ProductGridComponent
         int $page,
         int $size,
         string $sort,
+        FilterSelection $selection = new FilterSelection(),
     ): ProductGridData {
         $id = $category->id;
 
@@ -62,7 +66,18 @@ class ProductGridComponent
             $sort !== '' ? $sort : null,
         );
 
-        $page = $this->categoryAssignmentService->paginatedProductsInCategory($id, $options);
+        $facets = [];
+        $activeFilters = [];
+
+        if ($this->layeredNavigationAssembler !== null) {
+            $navData = $this->layeredNavigationAssembler->forCategory($id, $options, $selection);
+            $page = $navData->page;
+            $facets = $navData->facets;
+            $activeFilters = $navData->activeFilters;
+        } else {
+            $page = $this->categoryAssignmentService->paginatedProductsInCategory($id, $options, $selection);
+        }
+
         $products = array_values($page->items->toArray());
 
         $resolvedNames = [];
@@ -202,6 +217,8 @@ class ProductGridComponent
             sortOptions: $sortOptions,
             activeSort: $options->sortOrder->key(),
             extensions: new ExtensionBag(),
+            facets: $facets,
+            activeFilters: $activeFilters,
         );
     }
 

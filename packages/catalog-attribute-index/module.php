@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use Marko\Core\Container\ContainerInterface;
 use Markommerce\CatalogAttributeIndex\AttributeIndexer;
+use Markommerce\CatalogAttributeIndex\Facet\AttributeFacetQuery;
 use Markommerce\CatalogAttributeIndex\IndexedAttributeReader;
+use Markommerce\CatalogAttributeIndex\Query\AttributeExistsClause;
 use Markommerce\CatalogAttributeIndex\Repository\ProductAttributeIndexRepository;
 use Markommerce\Indexer\Registry\IndexerRegistry;
 
@@ -21,6 +23,8 @@ return [
     ],
     'bindings' => [
         AttributeIndexer::class                => AttributeIndexer::class,
+        AttributeExistsClause::class           => AttributeExistsClause::class,
+        AttributeFacetQuery::class             => AttributeFacetQuery::class,
         IndexedAttributeReader::class          => IndexedAttributeReader::class,
         ProductAttributeIndexRepository::class => ProductAttributeIndexRepository::class,
     ],
@@ -28,6 +32,9 @@ return [
         IndexerRegistry $indexerRegistry,
         ContainerInterface $container,
     ): void {
-        $indexerRegistry->register('attribute', static fn (): AttributeIndexer => $container->get(AttributeIndexer::class));
+        $indexerRegistry->register(
+            'attribute',
+            static fn (): AttributeIndexer => $container->get(AttributeIndexer::class)
+        );
     },
 ];

@@ -20,6 +20,7 @@ use Markommerce\Catalog\Repositories\CategoryTreeNodeRepository;
 use Markommerce\Catalog\Repositories\CategoryTreeRepository;
 use Markommerce\Catalog\Repositories\ProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Repositories\ProductRepository;
+use Markommerce\Catalog\Filtering\ProductListFilterRegistry;
 use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
 use Markommerce\Catalog\Sorting\ColumnSortOrder;
 use Markommerce\Criteria\Sort\SortDirection;
@@ -38,6 +39,7 @@ return [
     'singletons' => [
         PriceContributorRegistry::class,
         CategorySortOrderRegistry::class,
+        ProductListFilterRegistry::class,
     ],
     'boot' => function (
         PriceContributorRegistry $priceContributorRegistry,

@@ -7,6 +7,7 @@ use Marko\Core\Module\ModuleRepository;
 use Marko\Database\Entity\EntityCollection;
 use Marko\Routing\Http\Request;
 use Markommerce\Catalog\Entity\Category;
+use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
@@ -245,6 +246,7 @@ function categoryLayoutMakeAssignmentService(
         public function paginatedProductsInCategory(
             int $categoryId,
             ResolvedPaginationOptions $options,
+            FilterSelection $filters = new FilterSelection(),
         ): Page
         {
             $products = $this->productsInCategory($categoryId);

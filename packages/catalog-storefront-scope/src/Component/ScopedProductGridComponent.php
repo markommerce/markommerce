@@ -9,11 +9,13 @@ use Marko\Database\Exceptions\RepositoryException;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Exceptions\InvalidPaginationConfigException;
 use Markommerce\Catalog\Exceptions\PageDepthExceededException;
+use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
+use Markommerce\CatalogStorefront\Contracts\LayeredNavigationAssemblerInterface;
 use Markommerce\CatalogStorefront\Data\ProductGridData;
 use Markommerce\Currency\CurrencyResolver;
 use Markommerce\MoneyIntl\MoneyFormatter;
@@ -33,6 +35,7 @@ class ScopedProductGridComponent extends ProductGridComponent
         MoneyFormatter $moneyFormatter,
         ProductPriceIndexRepositoryInterface $productPriceIndexRepository,
         CurrencyResolver $currencyResolver,
+        ?LayeredNavigationAssemblerInterface $layeredNavigationAssembler = null,
     ) {
         parent::__construct(
             $categoryAssignmentService,
@@ -41,6 +44,7 @@ class ScopedProductGridComponent extends ProductGridComponent
             $moneyFormatter,
             $productPriceIndexRepository,
             $currencyResolver,
+            layeredNavigationAssembler: $layeredNavigationAssembler,
         );
     }
 
@@ -52,8 +56,9 @@ class ScopedProductGridComponent extends ProductGridComponent
         int $page,
         int $size,
         string $sort,
+        FilterSelection $selection = new FilterSelection(),
     ): ProductGridData {
-        $data = parent::data($category, $page, $size, $sort);
+        $data = parent::data($category, $page, $size, $sort, $selection);
 
         $resolvedNames = $data->resolvedNames;
         $resolvedDescs = $data->resolvedDescs;
@@ -85,6 +90,8 @@ class ScopedProductGridComponent extends ProductGridComponent
             sortOptions: $data->sortOptions,
             activeSort: $data->activeSort,
             extensions: $data->extensions,
+            facets: $data->facets,
+            activeFilters: $data->activeFilters,
         );
     }
 }

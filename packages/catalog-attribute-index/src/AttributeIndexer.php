@@ -78,14 +78,10 @@ class AttributeIndexer extends AbstractIndexer
         // Non-scopable or empty-axes defs get no scoped passes (base-only).
         $defSignatures = $this->buildDefSignatures($indexedDefs);
 
-        // Base pass: collect base values for all products/attributes.
-        /** @var array<int, array<string, mixed>> $baseValues productId => code => value */
-        $baseValues = [];
-
+        // Base pass: emit a base row (scope='') for every product/attribute with a non-null value.
         $this->scopePassRunner->each([], function (?ScopeSignature $sig) use (
             $products,
             $indexedDefs,
-            &$baseValues,
             &$rowsByProduct,
         ): void {
             // $sig is always null here since signatures=[]
@@ -97,13 +93,6 @@ class AttributeIndexer extends AbstractIndexer
                         continue;
                     }
 
-                    // Store for skip-redundant comparison later.
-                    if (!isset($baseValues[$productId])) {
-                        $baseValues[$productId] = [];
-                    }
-
-                    $baseValues[$productId][$def->code] = $value;
-
                     // Emit base row(s).
                     $newRows = $this->buildRows($productId, $def, $value, '');
                     $rowsByProduct[$productId] = array_merge($rowsByProduct[$productId], $newRows);
@@ -111,9 +100,9 @@ class AttributeIndexer extends AbstractIndexer
             }
         });
 
-        // Scoped passes: group attributes by axis set, run each distinct axis-set once.
-        // Only emit rows when the scoped value differs from the base value.
-        $this->runScopedPasses($products, $indexedDefs, $defSignatures, $baseValues, $rowsByProduct);
+        // Scoped passes: group attributes by axis set, run each distinct set once.
+        // Every served signature gets a row regardless of whether it equals the base value.
+        $this->runScopedPasses($products, $indexedDefs, $defSignatures, $rowsByProduct);
 
         // Flatten all rows.
         $allRows = [];
@@ -189,18 +178,17 @@ class AttributeIndexer extends AbstractIndexer
 
     /**
      * Run scoped passes: group attributes by their signature set, run each distinct set once.
+     * Every served signature emits a row — no skip-redundant logic.
      *
      * @param array<int, Product>                $products
      * @param list<AttributeDefinition>          $indexedDefs
      * @param array<string, list<ScopeSignature>> $defSignatures
-     * @param array<int, array<string, mixed>>   $baseValues
      * @param array<int, list<ProductAttributeIndexEntry>> $rowsByProduct
      */
     private function runScopedPasses(
         array $products,
         array $indexedDefs,
         array $defSignatures,
-        array $baseValues,
         array &$rowsByProduct,
     ): void {
         // Group defs by their signature set (serialized key → list of defs).
@@ -238,7 +226,6 @@ class AttributeIndexer extends AbstractIndexer
             $this->scopePassRunner->each($signatures, function (?ScopeSignature $sig) use (
                 $products,
                 $defs,
-                $baseValues,
                 &$rowsByProduct,
             ): void {
                 if ($sig === null) {
@@ -253,13 +240,6 @@ class AttributeIndexer extends AbstractIndexer
                         $value = $this->scopedProductAttributeAccessor->resolve($product, $def->code);
 
                         if ($value === null) {
-                            continue;
-                        }
-
-                        // Skip-redundant: only emit if differs from the base value.
-                        $baseValue = $baseValues[$productId][$def->code] ?? null;
-
-                        if ($value === $baseValue) {
                             continue;
                         }
 

@@ -10,6 +10,7 @@ use Marko\Core\Module\ModuleManifest;
 use Marko\Database\Entity\EntityCollection;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
+use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
@@ -22,6 +23,8 @@ use Markommerce\Catalog\Tests\Support\FakeCategoryRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
 use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
+use Markommerce\CatalogStorefront\Contracts\LayeredNavigationAssemblerInterface;
+use Markommerce\CatalogStorefront\LayeredNavigation\NullLayeredNavigationAssembler;
 use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
 use Markommerce\CatalogScope\Entity\ProductScopedOverrides;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
@@ -239,6 +242,7 @@ function scopedGridMakeAssignmentService(
         public function paginatedProductsInCategory(
             int $categoryId,
             ResolvedPaginationOptions $options,
+            FilterSelection $filters = new FilterSelection(),
         ): Page
         {
             $products = $this->productsInCategory($categoryId);
@@ -348,7 +352,8 @@ it('accepts CategoryAssignmentService and ScopeResolver in its constructor (no d
     expect($paramNames)->toContain('scopeResolver');
     expect($paramNames)->toContain('priceResolver');
     expect($paramNames)->toContain('moneyFormatter');
-    expect($params)->toHaveCount(7);
+    expect($paramNames)->toContain('layeredNavigationAssembler');
+    expect($params)->toHaveCount(8);
 });
 
 it(
@@ -554,6 +559,10 @@ it(
         $container->bind(
             CurrencyResolver::class,
             fn () => scopedGridMakeCurrencyResolver(),
+        );
+        $container->bind(
+            LayeredNavigationAssemblerInterface::class,
+            fn ($c) => $c->get(NullLayeredNavigationAssembler::class),
         );
 
         $instance = $container->get(ProductGridComponent::class);

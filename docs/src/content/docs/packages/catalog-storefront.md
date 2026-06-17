@@ -39,74 +39,24 @@ The category page layout is declared in `layout/category_show.php`. It extends `
 
 declare(strict_types=1);
 
-use Markommerce\CatalogStorefront\Component\ProductCard;
-use Markommerce\CatalogStorefront\Component\ProductGridComponent;
-use Markommerce\CatalogStorefront\Component\StockBadge;
-use Markommerce\CatalogStorefront\Context\CategoryDataProvider;
-use Markommerce\CatalogStorefront\Context\CategoryToken;
 use Markommerce\CatalogStorefront\Controller\CategoryController;
-use Markommerce\CatalogStorefront\Iteration\ProductIteration;
-use Markommerce\Catalog\Entity\Product;
+use Markommerce\CatalogStorefront\Layout\CategoryProductGridLayout;
 use Markommerce\Layout\Layout;
-use Markommerce\Layout\Place;
-use Markommerce\Layout\Provide;
-use Markommerce\Layout\Slot;
-use Markommerce\Layout\Source\Source;
 use Markommerce\ThemeBlank\Layout\OneColumnLayout;
 
 return new Layout(
     handle: [CategoryController::class, 'show'],
     extends: OneColumnLayout::class,
-    context: [
-        new Provide(
-            token: CategoryToken::class,
-            provider: CategoryDataProvider::class,
-            props: ['id' => Source::route('id', 'int')],
-        ),
-    ],
+    context: CategoryProductGridLayout::context(),
     slots: [
         'content' => [
-            new Place(
-                component: ProductGridComponent::class,
-                name: 'catalog.product_grid',
-                props: [
-                    'category' => Source::context(CategoryToken::class),
-                    'page' => Source::query('page', 1, 'int'),
-                    'size' => Source::query('size', 0, 'int'),
-                    'sort' => Source::query('sort', '', 'string'),
-                ],
-                slots: [
-                    'products' => Slot::repeat(
-                        dataKey: 'products',
-                        yields: Product::class,
-                        as: ProductIteration::class,
-                        children: [
-                            new Place(
-                                component: ProductCard::class,
-                                name: 'catalog.product_card',
-                                props: ['product' => Source::iterated(ProductIteration::class)],
-                                slots: [
-                                    'badges' => [
-                                        new Place(
-                                            component: StockBadge::class,
-                                            name: 'catalog.product_card.stock_badge',
-                                            props: ['inStock' => Source::parentData('inStock', 'bool')],
-                                            slots: [],
-                                            template: 'catalog-storefront::components/stock-badge',
-                                        ),
-                                    ],
-                                ],
-                                template: 'catalog-storefront::components/product-card',
-                            ),
-                        ],
-                    ),
-                ],
-                template: 'catalog-storefront::components/product-grid',
-            ),
+            CategoryProductGridLayout::gridPlacement('catalog-storefront::components/product-grid'),
         ],
     ],
 );
 ```
+
+The shared layout helpers live in `CategoryProductGridLayout`. `context()` returns the category context provider and `gridPlacement()` returns a pre-configured `Place` for `ProductGridComponent` with `page`, `size`, and `sort` sourced from query parameters, and a nested repeat slot for `ProductCard` / `StockBadge`. Both the full-page layout (`category_show`) and the fragment layout (`category_page_fragment`) reuse these helpers; they differ only in their root template and placement-name suffix.
 
 ### Template overrides
 
@@ -135,7 +85,7 @@ When [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-sc
 
 | Method | Return type | Description |
 |---|---|---|
-| `data(Category $category, int $page, int $size, string $sort)` | `ProductGridData` | Load a paginated product page for the category; return a `ProductGridData` DTO with raw name and description values, a formatted price map, sort dropdown data, and pagination metadata. |
+| `data(Category $category, int $page, int $size, string $sort, FilterSelection $selection = new FilterSelection())` | `ProductGridData` | Load a paginated product page for the category; return a `ProductGridData` DTO with raw name and description values, a formatted price map, sort dropdown data, pagination metadata, and layered navigation facets and active filters (populated when `catalog-attribute-storefront` is installed). |
 
 ### `ProductCard`
 
@@ -171,8 +121,12 @@ DTO returned by `ProductGridComponent::data()`. Extends `ExtensibleData`.
 | `$hasPrevious` | `bool` | Whether a previous page exists |
 | `$pageLinkUrls` | `list<string>` | Crawlable numbered page URLs (e.g. `['?page=1', '?page=2', ...]`); populated only for `numbered` presentation |
 | `$nextPageUrl` | `?string` | URL for the next page; a `?page=N` query string for offset or a `?position=TOKEN` for keyset; `null` on the last page |
+| `$previousPageUrl` | `?string` | URL for the previous page; `null` on the first page |
+| `$canonicalPageUrl` | `?string` | Canonical URL for the current page; `null` when the offset strategy is not active |
 | `$sortOptions` | `list<array{key: string, label: string}>` | All sort orders registered in `CategorySortOrderRegistry`, in priority order; used to render the sort dropdown |
 | `$activeSort` | `string` | Key of the currently active sort order (e.g. `'position'`, `'price_asc'`) |
+| `$facets` | `list<object>` | Labeled facet groups from layered navigation; empty when `catalog-attribute-storefront` is not installed. Holds `LabeledFacet` instances when it is. |
+| `$activeFilters` | `list<object>` | Active filter chips from the current selection; empty when `catalog-attribute-storefront` is not installed. Holds `ActiveFilter` instances when it is. |
 | `$extensions` | `ExtensionBag` | Typed extension attributes (third-party use) |
 
 ### `ProductCardData`
@@ -190,6 +144,22 @@ DTO returned by `ProductCard::data()`. Extends `ExtensibleData`.
 
 Both `ProductGridData` and `ProductCardData` extend `ExtensibleData`, allowing third-party modules to attach typed extension attributes via `withExtension()` without subclassing the DTO. See [markommerce/layout](/docs/packages/layout/) for details on the extension attribute pattern.
 
+### `LayeredNavigationAssemblerInterface`
+
+Defined in this package (`Markommerce\CatalogStorefront\Contracts\LayeredNavigationAssemblerInterface`) so that `ProductGridComponent` can accept an optional assembler dependency without hard-requiring `catalog-attribute-storefront`. The interface is bound to `NullLayeredNavigationAssembler` by default, which delegates pagination to `CategoryAssignmentService` and returns empty `facets` and `activeFilters` arrays. Installing [markommerce/catalog-attribute-storefront](/docs/packages/catalog-attribute-storefront/) rebinds it to the real `LayeredNavigationAssembler`.
+
+| Method | Return type | Throws | Description |
+|---|---|---|---|
+| `forCategory(int $categoryId, ResolvedPaginationOptions $options, FilterSelection $selection)` | `LayeredNavigationData` | `CategoryNotFoundException` | Assemble a filtered product page plus facets and active filters for the given category and selection. |
+
+`LayeredNavigationData` carries:
+
+| Property | Type | Description |
+|---|---|---|
+| `$page` | `Page<Product>` | Filtered product page |
+| `$facets` | `list<object>` | Labeled facet groups (typed as `list<object>` to avoid a hard dependency on `catalog-attribute-storefront`) |
+| `$activeFilters` | `list<object>` | Active filter chips for the current selection |
+
 ## Related Packages
 
 - [markommerce/catalog](/docs/packages/catalog/) --- Provides `Product`, `Category`, the repository and service layer, and `PaginationOptionsResolver` consumed by this package
@@ -197,6 +167,7 @@ Both `ProductGridData` and `ProductCardData` extend `ExtensibleData`, allowing t
 - [markommerce/catalog-price-index](/docs/packages/catalog-price-index/) --- Provides `ProductPriceIndexRepositoryInterface`; `ProductGridComponent` batch-loads prices from this index, falling back to `PriceResolverInterface` for products not yet indexed
 - [markommerce/currency](/docs/packages/currency/) --- Provides `CurrencyResolver`, used to determine the base currency when constructing `Money` values from index entries
 - [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-scope/) --- Adds locale-aware rendering; Preference-replaces `ProductGridComponent` with `ScopedProductGridComponent`
+- [markommerce/catalog-attribute-storefront](/docs/packages/catalog-attribute-storefront/) --- Provides the real `LayeredNavigationAssembler` implementation; adds attribute filtering and disjunctive facet sidebar to the category page
 - [markommerce/pricing](/docs/packages/pricing/) --- Resolves a product's effective price as a `Money` value object; used as a fallback by `ProductGridComponent` and by `ProductCard`
 - [markommerce/money-intl](/docs/packages/money-intl/) --- Provides `MoneyFormatter`, which locale-formats `Money` values into display strings
 - [markommerce/layout](/docs/packages/layout/) --- Layout resolution, typed component data DTOs, and extension operations used by the category page

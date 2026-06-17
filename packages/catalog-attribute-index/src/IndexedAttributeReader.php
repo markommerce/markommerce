@@ -25,8 +25,7 @@ class IndexedAttributeReader
     public function resolve(
         Product $product,
         string $code,
-    ): mixed
-    {
+    ): mixed {
         $def = $this->productAttributeDefinitions->findByCode($code);
 
         if ($def === null) {

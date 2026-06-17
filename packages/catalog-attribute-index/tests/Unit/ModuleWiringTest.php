@@ -5,7 +5,9 @@ declare(strict_types=1);
 use Marko\Core\Container\Container;
 use Marko\Core\Container\ContainerInterface;
 use Markommerce\CatalogAttributeIndex\AttributeIndexer;
+use Markommerce\CatalogAttributeIndex\Facet\AttributeFacetQuery;
 use Markommerce\CatalogAttributeIndex\IndexedAttributeReader;
+use Markommerce\CatalogAttributeIndex\Query\AttributeExistsClause;
 use Markommerce\Indexer\Registry\IndexerRegistry;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -41,4 +43,16 @@ it('binds the indexed attribute reader in the container', function (): void {
     $module = require dirname(__DIR__, 2) . '/module.php';
 
     expect($module['bindings'])->toHaveKey(IndexedAttributeReader::class);
+});
+
+it('binds the attribute exists clause in the container', function (): void {
+    $module = require dirname(__DIR__, 2) . '/module.php';
+
+    expect($module['bindings'])->toHaveKey(AttributeExistsClause::class);
+});
+
+it('binds the attribute facet query in the container', function (): void {
+    $module = require dirname(__DIR__, 2) . '/module.php';
+
+    expect($module['bindings'])->toHaveKey(AttributeFacetQuery::class);
 });

@@ -3,7 +3,7 @@ title: markommerce/catalog-attribute-index
 description: Denormalized EAV read-model for Markommerce layered-nav filtering and faceting — one already-resolved row per product, attribute code, and scope signature.
 ---
 
-Denormalized EAV read-model for product attribute values. `markommerce/catalog-attribute-index` materializes filterable and facetable attribute values into a flat `catalog_product_attribute_index` table --- one already-resolved row per `(product_id, attribute_code, scope_signature)`. The `AttributeIndexer` builds the table using `ScopedProductAttributeAccessor` over all served scope signatures; `IndexedAttributeReader` reads values back with a live-fallback so reads remain correct even when the index is stale or empty.
+Denormalized EAV read-model for product attribute values. `markommerce/catalog-attribute-index` materializes filterable and facetable attribute values into a flat `catalog_product_attribute_index` table --- one already-resolved row per `(product_id, attribute_code, scope_signature)`. The `AttributeIndexer` builds the table using `ScopedProductAttributeAccessor` over all served scope signatures; `IndexedAttributeReader` reads values back with a live-fallback so reads remain correct even when the index is stale or empty. `AttributeFacetQuery` computes disjunctive facet value counts from the index for layered navigation; `AttributeExistsClause` builds the shared correlated EXISTS SQL fragment used by both the facet query and the storefront filter.
 
 ## Installation
 
@@ -61,10 +61,73 @@ The reader enumerates candidate scope signatures in resolution order (most-speci
 
 For each indexed attribute:
 
-- If the definition is `scopable` and declares `config['axes']`, the indexer calls `ServedScopesProviderInterface::signatures()` to get the set of non-default scope combinations.
+- If the definition is `scopable` and declares `config['axes']`, the indexer calls `ServedScopesProviderInterface::signatures()` to get the set of served scope combinations.
 - If the definition is not scopable or has no axes configured, only the base (global) row is written.
-- Scoped rows are only written when the resolved scoped value differs from the base value (skip-redundant optimization).
+- Scoped rows are written for every served signature regardless of whether the value differs from the base row --- no skip-redundant logic.
 - Multiselect attributes produce **one row per array member**; all other types produce one row.
+
+### Full Materialization (Phase 4)
+
+`AttributeIndexer` fully materializes the index: **one row per `(product_id, attribute_code, scope_signature)`** for every served scope signature (including the base `''` signature). All scope combinations are written eagerly during the index rebuild rather than lazily on read.
+
+This means facet and filter queries only need a single `WHERE scope_signature = ?` / `GROUP BY` pass instead of walking candidate signatures at query time. The `AttributeFacetQuery` and `AttributeProductListFilter` exploit this by resolving the target signature once per request and issuing a single constrained query.
+
+Trade-off: index storage is proportional to `products × attributes × served_scopes`. For each multiselect attribute the storage is further multiplied by the number of selected values per product. Keep this in mind when configuring many scope axes.
+
+### Querying Facet Counts
+
+Inject `AttributeFacetQuery` and call `facets()` to get disjunctive facet value counts for a category and the current filter selection:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\Catalog\Filtering\FilterSelection;
+use Markommerce\CatalogAttributeIndex\Facet\AttributeFacetQuery;
+
+class MyFacetResolver
+{
+    public function __construct(
+        private AttributeFacetQuery $attributeFacetQuery,
+    ) {}
+
+    /** @return list<\Markommerce\CatalogAttributeIndex\Facet\Facet> */
+    public function facets(int $categoryId, FilterSelection $selection): array
+    {
+        // Returns one Facet per facetable attribute.
+        // Counts are disjunctive: each attribute ignores its own active filter.
+        return $this->attributeFacetQuery->facets($categoryId, $selection);
+    }
+}
+```
+
+Each `Facet` object carries a `code`, a `type`, and a `list<FacetValue>` where each `FacetValue` has `value`, `count`, and `selected`.
+
+### Building EXISTS Sub-Clauses
+
+`AttributeExistsClause` builds the correlated EXISTS SQL fragment used by both `AttributeFacetQuery` (outer column `i.product_id`) and `AttributeProductListFilter` (outer column `catalog_products.id`):
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Markommerce\CatalogAttributeIndex\Query\AttributeExistsClause;
+
+$clause = $attributeExistsClause->build(
+    outerColumn: 'catalog_products.id',
+    attributeCode: 'color',
+    values: ['red', 'blue'],
+    signature: 'locale:en',
+);
+
+// $clause['sql']      — the EXISTS(...) SQL string
+// $clause['bindings'] — bound parameter values
+$repositoryQueryBuilder->whereRaw($clause['sql'], $clause['bindings']);
+```
+
+The `outerColumn` must be a qualified identifier (`table.column`); an `InvalidArgumentException` is thrown for invalid values.
 
 ### Rebuilding programmatically
 
@@ -178,9 +241,10 @@ There is no automatic invalidation, dirty-tracking, or observer in v1. Rebuild t
 | Class | Notes |
 |---|---|
 | `AttributeIndexer` | Registered as `attribute` in `IndexerRegistry` at boot |
+| `AttributeExistsClause` | Bound as itself; inject directly |
+| `AttributeFacetQuery` | Bound as itself; inject directly |
 | `IndexedAttributeReader` | Bound as itself; inject directly |
 | `ProductAttributeIndexRepository` | Bound as itself; inject directly |
-| `ServedScopesProviderInterface` | Bound to `CartesianServedScopesProvider` |
 
 ## API Reference
 
@@ -212,6 +276,34 @@ Extends `AbstractIndexer` (from `markommerce/indexer`). Implements `IndexerInter
 
 Entity mapped to `catalog_product_attribute_index`. See Storage Shape above.
 
+### `AttributeFacetQuery`
+
+| Method | Return type | Description |
+|---|---|---|
+| `facets(int $categoryId, FilterSelection $selection)` | `list<Facet>` | Return disjunctive facet value counts for all facetable attributes in the given category. Each attribute's own filter is excluded from its count query (disjunctive). |
+
+#### `Facet`
+
+| Property | Type | Description |
+|---|---|---|
+| `code` | `string` | Attribute code |
+| `type` | `string` | Attribute type (e.g. `select`, `text`) |
+| `values` | `list<FacetValue>` | Available values with counts |
+
+#### `FacetValue`
+
+| Property | Type | Description |
+|---|---|---|
+| `value` | `string` | Raw stored value |
+| `count` | `int` | Number of products with this value in the current filtered context |
+| `selected` | `bool` | Whether this value is in the current `FilterSelection` |
+
+### `AttributeExistsClause`
+
+| Method | Return type | Throws | Description |
+|---|---|---|---|
+| `build(string $outerColumn, string $attributeCode, list<string> $values, string $signature, string $existsAlias = 'aei')` | `array{sql: string, bindings: list<mixed>}` | `InvalidArgumentException` | Build a correlated EXISTS sub-clause. `outerColumn` must be a qualified identifier (e.g. `catalog_products.id`). |
+
 ## Related Packages
 
 - [markommerce/indexer](/docs/packages/indexer/) --- shared kernel; provides `AbstractIndexer`, `ScopePassRunner`, `IndexRepository`, and the `index:rebuild` CLI command
@@ -220,3 +312,4 @@ Entity mapped to `catalog_product_attribute_index`. See Storage Shape above.
 - [markommerce/attribute](/docs/packages/attribute/) --- attribute kernel: `AttributeDefinition`, type registry, and definition repository
 - [markommerce/scope](/docs/packages/scope/) --- `ScopeContext`, `ScopeSignature`, `SignatureCandidateEnumerator` used by the reader
 - [markommerce/catalog-price-index](/docs/packages/catalog-price-index/) --- sibling index package for pre-resolved product prices
+- [markommerce/catalog-attribute-storefront](/docs/packages/catalog-attribute-storefront/) --- layered navigation package that uses `AttributeFacetQuery` and `AttributeExistsClause` to implement disjunctive faceting and attribute filtering on category pages

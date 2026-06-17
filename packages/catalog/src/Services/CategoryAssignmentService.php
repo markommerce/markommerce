@@ -12,6 +12,8 @@ use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Entity\ProductCategoryAssignment;
 use Markommerce\Catalog\Exceptions\CategoryNotFoundException;
 use Markommerce\Catalog\Exceptions\ProductNotFoundException;
+use Markommerce\Catalog\Filtering\FilterSelection;
+use Markommerce\Catalog\Filtering\ProductListFilterRegistry;
 use Markommerce\Catalog\Pagination\CategoryProductRowCounter;
 use Markommerce\Catalog\Pagination\PaginationStrategyKind;
 use Markommerce\Catalog\Pagination\ProductCursorValueExtractor;
@@ -35,6 +37,7 @@ class CategoryAssignmentService
         private ProductCategoryAssignmentRepositoryInterface $productCategoryAssignmentRepository,
         private PositionCodec $positionCodec,
         private KeysetPaginationStrategy $keysetPaginationStrategy,
+        private ProductListFilterRegistry $filterRegistry = new ProductListFilterRegistry(),
     ) {}
 
     /**
@@ -114,12 +117,16 @@ class CategoryAssignmentService
      * Uses a single JOIN query against catalog_products + catalog_product_category,
      * avoiding the N+1 per-product lookups that productsInCategory() performs.
      *
+     * Filter contributors are applied first (before sort-order), then sort-order
+     * prepares the query, then pagination is executed.
+     *
      * @return Page<Product>
      * @throws CategoryNotFoundException|RepositoryException
      */
     public function paginatedProductsInCategory(
         int $categoryId,
         ResolvedPaginationOptions $options,
+        FilterSelection $filters = new FilterSelection(),
     ): Page {
         if ($this->categoryRepository->find($categoryId) === null) {
             throw CategoryNotFoundException::forId($categoryId);
@@ -135,6 +142,10 @@ class CategoryAssignmentService
             )
             ->join('catalog_product_category', 'catalog_products.id', '=', 'catalog_product_category.product_id')
             ->where('catalog_product_category.category_id', '=', $categoryId);
+
+        foreach ($this->filterRegistry->all() as $filter) {
+            $filter->apply($query, $filters);
+        }
 
         $options->sortOrder->prepareQuery($query);
 

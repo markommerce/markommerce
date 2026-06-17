@@ -22,6 +22,7 @@ use Markommerce\Catalog\Pagination\PaginationPresentation;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
+use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
@@ -282,6 +283,7 @@ function productGridMakeFakeService(
         public function paginatedProductsInCategory(
             int $categoryId,
             ResolvedPaginationOptions $options,
+            FilterSelection $filters = new FilterSelection(),
         ): Page
         {
             return $this->fakePage;

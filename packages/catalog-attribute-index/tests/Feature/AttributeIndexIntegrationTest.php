@@ -136,7 +136,9 @@ it('materializes a base row and a per-signature resolved row on rebuild', functi
             [(int) $product->id],
         );
 
-        expect($rows)->toHaveCount(2);
+        // Profile serves locale:en and locale:de (default excluded).
+        // Full materialization: base '' + locale:en (equal to base) + locale:de (overridden) = 3 rows.
+        expect($rows)->toHaveCount(3);
 
         $bySignature = [];
         foreach ($rows as $row) {
@@ -145,6 +147,9 @@ it('materializes a base row and a per-signature resolved row on rebuild', functi
 
         expect($bySignature)->toHaveKey('')
             ->and($bySignature[''])->toBe('red');
+
+        expect($bySignature)->toHaveKey('locale:en')
+            ->and($bySignature['locale:en'])->toBe('red');
 
         expect($bySignature)->toHaveKey('locale:de')
             ->and($bySignature['locale:de'])->toBe('rot');
