@@ -94,6 +94,14 @@ class ProductGridComponent
         // rest). This keeps catalog-storefront attribute-agnostic — no dependency on the assembler.
         $selection = $this->selectionFromFilter($filter);
 
+        // Carried into the view so the sort/pagination forms can re-emit the active filters as hidden
+        // inputs — otherwise changing the sort order would drop the selection.
+        $appliedFilters = [];
+
+        foreach ($selection->keys() as $filterKey) {
+            $appliedFilters[$filterKey] = $selection->forKey($filterKey);
+        }
+
         // Facets/active filters are rendered by the dedicated facet-sidebar component
         // (catalog-attribute-storefront); the grid only lists the (filtered) products.
         $facets = [];
@@ -242,6 +250,7 @@ class ProductGridComponent
             extensions: new ExtensionBag(),
             facets: $facets,
             activeFilters: $activeFilters,
+            appliedFilters: $appliedFilters,
         );
     }
 

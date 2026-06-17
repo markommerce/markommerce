@@ -1367,6 +1367,10 @@ it('filters the product grid by the active query-param selection', function (): 
     // The selection built from the raw filter[...] array reaches the service.
     expect($captured)->not->toBeNull();
     expect($captured->forKey('color'))->toBe(['red']);
+
+    // The applied filters are carried into the view so the sort form can re-emit them
+    // as hidden inputs (otherwise changing the sort order would drop the selection).
+    expect($data->appliedFilters)->toBe(['color' => ['red']]);
 });
 
 it('normalizes a scalar filter value into a single-element list', function (): void {

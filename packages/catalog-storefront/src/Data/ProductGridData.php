@@ -21,6 +21,8 @@ readonly class ProductGridData extends ExtensibleData
      * @param list<array{key: string, label: string}> $sortOptions Available sort orders for the dropdown
      * @param list<object> $facets Labeled facet groups from layered navigation (empty when assembler not present)
      * @param list<object> $activeFilters Active filter chips from the current selection (empty when assembler not present)
+     * @param array<string, list<string>> $appliedFilters The active filter selection (code => values), used to
+     *                                                     preserve filters across sort/pagination form submissions
      */
     public function __construct(
         public Category $category,
@@ -42,6 +44,7 @@ readonly class ProductGridData extends ExtensibleData
         ExtensionBag $extensions = new ExtensionBag(),
         public array $facets = [],
         public array $activeFilters = [],
+        public array $appliedFilters = [],
     ) {
         parent::__construct($extensions);
     }

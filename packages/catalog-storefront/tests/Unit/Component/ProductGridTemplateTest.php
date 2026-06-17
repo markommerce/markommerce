@@ -210,3 +210,53 @@ it('passes data-prev and data-canonical to the mk element', function (): void {
     expect($output)->toContain('data-prev="/catalog/category/1/page?page=1"');
     expect($output)->toContain('data-canonical="/catalog/category/1?page=2"');
 });
+
+it('re-emits the active filters as hidden inputs in the sort form so sorting preserves them', function (): void {
+    $engine = gridTemplateBuildLatte();
+
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Test Category';
+
+    $output = $engine->renderToString('catalog-storefront::components/product-grid', [
+        'category' => $category,
+        'products' => [],
+        'resolvedNames' => [],
+        'resolvedDescs' => [],
+        'formattedPrices' => [],
+        'sortOptions' => [
+            ['key' => 'position', 'label' => 'Position'],
+            ['key' => 'price_asc', 'label' => 'Price ascending'],
+        ],
+        'activeSort' => 'position',
+        'appliedFilters' => ['color' => ['red', 'blue'], 'size' => ['L']],
+    ]);
+
+    expect($output)->toContain('name="filter[color][]" value="red"')
+        ->and($output)->toContain('name="filter[color][]" value="blue"')
+        ->and($output)->toContain('name="filter[size][]" value="L"');
+});
+
+it('renders no filter hidden inputs in the sort form when no filters are applied', function (): void {
+    $engine = gridTemplateBuildLatte();
+
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Test Category';
+
+    $output = $engine->renderToString('catalog-storefront::components/product-grid', [
+        'category' => $category,
+        'products' => [],
+        'resolvedNames' => [],
+        'resolvedDescs' => [],
+        'formattedPrices' => [],
+        'sortOptions' => [
+            ['key' => 'position', 'label' => 'Position'],
+            ['key' => 'price_asc', 'label' => 'Price ascending'],
+        ],
+        'activeSort' => 'position',
+        'appliedFilters' => [],
+    ]);
+
+    expect($output)->not->toContain('name="filter[');
+});

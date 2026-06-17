@@ -91,6 +91,7 @@ class ScopedProductGridComponent extends ProductGridComponent
             extensions: $data->extensions,
             facets: $data->facets,
             activeFilters: $data->activeFilters,
+            appliedFilters: $data->appliedFilters,
         );
     }
 }
