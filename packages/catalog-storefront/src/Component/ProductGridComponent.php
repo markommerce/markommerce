@@ -161,6 +161,7 @@ class ProductGridComponent
                 $options->size,
                 $sort,
                 $size,
+                $appliedFilters,
             );
 
             if ($currentPage < $totalPages) {
@@ -172,6 +173,10 @@ class ProductGridComponent
 
                 if ($sort !== '') {
                     $params['sort'] = $sort;
+                }
+
+                if ($appliedFilters !== []) {
+                    $params['filter'] = $appliedFilters;
                 }
 
                 // Load-more / infinite scroll fetch the chrome-less fragment
@@ -188,6 +193,10 @@ class ProductGridComponent
 
                 if ($sort !== '') {
                     $params['sort'] = $sort;
+                }
+
+                if ($appliedFilters !== []) {
+                    $params['filter'] = $appliedFilters;
                 }
 
                 $previousPageUrl = sprintf('/catalog/category/%d/page?%s', $id, http_build_query($params));
@@ -208,6 +217,10 @@ class ProductGridComponent
                 $canonicalParams['sort'] = $sort;
             }
 
+            if ($appliedFilters !== []) {
+                $canonicalParams['filter'] = $appliedFilters;
+            }
+
             $canonicalPageUrl = $canonicalParams === []
                 ? sprintf('/catalog/category/%d', $id)
                 : sprintf('/catalog/category/%d?%s', $id, http_build_query($canonicalParams));
@@ -220,6 +233,10 @@ class ProductGridComponent
 
             if ($sort !== '') {
                 $params['sort'] = $sort;
+            }
+
+            if ($appliedFilters !== []) {
+                $params['filter'] = $appliedFilters;
             }
 
             $nextPageUrl = sprintf('/catalog/category/%d/page?%s', $id, http_build_query($params));
@@ -257,8 +274,9 @@ class ProductGridComponent
     /**
      * Build crawlable page link URLs for numbered pagination.
      *
-     * Preserves non-default size and sort query params.
+     * Preserves non-default size and sort query params, plus the active attribute filters.
      *
+     * @param array<string, list<string>> $appliedFilters
      * @return list<string>
      */
     private function buildPageLinkUrls(
@@ -266,6 +284,7 @@ class ProductGridComponent
         int $resolvedSize,
         string $sort,
         int $requestedSize,
+        array $appliedFilters,
     ): array {
         $urls = [];
 
@@ -278,6 +297,10 @@ class ProductGridComponent
 
             if ($sort !== '') {
                 $params['sort'] = $sort;
+            }
+
+            if ($appliedFilters !== []) {
+                $params['filter'] = $appliedFilters;
             }
 
             $urls[] = '?' . http_build_query($params);

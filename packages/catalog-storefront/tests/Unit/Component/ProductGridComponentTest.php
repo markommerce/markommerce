@@ -978,6 +978,38 @@ it('fetches only the current page of products', function (): void {
     expect($data->totalPages)->toBe(3);
 });
 
+it('preserves the active filters in pagination urls', function (): void {
+    $category = new Category();
+    $category->id = 1;
+    $category->name = 'Shoes';
+
+    $product = new Product();
+    $product->id = 5;
+    $product->sku = 'P-005';
+    $product->name = 'Sneaker';
+
+    $fakePage = productGridMakeFakeOffsetPage([$product], currentPage: 2, totalPages: 3);
+
+    $component = new ProductGridComponent(
+        productGridMakeFakeService($fakePage),
+        productGridMakePaginationOptionsResolver(),
+        makeGridNoPricePriceResolver(),
+        makeGridMoneyFormatter(),
+        new FakeProductPriceIndexRepository(),
+        makeGridCurrencyResolver(),
+    );
+
+    $data = $component->data($category, 2, 0, '', filter: ['color' => ['red']]);
+
+    // http_build_query encodes filter[color][0]=red as filter%5Bcolor%5D%5B0%5D=red
+    $encoded = 'filter%5Bcolor%5D';
+
+    expect(implode(' ', $data->pageLinkUrls))->toContain($encoded)
+        ->and($data->nextPageUrl)->toContain($encoded)
+        ->and($data->previousPageUrl)->toContain($encoded)
+        ->and($data->canonicalPageUrl)->toContain($encoded);
+});
+
 it('exposes the resolved presentation mode on the grid data', function (): void {
     $category = new Category();
     $category->id = 1;
