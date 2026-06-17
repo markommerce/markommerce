@@ -69,17 +69,20 @@ function bootCatalogAttributeModuleContainer(): ContainerInterface
 // Requirements
 // ─────────────────────────────────────────────────────────
 
-it('auto-discovers ProductAttributeValues as a Product extender via linkExtendersFrom on the discovered entity list', function (): void {
-    $factory = new EntityMetadataFactory();
-    $factory->linkExtendersFrom([
-        Product::class,
-        ProductAttributeValues::class,
-    ]);
-
-    $metadata = $factory->parse(Product::class);
-
-    expect($metadata->extenders)->toContain(ProductAttributeValues::class);
-});
+it(
+    'auto-discovers ProductAttributeValues as a Product extender via linkExtendersFrom on the discovered entity list',
+    function (): void {
+        $factory = new EntityMetadataFactory();
+        $factory->linkExtendersFrom([
+            Product::class,
+            ProductAttributeValues::class,
+        ]);
+    
+        $metadata = $factory->parse(Product::class);
+    
+        expect($metadata->extenders)->toContain(ProductAttributeValues::class);
+    }
+);
 
 it('binds AttributeValueAccessorInterface to ProductAttributeAccessor', function (): void {
     $container = bootCatalogAttributeModuleContainer();
@@ -104,27 +107,33 @@ it('registers the product entity class in the attribute entity-class map after b
         ->and($map->all()['product'])->toBe(Product::class);
 });
 
-it('makes the definition service reject a custom product code that collides with a native column when the registry maps product to Product', function (): void {
-    $container = bootCatalogAttributeModuleContainer();
-
-    $map = $container->get(AttributeEntityClassMap::class);
-
-    expect($map->all())->toHaveKey('product');
-
-    // Verify that the entity class map for 'product' resolves to Product::class
+it(
+    'makes the definition service reject a custom product code that collides with a native column when the registry maps product to Product',
+    function (): void {
+        $container = bootCatalogAttributeModuleContainer();
+    
+        $map = $container->get(AttributeEntityClassMap::class);
+    
+        expect($map->all())->toHaveKey('product');
+    
+        // Verify that the entity class map for 'product' resolves to Product::class
     // which has 'sku', 'name', etc. as reserved codes
     $entityClass = $map->all()['product'];
-    $reservedProvider = new ReservedCodeProvider(new EntityMetadataFactory());
-    $reserved = $reservedProvider->reservedCodes($entityClass);
+        $reservedProvider = new ReservedCodeProvider(new EntityMetadataFactory());
+        $reserved = $reservedProvider->reservedCodes($entityClass);
+    
+        expect($reserved)->toContain('sku')
+            ->and($reserved)->toContain('name');
+    }
+);
 
-    expect($reserved)->toContain('sku')
-        ->and($reserved)->toContain('name');
-});
-
-it('throws DuplicateEntityClassRegistrationException when a different class is registered for an existing entity type', function (): void {
-    $map = new AttributeEntityClassMap();
-    $map->register('product', Product::class);
-
-    expect(fn () => $map->register('product', stdClass::class))
-        ->toThrow(DuplicateEntityClassRegistrationException::class);
-});
+it(
+    'throws DuplicateEntityClassRegistrationException when a different class is registered for an existing entity type',
+    function (): void {
+        $map = new AttributeEntityClassMap();
+        $map->register('product', Product::class);
+    
+        expect(fn () => $map->register('product', stdClass::class))
+            ->toThrow(DuplicateEntityClassRegistrationException::class);
+    }
+);

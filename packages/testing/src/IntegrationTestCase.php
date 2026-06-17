@@ -47,6 +47,7 @@ class IntegrationTestCase
     public function __construct(
         private readonly StoreProfile $profile,
         private readonly IsolationMode $isolationMode = IsolationMode::Rollback,
+        private readonly ?string $projectBasePath = null,
     ) {
         $this->provisioner = new DatabaseProvisioner(new AdminConnection(), $this->profile);
         $this->isolation = new TestIsolation($this->isolationMode);
@@ -79,7 +80,7 @@ class IntegrationTestCase
 
         $connection = $this->provisioner->connection();
 
-        $this->store = $this->profile->boot($connection);
+        $this->store = $this->profile->boot($connection, $this->projectBasePath);
 
         /** @var ConnectionInterface&TransactionInterface $transactional */
         $transactional = $connection;

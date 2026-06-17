@@ -30,7 +30,11 @@ class ProductAttributeAccessor implements AttributeValueAccessorInterface
     /**
      * @throws AttributeDefinitionNotFoundException|InvalidAttributeValueException|InvalidAttributeOptionException|UnknownAttributeTypeException
      */
-    public function set(object $entity, string $code, mixed $raw): void
+    public function set(
+        object $entity,
+        string $code,
+        mixed $raw,
+    ): void
     {
         $product = $this->guardProduct($entity);
 
@@ -61,7 +65,10 @@ class ProductAttributeAccessor implements AttributeValueAccessorInterface
     /**
      * @throws AttributeDefinitionNotFoundException|UnknownAttributeTypeException
      */
-    public function get(object $entity, string $code): mixed
+    public function get(
+        object $entity,
+        string $code,
+    ): mixed
     {
         $product = $this->guardProduct($entity);
 
@@ -122,7 +129,10 @@ class ProductAttributeAccessor implements AttributeValueAccessorInterface
     /**
      * @throws AttributeDefinitionNotFoundException
      */
-    public function clear(object $entity, string $code): void
+    public function clear(
+        object $entity,
+        string $code,
+    ): void
     {
         $product = $this->guardProduct($entity);
 

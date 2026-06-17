@@ -49,6 +49,9 @@ return [
     ): void {
         $categorySortOrderRegistry->register($ascendingIndexedPriceSortOrder);
         $categorySortOrderRegistry->register($descendingIndexedPriceSortOrder);
-        $indexerRegistry->register('price', static fn (): PriceIndexer => $container->get(PriceIndexerInterface::class));
+        $indexerRegistry->register(
+            'price',
+            static fn (): PriceIndexer => $container->get(PriceIndexerInterface::class)
+        );
     },
 ];

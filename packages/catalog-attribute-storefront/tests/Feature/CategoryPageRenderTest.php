@@ -61,7 +61,18 @@ function categoryRenderMakeProfile(): StoreProfile
 
 function categoryRenderMakeTestCase(): IntegrationTestCase
 {
-    return new IntegrationTestCase(categoryRenderMakeProfile());
+    // Use a unique per-test layout-artifact path. This profile compiles the category layout WITH the
+    // attribute facet extension; sharing the default per-worker artifact would let a later
+    // catalog-storefront test (no attribute bindings) reuse the facet-laden compiled layout and fail
+    // resolving the facet component. A dedicated path keeps this profile's compiled layout isolated.
+    // (useDevServer is on, so no Vite manifest file is needed at this path.)
+    $isolatedBasePath = sys_get_temp_dir()
+        . '/markommerce-category-render-' . getmypid() . '-' . bin2hex(random_bytes(6));
+
+    return new IntegrationTestCase(
+        categoryRenderMakeProfile(),
+        projectBasePath: $isolatedBasePath,
+    );
 }
 
 function categoryRenderMakeDefinitionService(IntegrationTestCase $testCase): AttributeDefinitionService

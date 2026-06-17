@@ -23,7 +23,10 @@ class AttributeEntityClassMap
      *
      * @throws DuplicateEntityClassRegistrationException
      */
-    public function register(string $entityType, string $entityClass): void
+    public function register(
+        string $entityType,
+        string $entityClass,
+    ): void
     {
         if (isset($this->map[$entityType])) {
             if ($this->map[$entityType] === $entityClass) {

@@ -16,7 +16,10 @@ class ProductAttributeValues extends Entity
     #[Column(name: 'attribute_values', type: 'json', nullable: true)]
     public ?array $values = null;
 
-    public function set(string $code, mixed $value): void
+    public function set(
+        string $code,
+        mixed $value,
+    ): void
     {
         $values = $this->values ?? [];
         $values[$code] = $value;
