@@ -26,8 +26,7 @@ function makeAttributeType(string $code): AttributeTypeInterface
         public function cast(
             mixed $raw,
             AttributeDefinitionInterface $definition,
-        ): mixed
-        {
+        ): mixed {
             return $raw;
         }
 

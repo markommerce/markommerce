@@ -16,7 +16,6 @@
     "require": {
         "php": "^8.5",
         "markommerce/attribute": "self.version",
-        "markommerce/attribute-pgsql": "self.version",
         "markommerce/attribute-scope": "self.version",
         "markommerce/catalog": "self.version",
         "markommerce/catalog-attribute": "self.version",
@@ -33,9 +32,7 @@
         "markommerce/config": "self.version",
         "markommerce/config-locale": "self.version",
         "markommerce/config-market": "self.version",
-        "markommerce/config-pgsql": "self.version",
         "markommerce/config-scope": "self.version",
-        "markommerce/config-scope-pgsql": "self.version",
         "markommerce/core": "self.version",
         "markommerce/criteria": "self.version",
         "markommerce/currency": "self.version",
@@ -48,7 +45,6 @@
         "markommerce/money": "self.version",
         "markommerce/money-intl": "self.version",
         "markommerce/scope": "self.version",
-        "markommerce/scope-pgsql": "self.version",
         "markommerce/tax": "self.version",
         "markommerce/tax-market": "self.version",
         "markommerce/theme-blank": "self.version"
@@ -56,7 +52,7 @@
     "autoload-dev": {
         "psr-4": {
             "Markommerce\\Attribute\\Tests\\": "packages/attribute/tests/",
-            "Markommerce\\Attribute\\PgSql\\Tests\\": "packages/attribute-pgsql/tests/",
+            "Markommerce\\Attribute\\PgSql\\Tests\\": "packages/attribute/tests/PgSql/",
             "Markommerce\\AttributeScope\\Tests\\": "packages/attribute-scope/tests/",
             "Markommerce\\Catalog\\Tests\\": "packages/catalog/tests/",
             "Markommerce\\CatalogAttribute\\Tests\\": "packages/catalog-attribute/tests/",
@@ -72,9 +68,11 @@
             "Markommerce\\CatalogStorefrontScope\\Tests\\": "packages/catalog-storefront-scope/tests/",
             "Markommerce\\Criteria\\Tests\\": "packages/criteria/tests/",
             "Markommerce\\Config\\Tests\\": "packages/config/tests/",
+            "Markommerce\\Config\\PgSql\\Tests\\": "packages/config/tests/PgSql/",
             "Markommerce\\ConfigLocale\\Tests\\": "packages/config-locale/tests/",
             "Markommerce\\ConfigMarket\\Tests\\": "packages/config-market/tests/",
             "Markommerce\\ConfigScope\\Tests\\": "packages/config-scope/tests/",
+            "Markommerce\\ConfigScope\\PgSql\\Tests\\": "packages/config-scope/tests/PgSql/",
             "Markommerce\\Currency\\Tests\\": "packages/currency/tests/",
             "Markommerce\\CurrencyMarket\\Tests\\": "packages/currency-market/tests/",
             "Markommerce\\Indexer\\Tests\\": "packages/indexer/tests/",
@@ -84,6 +82,7 @@
             "Markommerce\\Money\\Tests\\": "packages/money/tests/",
             "Markommerce\\MoneyIntl\\Tests\\": "packages/money-intl/tests/",
             "Markommerce\\Scope\\Tests\\": "packages/scope/tests/",
+            "Markommerce\\Scope\\PgSql\\Tests\\": "packages/scope/tests/PgSql/",
             "Markommerce\\Tax\\Tests\\": "packages/tax/tests/",
             "Markommerce\\TaxMarket\\Tests\\": "packages/tax-market/tests/",
             "Markommerce\\Testing\\Tests\\": "packages/testing/tests/"

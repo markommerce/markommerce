@@ -137,8 +137,7 @@ class FakeAttributeDefinitionRepository implements AttributeDefinitionRepository
     public function findByCode(
         string $entityType,
         string $code,
-    ): ?AttributeDefinition
-    {
+    ): ?AttributeDefinition {
         return array_find(
             $this->definitions,
             fn (AttributeDefinition $d) => $d->entityType === $entityType && $d->code === $code,
@@ -189,8 +188,7 @@ class FakeAttributeDefinitionRepository implements AttributeDefinitionRepository
     private function matchesCriteria(
         AttributeDefinition $definition,
         array $criteria,
-    ): bool
-    {
+    ): bool {
         return array_all(
             array_keys($criteria),
             fn (string $key) => $definition->$key === $criteria[$key],

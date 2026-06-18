@@ -3,18 +3,12 @@ title: markommerce/attribute
 description: Entity-agnostic custom-attribute kernel for Markommerce stores — type registry, definition CRUD, and value validation.
 ---
 
-Entity-agnostic custom-attribute kernel for Markommerce stores. `markommerce/attribute` separates attribute definitions (database rows) from attribute types (code): a pluggable type registry ships eight built-in types, and downstream modules can add or replace types without touching stored definitions. The package provides the definition service with structural guards, a reserved-code provider, and a value-validation entry point. It ships no storage driver --- install `markommerce/attribute-pgsql` for PostgreSQL persistence.
+Entity-agnostic custom-attribute kernel for Markommerce stores. `markommerce/attribute` separates attribute definitions (database rows) from attribute types (code): a pluggable type registry ships eight built-in types, and downstream modules can add or replace types without touching stored definitions. The package provides the definition service with structural guards, a reserved-code provider, and a value-validation entry point. PostgreSQL persistence is bundled via the in-package PgSql driver.
 
 ## Installation
 
 ```bash
 composer require markommerce/attribute
-```
-
-A storage driver is also required:
-
-```bash
-composer require markommerce/attribute-pgsql
 ```
 
 ## Usage
@@ -349,6 +343,5 @@ Mapped to the `attribute_options` table.
 
 ## Related Packages
 
-- [markommerce/attribute-pgsql](/docs/packages/attribute-pgsql/) --- PostgreSQL storage driver
 - [markommerce/catalog-attribute](/docs/packages/catalog-attribute/) --- binds the attribute kernel to `Product`; ships `ProductAttributeAccessor`
 - [markommerce/attribute-scope](/docs/packages/attribute-scope/) --- adds per-scope label overrides to `AttributeOption`

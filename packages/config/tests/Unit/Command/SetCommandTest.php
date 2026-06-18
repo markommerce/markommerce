@@ -130,17 +130,17 @@ it(
     function (): void {
         $storage = new InMemoryConfigStorage();
         $command = buildSetCommand($storage);
-    
+
         // Pass --scope option — must be silently ignored and treated as a global write
-    $input = makeSetInput('cli/set.string_val', 'store-value', '--scope=store=1');
+        $input = makeSetInput('cli/set.string_val', 'store-value', '--scope=store=1');
         $result = captureSetOutput($command, $input);
-    
+
         expect($result['exitCode'])->toBe(0);
-    
+
         $row = $storage->load('cli/set.string_val');
         expect($row)->not->toBeNull()
             ->and($row->value)->toBe('store-value');
-    }
+    },
 );
 
 it('parses the shell <value> argument according to the property\'s declared type', function (

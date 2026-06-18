@@ -127,28 +127,28 @@ it(
         $scopeRegistry = makeScopedUnsetCmdScopeRegistry(['locale']);
         $scopedFieldRegistry = new ScopedFieldRegistry($scopeRegistry);
         $scopedFieldRegistry->register(ScopedUnsetCmdStringConfig::class, 'storeName', ['locale']);
-    
+
         $command = buildScopedUnsetCommand($globalStorage, $scopedStorage, $scopedFieldRegistry);
-    
+
         // Verify Preference attribute
-    $reflection = new ReflectionClass(ScopedUnsetCommand::class);
+        $reflection = new ReflectionClass(ScopedUnsetCommand::class);
         $attributes = $reflection->getAttributes(Preference::class);
         expect($attributes)->not->toBeEmpty();
         $preference = $attributes[0]->newInstance();
         expect($preference->replaces)->toBe(UnsetCommand::class);
-    
+
         // Pre-seed an override
-    $scopedStorage->saveOverride('scoped-unset-cmd/test.storeName', 'locale:fr', 'fr-name');
-    
+        $scopedStorage->saveOverride('scoped-unset-cmd/test.storeName', 'locale:fr', 'fr-name');
+
         // Run command with --scope
-    $result = runScopedUnsetCommand($command, 'scoped-unset-cmd/test.storeName', '--scope=locale=fr');
-    
+        $result = runScopedUnsetCommand($command, 'scoped-unset-cmd/test.storeName', '--scope=locale=fr');
+
         expect($result['exitCode'])->toBe(0);
-    
+
         // Override should be removed
-    $overrides = $scopedStorage->loadOverrides('scoped-unset-cmd/test.storeName');
+        $overrides = $scopedStorage->loadOverrides('scoped-unset-cmd/test.storeName');
         expect($overrides)->not->toHaveKey('locale:fr');
-    }
+    },
 );
 
 it('does NOT carry a #[Command] attribute on ScopedUnsetCommand', function (): void {

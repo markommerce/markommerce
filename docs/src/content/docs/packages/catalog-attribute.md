@@ -11,12 +11,6 @@ Attribute binding for catalog entities. `markommerce/catalog-attribute` wires th
 composer require markommerce/catalog-attribute
 ```
 
-A storage driver is also required:
-
-```bash
-composer require markommerce/attribute-pgsql
-```
-
 ## Usage
 
 ### Reading and writing attribute values
@@ -70,7 +64,7 @@ Static definitions are provided by `StaticAttributeProvider` and take precedence
 
 ### Custom attribute values storage
 
-`ProductAttributeValues` is a companion entity (`#[Table(extends: Product::class)]`) that adds an `attribute_values` JSON column to the `catalog_products` table in the same row. It holds a flat `{code: value}` map. The module links it as an extender of `Product` at boot via `EntityMetadataFactory::linkExtenders()`. No schema migration is needed beyond what `markommerce/attribute-pgsql` provides --- the companion column is added automatically.
+`ProductAttributeValues` is a companion entity (`#[Table(extends: Product::class)]`) that adds an `attribute_values` JSON column to the `catalog_products` table in the same row. It holds a flat `{code: value}` map. The module links it as an extender of `Product` at boot via `EntityMetadataFactory::linkExtenders()`. No schema migration is needed --- the companion column is added automatically.
 
 ### Reserved-code enforcement
 
@@ -127,7 +121,6 @@ Companion entity (`#[Table(extends: Product::class)]`) that stores custom attrib
 ## Related Packages
 
 - [markommerce/attribute](/docs/packages/attribute/) --- attribute kernel: type registry, definition service, and value validation
-- [markommerce/attribute-pgsql](/docs/packages/attribute-pgsql/) --- PostgreSQL storage driver
 - [markommerce/catalog](/docs/packages/catalog/) --- provides the `Product` entity
 - [markommerce/catalog-attribute-scope](/docs/packages/catalog-attribute-scope/) --- adds per-scope overrides to product attribute values
 - [markommerce/catalog-attribute-index](/docs/packages/catalog-attribute-index/) --- denormalized EAV read-model for fast filtering and faceting of attribute values

@@ -8,12 +8,6 @@ Entity-agnostic custom-attribute kernel for Markommerce stores. Attribute defini
 composer require markommerce/attribute
 ```
 
-A storage driver is also required:
-
-```bash
-composer require markommerce/attribute-pgsql
-```
-
 ## Quick Example
 
 ```php

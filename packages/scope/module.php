@@ -9,6 +9,8 @@ use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
 use Markommerce\Scope\Middleware\ScopeResolutionMiddleware;
+use Markommerce\Scope\PgSql\Query\PgSqlScopedFieldRenderer;
+use Markommerce\Scope\Query\ScopedFieldRendererInterface;
 use Markommerce\Scope\Query\ScopedOrderByFactory;
 use Markommerce\Scope\Registry\PhpScopeRegistry;
 use Markommerce\Scope\Registry\ScopeRegistryInterface;
@@ -22,6 +24,7 @@ use Markommerce\Scope\Storage\DefaultScopeGuard;
 
 return [
     'bindings' => [
+        ScopedFieldRendererInterface::class => PgSqlScopedFieldRenderer::class,
         ScopeRegistryInterface::class => function (ContainerInterface $container): PhpScopeRegistry {
             return new PhpScopeRegistry($container->get(ConfigRepositoryInterface::class));
         },

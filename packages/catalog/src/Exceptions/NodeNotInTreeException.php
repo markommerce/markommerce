@@ -12,8 +12,7 @@ class NodeNotInTreeException extends MarkoException
         int $nodeId,
         int $expectedTreeId,
         int $actualTreeId,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Node $nodeId belongs to tree $actualTreeId, not the expected tree $expectedTreeId",
             context: "While validating node $nodeId against tree $expectedTreeId",
@@ -25,8 +24,7 @@ class NodeNotInTreeException extends MarkoException
         int $nodeId,
         ?int $expectedParentNodeId,
         ?int $actualParentNodeId,
-    ): self
-    {
+    ): self {
         $expected = $expectedParentNodeId === null ? 'null (root)' : (string) $expectedParentNodeId;
         $actual = $actualParentNodeId === null ? 'null (root)' : (string) $actualParentNodeId;
 

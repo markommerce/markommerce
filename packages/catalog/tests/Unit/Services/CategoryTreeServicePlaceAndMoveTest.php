@@ -102,7 +102,7 @@ it('placeCategory creates a child node under the given parent', function (): voi
     $childNode = $service->placeCategory(
         treeId: $tree->id,
         categoryId: $childCategory->id,
-        parentNodeId: $parentNode->id
+        parentNodeId: $parentNode->id,
     );
 
     expect($childNode->parentNodeId)->toBe($parentNode->id)
@@ -197,13 +197,13 @@ it(
         $treeRepo = new FakeCategoryTreeRepository();
         $categoryRepo = new FakeCategoryRepository();
         $service = makeCategoryTreeServiceForPlaceAndMove(treeRepo: $treeRepo, categoryRepo: $categoryRepo);
-    
+
         $tree = makeTree($treeRepo);
         $category = makeCategory($categoryRepo);
-    
+
         expect(fn () => $service->placeCategory(treeId: $tree->id, categoryId: $category->id, parentNodeId: 999))
             ->toThrow(CategoryTreeNodeNotFoundException::class);
-    }
+    },
 );
 
 it('placeCategory throws NodeNotInTreeException when parent node belongs to a different tree', function (): void {
@@ -226,7 +226,7 @@ it('placeCategory throws NodeNotInTreeException when parent node belongs to a di
 
     // Placing in tree1 but referencing a parent from tree2
     expect(
-        fn () => $service->placeCategory(treeId: $tree1->id, categoryId: $category->id, parentNodeId: $parentNode->id)
+        fn () => $service->placeCategory(treeId: $tree1->id, categoryId: $category->id, parentNodeId: $parentNode->id),
     )
         ->toThrow(NodeNotInTreeException::class);
 });
@@ -295,14 +295,14 @@ it(
             nodeRepo: $nodeRepo,
             categoryRepo: $categoryRepo,
         );
-    
+
         $tree = makeTree($treeRepo);
         $category = makeCategory($categoryRepo);
         $node = makeNode($nodeRepo, $tree->id, $category->id);
-    
+
         expect(fn () => $service->moveNode(nodeId: $node->id, newParentNodeId: 999, position: 0))
             ->toThrow(CategoryTreeNodeNotFoundException::class);
-    }
+    },
 );
 
 it('moveNode throws NodeNotInTreeException when the new parent belongs to a different tree', function (): void {
@@ -338,14 +338,14 @@ it(
             nodeRepo: $nodeRepo,
             categoryRepo: $categoryRepo,
         );
-    
+
         $tree = makeTree($treeRepo);
         $category = makeCategory($categoryRepo);
         $node = makeNode($nodeRepo, $tree->id, $category->id);
-    
+
         expect(fn () => $service->moveNode(nodeId: $node->id, newParentNodeId: $node->id, position: 0))
             ->toThrow(CircularNodeReferenceException::class);
-    }
+    },
 );
 
 it(
@@ -359,18 +359,18 @@ it(
             nodeRepo: $nodeRepo,
             categoryRepo: $categoryRepo,
         );
-    
+
         $tree = makeTree($treeRepo);
         $cat1 = makeCategory($categoryRepo, 'Parent');
         $cat2 = makeCategory($categoryRepo, 'Child');
-    
+
         $parentNode = makeNode($nodeRepo, $tree->id, $cat1->id, null, 0);
         $childNode = makeNode($nodeRepo, $tree->id, $cat2->id, $parentNode->id, 0);
-    
+
         // Try to move parentNode under childNode — creates a cycle
-    expect(fn () => $service->moveNode(nodeId: $parentNode->id, newParentNodeId: $childNode->id, position: 0))
-            ->toThrow(CircularNodeReferenceException::class);
-    }
+        expect(fn () => $service->moveNode(nodeId: $parentNode->id, newParentNodeId: $childNode->id, position: 0))
+                ->toThrow(CircularNodeReferenceException::class);
+    },
 );
 
 it(
@@ -384,30 +384,30 @@ it(
             nodeRepo: $nodeRepo,
             categoryRepo: $categoryRepo,
         );
-    
+
         $tree = makeTree($treeRepo);
         $cat1 = makeCategory($categoryRepo, 'Grandparent');
         $cat2 = makeCategory($categoryRepo, 'Parent');
         $cat3 = makeCategory($categoryRepo, 'Child');
-    
+
         $grandparent = makeNode($nodeRepo, $tree->id, $cat1->id, null, 0);
         $parent = makeNode($nodeRepo, $tree->id, $cat2->id, $grandparent->id, 0);
         $child = makeNode($nodeRepo, $tree->id, $cat3->id, $parent->id, 0);
-    
+
         // Try to move grandparent under grandchild — creates a cycle via grandparent -> ... -> grandchild -> grandparent
-    expect(fn () => $service->moveNode(nodeId: $grandparent->id, newParentNodeId: $child->id, position: 0))
-            ->toThrow(CircularNodeReferenceException::class);
-    }
+        expect(fn () => $service->moveNode(nodeId: $grandparent->id, newParentNodeId: $child->id, position: 0))
+                ->toThrow(CircularNodeReferenceException::class);
+    },
 );
 
 it(
     'all previously added tests in CategoryTreeServiceTreeCrudTest and CategoryTreeServiceMarketResolutionTest continue to pass with the expanded constructor',
     function (): void {
         // This test is a meta-test: if the other test files still pass after the constructor expansion,
-    // this requirement is satisfied. We verify here by instantiating the service with all 4 parameters
-    // to confirm backward compatibility of the updated helper functions in those files.
-    $service = makeCategoryTreeServiceForPlaceAndMove();
-    
+        // this requirement is satisfied. We verify here by instantiating the service with all 4 parameters
+        // to confirm backward compatibility of the updated helper functions in those files.
+        $service = makeCategoryTreeServiceForPlaceAndMove();
+
         expect($service)->toBeInstanceOf(CategoryTreeService::class);
-    }
+    },
 );

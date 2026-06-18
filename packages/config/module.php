@@ -6,6 +6,7 @@ use Marko\Config\ConfigRepositoryInterface;
 use Marko\Core\Container\ContainerInterface;
 use Marko\Core\Container\PreferenceRegistry;
 use Marko\Core\Path\ProjectPaths;
+use Marko\Database\Connection\ConnectionInterface;
 use Markommerce\Config\Cache\CachingConfigResolver;
 use Markommerce\Config\Cache\RequestConfigCache;
 use Markommerce\Config\Casting\ValueCaster;
@@ -21,6 +22,7 @@ use Markommerce\Config\Encryption\SodiumSecretCipher;
 use Markommerce\Config\Exceptions\InvalidConfigClassException;
 use Markommerce\Config\Exceptions\SecretCipherException;
 use Markommerce\Config\Middleware\ConfigCacheResetMiddleware;
+use Markommerce\Config\PgSql\PgsqlConfigStorage;
 use Markommerce\Config\Proxy\ProxyAutoloader;
 use Markommerce\Config\Proxy\ProxyGenerator;
 use Markommerce\Config\Proxy\ProxyLocator;
@@ -36,6 +38,9 @@ return [
         'after' => ['markommerce/scope'],
     ],
     'bindings' => [
+        ConfigStorageInterface::class => static function (ContainerInterface $container): PgsqlConfigStorage {
+            return new PgsqlConfigStorage($container->get(ConnectionInterface::class));
+        },
         ConfigWriterInterface::class => ConfigWriter::class,
         SecretCipherInterface::class => static function (ContainerInterface $container): SecretCipherInterface {
             $encoded = getenv('MARKOMMERCE_CONFIG_SECRET_KEY');

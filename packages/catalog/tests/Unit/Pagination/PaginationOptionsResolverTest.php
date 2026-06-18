@@ -47,8 +47,7 @@ function makePaginationConfigResolver(array $overrides = []): ConfigResolverInte
         public function resolved(
             string $configClass,
             string $field,
-        ): mixed
-        {
+        ): mixed {
             return $this->values[$field] ?? null;
         }
     };
@@ -162,11 +161,11 @@ it(
             ]),
             makeRegistryWithPosition(),
         );
-    
+
         // position does not support keyset → must throw
-    expect(fn () => $resolver->resolve(page: null, size: null, sort: null))
-            ->toThrow(InvalidPaginationConfigException::class);
-    }
+        expect(fn () => $resolver->resolve(page: null, size: null, sort: null))
+                ->toThrow(InvalidPaginationConfigException::class);
+    },
 );
 
 it('it carries the selected sort order and resolved size on the resolved options', function (): void {

@@ -27,8 +27,7 @@ readonly class EntityRefType implements AttributeTypeInterface
     public function cast(
         mixed $raw,
         AttributeDefinitionInterface $definition,
-    ): mixed
-    {
+    ): mixed {
         $config = $definition->config();
 
         if (!isset($config['targetEntityType'])) {

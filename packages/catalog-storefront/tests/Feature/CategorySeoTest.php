@@ -75,7 +75,7 @@ it(
         } finally {
             $testCase->tearDownIntegration();
         }
-    }
+    },
 )->group('integration-destructive');
 
 it('renders all products on one page when under the view-all threshold', function (): void {
@@ -98,7 +98,7 @@ it('renders all products on one page when under the view-all threshold', functio
 
         for ($i = 1; $i <= 3; $i++) {
             ProductFactory::new($store)->withSku('SKU-' . $i)->withName('Product ' . $i)->inCategory(
-                $category
+                $category,
             )->create();
         }
 

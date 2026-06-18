@@ -155,12 +155,12 @@ it(
     function (): void {
         $storage = new ContentiousStorage(failCount: 3);
         $writer = buildWriter($storage);
-    
+
         expect(fn () => $writer->setGlobal('writer/general.page_size', 99))
             ->toThrow(StaleConfigWriteException::class);
-    
+
         expect($storage->attempts)->toBe(3);
-    }
+    },
 );
 
 it(
@@ -168,23 +168,23 @@ it(
     function (): void {
         $storage = new InMemoryConfigStorage();
         $writer = buildWriter($storage);
-    
+
         expect(fn () => $writer->setGlobal('nonexistent/key.value', 42))
             ->toThrow(ConfigNotFoundException::class);
-    }
+    },
 );
 
 it(
     'declares ConfigWriter\'s constructor-promoted properties (registry, storage, cipher) with protected visibility (verified via reflection)',
     function (): void {
         $reflection = new ReflectionClass(ConfigWriter::class);
-    
+
         $registryProp = $reflection->getProperty('registry');
         $storageProp = $reflection->getProperty('storage');
         $cipherProp = $reflection->getProperty('cipher');
-    
+
         expect($registryProp->isProtected())->toBeTrue()
             ->and($storageProp->isProtected())->toBeTrue()
             ->and($cipherProp->isProtected())->toBeTrue();
-    }
+    },
 );

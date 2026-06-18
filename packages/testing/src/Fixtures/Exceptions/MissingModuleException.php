@@ -11,8 +11,7 @@ class MissingModuleException extends MarkoException
     public static function forModule(
         string $module,
         string $requiredFor,
-    ): self
-    {
+    ): self {
         return new self(
             message: "The module '$module' is not loaded in the current store profile",
             context: "While trying to use '$requiredFor' in a fixture factory",

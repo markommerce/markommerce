@@ -26,8 +26,7 @@ class AttributeEntityClassMap
     public function register(
         string $entityType,
         string $entityClass,
-    ): void
-    {
+    ): void {
         if (isset($this->map[$entityType])) {
             if ($this->map[$entityType] === $entityClass) {
                 // Same (entityType, class) — idempotent no-op

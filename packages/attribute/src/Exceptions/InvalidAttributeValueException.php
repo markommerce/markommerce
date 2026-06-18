@@ -12,8 +12,7 @@ class InvalidAttributeValueException extends MarkoException
         string $code,
         string $type,
         string $raw,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Invalid value '$raw' for attribute '$code' of type '$type'",
             context: "Setting attribute '$code' (type: $type) — the value '$raw' is not valid for this attribute type",

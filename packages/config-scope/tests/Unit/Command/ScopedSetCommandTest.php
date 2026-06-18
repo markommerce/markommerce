@@ -135,9 +135,9 @@ it(
     function (): void {
         $reflection = new ReflectionClass(ScopedSetCommand::class);
         $commandAttributes = $reflection->getAttributes(Command::class);
-    
+
         expect($commandAttributes)->toBeEmpty();
-    }
+    },
 );
 
 it('parses --scope=axis=value into a ScopeSignature inside ScopedSetCommand execute', function (): void {
@@ -166,20 +166,25 @@ it(
         $scopeRegistry = makeScopedSetCmdScopeRegistry(['locale']);
         $scopedFieldRegistry = new ScopedFieldRegistry($scopeRegistry);
         $scopedFieldRegistry->register(ScopedSetCmdStringConfig::class, 'storeName', ['locale']);
-    
+
         $command = buildScopedSetCommand($globalStorage, $scopedStorage, $scopedFieldRegistry);
-    
+
         // With --scope: sets override
-    $resultWithScope = runScopedSetCommand($command, 'scoped-set-cmd/test.storeName', 'fr-name', '--scope=locale=fr');
+        $resultWithScope = runScopedSetCommand(
+            $command,
+            'scoped-set-cmd/test.storeName',
+            'fr-name',
+            '--scope=locale=fr'
+        );
         expect($resultWithScope['exitCode'])->toBe(0);
         $overrides = $scopedStorage->loadOverrides('scoped-set-cmd/test.storeName');
         expect($overrides)->toHaveKey('locale:fr');
-    
+
         // Without --scope: sets global
-    $resultWithoutScope = runScopedSetCommand($command, 'scoped-set-cmd/test.storeName', 'global-name');
+        $resultWithoutScope = runScopedSetCommand($command, 'scoped-set-cmd/test.storeName', 'global-name');
         expect($resultWithoutScope['exitCode'])->toBe(0);
         $globalRow = $globalStorage->load('scoped-set-cmd/test.storeName');
         expect($globalRow)->not->toBeNull()
             ->and($globalRow->value)->toBe('global-name');
-    }
+    },
 );

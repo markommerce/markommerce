@@ -37,7 +37,6 @@ function makeAttrIndexIntProfile(): StoreProfile
         'markommerce/catalog-attribute-index',
         'markommerce/locale',
         'marko/database-pgsql',
-        'markommerce/attribute-pgsql',
     )->withLocales('default', 'en', 'de');
 }
 

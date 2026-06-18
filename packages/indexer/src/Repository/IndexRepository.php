@@ -22,8 +22,7 @@ class IndexRepository implements IndexRepositoryInterface
         string $table,
         array $columns,
         array $rows,
-    ): int
-    {
+    ): int {
         $this->validateIdentifier($table);
         foreach ($columns as $col) {
             $this->validateIdentifier($col);
@@ -64,8 +63,7 @@ class IndexRepository implements IndexRepositoryInterface
         string $table,
         string $idColumn,
         array $ids,
-    ): void
-    {
+    ): void {
         $this->validateIdentifier($table);
         $this->validateIdentifier($idColumn);
 

@@ -77,37 +77,37 @@ it(
     'creates foreign keys after all tables exist using a fixture entity with a table-dot-column reference',
     function (): void {
         TestConnection::skipIfUnavailable();
-    
+
         $admin = new AdminConnection();
         $dbName = 'marko_test_provisioner_fks_' . getmypid();
         $admin->createDatabase($dbName);
-    
+
         try {
             $conn = $admin->connectionFor($dbName);
             $provisioner = new SchemaProvisioner();
-    
+
             $fixtureEntityDir = realpath(__DIR__ . '/../../Fixture/Entity');
             expect($fixtureEntityDir)->not->toBeFalse();
-    
+
             $provisioner->provision($conn, [$fixtureEntityDir]);
-    
+
             $constraints = $conn->query(
                 'SELECT constraint_name, constraint_type FROM information_schema.table_constraints'
                 . " WHERE table_name = 'fixture_children' AND constraint_type = 'FOREIGN KEY' AND table_schema = 'public'",
             );
-    
+
             expect($constraints)->not->toBeEmpty();
-    
+
             $constraintNames = array_map(
                 static fn (array $row): string => (string) $row['constraint_name'],
                 $constraints,
             );
-    
+
             expect($constraintNames)->toContain('fk_fixture_children_parent_id');
         } finally {
             $admin->dropDatabase($dbName);
         }
-    }
+    },
 )->group('integration-destructive');
 
 it('creates declared indexes including the catalog product-category unique index', function (): void {

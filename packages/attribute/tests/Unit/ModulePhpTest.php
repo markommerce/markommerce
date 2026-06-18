@@ -8,6 +8,7 @@ use Marko\Core\Container\PreferenceRegistry;
 use Markommerce\Attribute\Contracts\AttributeDefinitionInterface;
 use Markommerce\Attribute\Contracts\AttributeDefinitionRepositoryInterface;
 use Markommerce\Attribute\Contracts\AttributeTypeInterface;
+use Markommerce\Attribute\PgSql\PgSqlAttributeDefinitionRepository;
 use Markommerce\Attribute\Registry\AttributeTypeRegistry;
 use Markommerce\Attribute\Services\AttributeDefinitionService;
 use Markommerce\Attribute\Tests\Support\FakeAttributeDefinitionRepository;
@@ -70,11 +71,23 @@ it('registers all eight built-in attribute types in the registry after boot', fu
         ->and($all)->toHaveKey('entityRef');
 });
 
+it(
+    'binds AttributeDefinitionRepositoryInterface to PgSqlAttributeDefinitionRepository from attribute\'s own module',
+    function (): void {
+        $module = require dirname(__DIR__, 2) . '/module.php';
+    
+        expect($module['bindings'])->toHaveKey(AttributeDefinitionRepositoryInterface::class)
+            ->and($module['bindings'][AttributeDefinitionRepositoryInterface::class])
+            ->toBe(PgSqlAttributeDefinitionRepository::class);
+    }
+);
+
 it('binds the definition service interface to its implementation', function (): void {
     $container = bootAttributeModuleContainer();
 
-    // AttributeDefinitionService depends on AttributeDefinitionRepositoryInterface which
-    // lives in the driver package (attribute-pgsql) — bind a fake for this test.
+    // AttributeDefinitionService depends on AttributeDefinitionRepositoryInterface.
+    // The module now binds PgSqlAttributeDefinitionRepository; override with a fake so
+    // the service resolves without a database connection in this unit test.
     $container->bind(AttributeDefinitionRepositoryInterface::class, FakeAttributeDefinitionRepository::class);
 
     $service = $container->get(AttributeDefinitionService::class);
@@ -108,8 +121,7 @@ it('lets a downstream registration override a built-in type code', function (): 
         public function cast(
             mixed $raw,
             AttributeDefinitionInterface $definition,
-        ): mixed
-        {
+        ): mixed {
             return strtoupper((string) $raw);
         }
 

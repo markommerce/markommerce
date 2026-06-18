@@ -11,11 +11,7 @@ Scope-aware config resolution for Markommerce. `markommerce/config-scope` bridge
 composer require markommerce/config-scope
 ```
 
-A PostgreSQL driver is also required for persistence:
-
-```bash
-composer require markommerce/config-scope-pgsql
-```
+The package ships its PostgreSQL implementation directly — no additional driver package is required.
 
 ## Usage
 
@@ -211,7 +207,6 @@ Thrown by `ScopedConfigWriter::setOverride()` when the `ScopeSignature` referenc
 ## Related Packages
 
 - [markommerce/config](/docs/packages/config/) --- Core config package: attributes, resolver, writer, CLI, and in-memory fake
-- [markommerce/config-scope-pgsql](/docs/packages/config-scope-pgsql/) --- PostgreSQL driver for scoped config storage
 - [markommerce/scope](/docs/packages/scope/) --- Scope axes, `ScopeContext`, and `ScopeSignature`
 - [markommerce/config-locale](/docs/packages/config-locale/) --- Bridge that registers the `locale` axis for config properties
 - [markommerce/config-market](/docs/packages/config-market/) --- Bridge that registers the `market` axis for config properties

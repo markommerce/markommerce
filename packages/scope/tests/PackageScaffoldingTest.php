@@ -14,7 +14,7 @@ it('has a valid composer.json with name markommerce/scope and extra.marko.module
         ->and($composer['extra']['marko']['module'])->toBeTrue();
 });
 
-it('requires PHP ^8.5, marko/core, marko/config, and marko/database in composer.json', function (): void {
+it('requires PHP ^8.5, marko/core, marko/config, and marko/database-pgsql in composer.json', function (): void {
     $composerPath = dirname(__DIR__) . '/composer.json';
     $composer = json_decode(file_get_contents($composerPath), true);
 
@@ -22,7 +22,7 @@ it('requires PHP ^8.5, marko/core, marko/config, and marko/database in composer.
         ->and($composer['require']['php'])->toBe('^8.5')
         ->and($composer['require'])->toHaveKey('marko/core')
         ->and($composer['require'])->toHaveKey('marko/config')
-        ->and($composer['require'])->toHaveKey('marko/database');
+        ->and($composer['require'])->toHaveKey('marko/database-pgsql');
 });
 
 it('has no version field in composer.json', function (): void {

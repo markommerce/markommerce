@@ -58,7 +58,7 @@ class CartesianServedScopesProvider implements ServedScopesProviderInterface
             0,
             [],
             $signatures,
-            $warningFired
+            $warningFired,
         );
 
         return $signatures;

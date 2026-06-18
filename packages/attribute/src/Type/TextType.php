@@ -21,8 +21,7 @@ readonly class TextType implements AttributeTypeInterface
     public function cast(
         mixed $raw,
         AttributeDefinitionInterface $definition,
-    ): mixed
-    {
+    ): mixed {
         if (!is_string($raw)) {
             throw InvalidAttributeValueException::forValue($definition->code(), $this->code(), (string) $raw);
         }

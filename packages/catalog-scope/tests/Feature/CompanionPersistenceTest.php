@@ -26,11 +26,11 @@ it(
             Product::class,
             ProductScopedOverrides::class,
         ]);
-    
+
         $metadata = $factory->parse(Product::class);
-    
+
         expect($metadata->extenders)->toContain(ProductScopedOverrides::class);
-    }
+    },
 );
 
 it(
@@ -41,11 +41,11 @@ it(
             Category::class,
             CategoryScopedOverrides::class,
         ]);
-    
+
         $metadata = $factory->parse(Category::class);
-    
+
         expect($metadata->extenders)->toContain(CategoryScopedOverrides::class);
-    }
+    },
 );
 
 // ---------------------------------------------------------------------------
@@ -58,20 +58,20 @@ it(
         $factory = new EntityMetadataFactory();
         $schemaBuilder = new SchemaBuilder();
         $registry = new SchemaRegistry($factory, $schemaBuilder);
-    
+
         $registry->registerEntities([
             Product::class,
             ProductScopedOverrides::class,
         ]);
-    
+
         $table = $registry->getTable('catalog_products');
-    
+
         expect($table)->not->toBeNull();
-    
+
         $columnNames = array_map(fn ($col) => $col->name, $table->columns);
-    
+
         expect($columnNames)->toContain('scopes');
-    }
+    },
 );
 
 // ---------------------------------------------------------------------------
@@ -84,7 +84,7 @@ it(
         $factory = new EntityMetadataFactory();
         $factory->linkExtenders(Product::class, [ProductScopedOverrides::class]);
         $hydrator = new EntityHydrator($factory);
-    
+
         $row = [
             'id' => 1,
             'sku' => 'SKU-001',
@@ -92,17 +92,17 @@ it(
             'description' => null,
             'scopes' => '{"locale:de":{"name":"Testprodukt"}}',
         ];
-    
+
         $metadata = $factory->parse(Product::class);
         $product = $hydrator->hydrate(Product::class, $row, $metadata);
-    
+
         /** @var ProductScopedOverrides $companion */
         $companion = $product->companion(ProductScopedOverrides::class);
-    
+
         expect($companion)->not->toBeNull()
             ->and($companion)->toBeInstanceOf(ProductScopedOverrides::class)
             ->and($companion->override('locale:de', 'name'))->toBe('Testprodukt');
-    }
+    },
 );
 
 it(
@@ -111,22 +111,22 @@ it(
         $factory = new EntityMetadataFactory();
         $factory->linkExtenders(Product::class, [ProductScopedOverrides::class]);
         $hydrator = new EntityHydrator($factory);
-    
+
         // Row without 'scopes' column — partial SELECT
-    $row = [
+        $row = [
             'id' => 1,
             'sku' => 'SKU-001',
             'name' => 'Test Product',
             'description' => null,
         ];
-    
+
         $metadata = $factory->parse(Product::class);
         $product = $hydrator->hydrate(Product::class, $row, $metadata);
-    
+
         $companion = $product->companion(ProductScopedOverrides::class);
-    
+
         expect($companion)->toBeNull();
-    }
+    },
 );
 
 it(
@@ -135,7 +135,7 @@ it(
         $factory = new EntityMetadataFactory();
         $factory->linkExtenders(Product::class, [ProductScopedOverrides::class]);
         $hydrator = new EntityHydrator($factory);
-    
+
         $row = [
             'id' => 1,
             'sku' => 'SKU-001',
@@ -143,16 +143,16 @@ it(
             'description' => null,
             'scopes' => null,
         ];
-    
+
         $metadata = $factory->parse(Product::class);
         $product = $hydrator->hydrate(Product::class, $row, $metadata);
-    
+
         $companion = $product->companion(ProductScopedOverrides::class);
-    
+
         expect($companion)->not->toBeNull()
             ->and($companion)->toBeInstanceOf(ProductScopedOverrides::class)
             ->and($companion->overrides())->toBe([]);
-    }
+    },
 );
 
 // ---------------------------------------------------------------------------
@@ -164,23 +164,23 @@ it(
     function (): void {
         $insertedScopes = null;
         $lastId = 0;
-    
+
         $connection = new class ($insertedScopes, $lastId) implements ConnectionInterface
         {
             public function __construct(
                 private mixed &$insertedScopes,
                 private int &$lastId,
             ) {}
-    
+
             public function connect(): void {}
-    
+
             public function disconnect(): void {}
-    
+
             public function isConnected(): bool
             {
                 return true;
             }
-    
+
             public function query(
                 string $sql,
                 array $bindings = [],
@@ -194,10 +194,10 @@ it(
                         'scopes' => $this->insertedScopes,
                     ]];
                 }
-    
+
                 return [];
             }
-    
+
             public function execute(
                 string $sql,
                 array $bindings = [],
@@ -206,46 +206,46 @@ it(
                     $this->lastId++;
                     $this->insertedScopes = end($bindings);
                 }
-    
+
                 return 1;
             }
-    
+
             public function prepare(string $sql): StatementInterface
             {
                 throw new RuntimeException('Not implemented');
             }
-    
+
             public function lastInsertId(): int
             {
                 return $this->lastId;
             }
         };
-    
+
         $metadataFactory = new EntityMetadataFactory();
         $metadataFactory->linkExtenders(Product::class, [ProductScopedOverrides::class]);
         $hydrator = new EntityHydrator($metadataFactory);
         $repository = new ProductRepository($connection, $metadataFactory, $hydrator);
-    
+
         // Build and save a product with scoped overrides
-    $product = new Product();
+        $product = new Product();
         $product->sku = 'SKU-001';
         $product->name = 'Shirt';
-    
+
         $overrides = new ProductScopedOverrides();
         $overrides->setOverride('locale:de', 'name', 'Hemd');
         $product->attachCompanion($overrides);
-    
+
         $repository->save($product);
-    
+
         // Re-fetch via catalog ProductRepository
-    /** @var Product $found */
+        /** @var Product $found */
         $found = $repository->find($product->id);
-    
+
         /** @var ProductScopedOverrides $foundOverrides */
         $foundOverrides = $found->companion(ProductScopedOverrides::class);
-    
+
         expect($found)->not->toBeNull()
             ->and($foundOverrides)->not->toBeNull()
             ->and($foundOverrides->override('locale:de', 'name'))->toBe('Hemd');
-    }
+    },
 );

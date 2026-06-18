@@ -11,8 +11,7 @@ class PageOutOfRangeException extends MarkoException
     public static function forPage(
         int $requested,
         int $totalPages,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Page $requested is out of range; total pages: $totalPages",
             context: 'While resolving a page number against the total page count',

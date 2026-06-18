@@ -25,16 +25,14 @@ class NullConnection implements ConnectionInterface
     public function query(
         string $sql,
         array $bindings = [],
-    ): array
-    {
+    ): array {
         return [];
     }
 
     public function execute(
         string $sql,
         array $bindings = [],
-    ): int
-    {
+    ): int {
         return 0;
     }
 

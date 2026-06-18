@@ -153,13 +153,13 @@ it(
     function (): void {
         $reflection = new ReflectionClass(ScopedConfigGetCommand::class);
         $attributes = $reflection->getAttributes(Preference::class);
-    
+
         expect($attributes)->not->toBeEmpty();
-    
+
         $preference = $attributes[0]->newInstance();
-    
+
         expect($preference->replaces)->toBe(ConfigGetCommand::class);
-    }
+    },
 );
 
 it('does NOT carry a #[Command] attribute on ScopedConfigGetCommand', function (): void {
@@ -177,25 +177,25 @@ it(
         $scopeRegistry = makeScopedGetCmdScopeRegistry(['locale']);
         $scopedFieldRegistry = new ScopedFieldRegistry($scopeRegistry);
         $scopedFieldRegistry->register(ScopedGetCmdStringConfig::class, 'storeName', ['locale']);
-    
+
         $scopeContext = new ScopeContext($scopeRegistry);
         ['registry' => $configRegistry, 'resolver' => $resolver] = buildScopedGetCmdResolver(
             $globalStorage,
             $scopedStorage,
             $scopedFieldRegistry,
             $scopeContext,
-            $scopeRegistry
+            $scopeRegistry,
         );
         $command = buildScopedGetCommand($configRegistry, $resolver, $scopeContext);
-    
+
         // Pre-seed an override for locale=en
-    $scopedStorage->saveOverride('scoped-get-cmd/test.storeName', 'locale:en', 'english-store');
-    
+        $scopedStorage->saveOverride('scoped-get-cmd/test.storeName', 'locale:en', 'english-store');
+
         $result = runScopedGetCommand($command, 'scoped-get-cmd/test.storeName', '--scope=locale=en');
-    
+
         expect($result['exitCode'])->toBe(0)
             ->and($result['output'])->toContain('english-store');
-    }
+    },
 );
 
 it(
@@ -203,18 +203,18 @@ it(
     function (): void {
         $reflection = new ReflectionClass(ScopedConfigGetCommand::class);
         $constructor = $reflection->getConstructor();
-    
+
         assert($constructor !== null);
-    
+
         $resolverParam = array_find(
             $constructor->getParameters(),
             fn ($param) => $param->getName() === 'resolver',
         );
-    
+
         expect($resolverParam)->not->toBeNull();
-    
+
         $type = (string) $resolverParam->getType();
-    
+
         expect($type)->toBe(ScopedConfigResolver::class);
-    }
+    },
 );

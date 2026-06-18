@@ -50,7 +50,7 @@ it(
 
             $category = CategoryFactory::new($store)->withName('Test Category')->create();
             ProductFactory::new($store)->withSku('FRAG-001')->withName('Fragment Product')->inCategory(
-                $category
+                $category,
             )->create();
 
             $request = new Request(
@@ -69,7 +69,7 @@ it(
         } finally {
             $testCase->tearDownIntegration();
         }
-    }
+    },
 )->group('integration-destructive');
 
 it('returns 410 when the requested page exceeds the max depth', function (): void {

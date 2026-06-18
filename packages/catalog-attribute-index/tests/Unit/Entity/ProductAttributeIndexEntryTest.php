@@ -10,11 +10,11 @@ it(
     function (): void {
         $factory = new EntityMetadataFactory();
         $metadata = $factory->parse(ProductAttributeIndexEntry::class);
-    
+
         expect($metadata->tableName)->toBe('catalog_product_attribute_index');
-    
+
         $columnNames = array_map(fn ($col) => $col->name, $metadata->columns);
-    
+
         expect($columnNames)->toContain('id')
             ->and($columnNames)->toContain('product_id')
             ->and($columnNames)->toContain('attribute_code')
@@ -23,18 +23,18 @@ it(
             ->and($columnNames)->toContain('value_number')
             ->and($columnNames)->toContain('value_bool')
             ->and($columnNames)->toContain('value_kind');
-    
+
         $columnsByName = [];
         foreach ($metadata->columns as $col) {
             $columnsByName[$col->name] = $col;
         }
-    
+
         expect($columnsByName['id']->primaryKey)->toBeTrue()
             ->and($columnsByName['id']->autoIncrement)->toBeTrue()
             ->and($columnsByName['value_text']->nullable)->toBeTrue()
             ->and($columnsByName['value_number']->nullable)->toBeTrue()
             ->and($columnsByName['value_bool']->nullable)->toBeTrue();
-    }
+    },
 );
 
 it('declares the layered-nav composite indexes via Index attributes', function (): void {

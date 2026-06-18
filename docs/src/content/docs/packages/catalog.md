@@ -1025,6 +1025,5 @@ Default implementation: `RawProductBasePriceProvider` --- reads `Product::$price
 - [markommerce/catalog-locale](/docs/packages/catalog-locale/) --- Bridge that registers `name` and `description` as locale-scoped on `Product` and `Category`
 - [markommerce/catalog-market](/docs/packages/catalog-market/) --- Per-market category tree assignment, resolution, deletion guard plugin, and per-market `priceAmount` override registration
 - [markommerce/catalog-price-index](/docs/packages/catalog-price-index/) --- Denormalized price index table for fast sorting and filtering; populated by the `BatchPriceResolverInterface` pipeline built into this package
-- [markommerce/scope](/docs/packages/scope/) --- Scoped attribute resolution engine
-- [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver required to persist and query scoped overrides
+- [markommerce/scope](/docs/packages/scope/) --- Scoped attribute resolution engine (PostgreSQL driver bundled)
 - [markommerce/catalog-attribute-storefront](/docs/packages/catalog-attribute-storefront/) --- Uses `ProductListFilterInterface`/`ProductListFilterRegistry` to register `AttributeProductListFilter`; provides the full layered navigation (disjunctive facets + filter sidebar) for category pages

@@ -26,8 +26,7 @@ class ProductScopedAttributeValues extends Entity implements HasScopesInterface
         string $signature,
         string $property,
         mixed $value,
-    ): void
-    {
+    ): void {
         DefaultScopeGuard::assertWritable($signature);
         $scopedValues = $this->scopedValues ?? [];
         $scopedValues[$signature][$property] = $value;
@@ -39,16 +38,14 @@ class ProductScopedAttributeValues extends Entity implements HasScopesInterface
     public function override(
         string $signature,
         string $property,
-    ): mixed
-    {
+    ): mixed {
         return $this->scopedValues[$signature][$property] ?? null;
     }
 
     public function hasOverride(
         string $signature,
         string $property,
-    ): bool
-    {
+    ): bool {
         return array_key_exists($signature, $this->scopedValues ?? [])
             && array_key_exists($property, $this->scopedValues[$signature]);
     }
@@ -59,8 +56,7 @@ class ProductScopedAttributeValues extends Entity implements HasScopesInterface
     public function clearOverride(
         string $signature,
         string $property,
-    ): void
-    {
+    ): void {
         DefaultScopeGuard::assertWritable($signature);
         if (!isset($this->scopedValues[$signature])) {
             return;

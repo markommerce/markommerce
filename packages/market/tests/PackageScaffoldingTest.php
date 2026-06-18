@@ -6,17 +6,17 @@ it(
     'declares a market axis with default \'default\' and a single scope path \'default\' in config/scope.php',
     function (): void {
         $configPath = dirname(__DIR__) . '/config/scope.php';
-    
+
         expect(file_exists($configPath))->toBeTrue();
-    
+
         $config = require $configPath;
-    
+
         expect($config)->toBeArray()
             ->and($config)->toHaveKey('axes')
             ->and($config['axes'])->toHaveKey('market')
             ->and($config['axes']['market']['default'])->toBe('default')
             ->and($config['axes']['market']['scopes'])->toBe(['default' => []]);
-    }
+    },
 );
 
 it('requires markommerce/scope in composer.json', function (): void {
@@ -49,11 +49,11 @@ it(
     function (): void {
         $rootComposerPath = dirname(__DIR__, 3) . '/composer.json';
         $rootComposer = json_decode(file_get_contents($rootComposerPath), true);
-    
+
         expect($rootComposer['require'])->toHaveKey('markommerce/market')
             ->and($rootComposer['autoload-dev']['psr-4'])->toHaveKey('Markommerce\\Market\\Tests\\')
             ->and($rootComposer['autoload-dev']['psr-4']['Markommerce\\Market\\Tests\\'])->toBe(
-                'packages/market/tests/'
+                'packages/market/tests/',
             );
-    }
+    },
 );

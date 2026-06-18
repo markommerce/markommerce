@@ -53,8 +53,7 @@ class CategoryProductGridLayout
     public static function gridPlacement(
         string $template,
         string $nameSuffix = '',
-    ): Place
-    {
+    ): Place {
         return new Place(
             component: ProductGridComponent::class,
             name: 'catalog.product_grid' . $nameSuffix,

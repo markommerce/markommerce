@@ -23,8 +23,7 @@ class AttributeValueValidator
         AttributeDefinitionInterface $definition,
         mixed $raw,
         array $allowedOptions = [],
-    ): mixed
-    {
+    ): mixed {
         $type = $this->attributeTypeRegistry->get($definition->type());
 
         if ($definition->isRequired() && $raw === null) {

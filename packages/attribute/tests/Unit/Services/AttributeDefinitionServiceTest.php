@@ -35,8 +35,7 @@ function makeAttributeDefinitionTypeRegistry(string ...$codes): AttributeTypeReg
             public function cast(
                 mixed $raw,
                 AttributeDefinitionInterface $definition,
-            ): mixed
-            {
+            ): mixed {
                 return $raw;
             }
 

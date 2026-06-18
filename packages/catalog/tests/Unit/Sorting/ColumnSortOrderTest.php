@@ -23,8 +23,7 @@ class SpyQueryBuilder extends RepositoryQueryBuilder
         string $first,
         string $operator,
         string $second,
-    ): static
-    {
+    ): static {
         $this->joinCallCount++;
 
         return $this;
@@ -35,8 +34,7 @@ class SpyQueryBuilder extends RepositoryQueryBuilder
         string $first,
         string $operator,
         string $second,
-    ): static
-    {
+    ): static {
         $this->joinCallCount++;
 
         return $this;
@@ -47,8 +45,7 @@ class SpyQueryBuilder extends RepositoryQueryBuilder
         string $first,
         string $operator,
         string $second,
-    ): static
-    {
+    ): static {
         $this->joinCallCount++;
 
         return $this;

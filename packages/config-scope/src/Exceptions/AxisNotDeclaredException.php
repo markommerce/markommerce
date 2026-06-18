@@ -11,8 +11,7 @@ class AxisNotDeclaredException extends MarkoException
     public static function forPropertyAndAxis(
         string $property,
         string $axis,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Axis '$axis' is not declared for property '$property'",
             context: "Resolving scoped config value for property '$property' with axis '$axis'",

@@ -73,8 +73,7 @@ function makePassthroughType(string $code = 'text'): AttributeTypeInterface
         public function cast(
             mixed $raw,
             AttributeDefinitionInterface $definition,
-        ): mixed
-        {
+        ): mixed {
             return $raw . '_cast';
         }
 
@@ -165,8 +164,7 @@ it('propagates InvalidAttributeValueException from the underlying type', functio
         public function cast(
             mixed $raw,
             AttributeDefinitionInterface $definition,
-        ): mixed
-        {
+        ): mixed {
             throw InvalidAttributeValueException::forValue($definition->code(), $this->typeCode, (string) $raw);
         }
 

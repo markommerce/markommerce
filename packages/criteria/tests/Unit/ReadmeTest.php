@@ -15,13 +15,13 @@ it(
     function () use ($readmePath, $docsPath): void {
         expect(file_exists($readmePath))->toBeTrue();
         expect(file_exists($docsPath))->toBeTrue();
-    
+
         $readme = file_get_contents($readmePath);
         expect($readme)
             ->toContain('# markommerce/criteria')
             ->toContain('PaginationStrategyInterface')
             ->toContain('https://markommerce.dev/docs/packages/criteria');
-    
+
         $docs = file_get_contents($docsPath);
         expect($docs)
             ->toContain('PaginationStrategyInterface')
@@ -30,7 +30,7 @@ it(
             ->toContain('EstimatedRowCounter')
             ->toContain('KeysetPaginationStrategy')
             ->toContain('OffsetPaginationStrategy');
-    }
+    },
 );
 
 it('the README documents the offset vs keyset random-access distinction', function () use ($docsPath): void {

@@ -17,11 +17,11 @@ it(
             file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
             true,
         );
-    
+
         $require = $manifest['require'] ?? [];
-    
+
         expect($require)->not->toHaveKey('markommerce/scope-pgsql');
-    }
+    },
 );
 
 it(
@@ -31,14 +31,14 @@ it(
             file_get_contents(dirname(__DIR__, 4) . '/composer.json'),
             true,
         );
-    
+
         $require = $rootManifest['require'] ?? [];
-    
+
         expect($require)
             ->toHaveKey('markommerce/catalog-scope')
             ->toHaveKey('markommerce/locale')
             ->toHaveKey('markommerce/catalog-locale');
-    }
+    },
 );
 
 it(
@@ -48,14 +48,14 @@ it(
             file_get_contents(dirname(__DIR__, 4) . '/composer.json'),
             true,
         );
-    
+
         $autoloadDev = $rootManifest['autoload-dev']['psr-4'] ?? [];
-    
+
         expect($autoloadDev)
             ->toHaveKey('Markommerce\\CatalogScope\\Tests\\')
             ->toHaveKey('Markommerce\\Locale\\Tests\\')
             ->toHaveKey('Markommerce\\CatalogLocale\\Tests\\');
-    }
+    },
 );
 
 it('passes the full catalog test suite after the dependency is removed', function (): void {
@@ -81,10 +81,10 @@ it(
             file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
             true,
         );
-    
+
         $require = $manifest['require'] ?? [];
         $requireDev = $manifest['require-dev'] ?? [];
-    
+
         $storefrontPackages = [
             'markommerce/layout',
             'markommerce/frontend',
@@ -93,12 +93,12 @@ it(
             'marko/view',
             'marko/view-latte',
         ];
-    
+
         foreach ($storefrontPackages as $package) {
             expect($require)->not->toHaveKey($package);
             expect($requireDev)->not->toHaveKey($package);
         }
-    }
+    },
 );
 
 it(
@@ -108,13 +108,13 @@ it(
             file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
             true,
         );
-    
+
         $require = $manifest['require'] ?? [];
         $requireDev = $manifest['require-dev'] ?? [];
-    
+
         expect($require)->not->toHaveKey('markommerce/market');
         expect($requireDev)->not->toHaveKey('markommerce/market');
-    }
+    },
 );
 
 it(
@@ -124,13 +124,13 @@ it(
             file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
             true,
         );
-    
+
         $require = $manifest['require'] ?? [];
         $requireDev = $manifest['require-dev'] ?? [];
-    
+
         expect($require)->not->toHaveKey('markommerce/catalog-market');
         expect($requireDev)->not->toHaveKey('markommerce/catalog-market');
-    }
+    },
 );
 
 it(
@@ -140,13 +140,13 @@ it(
             file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
             true,
         );
-    
+
         $require = $manifest['require'] ?? [];
         $requireDev = $manifest['require-dev'] ?? [];
-    
+
         expect($require)->not->toHaveKey('markommerce/catalog-market-category-trees');
         expect($requireDev)->not->toHaveKey('markommerce/catalog-market-category-trees');
-    }
+    },
 );
 
 it('succeeds composer dump-autoload at the monorepo root after the change', function (): void {

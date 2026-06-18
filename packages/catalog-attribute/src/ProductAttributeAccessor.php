@@ -34,8 +34,7 @@ class ProductAttributeAccessor implements AttributeValueAccessorInterface
         object $entity,
         string $code,
         mixed $raw,
-    ): void
-    {
+    ): void {
         $product = $this->guardProduct($entity);
 
         $def = $this->productAttributeDefinitions->findByCode($code);
@@ -68,8 +67,7 @@ class ProductAttributeAccessor implements AttributeValueAccessorInterface
     public function get(
         object $entity,
         string $code,
-    ): mixed
-    {
+    ): mixed {
         $product = $this->guardProduct($entity);
 
         $def = $this->productAttributeDefinitions->findByCode($code);
@@ -132,8 +130,7 @@ class ProductAttributeAccessor implements AttributeValueAccessorInterface
     public function clear(
         object $entity,
         string $code,
-    ): void
-    {
+    ): void {
         $product = $this->guardProduct($entity);
 
         $def = $this->productAttributeDefinitions->findByCode($code);

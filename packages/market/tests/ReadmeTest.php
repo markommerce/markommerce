@@ -25,12 +25,12 @@ it(
     function (): void {
         $readmePath = dirname(__DIR__) . '/README.md';
         $content = file_get_contents($readmePath);
-    
+
         expect($content)
             ->toContain('## Installation')
             ->toContain('composer require markommerce/market')
             ->toContain('## Quick Example')
             ->toContain('## Documentation')
             ->toContain('markommerce.dev/docs/packages/market');
-    }
+    },
 );

@@ -8,9 +8,9 @@ it(
     'returns an empty array from InMemoryScopedConfigStorage loadOverrides for an unknown config key',
     function (): void {
         $storage = new InMemoryScopedConfigStorage();
-    
+
         expect($storage->loadOverrides('some/unknown.key'))->toBe([]);
-    }
+    },
 );
 
 it(
@@ -18,9 +18,9 @@ it(
     function (): void {
         $storage = new InMemoryScopedConfigStorage();
         $storage->saveOverride('app/design.theme', 'locale:en', 'modern');
-    
+
         expect($storage->loadOverrides('app/design.theme'))->toBe(['locale:en' => 'modern']);
-    }
+    },
 );
 
 it(
@@ -29,9 +29,9 @@ it(
         $storage = new InMemoryScopedConfigStorage();
         $storage->saveOverride('app/design.theme', 'locale:en', 'modern');
         $storage->saveOverride('app/design.theme', 'locale:en', 'classic');
-    
+
         expect($storage->loadOverrides('app/design.theme'))->toBe(['locale:en' => 'classic']);
-    }
+    },
 );
 
 it(
@@ -41,9 +41,9 @@ it(
         $storage->saveOverride('app/design.theme', 'locale:en', 'modern');
         $storage->saveOverride('app/design.theme', 'locale:fr', 'classic');
         $storage->deleteOverride('app/design.theme', 'locale:en');
-    
+
         expect($storage->loadOverrides('app/design.theme'))->toBe(['locale:fr' => 'classic']);
-    }
+    },
 );
 
 it('returns multiple keys as a nested map from InMemoryScopedConfigStorage loadManyOverrides', function (): void {

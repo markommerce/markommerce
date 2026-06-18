@@ -179,15 +179,15 @@ it(
             property: 'name',
             axes: ['store'],
         );
-    
+
         $factory = new ScopeMetadataFactory($scopeRegistry, $fieldRegistry);
-    
+
         $metadata = $factory->for(EntityForRegistryTest::class);
-    
+
         expect($metadata->isScoped('name'))->toBeTrue()
             ->and($metadata->axesForProperty('name'))->toBe(['store'])
             ->and($metadata->isScoped('description'))->toBeFalse();
-    }
+    },
 );
 
 it('returns metadata for properties annotated with the Scoped attribute on the entity class', function (): void {
@@ -260,28 +260,28 @@ it(
     function (): void {
         $scopeRegistry = makeMockRegistry(['store', 'website', 'locale']);
         $fieldRegistry = makeFieldRegistry($scopeRegistry);
-    
+
         // Pre-populate the registry before the factory sees it
-    $fieldRegistry->register(
+        $fieldRegistry->register(
             entityClass: EntityWithScopedProperties::class,
             property: 'name',
             axes: ['locale'],
         );
-    
+
         $factory = new ScopeMetadataFactory($scopeRegistry, $fieldRegistry);
-    
+
         // Call for() twice — attribute scan should happen exactly once
-    $first = $factory->for(EntityWithScopedProperties::class);
+        $first = $factory->for(EntityWithScopedProperties::class);
         $second = $factory->for(EntityWithScopedProperties::class);
-    
+
         // Both calls return the same cached instance
-    expect($first)->toBe($second);
+        expect($first)->toBe($second);
         // 'name' has locale (pre-registered) + store, website (from attribute)
-    $axes = $first->axesForProperty('name');
+        $axes = $first->axesForProperty('name');
         expect($axes)->toContain('store')
             ->and($axes)->toContain('website')
             ->and($axes)->toContain('locale');
-    }
+    },
 );
 
 it('returns cached ScopeMetadata for repeated for calls with the same class', function (): void {
@@ -312,10 +312,10 @@ it(
         $scopeRegistry = makeMockRegistry(['store', 'website']);
         $fieldRegistry = makeFieldRegistry($scopeRegistry);
         $factory = new ScopeMetadataFactory($scopeRegistry, $fieldRegistry);
-    
+
         expect(fn () => $factory->for(EntityWithUnknownAxis::class))
             ->toThrow(UnknownAxisException::class);
-    }
+    },
 );
 
 it(
@@ -324,12 +324,12 @@ it(
         $scopeRegistry = makeMockRegistry(['store', 'website']);
         $fieldRegistry = makeFieldRegistry($scopeRegistry);
         $factory = new ScopeMetadataFactory($scopeRegistry, $fieldRegistry);
-    
+
         $metadata = $factory->for(EntityWithEmptyAxes::class);
-    
+
         expect($metadata->isScoped('name'))->toBeFalse()
             ->and($metadata->hasScopedProperties())->toBeFalse();
-    }
+    },
 );
 
 it('discovers Scoped properties inherited from a parent class', function (): void {
@@ -373,17 +373,17 @@ it(
         $scopeRegistry = makeMockRegistry(['store', 'website']);
         $fieldRegistry = makeFieldRegistry($scopeRegistry);
         $factory = new ScopeMetadataFactory($scopeRegistry, $fieldRegistry);
-    
+
         // Register AFTER factory construction but BEFORE first for() call
-    $fieldRegistry->register(
+        $fieldRegistry->register(
             entityClass: EntityForRegistryTest::class,
             property: 'description',
             axes: ['website'],
         );
-    
+
         $metadata = $factory->for(EntityForRegistryTest::class);
-    
+
         expect($metadata->isScoped('description'))->toBeTrue()
             ->and($metadata->axesForProperty('description'))->toBe(['website']);
-    }
+    },
 );

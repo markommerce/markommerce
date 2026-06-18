@@ -31,7 +31,6 @@ function makeCatalogAttributeProfile(): StoreProfile
     return StoreProfile::of(
         catalogAttributeVendorDir(),
         'markommerce/catalog-attribute',
-        'markommerce/attribute-pgsql',
         'marko/database-pgsql',
     );
 }

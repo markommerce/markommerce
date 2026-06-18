@@ -11,11 +11,7 @@ Scope storage bridge for catalog attribute entities. `markommerce/catalog-attrib
 composer require markommerce/catalog-attribute-scope
 ```
 
-The module requires `markommerce/catalog-attribute`, `markommerce/attribute`, `markommerce/catalog`, and `markommerce/scope` (all pulled in as transitive dependencies). A PostgreSQL storage driver for attributes is also needed:
-
-```bash
-composer require markommerce/attribute-pgsql
-```
+The module requires `markommerce/catalog-attribute`, `markommerce/attribute`, `markommerce/catalog`, and `markommerce/scope` (all pulled in as transitive dependencies).
 
 ## Usage
 
@@ -211,7 +207,6 @@ Companion entity (`#[Table(extends: Product::class)]`) that stores per-scope att
 
 - [markommerce/attribute](/docs/packages/attribute/) --- attribute kernel: type registry, definition service, and value validation
 - [markommerce/catalog-attribute](/docs/packages/catalog-attribute/) --- global (non-scoped) product attribute accessor; Phase-2 foundation this package builds on
-- [markommerce/attribute-pgsql](/docs/packages/attribute-pgsql/) --- PostgreSQL storage driver
 - [markommerce/scope](/docs/packages/scope/) --- scope kernel: `ScopeContext`, `ScopeWalker`, `ScopeResolver`, `HasScopesInterface`
 - [markommerce/attribute-scope](/docs/packages/attribute-scope/) --- scoped option label resolution (the `AttributeOption`-side counterpart)
 - [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- native-field scoping bridge for `Product`; required if you want scoped writes to column-backed (static) attributes

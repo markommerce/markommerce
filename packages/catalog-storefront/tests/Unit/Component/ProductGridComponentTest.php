@@ -19,12 +19,12 @@ use Markommerce\Catalog\Contracts\ProductCategoryAssignmentRepositoryInterface;
 use Markommerce\Catalog\Contracts\ProductRepositoryInterface;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
+use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pagination\PaginationPresentation;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Catalog\Pricing\Contracts\PriceResolverInterface;
 use Markommerce\Catalog\Pricing\Exceptions\PriceUnavailableException;
-use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\Catalog\Pricing\PriceContext;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
 use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
@@ -185,8 +185,7 @@ function productGridMakeConfigResolver(array $overrides = []): ConfigResolverInt
         public function resolved(
             string $configClass,
             string $field,
-        ): mixed
-        {
+        ): mixed {
             return $this->values[$field] ?? null;
         }
     };
@@ -268,8 +267,7 @@ function productGridMakeFakeConnection(): ConnectionInterface
         public function query(
             string $sql,
             array $bindings = [],
-        ): array
-        {
+        ): array {
             return [];
         }
 
@@ -279,8 +277,7 @@ function productGridMakeFakeConnection(): ConnectionInterface
         public function execute(
             string $sql,
             array $bindings = [],
-        ): int
-        {
+        ): int {
             return 0;
         }
 
@@ -347,8 +344,7 @@ function productGridMakeFakeService(
             int $categoryId,
             ResolvedPaginationOptions $options,
             FilterSelection $filters = new FilterSelection(),
-        ): Page
-        {
+        ): Page {
             $this->captured = $filters;
 
             return $this->fakePage;

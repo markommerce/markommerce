@@ -58,8 +58,7 @@ class FakeKeysetQueryBuilder extends RepositoryQueryBuilder
     public function orderBy(
         string $column,
         string $direction = 'ASC',
-    ): static
-    {
+    ): static {
         $this->orderByCalls[] = ['column' => $column, 'direction' => $direction];
 
         return $this;
@@ -68,8 +67,7 @@ class FakeKeysetQueryBuilder extends RepositoryQueryBuilder
     public function orderByRaw(
         string $expression,
         string $direction = 'ASC',
-    ): static
-    {
+    ): static {
         $this->orderByRawCalls[] = ['expression' => $expression, 'direction' => $direction];
 
         return $this;
@@ -88,8 +86,7 @@ class FakeKeysetQueryBuilder extends RepositoryQueryBuilder
     public function whereRaw(
         string $expression,
         array $bindings = [],
-    ): static
-    {
+    ): static {
         $this->whereRawCalls[] = ['expression' => $expression, 'bindings' => $bindings];
 
         return $this;
@@ -113,8 +110,7 @@ class FakeCursorValueExtractor implements CursorValueExtractorInterface
     public function extract(
         object $entity,
         Sort $sort,
-    ): array
-    {
+    ): array {
         assert($entity instanceof KeysetTestEntity);
         $result = [];
         foreach ($sort->fields as $field) {

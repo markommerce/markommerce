@@ -53,8 +53,7 @@ class ScopedConfigResolver extends ConfigResolver
     public function resolved(
         string $configClass,
         string $field,
-    ): mixed
-    {
+    ): mixed {
         return $this->resolvedAt($configClass, $field, $this->scopeContext);
     }
 
@@ -67,8 +66,7 @@ class ScopedConfigResolver extends ConfigResolver
         string $configClass,
         string $field,
         ScopeContext $context,
-    ): mixed
-    {
+    ): mixed {
         $definition = $this->configRegistry->definition($configClass, $field);
         $axes = $this->scopedFieldRegistry->axesForProperty($definition->configClass, $definition->field);
 

@@ -11,11 +11,7 @@ Scope storage bridge for attribute entities. `markommerce/attribute-scope` adds 
 composer require markommerce/attribute-scope
 ```
 
-The module requires `markommerce/attribute` and `markommerce/scope` (both are pulled in automatically as transitive dependencies). A PostgreSQL storage driver for attributes is also needed:
-
-```bash
-composer require markommerce/attribute-pgsql
-```
+The module requires `markommerce/attribute` and `markommerce/scope` (both are pulled in automatically as transitive dependencies).
 
 ## Usage
 
@@ -159,6 +155,5 @@ Resolves the display label for an `AttributeOption` under an active `ScopeContex
 ## Related Packages
 
 - [markommerce/attribute](/docs/packages/attribute/) --- attribute kernel: type registry, definition service, and value validation
-- [markommerce/attribute-pgsql](/docs/packages/attribute-pgsql/) --- PostgreSQL storage driver
 - [markommerce/scope](/docs/packages/scope/) --- scope kernel: `ScopeContext`, `ScopeWalker`, `HasScopesInterface`
 - [markommerce/catalog-attribute-scope](/docs/packages/catalog-attribute-scope/) --- scoped product attribute values (the `Product`-side counterpart)

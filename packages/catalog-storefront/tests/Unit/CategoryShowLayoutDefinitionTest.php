@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Markommerce\CatalogStorefront\Controller\CategoryController;
 use Markommerce\Layout\Layout;
 use Markommerce\ThemeBlank\Layout\TwoColumnsLeftLayout;
 

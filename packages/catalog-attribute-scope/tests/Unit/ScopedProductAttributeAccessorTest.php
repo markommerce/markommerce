@@ -48,8 +48,7 @@ function makeSasRegistry(array $axes = ['store' => ['global', 'global.us']], arr
         public function __construct(
             array $axes,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
                 $default = $defaults[$name] ?? '__test_default';
@@ -217,14 +216,14 @@ it(
     function (): void {
         [$accessor, $repo] = makeSasSetup();
         // 'name' is Column-backed; we do NOT register it in ScopedFieldRegistry
-    // so the ScopeResolver will throw ScopeContextException
+        // so the ScopeResolver will throw ScopeContextException
 
         $product = new Product();
         $signature = new ScopeSignature(['store' => 'global.us']);
-    
+
         expect(fn () => $accessor->setScoped($product, 'name', 'US Name', $signature))
             ->toThrow(ScopeContextException::class);
-    }
+    },
 );
 
 it('falls back to the global Phase-2 value when no scoped override matches', function (): void {

@@ -97,15 +97,15 @@ it(
     'module.php preserves the existing pre-tree bindings (ProductRepositoryInterface, CategoryRepositoryInterface, ProductCategoryAssignmentRepositoryInterface)',
     function (): void {
         $module = readCatalogModule();
-    
+
         expect($module['bindings'])->toHaveKey(ProductRepositoryInterface::class);
         expect($module['bindings'][ProductRepositoryInterface::class])->toBe(ProductRepository::class);
-    
+
         expect($module['bindings'])->toHaveKey(CategoryRepositoryInterface::class);
         expect($module['bindings'][CategoryRepositoryInterface::class])->toBe(CategoryRepository::class);
-    
+
         expect($module['bindings'])->toHaveKey(ProductCategoryAssignmentRepositoryInterface::class);
         expect($module['bindings'][ProductCategoryAssignmentRepositoryInterface::class])
             ->toBe(ProductCategoryAssignmentRepository::class);
-    }
+    },
 );

@@ -110,12 +110,12 @@ it('clears all axes before the base pass and sets every signature axis before ea
         function (?ScopeSignature $sig) use ($scopeContext, &$capturedDuringBase, &$capturedDuringScoped): void {
             if ($sig === null) {
                 // During base pass: all axes should be cleared
-            $capturedDuringBase = $scopeContext->state();
+                $capturedDuringBase = $scopeContext->state();
             } else {
                 // During scoped pass: axes from signature should be set
-            $capturedDuringScoped = $scopeContext->state();
+                $capturedDuringScoped = $scopeContext->state();
             }
-        }
+        },
     );
 
     // Base pass: context should have been clear

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Marko\Core\Module\ModuleManifest;
+use Marko\Core\Module\ModuleRepository;
 use Markommerce\CatalogStorefront\Controller\CategoryController;
 use Markommerce\Layout\Cache\PreparedTree;
 use Markommerce\Layout\Cache\PreparedTreeBuilder;
@@ -10,7 +11,6 @@ use Markommerce\Layout\Compiler\Compiler;
 use Markommerce\Layout\Compiler\ResolutionPhase;
 use Markommerce\Layout\Compiler\ValidationPhase;
 use Markommerce\Layout\Discovery\LayoutDiscovery;
-use Marko\Core\Module\ModuleRepository;
 
 // ─── Compile-time helpers (no DB needed) ──────────────────────────────────────
 
@@ -104,12 +104,6 @@ function buildTier1CompileManifests(): array
             source: 'vendor',
         ),
         new ModuleManifest(
-            name: 'markommerce/config-pgsql',
-            version: '1.0.0',
-            path: $pkgRoot . '/config-pgsql',
-            source: 'vendor',
-        ),
-        new ModuleManifest(
             name: 'markommerce/layout',
             version: '1.0.0',
             path: $pkgRoot . '/layout',
@@ -179,7 +173,7 @@ function buildTier1CompileArtifact(): array
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 it(
-    'boots the Tier 1 module manifest stack — catalog + catalog-storefront + config + config-pgsql + layout + frontend + theme-blank — without referencing any scope or locale module',
+    'boots the Tier 1 module manifest stack — catalog + catalog-storefront + config + layout + frontend + theme-blank — without referencing any scope or locale module',
     function (): void {
         $manifests = buildTier1CompileManifests();
 
@@ -189,7 +183,7 @@ it(
         expect($names)->toContain('markommerce/catalog')
             ->and($names)->toContain('markommerce/catalog-storefront')
             ->and($names)->toContain('markommerce/config')
-            ->and($names)->toContain('markommerce/config-pgsql')
+            ->and($names)->not->toContain('markommerce/config-pgsql')
             ->and($names)->toContain('markommerce/layout')
             ->and($names)->toContain('markommerce/frontend')
             ->and($names)->toContain('markommerce/theme-blank');

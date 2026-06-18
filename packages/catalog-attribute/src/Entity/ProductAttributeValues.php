@@ -19,8 +19,7 @@ class ProductAttributeValues extends Entity
     public function set(
         string $code,
         mixed $value,
-    ): void
-    {
+    ): void {
         $values = $this->values ?? [];
         $values[$code] = $value;
         ksort($values);

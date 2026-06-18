@@ -13,8 +13,7 @@ readonly class SortFieldApplier
     public function apply(
         RepositoryQueryBuilder $query,
         SortField $field,
-    ): void
-    {
+    ): void {
         $expr = $field->sortExpression();
         $direction = $field->direction->value;
 

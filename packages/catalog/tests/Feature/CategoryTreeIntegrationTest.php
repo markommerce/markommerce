@@ -47,19 +47,19 @@ it('materializes the tree with correct nesting and position order against the re
             $treeId,
             (int) $child2->id,
             parentNodeId: (int) $rootNode->id,
-            position: 20
+            position: 20,
         );
         $childNode1     = $treeService->placeCategory(
             $treeId,
             (int) $child1->id,
             parentNodeId: (int) $rootNode->id,
-            position: 10
+            position: 10,
         );
         $grandchildNode = $treeService->placeCategory(
             $treeId,
             (int) $grandchild->id,
             parentNodeId: (int) $childNode1->id,
-            position: 0
+            position: 0,
         );
 
         $materialized = $treeService->getMaterializedTree($treeId);

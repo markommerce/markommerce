@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Marko\Routing\Http\Request;
 use Markommerce\Attribute\Contracts\AttributeDefinitionRepositoryInterface;
 use Markommerce\Attribute\Entity\AttributeDefinition;
 use Markommerce\Attribute\Entity\AttributeOption;
@@ -17,7 +18,6 @@ use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Entity\ProductCategoryAssignment;
 use Markommerce\CatalogAttribute\ProductAttributeAccessor;
 use Markommerce\CatalogAttributeIndex\AttributeIndexer;
-use Marko\Routing\Http\Request;
 use Markommerce\Testing\IntegrationTestCase;
 use Markommerce\Testing\Profile\StoreProfile;
 
@@ -47,9 +47,8 @@ function categoryRenderMakeProfile(): StoreProfile
         'markommerce/catalog-attribute-storefront',
         'markommerce/theme-blank',
         'marko/database-pgsql',
-        'markommerce/config-pgsql',
+        'markommerce/config',
         'markommerce/locale',
-        'markommerce/attribute-pgsql',
     )->withConfigOverrides([
         'vite' => [
             'useDevServer' => true,

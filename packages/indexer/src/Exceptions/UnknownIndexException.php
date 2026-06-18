@@ -12,8 +12,7 @@ class UnknownIndexException extends IndexerException
     public static function forName(
         string $name,
         array $knownNames,
-    ): self
-    {
+    ): self {
         $known = $knownNames === [] ? 'none registered' : implode(', ', $knownNames);
 
         return new self(

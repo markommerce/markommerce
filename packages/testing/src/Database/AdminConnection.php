@@ -59,8 +59,7 @@ class AdminConnection extends TestConnection
     public function createDatabaseFromTemplate(
         string $name,
         string $template,
-    ): void
-    {
+    ): void {
         $this->validateIdentifier($name);
         $this->validateIdentifier($template);
         $this->execute("CREATE DATABASE $name TEMPLATE $template");

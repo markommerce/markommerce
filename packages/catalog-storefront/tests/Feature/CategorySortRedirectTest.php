@@ -105,5 +105,5 @@ it(
         } finally {
             $testCase->tearDownIntegration();
         }
-    }
+    },
 )->group('integration-destructive');

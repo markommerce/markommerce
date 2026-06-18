@@ -84,16 +84,16 @@ it(
             cipher: new NullSecretCipher(),
         );
         // Pre-seed a global value
-    $writer->setGlobal('cli/unset.string_val', 'set-value');
-    
+        $writer->setGlobal('cli/unset.string_val', 'set-value');
+
         $command = new UnsetCommand(registry: $registry, writer: $writer);
         // Pass --scope option — must be silently ignored and treated as a global unset
-    $input = makeUnsetInput('cli/unset.string_val', '--scope=store=1');
+        $input = makeUnsetInput('cli/unset.string_val', '--scope=store=1');
         $result = captureUnsetOutput($command, $input);
-    
+
         expect($result['exitCode'])->toBe(0);
-    
+
         // Row should be gone (global unset)
-    expect($storage->load('cli/unset.string_val'))->toBeNull();
-    }
+        expect($storage->load('cli/unset.string_val'))->toBeNull();
+    },
 );

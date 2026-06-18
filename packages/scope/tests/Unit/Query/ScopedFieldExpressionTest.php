@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Markommerce\Scope\Exceptions\NoDriverException;
 use Markommerce\Scope\Query\ScopedFieldExpression;
 use Markommerce\Scope\Signature\ScopeSignature;
 
@@ -15,12 +14,11 @@ it('the old ScopeSortRendererInterface file does not exist', function (): void {
 });
 
 it(
-    'no PHP file under packages/scope or packages/scope-pgsql imports ScopeSortRendererInterface or ScopeSortExpression',
+    'no PHP file under packages/scope imports ScopeSortRendererInterface or ScopeSortExpression',
     function (): void {
         $packagesDir = dirname(__DIR__, 5);
         $dirs = [
             $packagesDir . '/scope',
-            $packagesDir . '/scope-pgsql',
         ];
 
         $matches = [];
@@ -76,18 +74,6 @@ it('ScopedFieldExpression accepts an empty signatures list (fallback-column-only
 
     expect($expression->candidateSignatures)->toBe([]);
 });
-
-it(
-    'NoDriverException::noDriverInstalled() message and context reference ScopedFieldRendererInterface (not the old ScopeSortRendererInterface vocabulary)',
-    function (): void {
-        $exception = NoDriverException::noDriverInstalled();
-
-        expect($exception->getMessage())->not->toContain('scope sort renderer')
-            ->and($exception->getMessage())->not->toContain('ScopeSortRendererInterface')
-            ->and($exception->getContext())->not->toContain('ScopeSortRendererInterface')
-            ->and($exception->getContext())->toContain('ScopedFieldRendererInterface');
-    },
-);
 
 it(
     'ScopedFieldExpression preserves the candidateSignatures order as given (the constructor does not sort or normalize them; the order is the renderer\'s contract)',

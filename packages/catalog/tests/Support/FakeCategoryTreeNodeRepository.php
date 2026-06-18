@@ -143,8 +143,7 @@ class FakeCategoryTreeNodeRepository implements CategoryTreeNodeRepositoryInterf
     public function findChildren(
         ?int $parentNodeId,
         int $treeId,
-    ): array
-    {
+    ): array {
         $children = array_values(array_filter(
             $this->nodes,
             fn (CategoryTreeNode $n) => $n->treeId === $treeId && $n->parentNodeId === $parentNodeId,
@@ -169,8 +168,7 @@ class FakeCategoryTreeNodeRepository implements CategoryTreeNodeRepositoryInterf
     public function findByCategoryInTree(
         int $categoryId,
         int $treeId,
-    ): array
-    {
+    ): array {
         return array_values(array_filter(
             $this->nodes,
             fn (CategoryTreeNode $n) => $n->categoryId === $categoryId && $n->treeId === $treeId,
@@ -194,8 +192,7 @@ class FakeCategoryTreeNodeRepository implements CategoryTreeNodeRepositoryInterf
     private function matchesCriteria(
         CategoryTreeNode $node,
         array $criteria,
-    ): bool
-    {
+    ): bool {
         return array_all(
             array_keys($criteria),
             fn (string $key) => $node->$key === $criteria[$key],

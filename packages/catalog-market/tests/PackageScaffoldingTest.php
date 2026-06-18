@@ -71,13 +71,13 @@ it(
     function (): void {
         $rootComposerPath = dirname(__DIR__, 3) . '/composer.json';
         $rootComposer = json_decode(file_get_contents($rootComposerPath), true);
-    
+
         expect($rootComposer['require'])->toHaveKey('markommerce/catalog-market')
             ->and($rootComposer['autoload-dev']['psr-4'])->toHaveKey('Markommerce\\CatalogMarket\\Tests\\')
             ->and($rootComposer['autoload-dev']['psr-4']['Markommerce\\CatalogMarket\\Tests\\'])->toBe(
-                'packages/catalog-market/tests/'
+                'packages/catalog-market/tests/',
             );
-    }
+    },
 );
 
 it(
@@ -89,7 +89,7 @@ it(
             {
                 return true;
             }
-    
+
             public function getAxis(string $name): ScopeAxis
             {
                 return new ScopeAxis(
@@ -98,23 +98,23 @@ it(
                     default: 'default',
                 );
             }
-    
+
             public function listAxes(): array
             {
                 return [];
             }
-    
+
             public function getHierarchy(string $axisName): ScopeHierarchy
             {
                 return ScopeHierarchy::fromPaths(['default']);
             }
         };
-    
+
         $registry = new ScopedFieldRegistry(scopeRegistry: $fakeScopeRegistry);
         $boot = (require dirname(__DIR__) . '/module.php')['boot'];
         $boot($registry);
-    
+
         expect($registry->hasScopedProperties(Product::class))->toBeTrue()
             ->and($registry->axesForProperty(Product::class, 'priceAmount'))->toBe(['market']);
-    }
+    },
 );

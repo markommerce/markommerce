@@ -3,14 +3,19 @@
 declare(strict_types=1);
 
 use Marko\Database\Entity\EntityCollection;
+use Marko\Database\Repository\RepositoryQueryBuilder;
 use Markommerce\Attribute\Entity\AttributeDefinition;
 use Markommerce\Attribute\Entity\AttributeOption;
 use Markommerce\AttributeScope\Entity\AttributeOptionScopedLabels;
 use Markommerce\AttributeScope\ScopedOptionLabelResolver;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Filtering\FilterSelection;
+use Markommerce\Catalog\Pagination\CountMode;
+use Markommerce\Catalog\Pagination\PaginationPresentation;
+use Markommerce\Catalog\Pagination\PaginationStrategyKind;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
+use Markommerce\Catalog\Sorting\CategorySortOrderInterface;
 use Markommerce\CatalogAttributeIndex\Facet\AttributeFacetQuery;
 use Markommerce\CatalogAttributeIndex\Facet\Facet;
 use Markommerce\CatalogAttributeIndex\Facet\FacetValue;
@@ -20,6 +25,7 @@ use Markommerce\CatalogAttributeStorefront\LayeredNavigation\LabeledFacet;
 use Markommerce\CatalogAttributeStorefront\LayeredNavigation\LayeredNavigationAssembler;
 use Markommerce\CatalogStorefront\Data\LayeredNavigationData;
 use Markommerce\Criteria\Page\Page;
+use Markommerce\Criteria\Sort\SortField;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
@@ -31,17 +37,28 @@ use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 
 function makeEmptyRegistry(): ScopeRegistryInterface
 {
-    return new class implements ScopeRegistryInterface
+    return new class () implements ScopeRegistryInterface
     {
-        public function hasAxis(string $name): bool {
-return false;
- }
-        public function getAxis(string $name): ScopeAxis { throw new RuntimeException('no axes'); }
+        public function hasAxis(string $name): bool
+        {
+            return false;
+        }
+
+        public function getAxis(string $name): ScopeAxis
+        {
+            throw new RuntimeException('no axes');
+        }
+
         /** @return list<string> */
-        public function listAxes(): array {
-return [];
- }
-        public function getHierarchy(string $axisName): ScopeHierarchy { throw new RuntimeException('no axes'); }
+        public function listAxes(): array
+        {
+            return [];
+        }
+
+        public function getHierarchy(string $axisName): ScopeHierarchy
+        {
+            throw new RuntimeException('no axes');
+        }
     };
 }
 
@@ -61,30 +78,39 @@ function makeProductPage(array $products = []): Page
 
 function makeAssemblerPaginationOptions(): ResolvedPaginationOptions
 {
-    $sortOrder = new class implements \Markommerce\Catalog\Sorting\CategorySortOrderInterface {
-        public function key(): string {
-return 'stub';
- }
-        public function label(): string {
-return 'Stub';
- }
-        public function supportsKeyset(): bool {
-return false;
- }
-        public function prepareQuery(\Marko\Database\Repository\RepositoryQueryBuilder $builder): void {}
-        /** @return list<\Markommerce\Criteria\Sort\SortField> */
-        public function sortFields(): array {
-return [];
- }
+    $sortOrder = new class () implements CategorySortOrderInterface
+    {
+        public function key(): string
+        {
+            return 'stub';
+        }
+
+        public function label(): string
+        {
+            return 'Stub';
+        }
+
+        public function supportsKeyset(): bool
+        {
+            return false;
+        }
+
+        public function prepareQuery(RepositoryQueryBuilder $builder): void {}
+
+        /** @return list<SortField> */
+        public function sortFields(): array
+        {
+            return [];
+        }
     };
 
     return new ResolvedPaginationOptions(
         sortOrder: $sortOrder,
         size: 12,
         page: 1,
-        presentation: \Markommerce\Catalog\Pagination\PaginationPresentation::Numbered,
-        strategyKind: \Markommerce\Catalog\Pagination\PaginationStrategyKind::Offset,
-        countMode: \Markommerce\Catalog\Pagination\CountMode::Exact,
+        presentation: PaginationPresentation::Numbered,
+        strategyKind: PaginationStrategyKind::Offset,
+        countMode: CountMode::Exact,
     );
 }
 
@@ -133,8 +159,7 @@ function makeFakeFacetQuery(array $facets): AttributeFacetQuery
         public function facets(
             int $categoryId,
             FilterSelection $selection,
-        ): array
-        {
+        ): array {
             return $this->facets;
         }
     };
@@ -205,10 +230,13 @@ it('assembles the filtered product page and facets for a category and selection'
 
 it('resolves select-option display labels for the active scope', function (): void {
     // Build a scope registry with a 'locale' axis having 'en' and 'fr' scopes.
-    $registry = new class implements ScopeRegistryInterface {
-        public function hasAxis(string $name): bool {
-return $name === 'locale';
- }
+    $registry = new class () implements ScopeRegistryInterface
+    {
+        public function hasAxis(string $name): bool
+        {
+            return $name === 'locale';
+        }
+
         public function getAxis(string $name): ScopeAxis
         {
             if ($name !== 'locale') {
@@ -219,12 +247,15 @@ return $name === 'locale';
         }
 
         /** @return list<string> */
-        public function listAxes(): array {
-return ['locale'];
- }
-        public function getHierarchy(string $axisName): ScopeHierarchy {
-return $this->getAxis($axisName)->hierarchy;
- }
+        public function listAxes(): array
+        {
+            return ['locale'];
+        }
+
+        public function getHierarchy(string $axisName): ScopeHierarchy
+        {
+            return $this->getAxis($axisName)->hierarchy;
+        }
     };
 
     $context = new ScopeContext($registry);

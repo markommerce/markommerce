@@ -112,8 +112,7 @@ class KeysetPaginationStrategy implements PaginationStrategyInterface
     private function applySeekPredicate(
         RepositoryQueryBuilder $query,
         KeysetPosition $position,
-    ): void
-    {
+    ): void {
         $anchor = $position->anchor;
         $id = $position->id;
 

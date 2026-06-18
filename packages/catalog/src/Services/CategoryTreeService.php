@@ -49,8 +49,7 @@ class CategoryTreeService implements CategoryTreeServiceInterface
         string $code,
         string $name,
         bool $isDefault = false,
-    ): CategoryTree
-    {
+    ): CategoryTree {
         if (trim($code) === '') {
             throw new InvalidArgumentException('Category tree code must not be empty');
         }
@@ -134,8 +133,7 @@ class CategoryTreeService implements CategoryTreeServiceInterface
         int $categoryId,
         ?int $parentNodeId = null,
         ?int $position = null,
-    ): CategoryTreeNode
-    {
+    ): CategoryTreeNode {
         $tree = $this->categoryTreeRepository->find($treeId);
 
         if ($tree === null) {
@@ -191,8 +189,7 @@ class CategoryTreeService implements CategoryTreeServiceInterface
         int $nodeId,
         ?int $newParentNodeId,
         int $position,
-    ): void
-    {
+    ): void {
         $node = $this->categoryTreeNodeRepository->find($nodeId);
 
         if ($node === null) {
@@ -214,7 +211,7 @@ class CategoryTreeService implements CategoryTreeServiceInterface
                 throw NodeNotInTreeException::forNodeAndTree(
                     $newParentNodeId,
                     (int) $node->treeId,
-                    (int) $newParent->treeId
+                    (int) $newParent->treeId,
                 );
             }
 
@@ -235,8 +232,7 @@ class CategoryTreeService implements CategoryTreeServiceInterface
     public function removeNode(
         int $nodeId,
         NodeRemovalStrategy $strategy,
-    ): void
-    {
+    ): void {
         $node = $this->categoryTreeNodeRepository->find($nodeId);
 
         if ($node === null) {
@@ -269,8 +265,7 @@ class CategoryTreeService implements CategoryTreeServiceInterface
         ?int $parentNodeId,
         int $treeId,
         array $orderedNodeIds,
-    ): void
-    {
+    ): void {
         foreach ($orderedNodeIds as $id) {
             $node = $this->categoryTreeNodeRepository->find($id);
 
@@ -365,8 +360,7 @@ class CategoryTreeService implements CategoryTreeServiceInterface
     private function cascadeDelete(
         int $nodeId,
         int $treeId,
-    ): void
-    {
+    ): void {
         $children = $this->categoryTreeNodeRepository->findChildren($nodeId, $treeId);
 
         foreach ($children as $child) {
@@ -386,8 +380,7 @@ class CategoryTreeService implements CategoryTreeServiceInterface
     private function guardNoCycle(
         int $nodeId,
         int $newParentNodeId,
-    ): void
-    {
+    ): void {
         $current = $this->categoryTreeNodeRepository->find($newParentNodeId);
 
         while ($current !== null) {

@@ -14,8 +14,7 @@ class UndeclaredAxisException extends MarkoException
     public static function forAxis(
         string $axis,
         string $profileClass = 'StoreProfile',
-    ): self
-    {
+    ): self {
         return new self(
             message: "Axis '$axis' is not declared in this profile.",
             context: "The $profileClass was built without the '$axis' scope axis."

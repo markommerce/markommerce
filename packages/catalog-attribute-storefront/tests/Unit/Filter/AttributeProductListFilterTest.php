@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 use Markommerce\Attribute\Entity\AttributeDefinition;
+use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\CatalogAttributeIndex\Query\AttributeExistsClause;
 use Markommerce\CatalogAttributeIndex\Tests\Support\QueryableAttributeDefinitionRepository;
 use Markommerce\CatalogAttributeStorefront\Filter\AttributeProductListFilter;
 use Markommerce\CatalogAttributeStorefront\Tests\Support\SpyRepositoryQueryBuilder;
-use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Exceptions\UnknownAxisException;
@@ -34,8 +34,7 @@ function makeFilterRegistry(
         public function __construct(
             array $axesMap,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
 
             foreach ($axesMap as $name => $paths) {

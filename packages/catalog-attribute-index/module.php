@@ -34,7 +34,7 @@ return [
     ): void {
         $indexerRegistry->register(
             'attribute',
-            static fn (): AttributeIndexer => $container->get(AttributeIndexer::class)
+            static fn (): AttributeIndexer => $container->get(AttributeIndexer::class),
         );
     },
 ];

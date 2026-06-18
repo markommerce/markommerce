@@ -67,12 +67,12 @@ For a complete locale-aware storefront, install the full bridge stack:
 ```bash
 composer require markommerce/catalog-storefront-scope
 composer require markommerce/catalog-locale
-composer require markommerce/scope-pgsql
 ```
 
 This pulls in:
 - `markommerce/catalog-storefront` --- the storefront route, layout, and base components
 - `markommerce/catalog-scope` --- the `scopes` JSON column on `Product` and `Category`
+- `markommerce/scope` --- resolution engine with PostgreSQL driver bundled
 - `markommerce/catalog-locale` --- field registration bridge that declares `name` and `description` as locale-scoped
 - `markommerce/locale` --- the `locale` axis declaration
 
@@ -104,4 +104,4 @@ The returned `ProductGridData` is structurally identical to the one produced by 
 - [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- Provides `ProductScopedOverrides` and `ScopeResolver` used for field resolution
 - [markommerce/catalog-locale](/docs/packages/catalog-locale/) --- Bridge that registers catalog fields as locale-scoped via `ScopedFieldRegistry`
 - [markommerce/scope](/docs/packages/scope/) --- Resolution engine and `ScopeResolver`
-- [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver required to persist and query scoped overrides
+- [marko/database-pgsql](https://marko.build/docs/packages/database-pgsql/) --- PostgreSQL database driver (framework-level dependency; PostgreSQL impl bundled in `markommerce/scope`)

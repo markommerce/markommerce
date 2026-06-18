@@ -76,23 +76,23 @@ it(
     function (): void {
         $profile = StoreProfile::storefront(httpTestVendorDir());
         $manifests = $profile->modules();
-    
+
         $resolver = new GlobalMiddlewareResolver();
         $middleware = $resolver->resolve($manifests);
-    
+
         expect($middleware)->toContain(CompileIfStaleMiddleware::class);
         expect($middleware)->toContain(MarkommerceLayoutMiddleware::class);
-    
+
         // Order: CompileIfStale must come before MarkommerceLayout
-    $compileIdx = array_search(CompileIfStaleMiddleware::class, $middleware, true);
+        $compileIdx = array_search(CompileIfStaleMiddleware::class, $middleware, true);
         $layoutIdx = array_search(MarkommerceLayoutMiddleware::class, $middleware, true);
-    
+
         // array_search returns int|string|false; the toContain assertions above guarantee
-    // both values are present, so we assert not-false before casting to int.
-    expect($compileIdx)->not->toBeFalse();
+        // both values are present, so we assert not-false before casting to int.
+        expect($compileIdx)->not->toBeFalse();
         expect($layoutIdx)->not->toBeFalse();
         expect((int) $compileIdx)->toBeLessThan((int) $layoutIdx);
-    }
+    },
 );
 
 // ─── Requirement 2 ────────────────────────────────────────────────────────────
@@ -126,42 +126,42 @@ it(
     'renders real Latte HTML (not fake-view placeholder markup) without throwing ViteManifestException',
     function (): void {
         TestConnection::skipIfUnavailable();
-    
+
         $basePath = httpTestWorkerBasePath() . '-r3';
         $profile = StoreProfile::storefront(httpTestVendorDir());
-    
+
         $provisioner = new DatabaseProvisioner(new AdminConnection(), $profile);
         $provisioner->ensureTemplate();
         $provisioner->ensureWorkerClone();
         $conn = $provisioner->connection();
         /** @var ConnectionInterface&TransactionInterface $conn */
         $isolation = new TestIsolation(IsolationMode::Rollback);
-    
+
         $store = $profile->boot($conn, $basePath);
         $isolation->begin($conn, $provisioner->tableNames());
-    
+
         try {
             $category = CategoryFactory::new($store)->withName('Latte Real Category')->create();
             ProductFactory::new($store)->withName('Latte Real Product')->inCategory($category)->create();
-    
+
             $request = new Request([
                 'REQUEST_METHOD' => 'GET',
                 'REQUEST_URI' => '/catalog/category/' . $category->id,
                 'HTTP_HOST' => 'localhost',
             ]);
-    
+
             $response = $store->handle($request);
-    
+
             expect($response->statusCode())->toBe(200);
             // Real Latte output — must NOT contain fake-view data-template markers
-        expect($response->body())->not->toContain('data-template=');
+            expect($response->body())->not->toContain('data-template=');
             // Must contain actual HTML structure
-        expect($response->body())->toContain('<html');
+            expect($response->body())->toContain('<html');
         } finally {
             $isolation->finish();
             $provisioner->teardown();
         }
-    }
+    },
 )->group('integration-destructive');
 
 // ─── Requirement 4 ────────────────────────────────────────────────────────────
@@ -252,32 +252,32 @@ it(
     'passes through controller short-circuit responses (302/410/404) with status and Location/headers intact',
     function (): void {
         TestConnection::skipIfUnavailable();
-    
+
         $basePath = httpTestWorkerBasePath() . '-r6';
         $profile = StoreProfile::storefront(httpTestVendorDir());
-    
+
         $provisioner = new DatabaseProvisioner(new AdminConnection(), $profile);
         $provisioner->ensureTemplate();
         $provisioner->ensureWorkerClone();
         $conn = $provisioner->connection();
         /** @var ConnectionInterface&TransactionInterface $conn */
         $isolation = new TestIsolation(IsolationMode::Rollback);
-    
+
         $store = $profile->boot($conn, $basePath);
         $isolation->begin($conn, $provisioner->tableNames());
-    
+
         try {
             // 404: non-existent category
-        $notFoundRequest = new Request([
+            $notFoundRequest = new Request([
                 'REQUEST_METHOD' => 'GET',
                 'REQUEST_URI' => '/catalog/category/99999',
                 'HTTP_HOST' => 'localhost',
             ]);
             $notFoundResponse = $store->handle($notFoundRequest);
             expect($notFoundResponse->statusCode())->toBe(404);
-    
+
             // 302: invalid sort param redirects to default
-        $category = CategoryFactory::new($store)->withName('Sort Redirect Category')->create();
+            $category = CategoryFactory::new($store)->withName('Sort Redirect Category')->create();
             $redirectRequest = new Request(
                 server: [
                     'REQUEST_METHOD' => 'GET',
@@ -294,7 +294,7 @@ it(
             $isolation->finish();
             $provisioner->teardown();
         }
-    }
+    },
 )->group('integration-destructive');
 
 // ─── Requirement 7 ────────────────────────────────────────────────────────────

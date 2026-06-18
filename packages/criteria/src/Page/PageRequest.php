@@ -21,8 +21,7 @@ readonly class PageRequest
     public static function first(
         int $size,
         Sort $sort,
-    ): self
-    {
+    ): self {
         self::guardSize($size);
 
         return new self(size: $size, sort: $sort, position: null);
@@ -35,8 +34,7 @@ readonly class PageRequest
         int $size,
         Sort $sort,
         string $position,
-    ): self
-    {
+    ): self {
         self::guardSize($size);
 
         return new self(size: $size, sort: $sort, position: $position);

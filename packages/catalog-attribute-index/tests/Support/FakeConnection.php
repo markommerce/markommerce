@@ -33,8 +33,7 @@ class FakeConnection implements ConnectionInterface
     public function query(
         string $sql,
         array $bindings = [],
-    ): array
-    {
+    ): array {
         return array_shift($this->queryResults) ?? [];
     }
 
@@ -44,8 +43,7 @@ class FakeConnection implements ConnectionInterface
     public function execute(
         string $sql,
         array $bindings = [],
-    ): int
-    {
+    ): int {
         $this->executed[] = ['sql' => $sql, 'bindings' => $bindings];
 
         return $this->affectedRows;

@@ -214,8 +214,7 @@ class ContainerBootstrapper
     public function wirePlugins(
         Container $container,
         array $manifests,
-    ): void
-    {
+    ): void {
         $pluginRegistry = new PluginRegistry();
         $interceptor = new PluginInterceptor($container, $pluginRegistry, new InterceptorClassGenerator());
 
@@ -248,8 +247,7 @@ class ContainerBootstrapper
     public function boot(
         Container $container,
         array $manifests,
-    ): void
-    {
+    ): void {
         $resolver = new DependencyResolver();
         $ordered = $resolver->resolve($manifests);
 
@@ -296,8 +294,7 @@ class ContainerBootstrapper
     private function registerManifestBindings(
         Container $container,
         ModuleManifest $manifest,
-    ): void
-    {
+    ): void {
         foreach ($manifest->bindings as $interface => $implementation) {
             $container->bind($interface, $implementation);
         }

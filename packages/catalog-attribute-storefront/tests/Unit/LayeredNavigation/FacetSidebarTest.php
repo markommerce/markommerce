@@ -2,13 +2,26 @@
 
 declare(strict_types=1);
 
+use Latte\Engine;
+use Marko\Config\ConfigRepository;
+use Marko\Core\Module\ModuleManifest;
+use Marko\Core\Module\ModuleRepository;
 use Marko\Database\Entity\EntityCollection;
+use Marko\View\Latte\LatteEngineFactory;
+use Marko\View\Latte\LatteViewConfig;
+use Marko\View\Latte\ModuleLoader;
+use Marko\View\ModuleTemplateResolver;
+use Marko\View\ViewConfig;
+use Markommerce\Attribute\Entity\AttributeDefinition;
+use Markommerce\AttributeScope\ScopedOptionLabelResolver;
 use Markommerce\Catalog\Entity\Category;
 use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\Catalog\Pagination\PaginationOptionsResolver;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\Catalog\Services\CategoryAssignmentService;
+use Markommerce\Catalog\Sorting\CategorySortOrderRegistry;
+use Markommerce\Catalog\Sorting\ColumnSortOrder;
 use Markommerce\CatalogAttributeIndex\Facet\AttributeFacetQuery;
 use Markommerce\CatalogAttributeIndex\Facet\Facet;
 use Markommerce\CatalogAttributeIndex\Facet\FacetValue;
@@ -21,7 +34,9 @@ use Markommerce\CatalogAttributeStorefront\LayeredNavigation\FilterParamParser;
 use Markommerce\CatalogAttributeStorefront\LayeredNavigation\LabeledFacet;
 use Markommerce\CatalogAttributeStorefront\LayeredNavigation\LabeledFacetValue;
 use Markommerce\CatalogAttributeStorefront\LayeredNavigation\LayeredNavigationAssembler;
+use Markommerce\Config\Contracts\ConfigResolverInterface;
 use Markommerce\Criteria\Page\Page;
+use Markommerce\Criteria\Sort\SortDirection;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
@@ -31,15 +46,15 @@ use Markommerce\Scope\Signature\SignatureCandidateEnumerator;
 
 // ─── Render Engine Helper ─────────────────────────────────────────────────────
 
-function facetSidebarMakeLatteEngine(): \Latte\Engine
+function facetSidebarMakeLatteEngine(): Engine
 {
     $cacheDir = sys_get_temp_dir() . '/latte-facet-sidebar-test-' . bin2hex(random_bytes(8));
     mkdir($cacheDir, 0755, true);
 
     $packagePath = dirname(__DIR__, 3);
 
-    $moduleRepository = new \Marko\Core\Module\ModuleRepository([
-        new \Marko\Core\Module\ModuleManifest(
+    $moduleRepository = new ModuleRepository([
+        new ModuleManifest(
             name: 'markommerce/catalog-attribute-storefront',
             version: '1.0.0',
             path: $packagePath,
@@ -47,7 +62,7 @@ function facetSidebarMakeLatteEngine(): \Latte\Engine
         ),
     ]);
 
-    $config = new \Marko\Config\ConfigRepository([
+    $config = new ConfigRepository([
         'view' => [
             'cache_directory' => $cacheDir,
             'extension' => '.latte',
@@ -56,11 +71,11 @@ function facetSidebarMakeLatteEngine(): \Latte\Engine
         ],
     ]);
 
-    $viewConfig = new \Marko\View\ViewConfig($config);
-    $latteViewConfig = new \Marko\View\Latte\LatteViewConfig($config);
-    $templateResolver = new \Marko\View\ModuleTemplateResolver($moduleRepository, $viewConfig);
-    $engine = (new \Marko\View\Latte\LatteEngineFactory($viewConfig, $latteViewConfig))->create();
-    $engine->setLoader(new \Marko\View\Latte\ModuleLoader($templateResolver));
+    $viewConfig = new ViewConfig($config);
+    $latteViewConfig = new LatteViewConfig($config);
+    $templateResolver = new ModuleTemplateResolver($moduleRepository, $viewConfig);
+    $engine = (new LatteEngineFactory($viewConfig, $latteViewConfig))->create();
+    $engine->setLoader(new ModuleLoader($templateResolver));
 
     return $engine;
 }
@@ -113,7 +128,7 @@ function activeFiltersRender(
 
 function facetSidebarMakeEmptyRegistry(): ScopeRegistryInterface
 {
-    return new class implements ScopeRegistryInterface
+    return new class () implements ScopeRegistryInterface
     {
         public function hasAxis(string $name): bool
         {
@@ -169,8 +184,7 @@ function facetSidebarMakeFacetQuery(array $facets): AttributeFacetQuery
         public function facets(
             int $categoryId,
             FilterSelection $selection,
-        ): array
-        {
+        ): array {
             return $this->facets;
         }
     };
@@ -215,7 +229,7 @@ function facetSidebarMakeAssembler(Page $page, array $facets): LayeredNavigation
     $enumerator    = new SignatureCandidateEnumerator($registry);
     $walker        = new ScopeWalker($enumerator);
     $defRepo       = new QueryableAttributeDefinitionRepository();
-    $labelResolver = new \Markommerce\AttributeScope\ScopedOptionLabelResolver($defRepo, $walker);
+    $labelResolver = new ScopedOptionLabelResolver($defRepo, $walker);
 
     return new LayeredNavigationAssembler(
         categoryAssignmentService: facetSidebarMakeListing($page),
@@ -233,13 +247,12 @@ function facetSidebarMakeAssembler(Page $page, array $facets): LayeredNavigation
  */
 function facetSidebarMakePaginationOptionsResolver(): PaginationOptionsResolver
 {
-    $configResolver = new class implements \Markommerce\Config\Contracts\ConfigResolverInterface
+    $configResolver = new class () implements ConfigResolverInterface
     {
         public function resolved(
             string $configClass,
             string $field,
-        ): mixed
-        {
+        ): mixed {
             return match ($field) {
                 'defaultPageSize'  => 24,
                 'allowedPageSizes' => [12, 24, 48, 96],
@@ -257,12 +270,12 @@ function facetSidebarMakePaginationOptionsResolver(): PaginationOptionsResolver
         }
     };
 
-    $sortRegistry = new \Markommerce\Catalog\Sorting\CategorySortOrderRegistry();
-    $sortRegistry->register(new \Markommerce\Catalog\Sorting\ColumnSortOrder(
+    $sortRegistry = new CategorySortOrderRegistry();
+    $sortRegistry->register(new ColumnSortOrder(
         key: 'position',
         label: 'Position',
         column: 'catalog_product_category.position',
-        direction: \Markommerce\Criteria\Sort\SortDirection::Ascending,
+        direction: SortDirection::Ascending,
         supportsKeyset: false,
     ), 0);
 
@@ -296,10 +309,10 @@ function facetSidebarMakeAssemblerWithColorAttr(Page $page, array $facets): Laye
     $enumerator    = new SignatureCandidateEnumerator($registry);
     $walker        = new ScopeWalker($enumerator);
     $defRepo       = new QueryableAttributeDefinitionRepository();
-    $labelResolver = new \Markommerce\AttributeScope\ScopedOptionLabelResolver($defRepo, $walker);
+    $labelResolver = new ScopedOptionLabelResolver($defRepo, $walker);
 
     // Register 'color' as a facetable product attribute so FilterParamParser keeps it.
-    $colorDef             = new \Markommerce\Attribute\Entity\AttributeDefinition();
+    $colorDef             = new AttributeDefinition();
     $colorDef->code       = 'color';
     $colorDef->entityType = 'product';
     $colorDef->type       = 'select';
@@ -444,8 +457,8 @@ it('renders the facet sidebar with values counts and selected markers', function
 
     $packagePath = dirname(__DIR__, 3);
 
-    $moduleRepository = new \Marko\Core\Module\ModuleRepository([
-        new \Marko\Core\Module\ModuleManifest(
+    $moduleRepository = new ModuleRepository([
+        new ModuleManifest(
             name: 'markommerce/catalog-attribute-storefront',
             version: '1.0.0',
             path: $packagePath,
@@ -453,7 +466,7 @@ it('renders the facet sidebar with values counts and selected markers', function
         ),
     ]);
 
-    $config = new \Marko\Config\ConfigRepository([
+    $config = new ConfigRepository([
         'view' => [
             'cache_directory' => $cacheDir,
             'extension' => '.latte',
@@ -462,11 +475,11 @@ it('renders the facet sidebar with values counts and selected markers', function
         ],
     ]);
 
-    $viewConfig = new \Marko\View\ViewConfig($config);
-    $latteViewConfig = new \Marko\View\Latte\LatteViewConfig($config);
-    $templateResolver = new \Marko\View\ModuleTemplateResolver($moduleRepository, $viewConfig);
-    $engine = (new \Marko\View\Latte\LatteEngineFactory($viewConfig, $latteViewConfig))->create();
-    $engine->setLoader(new \Marko\View\Latte\ModuleLoader($templateResolver));
+    $viewConfig = new ViewConfig($config);
+    $latteViewConfig = new LatteViewConfig($config);
+    $templateResolver = new ModuleTemplateResolver($moduleRepository, $viewConfig);
+    $engine = (new LatteEngineFactory($viewConfig, $latteViewConfig))->create();
+    $engine->setLoader(new ModuleLoader($templateResolver));
 
     $facets = [
         new LabeledFacet(

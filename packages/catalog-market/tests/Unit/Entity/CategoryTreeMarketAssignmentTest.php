@@ -10,15 +10,15 @@ it(
     'CategoryTreeMarketAssignment entity lives in Markommerce\\CatalogMarket\\Entity namespace with the catalog_category_tree_market_assignments table attribute preserved',
     function (): void {
         $reflection = new ReflectionClass(CategoryTreeMarketAssignment::class);
-    
+
         expect($reflection->getNamespaceName())->toBe('Markommerce\\CatalogMarket\\Entity');
-    
+
         $attributes = $reflection->getAttributes(Table::class);
         expect($attributes)->toHaveCount(1);
-    
+
         $table = $attributes[0]->newInstance();
         expect($table->name)->toBe('catalog_category_tree_market_assignments');
-    }
+    },
 );
 
 it('can be instantiated with default values', function (): void {

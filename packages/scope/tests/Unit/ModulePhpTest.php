@@ -9,10 +9,10 @@ use Marko\Core\Container\ContainerInterface;
 use Marko\Core\Exceptions\BindingException;
 use Markommerce\Scope\Axis\ScopeAxis;
 use Markommerce\Scope\Context\ScopeContext;
-use Markommerce\Scope\Exceptions\NoDriverException;
 use Markommerce\Scope\Hierarchy\ScopeHierarchy;
 use Markommerce\Scope\Metadata\ScopedFieldRegistry;
 use Markommerce\Scope\Metadata\ScopeMetadataFactory;
+use Markommerce\Scope\PgSql\Query\PgSqlScopedFieldRenderer;
 use Markommerce\Scope\Query\ScopedFieldRendererInterface;
 use Markommerce\Scope\Query\ScopedOrderByFactory;
 use Markommerce\Scope\Registry\PhpScopeRegistry;
@@ -52,30 +52,21 @@ it('registers ScopedOrderByFactory as a singleton', function (): void {
     expect($module['singletons'])->toContain(ScopedOrderByFactory::class);
 });
 
-it('does not bind ScopedFieldRendererInterface', function (): void {
+it('binds ScopedFieldRendererInterface to PgSqlScopedFieldRenderer from scope\'s own module', function (): void {
     $module = require dirname(__DIR__, 2) . '/module.php';
 
-    expect($module['bindings'])->not->toHaveKey(ScopedFieldRendererInterface::class);
+    expect($module['bindings'])->toHaveKey(ScopedFieldRendererInterface::class)
+        ->and($module['bindings'][ScopedFieldRendererInterface::class])->toBe(PgSqlScopedFieldRenderer::class);
 });
 
 it(
-    'ModulePhpTest expects BindingException (not NoDriverException) when ScopedFieldRendererInterface is unbound',
+    'ModulePhpTest expects BindingException when ScopedFieldRendererInterface is unbound in a bare container',
     function (): void {
         $container = new Container();
 
-        // Marko's Container::get() only emits NoDriverException for ids starting with 'Marko\\'
-        // ScopedFieldRendererInterface starts with 'Markommerce\\', so we get BindingException instead
+        // A bare Container with no bindings throws BindingException for unbound interfaces
         expect(fn () => $container->get(ScopedFieldRendererInterface::class))
                 ->toThrow(BindingException::class);
-    },
-);
-
-it(
-    'ModulePhpTest verifies NoDriverException::noDriverInstalled() suggestion mentions markommerce/scope-pgsql',
-    function (): void {
-        $exception = NoDriverException::noDriverInstalled();
-
-        expect($exception->getSuggestion())->toContain('markommerce/scope-pgsql');
     },
 );
 
@@ -159,31 +150,31 @@ it(
     'it boots scope with no locale axis present in PhpScopeRegistry after the scope module\'s boot closure runs',
     function (): void {
         DefaultScopeGuard::reset();
-    
+
         $rawConfig = require dirname(__DIR__, 2) . '/config/scope.php';
         $config = new ConfigRepository(['scope' => $rawConfig]);
-    
+
         $container = new Container();
         $container->instance(ConfigRepositoryInterface::class, $config);
-    
+
         $module = require dirname(__DIR__, 2) . '/module.php';
-    
+
         foreach ($module['singletons'] as $singleton) {
             $container->singleton($singleton);
         }
-    
+
         foreach ($module['bindings'] as $interface => $implementation) {
             $container->bind($interface, $implementation);
         }
-    
+
         $registry = $container->get(ScopeRegistryInterface::class);
-    
+
         expect($registry->listAxes())->not->toContain('locale')
             ->and($registry->listAxes())->toContain('market')
             ->and($registry->listAxes())->toContain('channel');
-    
+
         DefaultScopeGuard::reset();
-    }
+    },
 );
 
 it('it resolves ScopedFieldRegistry from a real container with scope\'s module loaded', function (): void {

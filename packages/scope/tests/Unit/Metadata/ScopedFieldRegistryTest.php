@@ -103,14 +103,14 @@ it(
     function (): void {
         $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website', 'locale']);
         $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
-    
+
         $registry->register(entityClass: stdClass::class, property: 'name', axes: ['store', 'website']);
         $registry->register(entityClass: stdClass::class, property: 'name', axes: ['website', 'locale']);
-    
+
         expect($registry->axesForProperty(entityClass: stdClass::class, property: 'name'))->toBe(
-            ['store', 'website', 'locale']
+            ['store', 'website', 'locale'],
         );
-    }
+    },
 );
 
 it(
@@ -118,14 +118,14 @@ it(
     function (): void {
         $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website', 'locale']);
         $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
-    
+
         $registry->register(entityClass: stdClass::class, property: 'name', axes: ['locale', 'store']);
         $registry->register(entityClass: stdClass::class, property: 'name', axes: ['website', 'locale']);
-    
+
         expect($registry->axesForProperty(entityClass: stdClass::class, property: 'name'))->toBe(
-            ['locale', 'store', 'website']
+            ['locale', 'store', 'website'],
         );
-    }
+    },
 );
 
 it('is a no-op when the same property is registered twice with the exact same axes (idempotent)', function (): void {
@@ -143,10 +143,10 @@ it(
     function (): void {
         $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
         $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
-    
+
         expect(fn () => $registry->register(entityClass: stdClass::class, property: 'name', axes: ['unknown_axis']))
             ->toThrow(UnknownAxisException::class);
-    }
+    },
 );
 
 it(
@@ -154,12 +154,12 @@ it(
     function (): void {
         $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
         $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
-    
+
         $registry->register(entityClass: stdClass::class, property: 'name', axes: []);
-    
+
         expect($registry->propertiesFor(entityClass: stdClass::class))->toBe([])
             ->and($registry->hasScopedProperties(entityClass: stdClass::class))->toBeFalse();
-    }
+    },
 );
 
 it(
@@ -167,16 +167,16 @@ it(
     function (): void {
         $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
         $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
-    
+
         expect(
             fn () => $registry->register(
                 entityClass: stdClass::class,
                 property: 'name',
-                axes: ['store', 'unknown_axis']
-            )
+                axes: ['store', 'unknown_axis'],
+            ),
         )
             ->toThrow(UnknownAxisException::class);
-    }
+    },
 );
 
 it(
@@ -184,16 +184,16 @@ it(
     function (): void {
         $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
         $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
-    
+
         expect(
             fn () => $registry->register(
                 entityClass: 'NonExistentClass\That\Does\NotExist',
                 property: 'name',
-                axes: ['store']
-            )
+                axes: ['store'],
+            ),
         )
             ->toThrow(UnknownEntityClassException::class);
-    }
+    },
 );
 
 it(
@@ -201,14 +201,14 @@ it(
     function (): void {
         $scopeRegistry = makeFieldRegistryWithAxes(['store', 'website']);
         $registry = new ScopedFieldRegistry(scopeRegistry: $scopeRegistry);
-    
+
         expect(
             fn () => $registry->register(
                 entityClass: 'NonExistentClass\That\Does\NotExist',
                 property: 'name',
-                axes: ['unknown_axis']
-            )
+                axes: ['unknown_axis'],
+            ),
         )
             ->toThrow(UnknownEntityClassException::class);
-    }
+    },
 );

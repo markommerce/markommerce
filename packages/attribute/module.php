@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Marko\Core\Container\ContainerInterface;
+use Markommerce\Attribute\Contracts\AttributeDefinitionRepositoryInterface;
+use Markommerce\Attribute\PgSql\PgSqlAttributeDefinitionRepository;
 use Markommerce\Attribute\Registry\AttributeEntityClassMap;
 use Markommerce\Attribute\Registry\AttributeTypeRegistry;
 use Markommerce\Attribute\Type\BoolType;
@@ -15,7 +17,9 @@ use Markommerce\Attribute\Type\SelectType;
 use Markommerce\Attribute\Type\TextType;
 
 return [
-    'bindings' => [],
+    'bindings' => [
+        AttributeDefinitionRepositoryInterface::class => PgSqlAttributeDefinitionRepository::class,
+    ],
     'singletons' => [
         AttributeTypeRegistry::class,
         AttributeEntityClassMap::class,

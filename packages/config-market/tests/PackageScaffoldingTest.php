@@ -7,10 +7,10 @@ it(
     function (): void {
         $composerPath = dirname(__DIR__) . '/composer.json';
         $composer = json_decode((string) file_get_contents($composerPath), true);
-    
+
         expect($composer['name'])->toBe('markommerce/config-market')
             ->and($composer['type'])->toBe('marko-module');
-    }
+    },
 );
 
 it(
@@ -18,12 +18,12 @@ it(
     function (): void {
         $composerPath = dirname(__DIR__) . '/composer.json';
         $composer = json_decode((string) file_get_contents($composerPath), true);
-    
+
         expect($composer['require'])->toHaveKey('markommerce/config-scope')
             ->and($composer['require']['markommerce/config-scope'])->toBe('self.version')
             ->and($composer['require'])->toHaveKey('markommerce/market')
             ->and($composer['require']['markommerce/market'])->toBe('self.version');
-    }
+    },
 );
 
 it(
@@ -31,10 +31,10 @@ it(
     function (): void {
         $composerPath = dirname(__DIR__) . '/composer.json';
         $composer = json_decode((string) file_get_contents($composerPath), true);
-    
+
         expect($composer['autoload']['psr-4'])->toHaveKey('Markommerce\\ConfigMarket\\')
             ->and($composer['autoload']['psr-4']['Markommerce\\ConfigMarket\\'])->toBe('src/');
-    }
+    },
 );
 
 it('is registered in the root composer.json require block under markommerce/config-market', function (): void {
@@ -48,14 +48,14 @@ it(
     'exposes a module.php that returns an array with require + a callable boot closure in config-market',
     function (): void {
         $modulePath = dirname(__DIR__) . '/module.php';
-    
+
         expect(file_exists($modulePath))->toBeTrue();
-    
+
         $module = require $modulePath;
-    
+
         expect($module)->toBeArray()
             ->and($module)->toHaveKey('require')
             ->and($module)->toHaveKey('boot')
             ->and($module['boot'])->toBeCallable();
-    }
+    },
 );

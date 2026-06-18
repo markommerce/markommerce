@@ -159,7 +159,7 @@ it('isolates two profiles into separate databases with different schemas', funct
         );
         $twoMarketsTableNames = array_map(
             static fn (array $row): string => (string) $row['table_name'],
-            $twoMarketsTables
+            $twoMarketsTables,
         );
         expect($twoMarketsTableNames)->toContain('catalog_category_tree_market_assignments');
     } finally {

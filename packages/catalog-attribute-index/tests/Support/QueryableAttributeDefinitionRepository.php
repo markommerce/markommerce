@@ -132,8 +132,7 @@ class QueryableAttributeDefinitionRepository implements AttributeDefinitionRepos
     public function findByCode(
         string $entityType,
         string $code,
-    ): ?AttributeDefinition
-    {
+    ): ?AttributeDefinition {
         return array_find(
             $this->definitions,
             fn (AttributeDefinition $d) => $d->entityType === $entityType && $d->code === $code,
@@ -177,8 +176,7 @@ class QueryableAttributeDefinitionRepository implements AttributeDefinitionRepos
     private function matchesCriteria(
         AttributeDefinition $definition,
         array $criteria,
-    ): bool
-    {
+    ): bool {
         return array_all(
             array_keys($criteria),
             fn (string $key) => $definition->$key === $criteria[$key],

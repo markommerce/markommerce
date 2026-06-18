@@ -61,8 +61,7 @@ class StoreProfile
     public static function of(
         string $vendorDir,
         string ...$rootPackages,
-    ): self
-    {
+    ): self {
         $resolver = new ModuleResolver($vendorDir);
         $manifests = $resolver->resolveFrom(array_values($rootPackages));
 
@@ -83,8 +82,7 @@ class StoreProfile
     public static function fromInstalled(
         string $vendorDir,
         string $appConfigPath = '',
-    ): self
-    {
+    ): self {
         if ($appConfigPath === '') {
             $appConfigPath = (string) getenv('MARKO_APP_CONFIG_PATH');
         }
@@ -130,7 +128,7 @@ class StoreProfile
      *
      * Includes the marko rendering packages (routing, view, view-latte, vite)
      * and the markommerce storefront modules (catalog, catalog-storefront,
-     * catalog-price-index, config, config-pgsql, layout, frontend, theme-blank).
+     * catalog-price-index, config, layout, frontend, theme-blank).
      * Does NOT include market/locale scope axes — scoped storefront is future work.
      *
      * Vite is configured in dev-server mode (useDevServer=true) so rendering tests
@@ -144,7 +142,7 @@ class StoreProfile
             'markommerce/catalog-storefront',
             'markommerce/theme-blank',
             'marko/database-pgsql',
-            'markommerce/config-pgsql',
+            'markommerce/config',
         );
 
         // Approach A: override vite config so Vite::headTags() emits dev-server
@@ -213,8 +211,7 @@ class StoreProfile
     public function withLocale(
         string $market,
         string $locale,
-    ): self
-    {
+    ): self {
         $clone = clone $this;
         $clone->locales[$market][] = $locale;
 
@@ -250,8 +247,7 @@ class StoreProfile
     public function withLocales(
         string $market,
         string ...$locales,
-    ): self
-    {
+    ): self {
         $clone = clone $this;
         $clone->locales[$market] = array_merge($clone->locales[$market] ?? [], array_values($locales));
 
@@ -276,8 +272,7 @@ class StoreProfile
     public function boot(
         ConnectionInterface $connection,
         ?string $projectBasePath = null,
-    ): BootedStore
-    {
+    ): BootedStore {
         $config = $this->buildConfig();
         $bootstrapper = new ContainerBootstrapper();
         $container = $bootstrapper->bootedContainer($this->manifests, $config, $connection, $projectBasePath);
@@ -470,6 +465,9 @@ class StoreProfile
      * Resolve entity directories for all modules in this profile.
      *
      * Returns only directories that actually exist on disk.
+     * Scans both {path}/src/Entity and {path}/src/PgSql/Entity so that
+     * entities nested under a PgSql sub-namespace (e.g. ConfigValueRecord)
+     * are discovered by the schema provisioner.
      *
      * @return array<string>
      */
@@ -486,6 +484,12 @@ class StoreProfile
 
             if (is_dir($entityDir)) {
                 $dirs[] = $entityDir;
+            }
+
+            $pgsqlEntityDir = $manifest->path . '/src/PgSql/Entity';
+
+            if (is_dir($pgsqlEntityDir)) {
+                $dirs[] = $pgsqlEntityDir;
             }
         }
 

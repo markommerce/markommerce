@@ -77,11 +77,11 @@ it(
             Product::class,
             ProductAttributeValues::class,
         ]);
-    
+
         $metadata = $factory->parse(Product::class);
-    
+
         expect($metadata->extenders)->toContain(ProductAttributeValues::class);
-    }
+    },
 );
 
 it('binds AttributeValueAccessorInterface to ProductAttributeAccessor', function (): void {
@@ -111,20 +111,20 @@ it(
     'makes the definition service reject a custom product code that collides with a native column when the registry maps product to Product',
     function (): void {
         $container = bootCatalogAttributeModuleContainer();
-    
+
         $map = $container->get(AttributeEntityClassMap::class);
-    
+
         expect($map->all())->toHaveKey('product');
-    
+
         // Verify that the entity class map for 'product' resolves to Product::class
-    // which has 'sku', 'name', etc. as reserved codes
-    $entityClass = $map->all()['product'];
+        // which has 'sku', 'name', etc. as reserved codes
+        $entityClass = $map->all()['product'];
         $reservedProvider = new ReservedCodeProvider(new EntityMetadataFactory());
         $reserved = $reservedProvider->reservedCodes($entityClass);
-    
+
         expect($reserved)->toContain('sku')
             ->and($reserved)->toContain('name');
-    }
+    },
 );
 
 it(
@@ -132,8 +132,8 @@ it(
     function (): void {
         $map = new AttributeEntityClassMap();
         $map->register('product', Product::class);
-    
+
         expect(fn () => $map->register('product', stdClass::class))
             ->toThrow(DuplicateEntityClassRegistrationException::class);
-    }
+    },
 );

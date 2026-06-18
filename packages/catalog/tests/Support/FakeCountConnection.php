@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Markommerce\Catalog\Tests\Support;
 
+use LogicException;
 use Marko\Database\Connection\ConnectionInterface;
 use Marko\Database\Connection\StatementInterface;
 
@@ -40,8 +41,7 @@ class FakeCountConnection implements ConnectionInterface
     public function query(
         string $sql,
         array $bindings = [],
-    ): array
-    {
+    ): array {
         $this->queries[] = ['sql' => $sql, 'bindings' => $bindings];
 
         return [['aggregate' => $this->aggregate]];
@@ -53,14 +53,13 @@ class FakeCountConnection implements ConnectionInterface
     public function execute(
         string $sql,
         array $bindings = [],
-    ): int
-    {
+    ): int {
         return 0;
     }
 
     public function prepare(string $sql): StatementInterface
     {
-        throw new \LogicException('FakeCountConnection::prepare() is not supported.');
+        throw new LogicException('FakeCountConnection::prepare() is not supported.');
     }
 
     public function lastInsertId(): int

@@ -14,8 +14,7 @@ class PriceContributorRegistry
     public function register(
         PriceContributorInterface $priceContributor,
         int $priority = 0,
-    ): void
-    {
+    ): void {
         $this->registered[] = ['priority' => $priority, 'contributor' => $priceContributor];
     }
 

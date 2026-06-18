@@ -73,16 +73,16 @@ it(
     function (): void {
         $srcDir = dirname(__DIR__, 2) . '/src';
         $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($srcDir));
-    
+
         $violations = [];
-    
+
         foreach ($files as $file) {
             if (!$file->isFile() || $file->getExtension() !== 'php') {
                 continue;
             }
-    
+
             $contents = file_get_contents($file->getPathname());
-    
+
             if (
                 str_contains($contents, 'Markommerce\\Layout\\')
                 || str_contains($contents, 'Markommerce\\Frontend\\')
@@ -91,11 +91,11 @@ it(
                 $violations[] = $file->getPathname();
             }
         }
-    
+
         expect($violations)->toBeEmpty(
             'Source files with storefront namespace imports: ' . implode(', ', $violations),
         );
-    }
+    },
 );
 
 it('has no Marko\\Routing\\ or Marko\\View\\ imports in any file under packages/catalog/src', function (): void {
@@ -129,21 +129,21 @@ it(
     function (): void {
         $testsDir = dirname(__DIR__, 2) . '/tests';
         $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($testsDir));
-    
+
         $violations = [];
-    
+
         foreach ($files as $file) {
             if (!$file->isFile() || $file->getExtension() !== 'php') {
                 continue;
             }
-    
+
             // Skip this file itself to avoid false positive from the string literals in the test name
-        if (basename($file->getPathname()) === 'StorefrontDecouplingTest.php') {
+            if (basename($file->getPathname()) === 'StorefrontDecouplingTest.php') {
                 continue;
             }
-    
+
             $contents = file_get_contents($file->getPathname());
-    
+
             if (
                 str_contains($contents, 'Markommerce\\Layout\\')
                 || str_contains($contents, 'Markommerce\\Frontend\\')
@@ -154,11 +154,11 @@ it(
                 $violations[] = $file->getPathname();
             }
         }
-    
+
         expect($violations)->toBeEmpty(
             'Test files with storefront namespace imports: ' . implode(', ', $violations),
         );
-    }
+    },
 );
 
 it('passes the full catalog test suite after the requires are dropped', function (): void {
@@ -190,41 +190,41 @@ it(
     function (): void {
         $srcDir = dirname(__DIR__, 2) . '/src';
         $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($srcDir));
-    
+
         $hasConfigImport = false;
-    
+
         foreach ($files as $file) {
             if (!$file->isFile() || $file->getExtension() !== 'php') {
                 continue;
             }
-    
+
             $contents = file_get_contents($file->getPathname());
-    
+
             if (str_contains($contents, 'Marko\\Config\\')) {
                 $hasConfigImport = true;
                 break;
             }
         }
-    
+
         $manifest = json_decode(
             file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
             true,
         );
-    
+
         $require = $manifest['require'] ?? [];
-    
+
         if ($hasConfigImport) {
             expect($require)->toHaveKey(
                 'marko/config',
-                'marko/config is used in src/ but missing from composer.json require'
+                'marko/config is used in src/ but missing from composer.json require',
             );
         } else {
             expect($require)->not->toHaveKey(
                 'marko/config',
-                'marko/config is not used in src/ so it must not appear in composer.json require'
+                'marko/config is not used in src/ so it must not appear in composer.json require',
             );
         }
-    }
+    },
 );
 
 it('succeeds composer dump-autoload at the monorepo root after the change', function (): void {

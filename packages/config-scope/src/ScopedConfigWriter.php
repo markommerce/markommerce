@@ -36,8 +36,7 @@ class ScopedConfigWriter extends ConfigWriter implements ScopedConfigWriterInter
         string $key,
         ScopeSignature $signature,
         mixed $value,
-    ): void
-    {
+    ): void {
         $definition = $this->registry->byKey($key);
         $axes = $this->scopedFieldRegistry->axesForProperty($definition->configClass, $definition->field);
 
@@ -66,8 +65,7 @@ class ScopedConfigWriter extends ConfigWriter implements ScopedConfigWriterInter
     public function unsetOverride(
         string $key,
         ScopeSignature $signature,
-    ): void
-    {
+    ): void {
         $this->setOverride($key, $signature, null);
     }
 }
