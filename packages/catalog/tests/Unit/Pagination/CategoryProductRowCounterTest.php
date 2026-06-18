@@ -15,7 +15,8 @@ use Markommerce\Catalog\Tests\Support\FakeCountConnection;
  */
 function makeStubQueryBuilder(string $subquerySql, array $bindings = []): RepositoryQueryBuilder
 {
-    return new class ($subquerySql, $bindings) extends RepositoryQueryBuilder {
+    return new class ($subquerySql, $bindings) extends RepositoryQueryBuilder
+    {
         /** @param array<mixed> $stubBindings */
         public function __construct(
             private readonly string $subquerySql,
@@ -71,7 +72,8 @@ it('returns the integer aggregate value reported by the connection', function ()
 });
 
 it('defaults to zero when the connection returns no aggregate row', function (): void {
-    $connection = new class extends FakeCountConnection {
+    $connection = new class () extends FakeCountConnection
+    {
         /**
          * @param array<mixed> $bindings
          * @return array<array<string, mixed>>
@@ -79,8 +81,7 @@ it('defaults to zero when the connection returns no aggregate row', function ():
         public function query(
             string $sql,
             array $bindings = [],
-        ): array
-        {
+        ): array {
             $this->queries[] = ['sql' => $sql, 'bindings' => $bindings];
 
             return [];

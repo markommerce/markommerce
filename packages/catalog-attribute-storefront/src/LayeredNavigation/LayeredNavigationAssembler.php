@@ -107,8 +107,7 @@ class LayeredNavigationAssembler implements LayeredNavigationAssemblerInterface
     private function buildActiveFilters(
         FilterSelection $selection,
         array $rawFacets,
-    ): array
-    {
+    ): array {
         if ($selection->isEmpty()) {
             return [];
         }

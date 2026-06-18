@@ -71,13 +71,13 @@ it(
     function (): void {
         $reflection = new ReflectionClass(CategoryTreeServiceDeletePlugin::class);
         $attributes = $reflection->getAttributes(Plugin::class);
-    
+
         expect($attributes)->toHaveCount(1);
-    
+
         $pluginAttribute = $attributes[0]->newInstance();
-    
+
         expect($pluginAttribute->target)->toBe(CategoryTreeServiceInterface::class);
-    }
+    },
 );
 
 it('declares the Before attribute targeting the deleteTree method', function (): void {

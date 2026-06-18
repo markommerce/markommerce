@@ -21,8 +21,7 @@ readonly class SelectType implements AttributeTypeInterface
     public function cast(
         mixed $raw,
         AttributeDefinitionInterface $definition,
-    ): mixed
-    {
+    ): mixed {
         $options = $definition->config()['options'] ?? [];
 
         if (!array_any($options, fn (string $option) => $option === $raw)) {

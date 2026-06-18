@@ -168,8 +168,7 @@ class PaginationOptionsResolver
     private function resolveRequestedSortOrder(
         string $sort,
         array $enabledSorts,
-    ): CategorySortOrderInterface
-    {
+    ): CategorySortOrderInterface {
         // If enabledSorts is non-empty, apply gate filter first
         if ($enabledSorts !== [] && !in_array($sort, $enabledSorts, true)) {
             $available = $this->getAvailableKeys($enabledSorts);

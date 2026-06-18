@@ -18,7 +18,7 @@ it(
     'interface declares the five custom methods (findByTree, findChildren, findRoots, findByCategoryInTree, findByCategoryAcrossTrees)',
     function (): void {
         $reflection = new ReflectionClass(CategoryTreeNodeRepositoryInterface::class);
-    
+
         $ownMethods = array_map(
             fn (ReflectionMethod $m) => $m->getName(),
             array_filter(
@@ -26,44 +26,44 @@ it(
                 fn (ReflectionMethod $m) => $m->getDeclaringClass()->getName() === CategoryTreeNodeRepositoryInterface::class,
             ),
         );
-    
+
         expect($ownMethods)->toContain('findByTree');
         expect($ownMethods)->toContain('findChildren');
         expect($ownMethods)->toContain('findRoots');
         expect($ownMethods)->toContain('findByCategoryInTree');
         expect($ownMethods)->toContain('findByCategoryAcrossTrees');
         expect(count($ownMethods))->toBe(5);
-    
+
         $findByTree = $reflection->getMethod('findByTree');
         $params = $findByTree->getParameters();
         expect($params)->toHaveCount(1);
         expect($params[0]->getName())->toBe('treeId');
         expect((string) $params[0]->getType())->toBe('int');
-    
+
         $findChildren = $reflection->getMethod('findChildren');
         $params = $findChildren->getParameters();
         expect($params)->toHaveCount(2);
         expect($params[0]->getName())->toBe('parentNodeId');
         expect($params[1]->getName())->toBe('treeId');
-    
+
         $findRoots = $reflection->getMethod('findRoots');
         $params = $findRoots->getParameters();
         expect($params)->toHaveCount(1);
         expect($params[0]->getName())->toBe('treeId');
         expect((string) $params[0]->getType())->toBe('int');
-    
+
         $findByCategoryInTree = $reflection->getMethod('findByCategoryInTree');
         $params = $findByCategoryInTree->getParameters();
         expect($params)->toHaveCount(2);
         expect($params[0]->getName())->toBe('categoryId');
         expect($params[1]->getName())->toBe('treeId');
-    
+
         $findByCategoryAcrossTrees = $reflection->getMethod('findByCategoryAcrossTrees');
         $params = $findByCategoryAcrossTrees->getParameters();
         expect($params)->toHaveCount(1);
         expect($params[0]->getName())->toBe('categoryId');
         expect((string) $params[0]->getType())->toBe('int');
-    }
+    },
 );
 
 it('fake stores a node on save and returns it from find by id', function (): void {
@@ -233,42 +233,42 @@ it(
     'fake findByCategoryInTree returns all placements of a category within a tree (multi-placement)',
     function (): void {
         $repository = new FakeCategoryTreeNodeRepository();
-    
+
         $placement1 = new CategoryTreeNode();
         $placement1->treeId = 1;
         $placement1->categoryId = 42;
         $placement1->parentNodeId = null;
         $placement1->position = 1;
-    
+
         $placement2 = new CategoryTreeNode();
         $placement2->treeId = 1;
         $placement2->categoryId = 42;
         $placement2->parentNodeId = 99;
         $placement2->position = 1;
-    
+
         $otherTree = new CategoryTreeNode();
         $otherTree->treeId = 2;
         $otherTree->categoryId = 42;
         $otherTree->parentNodeId = null;
         $otherTree->position = 1;
-    
+
         $otherCategory = new CategoryTreeNode();
         $otherCategory->treeId = 1;
         $otherCategory->categoryId = 99;
         $otherCategory->parentNodeId = null;
         $otherCategory->position = 2;
-    
+
         $repository->save($placement1);
         $repository->save($placement2);
         $repository->save($otherTree);
         $repository->save($otherCategory);
-    
+
         $result = $repository->findByCategoryInTree(42, 1);
-    
+
         expect($result)->toHaveCount(2);
         expect(array_all($result, fn (CategoryTreeNode $n) => $n->categoryId === 42))->toBeTrue();
         expect(array_all($result, fn (CategoryTreeNode $n) => $n->treeId === 1))->toBeTrue();
-    }
+    },
 );
 
 it('fake findByCategoryAcrossTrees returns all placements regardless of tree', function (): void {

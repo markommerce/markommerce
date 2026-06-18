@@ -23,9 +23,9 @@ it(
     function (): void {
         $readmePath = dirname(__DIR__, 2) . '/README.md';
         $content = file_get_contents($readmePath);
-    
+
         expect($content)
             ->toContain('catalog-storefront-scope')
             ->not->toContain('ScopedProductGridComponent');
-    }
+    },
 );

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Markommerce\CatalogStorefront\Contracts;
 
+use Markommerce\Catalog\Exceptions\CategoryNotFoundException;
 use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\Catalog\Pagination\ResolvedPaginationOptions;
 use Markommerce\CatalogStorefront\Data\LayeredNavigationData;
@@ -19,7 +20,7 @@ use Markommerce\CatalogStorefront\Data\LayeredNavigationData;
 interface LayeredNavigationAssemblerInterface
 {
     /**
-     * @throws \Markommerce\Catalog\Exceptions\CategoryNotFoundException
+     * @throws CategoryNotFoundException
      */
     public function forCategory(
         int $categoryId,

@@ -3,10 +3,9 @@
 declare(strict_types=1);
 
 use Marko\Config\ConfigRepository;
-use Marko\Core\Container\Container;
 use Marko\Core\Module\ModuleManifest;
-use Markommerce\Config\Contracts\ConfigWriterInterface;
 use Markommerce\Config\ConfigResolver;
+use Markommerce\Config\Contracts\ConfigWriterInterface;
 use Markommerce\Config\PgSql\Schema\ConfigValuesTableEmitter;
 use Markommerce\ConfigScope\Contracts\ScopedConfigWriterInterface;
 use Markommerce\ConfigScope\PgSql\Schema\ConfigValueOverridesTableEmitter;
@@ -60,7 +59,7 @@ function tier2BuildConfig(): ConfigRepository
  * Build the full manifest list for the Tier 2 end-to-end test.
  *
  * Uses ModuleResolver to get all real modules transitively required by
- * config-scope-pgsql, config-pgsql, config-locale, and config-market.
+ * config-scope, config-pgsql, config-locale, and config-market.
  * Appends a fixture manifest pointing to the temp fixture module path so
  * ConfigClassDiscovery can discover TranslatableSiteConfig.
  *
@@ -71,8 +70,8 @@ function tier2BuildManifests(string $fixtureModulePath): array
     $resolver = new ModuleResolver(tier2VendorDir());
 
     $manifests = $resolver->resolveFrom([
-        'markommerce/config-scope-pgsql',
-        'markommerce/config-pgsql',
+        'markommerce/config-scope',
+        'markommerce/config',
         'markommerce/config-locale',
         'markommerce/config-market',
     ]);

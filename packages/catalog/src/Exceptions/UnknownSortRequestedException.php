@@ -9,8 +9,7 @@ class UnknownSortRequestedException extends InvalidPaginationConfigException
     public static function forRequestedKey(
         string $sort,
         string $allowedKeys,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Sort '$sort' is not in the allowed list",
             context: 'While resolving pagination sort from request',

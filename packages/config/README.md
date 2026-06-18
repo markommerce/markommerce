@@ -10,11 +10,7 @@ Developer-declared, merchant-overridable configuration values for Markommerce st
 composer require markommerce/config
 ```
 
-A storage driver is also required:
-
-```bash
-composer require markommerce/config-pgsql
-```
+The package ships its PostgreSQL implementation directly — no separate driver package is required.
 
 ## Quick Example
 

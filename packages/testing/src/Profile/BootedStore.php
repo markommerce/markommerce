@@ -67,8 +67,7 @@ class BootedStore
         ?string $market,
         ?string $locale,
         callable $fn,
-    ): void
-    {
+    ): void {
         if ($market !== null && !in_array('market', $this->declaredAxes, true)) {
             throw UndeclaredAxisException::forAxis('market');
         }

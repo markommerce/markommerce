@@ -11,8 +11,7 @@ class InvalidAttributeOptionException extends MarkoException
     public static function forValue(
         string $code,
         string $optionValue,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Option value '$optionValue' is not valid for attribute '$code'",
             context: "Setting attribute '$code' — the option value '$optionValue' is not among the allowed options for this attribute",

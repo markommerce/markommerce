@@ -9,6 +9,7 @@ use Marko\Database\Entity\EntityHydrator;
 use Marko\Database\Entity\EntityMetadataFactory;
 use Marko\Database\PgSql\Query\PgSqlQueryBuilderFactory;
 use Marko\Database\Repository\RepositoryQueryBuilder;
+use Markommerce\Catalog\Entity\Product;
 use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\Catalog\Filtering\ProductListFilterInterface;
 use Markommerce\Catalog\Filtering\ProductListFilterRegistry;
@@ -101,14 +102,14 @@ it('applies registered filter contributors to the category query before paginati
         $conn = $store->container()->get(ConnectionInterface::class);
 
         $appliedCount = 0;
-        $spyFilter = new class ($appliedCount) implements ProductListFilterInterface {
+        $spyFilter = new class ($appliedCount) implements ProductListFilterInterface
+        {
             public function __construct(private int &$appliedCount) {}
 
             public function apply(
                 RepositoryQueryBuilder $repositoryQueryBuilder,
                 FilterSelection $filterSelection,
-            ): void
-            {
+            ): void {
                 $this->appliedCount++;
             }
         };
@@ -152,14 +153,14 @@ it('leaves the query unchanged when the filter selection is empty', function ():
         $conn = $store->container()->get(ConnectionInterface::class);
 
         $appliedCount = 0;
-        $noopFilter = new class ($appliedCount) implements ProductListFilterInterface {
+        $noopFilter = new class ($appliedCount) implements ProductListFilterInterface
+        {
             public function __construct(private int &$appliedCount) {}
 
             public function apply(
                 RepositoryQueryBuilder $repositoryQueryBuilder,
                 FilterSelection $filterSelection,
-            ): void
-            {
+            ): void {
                 // A well-behaved filter does nothing when the selection is empty
                 if ($filterSelection->isEmpty()) {
                     return;
@@ -287,14 +288,14 @@ it('narrows the result set when a filter contributor adds a constraint', functio
         );
 
         // A filter that constrains to a single SKU from the selection
-        $skuFilter = new class ($product2->id) implements ProductListFilterInterface {
+        $skuFilter = new class ($product2->id) implements ProductListFilterInterface
+        {
             public function __construct(private readonly int|string|null $allowedProductId) {}
 
             public function apply(
                 RepositoryQueryBuilder $repositoryQueryBuilder,
                 FilterSelection $filterSelection,
-            ): void
-            {
+            ): void {
                 $skus = $filterSelection->forKey('sku');
 
                 if ($skus === []) {
@@ -358,12 +359,12 @@ it('reports the filtered total — not the full category count — in the page t
         }
 
         // A filter that narrows the listing to the selected SKUs via a JOIN-safe WHERE IN.
-        $skuFilter = new class implements ProductListFilterInterface {
+        $skuFilter = new class () implements ProductListFilterInterface
+        {
             public function apply(
                 RepositoryQueryBuilder $repositoryQueryBuilder,
                 FilterSelection $filterSelection,
-            ): void
-            {
+            ): void {
                 $skus = $filterSelection->forKey('sku');
 
                 if ($skus === []) {
@@ -389,7 +390,7 @@ it('reports the filtered total — not the full category count — in the page t
 
         expect($page)->toBeInstanceOf(RandomAccessPageInterface::class);
 
-        /** @var RandomAccessPageInterface<\Markommerce\Catalog\Entity\Product> $page */
+        /** @var RandomAccessPageInterface<Product> $page */
         // The total must reflect the FILTERED set (2), NOT the full category (6).
         expect($page->totalItems())->toBe(2)
             // 2 items at page size 1 → 2 pages (full count of 6 would give 6 pages).

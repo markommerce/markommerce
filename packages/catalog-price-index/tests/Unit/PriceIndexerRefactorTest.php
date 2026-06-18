@@ -43,16 +43,14 @@ class RefactorFakeQueryBuilder extends RepositoryQueryBuilder
     public function selectRaw(
         string $expression,
         array $bindings = [],
-    ): static
-    {
+    ): static {
         return $this;
     }
 
     public function whereIn(
         string $column,
         array $values,
-    ): static
-    {
+    ): static {
         $this->filteredIds = $values;
 
         return $this;

@@ -26,7 +26,7 @@ catalogued in [Feature domains](#feature-domains) below.
 
 ## Package inventory (today)
 
-41 packages, grouped by role. "Direct markommerce deps" lists only `markommerce/*`
+37 packages, grouped by role. "Direct markommerce deps" lists only `markommerce/*`
 requires (not `marko/*` framework deps, not require-dev).
 
 ### Foundation & framework integration
@@ -34,12 +34,9 @@ requires (not `marko/*` framework deps, not require-dev).
 | Package | Type | Direct markommerce deps |
 |---|---|---|
 | `markommerce/core` | library | — |
-| `markommerce/scope` | interface | — |
-| `markommerce/scope-pgsql` | driver | `scope` |
-| `markommerce/config` | interface | — |
-| `markommerce/config-pgsql` | driver | `config` |
-| `markommerce/config-scope` | machinery | `config`, `scope` |
-| `markommerce/config-scope-pgsql` | driver | `config-scope` |
+| `markommerce/scope` | library + pgsql impl | — |
+| `markommerce/config` | library + pgsql impl | — |
+| `markommerce/config-scope` | machinery + pgsql impl | `config`, `scope` |
 | `markommerce/criteria` | engine | — |
 | `markommerce/indexer` | kernel | `scope` |
 | `markommerce/layout` | integration | — |
@@ -82,8 +79,7 @@ requires (not `marko/*` framework deps, not require-dev).
 
 | Package | Type | Direct markommerce deps |
 |---|---|---|
-| `markommerce/attribute` | domain | — |
-| `markommerce/attribute-pgsql` | driver | `attribute` |
+| `markommerce/attribute` | domain + pgsql impl | — |
 | `markommerce/attribute-scope` | bridge | `attribute`, `scope` |
 | `markommerce/catalog-attribute` | bridge | `attribute`, `catalog` |
 | `markommerce/catalog-attribute-scope` | bridge | `attribute`, `catalog`, `catalog-attribute`, `scope` |
@@ -112,7 +108,7 @@ requires (not `marko/*` framework deps, not require-dev).
 All package names follow **`{primary-thing}-{modifier}`**, primary thing first.
 
 - **Concept / axis packages** carry a bare name: `markommerce/locale`, `markommerce/market`, `markommerce/channel`.
-- **Driver / variant packages** name the abstraction first, the variant second: `markommerce/scope-pgsql`, `markommerce/config-pgsql`, `markommerce/theme-blank` (a variant of theme), `markommerce/theme-blank-demo` (a variant of `theme-blank`).
+- **Driver / variant packages** name the abstraction first, the variant second: `markommerce/theme-blank` (a variant of theme), `markommerce/theme-blank-demo` (a variant of `theme-blank`). Markommerce assumes PostgreSQL as the database backend and ships no per-domain DB driver packages — each domain (`scope`, `config`, `config-scope`, `attribute`, …) bundles its Postgres implementation directly. The framework-level `marko/database-pgsql` driver still exists as the real DB dependency.
 - **Bridge / extension packages** name the *domain being extended* first, the capability being added second: `markommerce/catalog-scope`, `markommerce/catalog-locale`, `markommerce/catalog-market`, `markommerce/catalog-storefront`, `markommerce/catalog-attribute`, `markommerce/config-scope`, `markommerce/config-locale`, `markommerce/config-market`, `markommerce/currency-market`, `markommerce/tax-market`.
 - **Index packages** name the domain being indexed first: `markommerce/catalog-price-index`, `markommerce/catalog-attribute-index` (each may have its own `-market` axis bridge).
 
@@ -144,7 +140,7 @@ an effective-price index.
 
 | | Packages |
 |---|---|
-| **Headless** | `catalog` (+ `config`, `config-pgsql`, `criteria`, `currency`, `money`) — **scope-free today** ✅ |
+| **Headless** | `catalog` (+ `config`, `criteria`, `currency`, `money`) — **scope-free today** ✅ |
 | **Storefront** | headless + `catalog-storefront` + `catalog-price-index` + `frontend` + `layout` + `theme-blank` + `money-intl` |
 
 **Achieved:** headless `catalog` no longer drags in `scope`, `layout`, `frontend`
@@ -164,10 +160,10 @@ merchant-editable settings all need per-locale overrides.*
 register locale-scoped fields against catalog and config without merchant config;
 locale-aware money formatting and storefront rendering.
 
-| | Packages added on top of Tier 1 |
-|---|---|
-| **Headless** | `scope` + `scope-pgsql` + `catalog-scope` + `config-scope` + `config-scope-pgsql` + `locale` + `catalog-locale` + `config-locale` |
-| **Storefront** | headless stack + `catalog-storefront-scope` (locale-aware storefront rendering via Preference) |
+| | Packages added on top of Tier 1 | Total (cumulative) |
+|---|---|---|
+| **Headless** | `scope` (pgsql impl in-package) + `catalog-scope` + `config-scope` (pgsql impl in-package) + `locale` + `catalog-locale` + `config-locale` | **14 packages** (Tier 2 headless stack) |
+| **Storefront** | headless stack + `catalog-storefront-scope` (locale-aware storefront rendering via Preference) | **15 packages** (Tier 2 storefront stack) |
 
 All of these **ship today.**
 
@@ -180,9 +176,9 @@ currency and tax mode. Languages and markets vary independently.*
 currency, tax and the price index by market; per-market category trees with
 active-tree resolution.
 
-| | Packages added on top of Tier 2 |
-|---|---|
-| **Shipped** | `market` + `catalog-market` + `config-market` + `currency-market` + `tax-market` + `catalog-price-index-market` |
+| | Packages added on top of Tier 2 | Tier 3 base total |
+|---|---|---|
+| **Shipped** | `market` + `catalog-market` + `config-market` + `currency-market` + `tax-market` + `catalog-price-index-market` | **18 packages** (Tier 2 headless + core Tier 3 additions) |
 
 > Note: `catalog-market` ships as a placeholder bridge — it reserves the
 > `ScopedFieldRegistry` hook for `Product.price` / `Product.visibility`, which are
@@ -236,7 +232,7 @@ commerce domains. Each is an interface/driver + bridge cluster you opt into.
 ### Custom attributes & layered navigation
 A simpler-than-EAV custom-attribute system (JSON + static-column backing) with a
 CQRS index for fast faceting:
-- **`attribute`** / **`attribute-pgsql`** — attribute definitions + options, value types/validation, reserved-code policy, the `backing` (Column|Json) abstraction.
+- **`attribute`** — attribute definitions + options, value types/validation, reserved-code policy, the `backing` (Column|Json) abstraction (PostgreSQL driver bundled).
 - **`catalog-attribute`** — binds the attribute kernel to `Product` (JSON companion + static column accessor).
 - **`attribute-scope`** / **`catalog-attribute-scope`** — per-scope attribute values + translatable option labels.
 - **`catalog-attribute-index`** — the disjunctive facet/filter index over the materialized read model.
@@ -254,7 +250,7 @@ exist; the auto-wiring design they were specified against is unchanged
 |---|---|
 | `catalog-storefront` | HTTP controllers, routes, Latte views, theme integration for the public shop |
 | `catalog-storefront-scope` | Swaps `ProductGridComponent` with a locale-aware scoped component via Preference |
-| `catalog-scope` / `config-scope` / `config-scope-pgsql` | Scope-aware decorators + per-scope override resolution + its pgsql driver |
+| `catalog-scope` / `config-scope` | Scope-aware decorators + per-scope override resolution (Postgres impl bundled in `config-scope`) |
 | `catalog-market` / `config-market` | Market integration for catalog & config |
 | `locale` / `market` | The `locale` and `market` scope-axis declarations |
 | `catalog-locale` / `config-locale` | Auto-wiring bridges registering locale-scoped fields |
@@ -304,7 +300,7 @@ style was **rip-and-replace** (markommerce is pre-1.0).
 | **P2** | Decouple `catalog` from `scope`; create `catalog-scope`, `locale`, `catalog-locale` | `completed` | `catalog-scope-decouple` | `Product`/`Category` became plain entities. Multi-language behaviour shifted to the bridge stack. |
 | **P3** | Extract `catalog-storefront` from `catalog`; create `catalog-storefront-scope` | `completed` | `catalog-storefront-extract` | Controllers/routes/templates/assets moved out of `catalog`. Headless catalog stopped pulling layout/frontend/theme. |
 | **P4** | Create `market`, `catalog-market`; extract per-market category trees | `completed` | `catalog-market-extract` | Tier 3 reachable. Catalog keeps a single default tree. `catalog-market` ships as a no-op placeholder pending price/visibility columns. |
-| **P5** | Decouple `config` from `scope`; create `config-scope`, `config-locale`, `config-market` | `completed` | `config-scope-decouple` | `config` became a plain key-value store; per-scope overlays come from `config-scope` + bridges. `config-pgsql` no longer emits an `overrides` JSONB column. |
+| **P5** | Decouple `config` from `scope`; create `config-scope`, `config-locale`, `config-market` | `completed` | `config-scope-decouple` | `config` became a plain key-value store; per-scope overlays come from `config-scope` + bridges. The `config` Postgres driver no longer emits a separate `overrides` JSONB column. |
 
 ### Commerce-primitives track (after the split)
 
@@ -316,7 +312,7 @@ related work:
 | Money/pricing | `money`, `money-intl`, `currency`(+`-market`), `tax`(+`-market`) | BigDecimal Money; configurable base currency + tax mode; effective-price pipeline. |
 | Criteria | `criteria` | Sort + offset/keyset pagination engine for the catalog listing. |
 | Indexing | `indexer`, `catalog-price-index`(+`-market`), `catalog-attribute-index` | Shared indexer kernel + unified `index:rebuild`; price + attribute read models. |
-| Custom attributes | `attribute`(+`-pgsql`,`-scope`), `catalog-attribute`(+`-scope`,`-index`,`-storefront`) | Definitions/values/scoping + layered navigation (filter + disjunctive faceting) with a two-column storefront UI. |
+| Custom attributes | `attribute`(+`-scope`), `catalog-attribute`(+`-scope`,`-index`,`-storefront`) | Definitions/values/scoping + layered navigation (filter + disjunctive faceting) with a two-column storefront UI. Postgres impl bundled in `attribute`. |
 
 ### Decisions locked in
 

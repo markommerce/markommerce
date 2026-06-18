@@ -195,8 +195,7 @@ function scopedGridMakeConfigResolver(array $overrides = []): ConfigResolverInte
         public function resolved(
             string $configClass,
             string $field,
-        ): mixed
-        {
+        ): mixed {
             return $this->values[$field] ?? null;
         }
     };
@@ -244,8 +243,7 @@ function scopedGridMakeFakeConnection(): ConnectionInterface
         public function query(
             string $sql,
             array $bindings = [],
-        ): array
-        {
+        ): array {
             return [];
         }
 
@@ -255,8 +253,7 @@ function scopedGridMakeFakeConnection(): ConnectionInterface
         public function execute(
             string $sql,
             array $bindings = [],
-        ): int
-        {
+        ): int {
             return 0;
         }
 
@@ -292,8 +289,7 @@ function scopedGridMakeAssignmentService(
             int $categoryId,
             ResolvedPaginationOptions $options,
             FilterSelection $filters = new FilterSelection(),
-        ): Page
-        {
+        ): Page {
             $products = $this->productsInCategory($categoryId);
 
             return new OffsetPage(

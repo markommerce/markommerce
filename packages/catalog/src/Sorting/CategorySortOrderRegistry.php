@@ -12,8 +12,7 @@ class CategorySortOrderRegistry
     public function register(
         CategorySortOrderInterface $categorySortOrder,
         int $priority = 0,
-    ): void
-    {
+    ): void {
         if ($this->has($categorySortOrder->key())) {
             return;
         }

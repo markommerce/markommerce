@@ -101,20 +101,6 @@ it(
 );
 
 it(
-    'adds markommerce/config-scope-pgsql to root composer.json require block',
-    function (): void {
-        $rootManifest = json_decode(
-            (string) file_get_contents(dirname(__DIR__, 4) . '/composer.json'),
-            true,
-        );
-
-        $require = $rootManifest['require'] ?? [];
-
-        expect($require)->toHaveKey('markommerce/config-scope-pgsql');
-    },
-);
-
-it(
     'adds markommerce/config-locale to root composer.json require block',
     function (): void {
         $rootManifest = json_decode(
@@ -194,7 +180,7 @@ it(
 );
 
 it(
-    'does NOT add Markommerce\\ConfigScope\\PgSql\\Tests\\ to root autoload-dev (per repo convention; that namespace is declared in packages/config-scope-pgsql/composer.json\'s local autoload-dev only)',
+    'adds Markommerce\\ConfigScope\\PgSql\\Tests\\ pointing to packages/config-scope/tests/PgSql/ in root autoload-dev psr-4',
     function (): void {
         $rootManifest = json_decode(
             (string) file_get_contents(dirname(__DIR__, 4) . '/composer.json'),
@@ -203,6 +189,9 @@ it(
 
         $autoloadDev = $rootManifest['autoload-dev']['psr-4'] ?? [];
 
-        expect($autoloadDev)->not->toHaveKey('Markommerce\\ConfigScope\\PgSql\\Tests\\');
+        expect($autoloadDev)
+            ->toHaveKey('Markommerce\\ConfigScope\\PgSql\\Tests\\')
+            ->and($autoloadDev['Markommerce\\ConfigScope\\PgSql\\Tests\\'])
+            ->toBe('packages/config-scope/tests/PgSql/');
     },
 );

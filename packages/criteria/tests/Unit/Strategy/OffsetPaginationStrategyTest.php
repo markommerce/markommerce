@@ -47,8 +47,7 @@ class FakeOffsetQueryBuilder extends RepositoryQueryBuilder
     public function orderBy(
         string $column,
         string $direction = 'ASC',
-    ): static
-    {
+    ): static {
         $this->orderByCalls[] = ['column' => $column, 'direction' => $direction];
 
         return $this;
@@ -57,8 +56,7 @@ class FakeOffsetQueryBuilder extends RepositoryQueryBuilder
     public function orderByRaw(
         string $expression,
         string $direction = 'ASC',
-    ): static
-    {
+    ): static {
         $this->orderByRawCalls[] = ['expression' => $expression, 'direction' => $direction];
 
         return $this;
@@ -275,12 +273,12 @@ it(
         $strategy = makeStrategy(total: 30);
         $sort = new Sort(new SortField('price', SortDirection::Ascending));
         $request = PageRequest::first(size: 10, sort: $sort);
-    
+
         $strategy->paginate($query, $request);
-    
+
         expect($query->orderByCalls)->toContain(['column' => 'price', 'direction' => 'ASC'])
             ->and($query->orderByRawCalls)->toBeEmpty();
-    }
+    },
 );
 
 it(
@@ -290,13 +288,13 @@ it(
         $strategy = makeStrategy(total: 30);
         $sort = new Sort(new SortField('price', SortDirection::Ascending, nulls: NullsPlacement::Last));
         $request = PageRequest::first(size: 10, sort: $sort);
-    
+
         $strategy->paginate($query, $request);
-    
+
         expect($query->orderByRawCalls)->toHaveCount(2)
             ->and($query->orderByRawCalls[0])->toBe(['expression' => '(price) IS NULL', 'direction' => 'ASC'])
             ->and($query->orderByRawCalls[1])->toBe(['expression' => 'price', 'direction' => 'ASC']);
-    }
+    },
 );
 
 it('keeps the IS NULL companion ascending so non-null values sort first in both directions', function (): void {
@@ -316,7 +314,7 @@ it('applies a raw-expression sort field via orderByRaw in the offset strategy', 
     $query = makeQuery(fakeEntityCount: 10);
     $strategy = makeStrategy(total: 30);
     $sort = new Sort(
-        new SortField('price', SortDirection::Ascending, expression: "COALESCE(price_index->>'amount', price)")
+        new SortField('price', SortDirection::Ascending, expression: "COALESCE(price_index->>'amount', price)"),
     );
     $request = PageRequest::first(size: 10, sort: $sort);
 
@@ -324,7 +322,7 @@ it('applies a raw-expression sort field via orderByRaw in the offset strategy', 
 
     expect($query->orderByRawCalls)->toHaveCount(1)
         ->and($query->orderByRawCalls[0])->toBe(
-            ['expression' => "COALESCE(price_index->>'amount', price)", 'direction' => 'ASC']
+            ['expression' => "COALESCE(price_index->>'amount', price)", 'direction' => 'ASC'],
         )
         ->and($query->orderByCalls)->not->toContain(['column' => 'price', 'direction' => 'ASC']);
 });

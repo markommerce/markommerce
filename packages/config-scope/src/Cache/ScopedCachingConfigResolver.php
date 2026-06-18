@@ -34,8 +34,7 @@ class ScopedCachingConfigResolver extends CachingConfigResolver
     protected function buildCacheKey(
         string $configClass,
         string $field,
-    ): string
-    {
+    ): string {
         $baseKey = parent::buildCacheKey($configClass, $field);
 
         $definition = $this->configRegistry->definition($configClass, $field);

@@ -11,11 +11,7 @@ Scope storage bridge for catalog entities. `markommerce/catalog-scope` adds `Has
 composer require markommerce/catalog-scope
 ```
 
-This package requires `markommerce/catalog` and `markommerce/scope`. To persist and query scoped overrides you must also install a scope driver:
-
-```bash
-composer require markommerce/scope-pgsql
-```
+This package requires `markommerce/catalog` and `markommerce/scope`. `markommerce/scope` ships its PostgreSQL implementation directly — no additional driver package is required.
 
 ## Usage
 
@@ -150,4 +146,4 @@ Same interface as `ProductScopedOverrides`, applied to `Category` properties.
 - [markommerce/scope](/docs/packages/scope/) --- Provides `HasScopesInterface`, `ScopeResolver`, and the resolution infrastructure
 - [markommerce/catalog-locale](/docs/packages/catalog-locale/) --- Bridge that registers catalog fields as locale-scoped via `ScopedFieldRegistry`
 - [markommerce/catalog-storefront-scope](/docs/packages/catalog-storefront-scope/) --- Storefront Preference that activates locale-aware product grid rendering on top of this package
-- [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver required to persist and query scoped overrides
+- [marko/database-pgsql](https://marko.build/docs/packages/database-pgsql/) --- PostgreSQL database driver (framework-level dependency)

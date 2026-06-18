@@ -21,8 +21,7 @@ readonly class MultiselectType implements AttributeTypeInterface
     public function cast(
         mixed $raw,
         AttributeDefinitionInterface $definition,
-    ): mixed
-    {
+    ): mixed {
         if (!is_array($raw)) {
             throw InvalidAttributeOptionException::forValue($definition->code(), (string) $raw);
         }

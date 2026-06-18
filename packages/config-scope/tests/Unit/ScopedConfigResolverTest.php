@@ -61,8 +61,7 @@ function makeScopedResolverRegistry(array $axesMap = [], array $defaults = []): 
         public function __construct(
             array $axesMap,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
             foreach ($axesMap as $name => $paths) {
                 $default = $defaults[$name] ?? '__default';
@@ -197,11 +196,11 @@ it(
             axesMap: [],
             configClasses: [ScopedResolverIntConfig::class],
         );
-    
+
         $result = $resolver->resolved(ScopedResolverIntConfig::class, 'intValue');
-    
+
         expect($result)->toBe(99);
-    }
+    },
 );
 
 it(
@@ -213,11 +212,11 @@ it(
             globalValues: ['scoped-resolver/test.intValue' => 42],
             scopedFields: [ScopedResolverIntConfig::class . '::intValue' => ['locale']],
         );
-    
+
         $result = $resolver->resolved(ScopedResolverIntConfig::class, 'intValue');
-    
+
         expect($result)->toBe(42);
-    }
+    },
 );
 
 it('falls back from override to global when no override matches the current ScopeContext', function (): void {
@@ -250,13 +249,13 @@ it(
             scopedFields: [ScopedResolverIntConfig::class . '::intValue' => ['locale']],
             outContext: $context,
         );
-    
+
         $context->in('locale', 'en');
-    
+
         $result = $resolver->resolved(ScopedResolverIntConfig::class, 'intValue');
-    
+
         expect($result)->toBe(200);
-    }
+    },
 );
 
 it('decrypts secret override values via SecretCipher before casting', function (): void {
@@ -363,11 +362,11 @@ it(
         $overrideMatcher = new OverrideMatcher($enumerator);
         $injectedContext = new ScopeContext($scopeRegistry);
         $injectedContext->in('locale', 'en'); // injected live context is 'en'
-    $scopedFieldRegistry = new ScopedFieldRegistry($scopeRegistry);
+        $scopedFieldRegistry = new ScopedFieldRegistry($scopeRegistry);
         $scopedFieldRegistry->register(ScopedResolverStringConfig::class, 'stringValue', ['locale']);
         $scopedStorage = new InMemoryScopedConfigStorage();
         $scopedStorage->saveOverride('scoped-resolver/test.stringValue', 'locale:fr', 'french-override');
-    
+
         $resolver = new ScopedConfigResolver(
             configRegistry: $registry,
             configStorage: $storage,
@@ -380,13 +379,13 @@ it(
             scopeContext: $injectedContext,
             scopedFieldRegistry: $scopedFieldRegistry,
         );
-    
+
         // Create an explicit context with 'fr' — the live context is 'en'
-    $explicitContext = new ScopeContext($scopeRegistry);
+        $explicitContext = new ScopeContext($scopeRegistry);
         $explicitContext->in('locale', 'fr');
-    
+
         $result = $resolver->resolvedAt(ScopedResolverStringConfig::class, 'stringValue', $explicitContext);
-    
+
         expect($result)->toBe('french-override'); // used the explicit context, not injected live context
-}
+    },
 );

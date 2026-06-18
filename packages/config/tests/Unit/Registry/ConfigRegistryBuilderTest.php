@@ -252,12 +252,12 @@ it(
             dirname(__DIR__, 3) . '/src/Cache/CachingConfigResolver.php',
             dirname(__DIR__, 3) . '/src/Registry/ConfigRegistryBuilder.php',
         ];
-    
+
         $scopeNs = 'Markommerce' . '\\' . 'Scope' . '\\';
-    
+
         foreach ($files as $file) {
             $content = file_get_contents($file);
             expect($content)->not->toContain($scopeNs, "File $file still imports scope namespace");
         }
-    }
+    },
 );

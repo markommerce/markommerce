@@ -87,18 +87,18 @@ it(
     function (): void {
         $reflection = new ReflectionClass(ConfigGetCommand::class);
         $constructor = $reflection->getConstructor();
-    
+
         assert($constructor !== null);
-    
+
         $paramTypes = array_map(
             fn ($param) => (string) $param->getType(),
             $constructor->getParameters(),
         );
-    
+
         foreach ($paramTypes as $type) {
             expect($type)->not->toContain('ScopeRegistryInterface');
         }
-    }
+    },
 );
 
 it(
@@ -106,19 +106,19 @@ it(
     function (): void {
         $registry = makeGetRegistry();
         $storage = new InMemoryConfigStorage();
-    
+
         $storage->compareAndSave('payment/stripe.secret_key', new ConfigRow(
             key: 'payment/stripe.secret_key',
             value: 'sk_live_supersecretvalue',
             version: 0,
         ), 0);
-    
+
         $result = runGetCommand($registry, $storage, 'payment/stripe.secret_key');
-    
+
         expect($result['exitCode'])->toBe(0)
             ->and($result['output'])->toContain('***')
             ->and($result['output'])->not->toContain('sk_live_supersecretvalue');
-    }
+    },
 );
 
 it('exits non-zero with a did-you-mean hint when the key is unknown', function (): void {
@@ -145,11 +145,11 @@ it(
             __DIR__ . '/../../../src/Command/ConfigGetCommand.php',
             __DIR__ . '/../../../src/Command/ConfigListCommand.php',
         ];
-    
+
         $scopeNs = 'Markommerce' . '\\' . 'Scope';
         $scopeSig = 'Scope' . 'Signature';
         $scopeCtx = 'Scope' . 'Context';
-    
+
         foreach ($productionFiles as $file) {
             $contents = (string) file_get_contents($file);
             expect($contents)
@@ -157,5 +157,5 @@ it(
                 ->and($contents)->not->toContain($scopeSig)
                 ->and($contents)->not->toContain($scopeCtx);
         }
-    }
+    },
 );

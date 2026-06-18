@@ -147,8 +147,7 @@ class FakeCategoryTreeRepository implements CategoryTreeRepositoryInterface
     private function matchesCriteria(
         CategoryTree $tree,
         array $criteria,
-    ): bool
-    {
+    ): bool {
         return array_all(
             array_keys($criteria),
             fn (string $key) => $tree->$key === $criteria[$key],

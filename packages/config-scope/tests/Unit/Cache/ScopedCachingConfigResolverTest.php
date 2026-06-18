@@ -57,8 +57,7 @@ function makeScopedCachingResolverRegistry(array $axesMap = [], array $defaults 
         public function __construct(
             array $axesMap,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
             foreach ($axesMap as $name => $paths) {
                 $default = $defaults[$name] ?? '__default';
@@ -175,13 +174,13 @@ it(
     function (): void {
         $reflection = new ReflectionClass(ScopedCachingConfigResolver::class);
         $attributes = $reflection->getAttributes(Preference::class);
-    
+
         expect($attributes)->not->toBeEmpty();
-    
+
         $preference = $attributes[0]->newInstance();
-    
+
         expect($preference->replaces)->toBe(CachingConfigResolver::class);
-    }
+    },
 );
 
 it('extends Markommerce\Config\Cache\CachingConfigResolver', function (): void {
@@ -200,20 +199,20 @@ it(
             configClasses: [CachingScopedStringConfig::class],
             globalValues: ['caching-scoped/test.stringValue' => 'global-value'],
             scopedFields: [], // no axes registered for this field
-        outContext: $context,
+            outContext: $context,
             outCache: $cache,
         );
-    
+
         $context->in('locale', 'en');
-    
+
         // Pre-seed the cache using the plain key (no scope suffix)
-    $cache->get('caching-scoped/test.stringValue', fn () => 'cached-plain-value');
-    
+        $cache->get('caching-scoped/test.stringValue', fn () => 'cached-plain-value');
+
         $result = $resolver->resolved(CachingScopedStringConfig::class, 'stringValue');
-    
+
         // Should use the plain key, not a scoped key
-    expect($result)->toBe('cached-plain-value');
-    }
+        expect($result)->toBe('cached-plain-value');
+    },
 );
 
 it(
@@ -230,31 +229,31 @@ it(
             outContext: $context,
             outCache: $cache,
         );
-    
+
         $context->in('locale', 'en');
-    
+
         // Pre-seed the cache with a locale-specific key
-    $cache->get('caching-scoped/test.stringValue|locale:en', fn () => 'cached-en-value');
-    
+        $cache->get('caching-scoped/test.stringValue|locale:en', fn () => 'cached-en-value');
+
         $result = $resolver->resolved(CachingScopedStringConfig::class, 'stringValue');
-    
+
         // Should have used the scoped cache key and returned cached value
-    expect($result)->toBe('cached-en-value');
-    }
+        expect($result)->toBe('cached-en-value');
+    },
 );
 
 it(
     'binds ConfigResolver::class in config-scope/module.php to a closure that returns a ScopedCachingConfigResolver wrapping a ScopedConfigResolver, so container::get(ConfigResolver::class) returns the cached scoped resolver (preserves Tier 1\'s caching wrap)',
     function (): void {
         $moduleArray = require dirname(__DIR__, 3) . '/module.php';
-    
+
         expect($moduleArray)->toHaveKey('bindings')
             ->and($moduleArray['bindings'])->toHaveKey(ConfigResolver::class);
-    
+
         $factory = $moduleArray['bindings'][ConfigResolver::class];
 
         expect($factory)->toBeInstanceOf(Closure::class);
-    }
+    },
 );
 
 it(
@@ -274,15 +273,15 @@ it(
             scopedFields: [CachingScopedStringConfig::class . '::stringValue' => ['locale']],
             outContext: $context,
         );
-    
+
         $context->in('locale', 'en');
         $enResult = $resolver->resolved(CachingScopedStringConfig::class, 'stringValue');
-    
+
         $context->clear('locale');
         $context->in('locale', 'fr');
         $frResult = $resolver->resolved(CachingScopedStringConfig::class, 'stringValue');
-    
+
         expect($enResult)->toBe('en-value')
             ->and($frResult)->toBe('fr-value'); // different cache key = freshly resolved
-}
+    },
 );

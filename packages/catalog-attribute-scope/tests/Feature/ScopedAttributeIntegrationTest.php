@@ -38,7 +38,6 @@ function makeScopedAttributeProfile(): StoreProfile
         'markommerce/catalog-attribute-scope',
         'markommerce/attribute-scope',
         'markommerce/locale',
-        'markommerce/attribute-pgsql',
         'marko/database-pgsql',
     )->withLocales('default', 'en', 'de');
 }
@@ -285,7 +284,7 @@ it('it resolves a scoped option label under a matching scope and the base label 
             'de',
             function () use ($resolver, $refetchedOption, $refetchedLabels, $scopeContext, &$resolvedDe): void {
                 $resolvedDe = $resolver->resolve($refetchedOption, $refetchedLabels, $scopeContext);
-            }
+            },
         );
 
         // Under 'en' — no override, falls back to the base label
@@ -295,7 +294,7 @@ it('it resolves a scoped option label under a matching scope and the base label 
             'en',
             function () use ($resolver, $refetchedOption, $refetchedLabels, $scopeContext, &$resolvedEn): void {
                 $resolvedEn = $resolver->resolve($refetchedOption, $refetchedLabels, $scopeContext);
-            }
+            },
         );
 
         expect($resolvedDe)->toBe('Klein');

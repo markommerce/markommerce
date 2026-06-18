@@ -7,7 +7,6 @@ use Marko\Core\Container\ContainerInterface;
 use Markommerce\Attribute\Contracts\AttributeDefinitionRepositoryInterface;
 use Markommerce\Catalog\Filtering\ProductListFilterRegistry;
 use Markommerce\CatalogAttributeIndex\Facet\AttributeFacetQuery;
-use Markommerce\CatalogAttributeIndex\Query\AttributeExistsClause;
 use Markommerce\CatalogAttributeIndex\Tests\Support\QueryableAttributeDefinitionRepository;
 use Markommerce\CatalogAttributeStorefront\Filter\AttributeProductListFilter;
 use Markommerce\CatalogAttributeStorefront\LayeredNavigation\LayeredNavigationAssembler;
@@ -51,7 +50,8 @@ function buildStorefrontModuleContainer(): Container
     // can be auto-wired without pulling in the full scope module.
     $container->instance(
         ScopeRegistryInterface::class,
-        new class implements ScopeRegistryInterface {
+        new class () implements ScopeRegistryInterface
+        {
             public function hasAxis(string $name): bool
             {
                 return false;
@@ -59,7 +59,7 @@ function buildStorefrontModuleContainer(): Container
 
             public function getAxis(string $name): ScopeAxis
             {
-                throw new \RuntimeException('No axes in stub registry');
+                throw new RuntimeException('No axes in stub registry');
             }
 
             /** @return list<string> */
@@ -70,7 +70,7 @@ function buildStorefrontModuleContainer(): Container
 
             public function getHierarchy(string $axisName): ScopeHierarchy
             {
-                throw new \RuntimeException('No axes in stub registry');
+                throw new RuntimeException('No axes in stub registry');
             }
         },
     );

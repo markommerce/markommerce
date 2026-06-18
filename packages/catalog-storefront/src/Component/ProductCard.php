@@ -25,8 +25,7 @@ class ProductCard
     public function data(
         Product $product,
         ?array $formattedPrices = null,
-    ): ProductCardData
-    {
+    ): ProductCardData {
         $formattedPrice = null;
 
         if ($formattedPrices !== null && $product->id !== null) {

@@ -10,6 +10,9 @@ use Marko\Core\Module\ModuleManifest;
 use Marko\Core\Module\ModuleRepository;
 use Marko\Core\Module\ModuleRepositoryInterface;
 use Marko\Core\Path\ProjectPaths;
+use Marko\Database\Connection\ConnectionInterface;
+use Marko\Database\Connection\StatementInterface;
+use Marko\Database\Connection\TransactionInterface;
 use Markommerce\Config\Cache\CachingConfigResolver;
 use Markommerce\Config\ConfigResolver;
 use Markommerce\Config\Contracts\ConfigStorageInterface;
@@ -17,6 +20,7 @@ use Markommerce\Config\Contracts\SecretCipherInterface;
 use Markommerce\Config\Encryption\SodiumSecretCipher;
 use Markommerce\Config\Exceptions\InvalidConfigClassException;
 use Markommerce\Config\Exceptions\SecretCipherException;
+use Markommerce\Config\PgSql\PgsqlConfigStorage;
 use Markommerce\Config\Proxy\ProxyLocator;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\Config\Storage\InMemoryConfigStorage;
@@ -122,15 +126,16 @@ function bootModuleContainer(
     };
     $container->instance(ConfigRepositoryInterface::class, $fakeConfigRepo);
 
-    // Register InMemoryConfigStorage as a test double — the real app gets this
-    // from the driver package (e.g. markommerce/config-pgsql); the config
-    // module itself no longer provides a default binding.
-    $container->bind(ConfigStorageInterface::class, InMemoryConfigStorage::class);
-
-    // Register bindings from module.php
+    // Register bindings from module.php — config now binds ConfigStorageInterface
+    // to PgsqlConfigStorage via its own module.
     foreach ($moduleArray['bindings'] ?? [] as $interface => $implementation) {
         $container->bind($interface, $implementation);
     }
+
+    // Register InMemoryConfigStorage as a test double AFTER the module bindings loop
+    // so the unit tests here don't need a real DB. This overrides the module's
+    // PgsqlConfigStorage binding for the purposes of these unit tests.
+    $container->bind(ConfigStorageInterface::class, InMemoryConfigStorage::class);
 
     // Register singletons from module.php
     foreach ($moduleArray['singletons'] ?? [] as $key => $value) {
@@ -525,4 +530,80 @@ it('bubbles up InvalidConfigClassException from dev-mode regeneration so boot fa
         modules: [$manifest],
         markoConfig: ['markommerce.config.auto_regenerate' => true],
     ))->toThrow(InvalidConfigClassException::class);
+});
+
+it('binds ConfigStorageInterface to PgsqlConfigStorage from config\'s own module', function (): void {
+    $moduleArray = require dirname(__DIR__, 2) . '/module.php';
+
+    expect($moduleArray['bindings'])->toHaveKey(ConfigStorageInterface::class);
+
+    $binding = $moduleArray['bindings'][ConfigStorageInterface::class];
+
+    expect($binding)->toBeInstanceOf(Closure::class);
+
+    // Verify the closure returns a PgsqlConfigStorage instance when given a ConnectionInterface
+    $fakeConnection = new class () implements
+        ConnectionInterface,
+        TransactionInterface
+    {
+        public function connect(): void {}
+
+        public function disconnect(): void {}
+
+        public function isConnected(): bool
+        {
+            return true;
+        }
+
+        public function query(
+            string $sql,
+            array $params = [],
+        ): array
+        {
+            return [];
+        }
+
+        public function execute(
+            string $sql,
+            array $params = [],
+        ): int
+        {
+            return 0;
+        }
+
+        public function prepare(string $sql): StatementInterface
+        {
+            throw new RuntimeException('Not implemented');
+        }
+
+        public function lastInsertId(): int
+        {
+            return 0;
+        }
+
+        public function beginTransaction(): void {}
+
+        public function commit(): void {}
+
+        public function rollback(): void {}
+
+        public function inTransaction(): bool
+        {
+            return false;
+        }
+
+        public function transaction(callable $callback): mixed
+        {
+            return $callback($this);
+        }
+    };
+
+    $preferenceRegistry = new PreferenceRegistry();
+    $container = new Container($preferenceRegistry);
+    $container->instance(ContainerInterface::class, $container);
+    $container->instance(ConnectionInterface::class, $fakeConnection);
+
+    $result = $binding($container);
+
+    expect($result)->toBeInstanceOf(PgsqlConfigStorage::class);
 });

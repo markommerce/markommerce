@@ -39,8 +39,7 @@ class ScopedProductAttributeAccessor
         string $code,
         mixed $raw,
         ScopeSignature $signature,
-    ): void
-    {
+    ): void {
         $def = $this->productAttributeDefinitions->findByCode($code);
 
         if ($def === null) {
@@ -94,8 +93,7 @@ class ScopedProductAttributeAccessor
         Product $product,
         string $code,
         ScopeSignature $signature,
-    ): mixed
-    {
+    ): mixed {
         $def = $this->productAttributeDefinitions->findByCode($code);
 
         if ($def === null) {
@@ -124,8 +122,7 @@ class ScopedProductAttributeAccessor
     public function resolve(
         Product $product,
         string $code,
-    ): mixed
-    {
+    ): mixed {
         $def = $this->productAttributeDefinitions->findByCode($code);
 
         if ($def === null) {

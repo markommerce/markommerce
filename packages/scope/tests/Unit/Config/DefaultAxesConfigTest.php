@@ -94,16 +94,16 @@ it(
     function () use ($config): void {
         $stub = makeConfigStubForDefaultAxes($config['axes']);
         $registry = new PhpScopeRegistry($stub);
-    
+
         expect($registry->listAxes())->toBe(['market', 'channel']);
-    }
+    },
 );
 
 it(
     'it removes the obsolete CatalogMetadataIntegrationTest file that cross-referenced catalog entities from scope tests',
     function (): void {
         $obsoleteFile = dirname(__DIR__, 2) . '/Feature/CatalogMetadataIntegrationTest.php';
-    
+
         expect(file_exists($obsoleteFile))->toBeFalse();
-    }
+    },
 );

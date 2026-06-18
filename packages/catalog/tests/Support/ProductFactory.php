@@ -123,8 +123,7 @@ class ProductFactory extends FixtureFactory
     private function writeIndexedPrice(
         Product $product,
         string $price,
-    ): void
-    {
+    ): void {
         $repositoryInterface = 'Markommerce\\CatalogPriceIndex\\Contracts\\ProductPriceIndexRepositoryInterface';
 
         if (!$this->store->container()->has($repositoryInterface)) {

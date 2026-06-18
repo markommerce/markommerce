@@ -105,11 +105,11 @@ it(
     'applies a per-market scope override to a scoped pagination field via an in-memory scoped resolver',
     function (): void {
         // Build a minimal in-memory scope registry with a 'market' axis
-    $scopeRegistry = new class (['market' => ['global', 'de', 'fr']]) implements ScopeRegistryInterface
+        $scopeRegistry = new class (['market' => ['global', 'de', 'fr']]) implements ScopeRegistryInterface
         {
             /** @var array<string, ScopeAxis> */
             private array $builtAxes;
-    
+
             /** @param array<string, list<string>> $axesMap */
             public function __construct(array $axesMap)
             {
@@ -119,49 +119,49 @@ it(
                     $this->builtAxes[$name] = new ScopeAxis(name: $name, hierarchy: $hierarchy, default: $paths[0]);
                 }
             }
-    
+
             public function hasAxis(string $name): bool
             {
                 return isset($this->builtAxes[$name]);
             }
-    
+
             public function getAxis(string $name): ScopeAxis
             {
                 if (!isset($this->builtAxes[$name])) {
                     throw UnknownAxisException::forAxis($name);
                 }
-    
+
                 return $this->builtAxes[$name];
             }
-    
+
             /** @return list<string> */
             public function listAxes(): array
             {
                 return array_keys($this->builtAxes);
             }
-    
+
             public function getHierarchy(string $axisName): ScopeHierarchy
             {
                 return $this->getAxis($axisName)->hierarchy;
             }
         };
-    
+
         $builder = new ConfigRegistryBuilder();
         $configRegistry = $builder->build([CatalogPaginationConfig::class]);
-    
+
         $globalStorage = new InMemoryConfigStorage();
         $scopedStorage = new InMemoryScopedConfigStorage();
-    
+
         // Store a per-market override: defaultPageSize = 48 for market 'de'
-    $scopedStorage->saveOverride('catalog/pagination.defaultPageSize', 'market:de', 48);
-    
+        $scopedStorage->saveOverride('catalog/pagination.defaultPageSize', 'market:de', 48);
+
         $enumerator = new SignatureCandidateEnumerator($scopeRegistry);
         $overrideMatcher = new OverrideMatcher($enumerator);
         $scopeContext = new ScopeContext($scopeRegistry);
-    
+
         $scopedFieldRegistry = new ScopedFieldRegistry($scopeRegistry);
         $scopedFieldRegistry->register(CatalogPaginationConfig::class, 'defaultPageSize', ['market']);
-    
+
         $resolver = new ScopedConfigResolver(
             configRegistry: $configRegistry,
             configStorage: $globalStorage,
@@ -174,14 +174,14 @@ it(
             scopeContext: $scopeContext,
             scopedFieldRegistry: $scopedFieldRegistry,
         );
-    
+
         // Without market scope: falls back to default (24)
-    $result = $resolver->resolved(CatalogPaginationConfig::class, 'defaultPageSize');
+        $result = $resolver->resolved(CatalogPaginationConfig::class, 'defaultPageSize');
         expect($result)->toBe(24);
-    
+
         // With market 'de' scope: returns override (48)
-    $scopeContext->in('market', 'de');
+        $scopeContext->in('market', 'de');
         $result = $resolver->resolved(CatalogPaginationConfig::class, 'defaultPageSize');
         expect($result)->toBe(48);
-    }
+    },
 );

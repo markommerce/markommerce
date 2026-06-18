@@ -44,8 +44,7 @@ class CachingConfigResolver implements ConfigResolverInterface
     protected function buildCacheKey(
         string $configClass,
         string $field,
-    ): string
-    {
+    ): string {
         $definition = $this->configRegistry->definition($configClass, $field);
 
         return $definition->key;

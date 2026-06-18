@@ -26,8 +26,7 @@ class ScopePassRunner
     public function each(
         array $signatures,
         callable $fn,
-    ): void
-    {
+    ): void {
         $saved = $this->scopeContext->state();
 
         try {

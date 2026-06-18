@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Marko\Core\Container\ContainerInterface;
 use Marko\Core\Container\PreferenceRegistry;
+use Marko\Database\Connection\ConnectionInterface;
 use Markommerce\Config\Casting\ValueCaster;
 use Markommerce\Config\ConfigResolver;
 use Markommerce\Config\Contracts\ConfigCacheInterface;
@@ -14,6 +15,7 @@ use Markommerce\Config\Proxy\ProxyLocator;
 use Markommerce\Config\Registry\ConfigRegistry;
 use Markommerce\ConfigScope\Cache\ScopedCachingConfigResolver;
 use Markommerce\ConfigScope\Contracts\ScopedConfigStorageInterface;
+use Markommerce\ConfigScope\PgSql\PgsqlScopedConfigStorage;
 use Markommerce\ConfigScope\Resolution\OverrideMatcher;
 use Markommerce\ConfigScope\ScopedConfigResolver;
 use Markommerce\Scope\Attributes\Scoped;
@@ -26,6 +28,9 @@ return [
         'markommerce/scope' => '*',
     ],
     'bindings' => [
+        ScopedConfigStorageInterface::class => static function (ContainerInterface $container): PgsqlScopedConfigStorage {
+            return new PgsqlScopedConfigStorage($container->get(ConnectionInterface::class));
+        },
         ConfigResolver::class => static function (ContainerInterface $c): ScopedCachingConfigResolver {
             $base = new ScopedConfigResolver(
                 configRegistry: $c->get(ConfigRegistry::class),

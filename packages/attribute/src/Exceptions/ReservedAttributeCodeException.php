@@ -11,8 +11,7 @@ class ReservedAttributeCodeException extends MarkoException
     public static function forCode(
         string $entityType,
         string $code,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Attribute code '$code' is reserved for entity type '$entityType'",
             context: "Registering attribute '$code' for entity type '$entityType' — this code is reserved by the system and cannot be used for custom attributes",

@@ -117,7 +117,7 @@ it('accepts a trait-based entity as valid scopes storage (HasScopesInterface on 
     $validatorRegistry = makeValidatorRegistry();
     $scopeFactory = new ScopeMetadataFactory(
         $validatorRegistry,
-        new ScopedFieldRegistry(scopeRegistry: $validatorRegistry)
+        new ScopedFieldRegistry(scopeRegistry: $validatorRegistry),
     );
     $entityFactory = new EntityMetadataFactory();
     $validator = new ScopedEntityValidator($scopeFactory, $entityFactory);
@@ -129,7 +129,7 @@ it('accepts a companion that implements HasScopesInterface as valid scopes stora
     $validatorRegistry = makeValidatorRegistry();
     $scopeFactory = new ScopeMetadataFactory(
         $validatorRegistry,
-        new ScopedFieldRegistry(scopeRegistry: $validatorRegistry)
+        new ScopedFieldRegistry(scopeRegistry: $validatorRegistry),
     );
     $entityFactory = new EntityMetadataFactory();
     $entityFactory->linkExtenders(
@@ -145,7 +145,7 @@ it('accepts an entity with no scoped properties regardless of storage', function
     $validatorRegistry = makeValidatorRegistry();
     $scopeFactory = new ScopeMetadataFactory(
         $validatorRegistry,
-        new ScopedFieldRegistry(scopeRegistry: $validatorRegistry)
+        new ScopedFieldRegistry(scopeRegistry: $validatorRegistry),
     );
     $entityFactory = new EntityMetadataFactory();
     $validator = new ScopedEntityValidator($scopeFactory, $entityFactory);
@@ -159,7 +159,7 @@ it(
         $validatorRegistry = makeValidatorRegistry();
         $scopeFactory = new ScopeMetadataFactory(
             $validatorRegistry,
-            new ScopedFieldRegistry(scopeRegistry: $validatorRegistry)
+            new ScopedFieldRegistry(scopeRegistry: $validatorRegistry),
         );
         $entityFactory = new EntityMetadataFactory();
         $validator = new ScopedEntityValidator($scopeFactory, $entityFactory);
@@ -173,7 +173,7 @@ it('the missingScopesStorage exception message names the entity class and descri
     $validatorRegistry = makeValidatorRegistry();
     $scopeFactory = new ScopeMetadataFactory(
         $validatorRegistry,
-        new ScopedFieldRegistry(scopeRegistry: $validatorRegistry)
+        new ScopedFieldRegistry(scopeRegistry: $validatorRegistry),
     );
     $entityFactory = new EntityMetadataFactory();
     $validator = new ScopedEntityValidator($scopeFactory, $entityFactory);

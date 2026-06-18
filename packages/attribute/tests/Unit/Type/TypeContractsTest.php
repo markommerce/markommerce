@@ -129,8 +129,7 @@ it('allows a test double implementing AttributeTypeInterface to be instantiated'
         public function cast(
             mixed $raw,
             AttributeDefinitionInterface $definition,
-        ): mixed
-        {
+        ): mixed {
             return $raw;
         }
 

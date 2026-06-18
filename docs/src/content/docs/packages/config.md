@@ -3,7 +3,7 @@ title: markommerce/config
 description: Developer-declared, merchant-overridable, per-scope configuration values for Markommerce stores.
 ---
 
-Developer-declared, merchant-overridable configuration values for Markommerce stores. `markommerce/config` lets module authors define typed configuration classes whose properties carry default values that merchants can override at runtime without touching code. The package ships attributes, a resolver, a writer, a code-generation CLI, and an in-memory storage fake for testing --- but no database driver. Install `markommerce/config-pgsql` for PostgreSQL persistence. For per-scope overrides (locale, market, channel), install `markommerce/config-scope`.
+Developer-declared, merchant-overridable configuration values for Markommerce stores. `markommerce/config` lets module authors define typed configuration classes whose properties carry default values that merchants can override at runtime without touching code. The package ships attributes, a resolver, a writer, a code-generation CLI, an in-memory storage fake for testing, and a bundled PostgreSQL storage implementation — no separate driver package is required. For per-scope overrides (locale, market, channel), install `markommerce/config-scope`.
 
 > **Not `marko/config`** --- this package manages merchant-editable store settings (e.g. "items per page", "welcome message"). Marko's own `marko/config` handles static environment configuration (env vars, config files). The two systems are unrelated.
 
@@ -13,11 +13,7 @@ Developer-declared, merchant-overridable configuration values for Markommerce st
 composer require markommerce/config
 ```
 
-A storage driver is also required. Install the PostgreSQL driver:
-
-```bash
-composer require markommerce/config-pgsql
-```
+The package ships its PostgreSQL implementation directly — no additional driver package is required.
 
 ## Usage
 
@@ -344,5 +340,5 @@ Value object representing a persisted config row.
 
 ## Related Packages
 
-- [markommerce/config-pgsql](/docs/packages/config-pgsql/) --- PostgreSQL storage driver
 - [markommerce/config-scope](/docs/packages/config-scope/) --- Scope-aware config resolution: per-locale, per-market, per-channel overrides
+- [marko/database-pgsql](https://marko.build/docs/packages/database-pgsql/) --- PostgreSQL database driver (framework-level dependency)

@@ -51,11 +51,11 @@ it(
     function (): void {
         $readmePath = dirname(__DIR__, 2) . '/README.md';
         $content = file_get_contents($readmePath);
-    
+
         expect($content)
             ->toContain('catalog-scope')
             ->toContain('optional');
-    }
+    },
 );
 
 it(
@@ -63,9 +63,9 @@ it(
     function (): void {
         $readmePath = dirname(__DIR__, 2) . '/README.md';
         $content = file_get_contents($readmePath);
-    
+
         expect($content)->toContain('catalog-storefront');
-    }
+    },
 );
 
 it(
@@ -73,9 +73,9 @@ it(
     function (): void {
         $readmePath = dirname(__DIR__, 2) . '/README.md';
         $content = file_get_contents($readmePath);
-    
+
         expect($content)->toContain('catalog-market-category-trees');
-    }
+    },
 );
 
 it(
@@ -83,7 +83,7 @@ it(
     function (): void {
         $readmePath = dirname(__DIR__, 2) . '/README.md';
         $content = file_get_contents($readmePath);
-    
+
         expect($content)->toContain('catalog-market-category-trees');
-    }
+    },
 );

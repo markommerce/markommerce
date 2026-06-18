@@ -163,8 +163,7 @@ class AttributeIndexerFakeIndexRepository
     public function replaceForProducts(
         array $productIds,
         array $rows,
-    ): void
-    {
+    ): void {
         $this->replacedIds = array_merge($this->replacedIds, $productIds);
         $this->replacedRows = array_merge($this->replacedRows, $rows);
     }
@@ -193,8 +192,7 @@ class SpyProductAttributeIndexRepository extends ProductAttributeIndexRepository
     public function replaceForProducts(
         array $productIds,
         array $rows,
-    ): void
-    {
+    ): void {
         $this->replacedIds = array_merge($this->replacedIds, $productIds);
         $this->replacedRows = array_merge($this->replacedRows, $rows);
     }
@@ -217,8 +215,7 @@ function makeAttributeIndexerRegistry(
         public function __construct(
             array $axesMap,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
 
             foreach ($axesMap as $name => $paths) {
@@ -501,48 +498,48 @@ it(
     'writes a scoped-signature row for each served signature of a scopable attribute even when the value equals base',
     function (): void {
         // Set up: store axis with two scopes: global (default) and global.us
-    [$defRepo, $scopedAccessor, $runner] = makeAttributeIndexerSetup(
+        [$defRepo, $scopedAccessor, $runner] = makeAttributeIndexerSetup(
             axesMap: ['store' => ['global', 'global.us']],
             defaults: ['store' => 'global'],
         );
-    
+
         // A scopable color attribute covering the 'store' axis
-    makeJsonAttrDef($defRepo, 'color', 'text', filterable: true, scopable: true, axes: ['store']);
-    
+        makeJsonAttrDef($defRepo, 'color', 'text', filterable: true, scopable: true, axes: ['store']);
+
         // Product with base value 'red' — no scoped override, so scoped value equals base
-    $p1 = makeProductWithScopedValues(
+        $p1 = makeProductWithScopedValues(
             1,
             baseValues: ['color' => 'red'],
             scopedOverrides: [],
         );
-    
+
         $productRepo = new AttributeIndexerFakeProductRepository([1 => $p1]);
         $indexRepo = new SpyProductAttributeIndexRepository();
-    
+
         // Provide the scoped signature for store axis
-    $servedScopes = new FakeServedScopesProvider([
+        $servedScopes = new FakeServedScopesProvider([
             'store' => [new ScopeSignature(['store' => 'global.us'])],
         ]);
-    
+
         $indexer = buildAttributeIndexer($productRepo, $defRepo, $scopedAccessor, $runner, $servedScopes, $indexRepo);
         $indexer->reindex([1]);
-    
+
         // Should have: 1 base row (scope='') + 1 scoped row (scope='store:global.us'), both 'red'
-    expect($indexRepo->replacedRows)->toHaveCount(2);
-    
+        expect($indexRepo->replacedRows)->toHaveCount(2);
+
         $bySignature = [];
-    
+
         foreach ($indexRepo->replacedRows as $row) {
             $bySignature[$row->scopeSignature] = $row;
         }
-    
+
         expect($bySignature)->toHaveKey('')
             ->and($bySignature['']->valueText)->toBe('red');
-    
+
         expect($bySignature)->toHaveKey('store:global.us')
             ->and($bySignature['store:global.us']->valueText)->toBe('red')
             ->and($bySignature['store:global.us']->attributeCode)->toBe('color');
-    }
+    },
 );
 
 it('indexes a non-scopable attribute once under the base signature', function (): void {

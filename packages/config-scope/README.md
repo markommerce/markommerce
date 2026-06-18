@@ -8,11 +8,7 @@ Scope-aware config resolution for Markommerce --- bridges `markommerce/config` a
 composer require markommerce/config-scope
 ```
 
-A PostgreSQL driver is also required:
-
-```bash
-composer require markommerce/config-scope-pgsql
-```
+The package ships its PostgreSQL implementation directly — no separate driver package is required.
 
 ## Quick Example
 

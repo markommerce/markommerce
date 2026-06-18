@@ -25,8 +25,7 @@ function makeOverrideMatcherRegistry(array $axes = [], array $defaults = []): Sc
         public function __construct(
             array $axes,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
                 $default = $defaults[$name] ?? '__test_default';
@@ -84,15 +83,15 @@ it(
         $registry = makeOverrideMatcherRegistry(['locale' => ['en']]);
         $context = new ScopeContext($registry);
         $context->in('locale', 'en');
-    
+
         $enumerator = new SignatureCandidateEnumerator($registry);
         $matcher = new OverrideMatcher($enumerator);
-    
+
         $overrides = ['locale:en' => 'override-value'];
         $result = $matcher->match($overrides, ['locale'], $context);
-    
+
         expect($result)->toBe('override-value');
-    }
+    },
 );
 
 it('returns null from OverrideMatcher match when no signature matches the current ScopeContext', function (): void {

@@ -8,11 +8,7 @@ Scoped attributes for entities with multi-axis hierarchical fallback.
 composer require markommerce/scope
 ```
 
-A driver package is also required:
-
-```bash
-composer require markommerce/scope-pgsql
-```
+The package ships its PostgreSQL implementation directly — no separate driver package is required.
 
 ## Quick Example
 

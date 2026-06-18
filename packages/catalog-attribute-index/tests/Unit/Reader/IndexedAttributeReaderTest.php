@@ -32,8 +32,7 @@ function makeIarRegistry(array $axes = [], array $defaults = []): ScopeRegistryI
         public function __construct(
             array $axes,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
             foreach ($axes as $name => $paths) {
                 $default = $defaults[$name] ?? '__test_default';
@@ -115,8 +114,7 @@ function makeFakeIndexRepo(array $indexData = []): ProductAttributeIndexReposito
             int $productId,
             string $code,
             string $signature,
-        ): array
-        {
+        ): array {
             $key = "$productId|$code|$signature";
 
             return $this->indexData[$key] ?? [];
@@ -133,8 +131,7 @@ function makeFakeScopedAccessor(mixed $returnValue): ScopedProductAttributeAcces
         public function resolve(
             Product $product,
             string $code,
-        ): mixed
-        {
+        ): mixed {
             return $this->returnValue;
         }
     };
@@ -399,8 +396,7 @@ it('enumerates candidate signatures via SignatureCandidateEnumerator from the sc
         public function enumerate(
             array $attributeAxes,
             ScopeContext $context,
-        ): array
-        {
+        ): array {
             $this->capturedAxes = $attributeAxes;
             $this->capturedContext = $context;
 

@@ -24,8 +24,7 @@ readonly class DateType implements AttributeTypeInterface
     public function cast(
         mixed $raw,
         AttributeDefinitionInterface $definition,
-    ): mixed
-    {
+    ): mixed {
         if ($raw instanceof DateTimeImmutable) {
             return $raw->format(self::CANONICAL_FORMAT);
         }

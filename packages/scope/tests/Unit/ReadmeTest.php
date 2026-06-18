@@ -3,13 +3,13 @@
 declare(strict_types=1);
 
 it(
-    'has a README.md with title # markommerce/scope and a single driver install line for markommerce/scope-pgsql',
+    'has a README.md with title # markommerce/scope and ships Postgres implementation directly (no separate driver package)',
     function (): void {
         $readmePath = dirname(__DIR__, 2) . '/README.md';
         $content = file_get_contents($readmePath);
 
         expect($content)->toContain('# markommerce/scope')
-            ->and($content)->toContain('markommerce/scope-pgsql');
+            ->and($content)->not->toContain('markommerce/scope-pgsql');
     },
 );
 

@@ -26,8 +26,7 @@ function makeServedScopesRegistry(array $axesMap = [], array $defaults = []): Sc
         public function __construct(
             array $axesMap,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
             foreach ($axesMap as $name => $paths) {
                 $default = $defaults[$name] ?? '__default';

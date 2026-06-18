@@ -11,8 +11,7 @@ class AttributeDefinitionNotFoundException extends MarkoException
     public static function forCode(
         string $entityType,
         string $code,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Attribute definition '$code' not found for entity type '$entityType'",
             context: "Looking up attribute definition '$code' for entity type '$entityType' — no definition is registered with this code",

@@ -11,8 +11,7 @@ class DuplicateAttributeCodeException extends MarkoException
     public static function forCode(
         string $entityType,
         string $code,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Attribute code '$code' already exists for entity type '$entityType'",
             context: "Registering attribute '$code' for entity type '$entityType' — an attribute with this code is already registered",

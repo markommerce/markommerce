@@ -48,7 +48,6 @@ function makeLayeredNavProfile(): StoreProfile
         'markommerce/catalog-attribute-index',
         'markommerce/locale',
         'marko/database-pgsql',
-        'markommerce/attribute-pgsql',
     )->withLocales('default', 'en', 'de');
 }
 
@@ -376,7 +375,10 @@ it('resolves facet values and filtering for the active scope', function (): void
         // Filter color=rot under locale:de → should return p1 and p3
         $deFilteredPage = null;
         $testCase->store->inScope(null, 'de', function () use (
-            $service, $categoryId, $options, &$deFilteredPage,
+            $service,
+            $categoryId,
+            $options,
+            &$deFilteredPage,
         ): void {
             $deFilteredPage = $service->paginatedProductsInCategory(
                 $categoryId,

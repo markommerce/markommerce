@@ -157,20 +157,20 @@ it(
             nodeRepo: $nodeRepo,
             categoryRepo: $categoryRepo,
         );
-    
+
         $tree = makeTreeForMaterialization($treeRepo);
         $cat = makeCategoryForMaterialization($categoryRepo, 'Cat1');
         makeNodeForMaterialization($nodeRepo, $tree->id, $cat->id, null, 0);
-    
+
         $callsBefore = count($nodeRepo->callLog);
-    
+
         $service->getMaterializedTree($tree->id);
         $service->getMaterializedTree($tree->id);
-    
+
         $callsAfter = count($nodeRepo->callLog);
-    
+
         expect($callsAfter - $callsBefore)->toBe(1);
-    }
+    },
 );
 
 it('moveNode invalidates the cached materialization for the affected tree', function (): void {

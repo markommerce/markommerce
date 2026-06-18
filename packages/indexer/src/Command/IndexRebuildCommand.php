@@ -22,8 +22,7 @@ readonly class IndexRebuildCommand implements CommandInterface
     public function execute(
         Input $input,
         Output $output,
-    ): int
-    {
+    ): int {
         $chunkOption = $input->getOption('chunk');
         $chunkSize = $chunkOption !== null ? (int) $chunkOption : 500;
 

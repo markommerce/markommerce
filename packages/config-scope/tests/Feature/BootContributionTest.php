@@ -57,12 +57,6 @@ function bootConfigScopeContainer(
     $basePath = sys_get_temp_dir() . '/markommerce-config-scope-test-' . uniqid();
     $container->instance(ProjectPaths::class, new ProjectPaths($basePath));
 
-    // Bind InMemoryConfigStorage as the test double for ConfigStorageInterface
-    $container->bind(ConfigStorageInterface::class, InMemoryConfigStorage::class);
-
-    // Bind InMemoryScopedConfigStorage as the test double for ScopedConfigStorageInterface
-    $container->bind(ScopedConfigStorageInterface::class, InMemoryScopedConfigStorage::class);
-
     // Boot scope module bindings/singletons (so ScopeRegistryInterface and ScopedFieldRegistry are available)
     $scopeModule = require dirname(__DIR__, 3) . '/scope/module.php';
     foreach ($scopeModule['singletons'] as $singleton) {
@@ -103,6 +97,14 @@ function bootConfigScopeContainer(
         $container->call($configScopeModule['boot']);
     }
 
+    // Bind test doubles AFTER the module bindings so they override PgsqlConfigStorage and
+    // PgsqlScopedConfigStorage (config's module + config-scope's module provide pgsql bindings;
+    // unit tests use in-memory doubles)
+    $container->bind(ConfigStorageInterface::class, InMemoryConfigStorage::class);
+
+    // Bind InMemoryScopedConfigStorage as the test double for ScopedConfigStorageInterface
+    $container->bind(ScopedConfigStorageInterface::class, InMemoryScopedConfigStorage::class);
+
     return $container;
 }
 
@@ -114,11 +116,11 @@ it(
         $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-boot-test-' . uniqid();
         $srcDir = $tempModuleDir . '/src/Config';
         mkdir($srcDir, 0755, true);
-    
+
         $namespace = 'Markommerce\\ConfigScope\\Tests\\TempBoot\\Config';
         $className = 'TempBootConfig' . uniqid('', false);
         $fqn = $namespace . '\\' . $className;
-    
+
         file_put_contents($srcDir . '/' . $className . '.php', <<<PHP
         <?php
         declare(strict_types=1);
@@ -131,25 +133,25 @@ it(
             public string \$value = 'default';
         }
         PHP);
-    
+
         require $srcDir . '/' . $className . '.php';
-    
+
         $manifest = new ModuleManifest(
             name: 'test/temp-boot',
             version: '1.0.0',
             path: $tempModuleDir,
             source: 'vendor',
         );
-    
+
         $container = bootConfigScopeContainer(
             axisNames: ['locale'],
             extraModules: [$manifest],
         );
-    
+
         $registry = $container->get(ScopedFieldRegistry::class);
-    
+
         expect($registry->axesForProperty($fqn, 'value'))->toBe(['locale']);
-    }
+    },
 );
 
 it('does not register any axes when a config class has no #[Scoped] property', function (): void {
@@ -197,11 +199,11 @@ it(
         $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-compound-test-' . uniqid();
         $srcDir = $tempModuleDir . '/src/Config';
         mkdir($srcDir, 0755, true);
-    
+
         $namespace = 'Markommerce\\ConfigScope\\Tests\\TempCompound\\Config';
         $className = 'TempCompoundConfig' . uniqid('', false);
         $fqn = $namespace . '\\' . $className;
-    
+
         file_put_contents($srcDir . '/' . $className . '.php', <<<PHP
         <?php
         declare(strict_types=1);
@@ -214,25 +216,25 @@ it(
             public string \$value = 'default';
         }
         PHP);
-    
+
         require $srcDir . '/' . $className . '.php';
-    
+
         $manifest = new ModuleManifest(
             name: 'test/temp-compound',
             version: '1.0.0',
             path: $tempModuleDir,
             source: 'vendor',
         );
-    
+
         $container = bootConfigScopeContainer(
             axisNames: ['locale', 'market'],
             extraModules: [$manifest],
         );
-    
+
         $registry = $container->get(ScopedFieldRegistry::class);
-    
+
         expect($registry->axesForProperty($fqn, 'value'))->toBe(['locale', 'market']);
-    }
+    },
 );
 
 it(
@@ -241,10 +243,10 @@ it(
         $tempModuleDir = sys_get_temp_dir() . '/markommerce-cs-unknownaxis-test-' . uniqid();
         $srcDir = $tempModuleDir . '/src/Config';
         mkdir($srcDir, 0755, true);
-    
+
         $namespace = 'Markommerce\\ConfigScope\\Tests\\TempUnknownAxis\\Config';
         $className = 'TempUnknownAxisConfig' . uniqid('', false);
-    
+
         file_put_contents($srcDir . '/' . $className . '.php', <<<PHP
         <?php
         declare(strict_types=1);
@@ -257,39 +259,39 @@ it(
             public string \$value = 'default';
         }
         PHP);
-    
+
         require $srcDir . '/' . $className . '.php';
-    
+
         $manifest = new ModuleManifest(
             name: 'test/temp-unknownaxis',
             version: '1.0.0',
             path: $tempModuleDir,
             source: 'vendor',
         );
-    
+
         // No axes registered in scope, but the class references 'nonexistent_axis'
-    expect(fn () => bootConfigScopeContainer(
+        expect(fn () => bootConfigScopeContainer(
             axisNames: [],
             extraModules: [$manifest],
         ))->toThrow(UnknownAxisException::class);
-    }
+    },
 );
 
 it(
     'returns the ScopedCachingConfigResolver from container::get(ConfigResolver::class) when all module manifests are booted and PreferenceRegistry is wired (verifies the binding wins over the Tier 1 factory + Preference autowiring path)',
     function (): void {
         // Set the env variable required by SecretCipherInterface
-    $key = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
+        $key = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
         putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $key);
-    
+
         try {
             $container = bootConfigScopeContainer(axisNames: ['locale']);
-    
+
             $resolver = $container->get(ConfigResolver::class);
-    
+
             expect($resolver)->toBeInstanceOf(ScopedCachingConfigResolver::class);
         } finally {
             putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
         }
-    }
+    },
 );

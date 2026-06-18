@@ -24,7 +24,6 @@ use Markommerce\Catalog\Tests\Support\FakeProductCategoryAssignmentRepository;
 use Markommerce\Catalog\Tests\Support\FakeProductRepository;
 use Markommerce\CatalogPriceIndex\Contracts\ProductPriceIndexRepositoryInterface;
 use Markommerce\CatalogPriceIndex\Entity\ProductPriceIndexEntry;
-use Markommerce\CatalogStorefront\Component\ProductCard;
 use Markommerce\CatalogStorefront\Component\ProductGridComponent;
 use Markommerce\CatalogStorefront\Context\CategoryDataProvider;
 use Markommerce\CatalogStorefront\Controller\CategoryController;
@@ -209,8 +208,7 @@ function categoryLayoutMakeConfigResolver(array $values = []): ConfigResolverInt
         public function resolved(
             string $configClass,
             string $field,
-        ): mixed
-        {
+        ): mixed {
             return $this->values[$field] ?? null;
         }
     };
@@ -250,8 +248,7 @@ function categoryLayoutMakeFakeConnection(): ConnectionInterface
         public function query(
             string $sql,
             array $bindings = [],
-        ): array
-        {
+        ): array {
             return [];
         }
 
@@ -261,8 +258,7 @@ function categoryLayoutMakeFakeConnection(): ConnectionInterface
         public function execute(
             string $sql,
             array $bindings = [],
-        ): int
-        {
+        ): int {
             return 0;
         }
 
@@ -298,8 +294,7 @@ function categoryLayoutMakeAssignmentService(
             int $categoryId,
             ResolvedPaginationOptions $options,
             FilterSelection $filters = new FilterSelection(),
-        ): Page
-        {
+        ): Page {
             $products = $this->productsInCategory($categoryId);
 
             return new OffsetPage(

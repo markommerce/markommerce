@@ -22,8 +22,7 @@ class CategoryTreeMarketAssignmentService
     public function assignTreeToMarket(
         int $treeId,
         string $market,
-    ): void
-    {
+    ): void {
         $tree = $this->categoryTreeRepository->find($treeId);
 
         if ($tree === null) {

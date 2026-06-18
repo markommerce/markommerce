@@ -8,12 +8,6 @@ Binds the `markommerce/attribute` kernel to `Product` — adds custom attribute 
 composer require markommerce/catalog-attribute
 ```
 
-A storage driver is also required:
-
-```bash
-composer require markommerce/attribute-pgsql
-```
-
 ## Quick Example
 
 The package auto-wires itself at boot. `ProductAttributeAccessor` implements `AttributeValueAccessorInterface` and handles both JSON-stored custom attributes and native column-backed static attributes:

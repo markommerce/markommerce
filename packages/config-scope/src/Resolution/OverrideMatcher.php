@@ -23,8 +23,7 @@ class OverrideMatcher
         array $overrides,
         array $axes,
         ScopeContext $context,
-    ): mixed
-    {
+    ): mixed {
         if ($overrides === []) {
             return null;
         }

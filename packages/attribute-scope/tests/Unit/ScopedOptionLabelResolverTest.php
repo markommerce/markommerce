@@ -35,8 +35,7 @@ function makeSolrRegistry(array $axesMap = [], array $defaults = []): ScopeRegis
         public function __construct(
             array $axesMap,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
             foreach ($axesMap as $name => $paths) {
                 $default = $defaults[$name] ?? '__default';
@@ -149,8 +148,7 @@ function makeSolr(
         public function findByCode(
             string $entityType,
             string $code,
-        ): ?AttributeDefinition
-        {
+        ): ?AttributeDefinition {
             return null;
         }
 
@@ -327,8 +325,7 @@ it('resolves using the axes declared for the owning attribute', function (): voi
         public function findByCode(
             string $entityType,
             string $code,
-        ): ?AttributeDefinition
-        {
+        ): ?AttributeDefinition {
             return null;
         }
 

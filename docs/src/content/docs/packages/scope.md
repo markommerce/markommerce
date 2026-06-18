@@ -3,7 +3,7 @@ title: markommerce/scope
 description: Scoped entity attributes with multi-axis hierarchical fallback.
 ---
 
-Scoped attributes for entities with multi-axis hierarchical fallback. `markommerce/scope` defines the contracts and core logic for attaching per-scope override values to entity properties. Each property marked `#[Scoped]` can carry different values across multiple independent axes (e.g. `locale`, `market`, `channel`), with automatic walk-up through the declared hierarchy when no exact match exists. The package ships the `#[Scoped]` attribute, `ScopeContext`, `ScopeResolver`, `ScopeSignature`, `HasScopesInterface`, the `HasScopes` trait, and `ScopedOrderBy` query specification --- but no database driver. Applications must install `markommerce/scope-pgsql` to persist and query overrides. Scope storage is provided by the `HasScopes` trait: entities implement `HasScopesInterface` and include the trait, which declares a `$scopes` JSON column automatically.
+Scoped attributes for entities with multi-axis hierarchical fallback. `markommerce/scope` defines the contracts and core logic for attaching per-scope override values to entity properties. Each property marked `#[Scoped]` can carry different values across multiple independent axes (e.g. `locale`, `market`, `channel`), with automatic walk-up through the declared hierarchy when no exact match exists. The package ships the `#[Scoped]` attribute, `ScopeContext`, `ScopeResolver`, `ScopeSignature`, `HasScopesInterface`, the `HasScopes` trait, and `ScopedOrderBy` query specification. The PostgreSQL implementation (JSONB storage, GIN index, scoped `ORDER BY`) is bundled directly — no separate driver package is required. Scope storage is provided by the `HasScopes` trait: entities implement `HasScopesInterface` and include the trait, which declares a `$scopes` JSON column automatically.
 
 ## Installation
 
@@ -11,11 +11,7 @@ Scoped attributes for entities with multi-axis hierarchical fallback. `markommer
 composer require markommerce/scope
 ```
 
-No field renderer is bound by default. You must also install a driver package:
-
-```bash
-composer require markommerce/scope-pgsql
-```
+The package ships its PostgreSQL implementation directly. No additional driver package is required.
 
 ## Configuration
 
@@ -850,7 +846,6 @@ If the resolver needs constructor arguments that are not in the container, use t
 
 ## Related Packages
 
-- [markommerce/scope-pgsql](/docs/packages/scope-pgsql/) --- PostgreSQL driver
 - [markommerce/catalog-locale](/docs/packages/catalog-locale/) --- Canonical bridge example: registers catalog `Product` and `Category` fields as locale-scoped via `ScopedFieldRegistry` at boot
 - [markommerce/locale](/docs/packages/locale/) --- Declares the `locale` axis for the scope system
 - [markommerce/catalog-scope](/docs/packages/catalog-scope/) --- Adds scope storage to catalog entities via companion entities

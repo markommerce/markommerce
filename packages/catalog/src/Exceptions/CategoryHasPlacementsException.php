@@ -11,8 +11,7 @@ class CategoryHasPlacementsException extends MarkoException
     public static function forCategory(
         int $categoryId,
         int $placementCount,
-    ): self
-    {
+    ): self {
         return new self(
             message: "Cannot delete category $categoryId: it still has $placementCount placement(s)",
             context: "While deleting category $categoryId",

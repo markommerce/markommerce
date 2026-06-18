@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Marko\Database\Connection\ConnectionInterface;
 use Markommerce\Attribute\Entity\AttributeDefinition;
 use Markommerce\Catalog\Filtering\FilterSelection;
 use Markommerce\CatalogAttributeIndex\Facet\AttributeFacetQuery;
@@ -35,8 +34,7 @@ function makeFacetQueryRegistry(
         public function __construct(
             array $axesMap,
             array $defaults = [],
-        )
-        {
+        ) {
             $this->builtAxes = [];
 
             foreach ($axesMap as $name => $paths) {

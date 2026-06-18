@@ -99,7 +99,7 @@ function buildConfigScopePgsqlManifests(): array
 {
     $resolver = new ModuleResolver(bootstrapperVendorDir());
 
-    return $resolver->resolveFrom(['markommerce/config-scope-pgsql', 'markommerce/config-pgsql']);
+    return $resolver->resolveFrom(['markommerce/config-scope', 'markommerce/config']);
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -505,35 +505,35 @@ it(
     'skips the ConfigResolver and CachingConfigResolver preferences so the explicit factory binding wins',
     function (): void {
         // config/module.php binds SecretCipherInterface which reads MARKOMMERCE_CONFIG_SECRET_KEY
-    $envKey = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
+        $envKey = base64_encode(str_repeat('k', SODIUM_CRYPTO_SECRETBOX_KEYBYTES));
         putenv('MARKOMMERCE_CONFIG_SECRET_KEY=' . $envKey);
-    
+
         try {
             $manifests = buildConfigScopeManifests();
             $config = bootstrapperConfig();
             $connection = new NullConnection();
-    
+
             $bootstrapper = new ContainerBootstrapper();
             $registry = $bootstrapper->discoverPreferences($manifests);
-    
+
             // ConfigResolver and CachingConfigResolver preferences must be skipped
-        // so the explicit factory from config-scope/module.php wins
-        expect($registry->getPreference(ConfigResolver::class))->toBeNull();
+            // so the explicit factory from config-scope/module.php wins
+            expect($registry->getPreference(ConfigResolver::class))->toBeNull();
             expect($registry->getPreference(CachingConfigResolver::class))->toBeNull();
-    
+
             // Build the container and add null storage bindings so the resolution chain works
-        $container = $bootstrapper->build($manifests, $config, $connection);
+            $container = $bootstrapper->build($manifests, $config, $connection);
             $container->instance(ConfigStorageInterface::class, new NullConfigStorage());
             $container->instance(ScopedConfigStorageInterface::class, new NullScopedConfigStorage());
-    
+
             // Boot populates ConfigRegistry singleton (needed to resolve ConfigResolver)
-        $bootstrapper->boot($container, $manifests);
-    
+            $bootstrapper->boot($container, $manifests);
+
             $resolver = $container->get(ConfigResolver::class);
             // The explicit factory from config-scope/module.php returns ScopedCachingConfigResolver
-        expect($resolver)->toBeInstanceOf(ScopedCachingConfigResolver::class);
+            expect($resolver)->toBeInstanceOf(ScopedCachingConfigResolver::class);
         } finally {
             putenv('MARKOMMERCE_CONFIG_SECRET_KEY');
         }
-    }
+    },
 );

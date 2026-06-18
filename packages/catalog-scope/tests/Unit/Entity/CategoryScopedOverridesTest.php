@@ -14,25 +14,25 @@ it(
     function (): void {
         $reflection = new ReflectionClass(CategoryScopedOverrides::class);
         $attributes = $reflection->getAttributes(Table::class);
-    
+
         expect($attributes)->toHaveCount(1);
-    
+
         $table = $attributes[0]->newInstance();
-    
+
         expect($table->extends)->toBe(Category::class)
             ->and($table->name)->toBeNull();
-    
+
         // The only Column-annotated property must be 'scopes' (from HasScopes trait)
-    // No additional custom columns declared directly on the class
-    $columnProperties = array_filter(
+        // No additional custom columns declared directly on the class
+        $columnProperties = array_filter(
             $reflection->getProperties(ReflectionProperty::IS_PUBLIC),
             fn (ReflectionProperty $p) => count($p->getAttributes(Column::class)) > 0,
         );
-    
+
         $columnNames = array_map(fn (ReflectionProperty $p) => $p->getName(), $columnProperties);
-    
+
         expect(array_values($columnNames))->toBe(['scopes']);
-    }
+    },
 );
 
 it('has CategoryScopedOverrides implement HasScopesInterface via the HasScopes trait', function (): void {

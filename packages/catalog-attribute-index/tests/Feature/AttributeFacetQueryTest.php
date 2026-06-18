@@ -38,7 +38,6 @@ function makeAttrFacetProfile(): StoreProfile
         'markommerce/catalog-attribute-index',
         'markommerce/locale',
         'marko/database-pgsql',
-        'markommerce/attribute-pgsql',
     )->withLocales('default', 'en', 'de');
 }
 
@@ -97,14 +96,20 @@ it('returns facet value counts for a facetable attribute in a category', functio
         $colorDef->config = [];
 
         $service->create($colorDef, [
-            (function (): AttributeOption { $o = new AttributeOption(); $o->value = 'red'; $o->label = 'Red';
+            (function (): AttributeOption {
+                $o = new AttributeOption();
+                $o->value = 'red';
+                $o->label = 'Red';
 
-return $o;
- })(),
-            (function (): AttributeOption { $o = new AttributeOption(); $o->value = 'blue'; $o->label = 'Blue';
+                return $o;
+            })(),
+            (function (): AttributeOption {
+                $o = new AttributeOption();
+                $o->value = 'blue';
+                $o->label = 'Blue';
 
-return $o;
- })(),
+                return $o;
+            })(),
         ]);
 
         /** @var ProductAttributeAccessor $globalAccessor */
@@ -189,14 +194,20 @@ it('counts distinct products per value at the resolved scope signature', functio
         $colorDef->config = ['axes' => ['locale']];
 
         $service->create($colorDef, [
-            (function (): AttributeOption { $o = new AttributeOption(); $o->value = 'red'; $o->label = 'Red';
+            (function (): AttributeOption {
+                $o = new AttributeOption();
+                $o->value = 'red';
+                $o->label = 'Red';
 
-return $o;
- })(),
-            (function (): AttributeOption { $o = new AttributeOption(); $o->value = 'rot'; $o->label = 'Rot';
+                return $o;
+            })(),
+            (function (): AttributeOption {
+                $o = new AttributeOption();
+                $o->value = 'rot';
+                $o->label = 'Rot';
 
-return $o;
- })(),
+                return $o;
+            })(),
         ]);
 
         /** @var ProductAttributeAccessor $globalAccessor */
@@ -286,18 +297,27 @@ it('computes a facet disjunctively ignoring that facet\'s own selected values', 
         $colorDef->config = [];
 
         $service->create($colorDef, [
-            (function (): AttributeOption { $o = new AttributeOption(); $o->value = 'red'; $o->label = 'Red';
+            (function (): AttributeOption {
+                $o = new AttributeOption();
+                $o->value = 'red';
+                $o->label = 'Red';
 
-return $o;
- })(),
-            (function (): AttributeOption { $o = new AttributeOption(); $o->value = 'blue'; $o->label = 'Blue';
+                return $o;
+            })(),
+            (function (): AttributeOption {
+                $o = new AttributeOption();
+                $o->value = 'blue';
+                $o->label = 'Blue';
 
-return $o;
- })(),
-            (function (): AttributeOption { $o = new AttributeOption(); $o->value = 'green'; $o->label = 'Green';
+                return $o;
+            })(),
+            (function (): AttributeOption {
+                $o = new AttributeOption();
+                $o->value = 'green';
+                $o->label = 'Green';
 
-return $o;
- })(),
+                return $o;
+            })(),
         ]);
 
         /** @var ProductAttributeAccessor $globalAccessor */
@@ -385,24 +405,36 @@ it('applies other attributes\' selected filters when counting a facet', function
         $sizeDef->config = [];
 
         $service->create($colorDef, [
-            (function (): AttributeOption { $o = new AttributeOption(); $o->value = 'red'; $o->label = 'Red';
+            (function (): AttributeOption {
+                $o = new AttributeOption();
+                $o->value = 'red';
+                $o->label = 'Red';
 
-return $o;
- })(),
-            (function (): AttributeOption { $o = new AttributeOption(); $o->value = 'blue'; $o->label = 'Blue';
+                return $o;
+            })(),
+            (function (): AttributeOption {
+                $o = new AttributeOption();
+                $o->value = 'blue';
+                $o->label = 'Blue';
 
-return $o;
- })(),
+                return $o;
+            })(),
         ]);
         $service->create($sizeDef, [
-            (function (): AttributeOption { $o = new AttributeOption(); $o->value = 'S'; $o->label = 'Small';
+            (function (): AttributeOption {
+                $o = new AttributeOption();
+                $o->value = 'S';
+                $o->label = 'Small';
 
-return $o;
- })(),
-            (function (): AttributeOption { $o = new AttributeOption(); $o->value = 'L'; $o->label = 'Large';
+                return $o;
+            })(),
+            (function (): AttributeOption {
+                $o = new AttributeOption();
+                $o->value = 'L';
+                $o->label = 'Large';
 
-return $o;
- })(),
+                return $o;
+            })(),
         ]);
 
         /** @var ProductAttributeAccessor $globalAccessor */
@@ -495,14 +527,20 @@ it('marks selected values in the returned facet', function (): void {
         $colorDef->config = [];
 
         $service->create($colorDef, [
-            (function (): AttributeOption { $o = new AttributeOption(); $o->value = 'red'; $o->label = 'Red';
+            (function (): AttributeOption {
+                $o = new AttributeOption();
+                $o->value = 'red';
+                $o->label = 'Red';
 
-return $o;
- })(),
-            (function (): AttributeOption { $o = new AttributeOption(); $o->value = 'blue'; $o->label = 'Blue';
+                return $o;
+            })(),
+            (function (): AttributeOption {
+                $o = new AttributeOption();
+                $o->value = 'blue';
+                $o->label = 'Blue';
 
-return $o;
- })(),
+                return $o;
+            })(),
         ]);
 
         /** @var ProductAttributeAccessor $globalAccessor */
